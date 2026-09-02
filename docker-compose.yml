@@ -1,0 +1,126 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: powerforge
+      POSTGRES_PASSWORD: powerforge
+      POSTGRES_DB: powerforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U powerforge -d powerforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: powerforge
+      MINIO_ROOT_PASSWORD: powerforge_minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    restart: on-failure
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "sleep 4 &&
+      mc alias set local http://minio:9000 powerforge powerforge_minio &&
+      mc mb --ignore-existing local/powerforge"
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://powerforge:powerforge@postgres:5432/powerforge
+      REDIS_URL: redis://redis:6379/0
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_ACCESS_KEY: powerforge
+      S3_SECRET_KEY: powerforge_minio
+      S3_BUCKET: powerforge
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      LOG_LEVEL: INFO
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      API_INTERNAL_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+  document-worker:
+    build:
+      context: .
+      dockerfile: services/worker.Dockerfile
+      args:
+        WORKER_PACKAGE: document-worker
+        CELERY_APP: document_worker.celery_app
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql+psycopg://powerforge:powerforge@postgres:5432/powerforge
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  extraction-worker:
+    build:
+      context: .
+      dockerfile: services/worker.Dockerfile
+      args:
+        WORKER_PACKAGE: extraction-worker
+        CELERY_APP: extraction_worker.celery_app
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  validation-worker:
+    build:
+      context: .
+      dockerfile: services/worker.Dockerfile
+      args:
+        WORKER_PACKAGE: validation-worker
+        CELERY_APP: validation_worker.celery_app
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  minio_data:

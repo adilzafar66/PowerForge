@@ -1,0 +1,13 @@
+[project]
+name = "powerforge-document-model"
+version = "0.1.0"
+description = "Document classification and document-domain vocabulary."
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

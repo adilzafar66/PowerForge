@@ -1,0 +1,1616 @@
+You are the lead software architect and senior full-stack/AI engineer responsible for designing and implementing an engineering data extraction platform.
+
+Your task is to build a production-oriented web application that ingests electrical engineering documents and images, extracts structured electrical system information using AI/computer vision/OCR, reconciles information across documents, and constructs a centralized, traceable electrical engineering model.
+
+IMPORTANT:
+This project is being developed incrementally. Do NOT attempt to implement the entire system in one pass.
+
+Your first responsibility is to understand and establish the architecture, domain model, module boundaries, and development roadmap.
+
+You must follow the architecture and engineering principles described below throughout the project.
+
+============================================================
+1. PRODUCT OBJECTIVE
+============================================================
+
+The application will allow an electrical engineer to create a project and upload a collection of engineering documents and images, including but not limited to:
+
+- Single-line diagrams
+- Electrical drawings
+- Panel schedules
+- Equipment schedules
+- Cable schedules
+- Transformer shop drawings
+- Switchgear shop drawings
+- Breaker documentation
+- Equipment datasheets
+- Nameplate photographs
+- Electrical room photographs
+- Utility/fault data
+- Specifications
+- Existing study documents
+- Scanned documents
+- Annotated drawings
+
+The system will process these sources and produce a centralized electrical engineering model containing:
+
+- Electrical equipment
+- Equipment attributes
+- Electrical topology
+- Connections
+- Protection devices
+- Sources
+- Transformers
+- Buses
+- Panels
+- MCCs
+- Switchgear
+- Cables
+- Motors
+- Loads
+- Generators
+- Other relevant electrical equipment
+
+Every extracted value should maintain traceability to its source document and preferably its exact page/region/bounding box.
+
+The system must also identify:
+
+- Low-confidence extraction
+- Missing information
+- Conflicting information
+- Duplicate entities
+- Potential entity matches
+- Unverified topology
+- Inferred information
+
+An engineer must remain the final authority over the engineering model.
+
+The AI should propose information, not silently make engineering decisions.
+
+============================================================
+2. CORE PRODUCT PHILOSOPHY
+============================================================
+
+The fundamental data flow is:
+
+SOURCE DOCUMENTS
+    ↓
+DOCUMENT PROCESSING
+    ↓
+AI EXTRACTION
+    ↓
+CANDIDATE DATA
+    ↓
+ENTITY RESOLUTION
+    ↓
+VALIDATION
+    ↓
+RECONCILIATION
+    ↓
+ENGINEERING MODEL
+    ↓
+ENGINEER REVIEW
+    ↓
+VERIFIED ENGINEERING MODEL
+
+The Engineering Model is the central source of truth after human verification.
+
+The original documents remain immutable evidence.
+
+The AI extraction layer must NEVER be treated as the source of truth.
+
+The engineering model must NEVER depend directly on a particular AI provider.
+
+The engineering model must NEVER depend on ETAP, SKM, EasyPower, or any other electrical analysis software.
+
+Do not introduce ETAP, SKM, EasyPower, short-circuit calculations, coordination calculations, arc-flash calculations, or report generation into the initial implementation.
+
+Those will eventually consume the engineering model but are explicitly OUT OF SCOPE for this application phase.
+
+============================================================
+3. HIGH-LEVEL ARCHITECTURE
+============================================================
+
+Use the following conceptual architecture:
+
+                         WEB APPLICATION
+                               |
+                               v
+                              API
+                               |
+              +----------------+----------------+
+              |                |                |
+              v                v                v
+          PostgreSQL      Object Storage    Background Jobs
+              |
+              v
+      CENTRAL ENGINEERING MODEL
+              ^
+              |
+       VALIDATION / RECONCILIATION
+              ^
+              |
+         AI EXTRACTION
+              ^
+              |
+      DOCUMENT PROCESSING
+              ^
+              |
+      PDFs / IMAGES / FILES
+
+The application should be modular and maintain clear boundaries between:
+
+1. Project Management
+2. Document Management
+3. Document Processing
+4. AI Extraction
+5. Entity Resolution
+6. Engineering Model
+7. Electrical Topology
+8. Provenance/Evidence
+9. Validation
+10. Reconciliation
+11. Engineer Review
+12. Visualization
+
+============================================================
+4. TECHNOLOGY STACK
+============================================================
+
+Use the following technologies unless there is a compelling technical reason not to.
+
+FRONTEND:
+
+- Next.js
+- TypeScript
+- React
+- Tailwind CSS
+- shadcn/ui
+- React Flow or an equivalent graph visualization library for electrical topology
+
+BACKEND:
+
+- Python
+- FastAPI
+- Pydantic
+- SQLAlchemy
+- Alembic
+
+DATABASE:
+
+- PostgreSQL
+
+OBJECT STORAGE:
+
+- S3-compatible object storage
+
+BACKGROUND PROCESSING:
+
+- Redis
+- Celery, RQ, or another well-supported Python job queue
+
+DOCUMENT PROCESSING:
+
+- PyMuPDF
+- pdfplumber where appropriate
+- OpenCV where appropriate
+- OCR abstraction layer
+- Multimodal AI/vision model abstraction
+
+AI:
+
+Create provider abstractions rather than tightly coupling the system to a specific AI provider.
+
+For example:
+
+LLMProvider
+VisionProvider
+OCRProvider
+EmbeddingProvider (only if eventually required)
+
+The application should be able to change AI providers without changing the engineering model or application domain logic.
+
+============================================================
+5. REPOSITORY STRUCTURE
+============================================================
+
+Use a monorepo structure similar to:
+
+/apps
+    /web
+
+/services
+    /api
+    /document-worker
+    /extraction-worker
+    /validation-worker
+
+/packages
+    /engineering-model
+    /document-model
+    /extraction
+    /topology
+    /validation
+    /provenance
+    /ai
+    /shared
+
+/database
+    /migrations
+    /seeds
+
+/docs
+    ARCHITECTURE.md
+    ENGINEERING_MODEL.md
+    DOCUMENT_PIPELINE.md
+    EXTRACTION.md
+    TOPOLOGY.md
+    VALIDATION.md
+    PROVENANCE.md
+    REVIEW_WORKFLOW.md
+
+/decisions
+    ADR-001-...
+    ADR-002-...
+
+/tests
+
+Adjust this structure if necessary, but preserve the conceptual separation.
+
+Do not create a monolithic backend where all business logic is placed in a single application module.
+
+============================================================
+6. MODULE BOUNDARIES
+============================================================
+
+The following boundaries are mandatory.
+
+PROJECT MODULE
+
+Responsible for:
+
+- Projects
+- Project metadata
+- Project revisions
+- Project lifecycle
+
+Must NOT contain:
+
+- AI logic
+- OCR logic
+- engineering calculations
+- document parsing
+
+DOCUMENT MODULE
+
+Responsible for:
+
+- File upload
+- File metadata
+- Document classification
+- Document versions
+- Page management
+- Object storage references
+
+Must NOT contain:
+
+- Engineering model logic
+- electrical calculations
+
+DOCUMENT PROCESSING MODULE
+
+Responsible for:
+
+- PDF parsing
+- Page rendering
+- OCR
+- text extraction
+- image extraction
+- layout information
+- table extraction
+
+Must produce normalized document artifacts.
+
+AI EXTRACTION MODULE
+
+Responsible for:
+
+- Equipment extraction
+- Attribute extraction
+- SLD interpretation
+- topology candidate extraction
+- candidate relationships
+
+AI extraction must return structured candidate data.
+
+It must NOT directly mutate the verified engineering model.
+
+ENGINEERING MODEL MODULE
+
+Responsible for:
+
+- Equipment entities
+- Electrical attributes
+- Connections
+- Topology
+- model revisions
+- model state
+
+It must have no dependency on AI providers.
+
+PROVENANCE MODULE
+
+Responsible for:
+
+- Source documents
+- page references
+- bounding boxes
+- extraction provenance
+- evidence relationships
+- confidence
+- source hierarchy
+
+VALIDATION MODULE
+
+Responsible for deterministic validation.
+
+Examples:
+
+- Required attributes
+- Data type validation
+- electrical sanity checks
+- topology consistency
+- voltage consistency
+- duplicate detection
+- impossible relationships
+
+RECONCILIATION MODULE
+
+Responsible for resolving information across multiple sources.
+
+Examples:
+
+SLD:
+T1
+
+Shop drawing:
+Transformer T1
+
+Schedule:
+XFMR-1
+
+These may refer to the same physical entity.
+
+REVIEW MODULE
+
+Responsible for:
+
+- engineer approval
+- rejection
+- modification
+- conflict resolution
+- verification status
+- review history
+
+VISUALIZATION MODULE
+
+Responsible for:
+
+- engineering model visualization
+- interactive SLD/topology
+- evidence viewing
+- equipment detail pages
+
+============================================================
+7. CANONICAL ENGINEERING MODEL
+============================================================
+
+The central engineering model should initially support these entity types:
+
+- UtilitySource
+- Generator
+- Transformer
+- Bus
+- Switchgear
+- MCC
+- Panel
+- Breaker
+- Fuse
+- Disconnect
+- Switch
+- Cable
+- Motor
+- Load
+- Connection
+
+The architecture must allow additional equipment types later.
+
+Do not design the database as a rigid structure where every equipment type requires a completely separate unrelated implementation.
+
+Use a common Equipment concept with type-specific attributes where appropriate.
+
+Every equipment entity should have:
+
+- id
+- project_id
+- revision_id
+- equipment_type
+- tag
+- name
+- description
+- status
+- attributes
+- provenance
+- confidence
+- created_at
+- updated_at
+
+Consider a hybrid relational/JSON approach where common searchable properties are relational and equipment-specific properties are typed/structured.
+
+Do not blindly put the entire engineering model into one JSON blob.
+
+The model must remain queryable.
+
+============================================================
+8. ATTRIBUTE MODEL
+============================================================
+
+A critical architectural requirement:
+
+Individual engineering attributes must support provenance and confidence.
+
+Do NOT simply store:
+
+transformer.impedance = 5.75
+
+Instead, conceptually support:
+
+attribute:
+    impedance_percent
+
+value:
+    5.75
+
+unit:
+    %
+
+confidence:
+    0.96
+
+source:
+    document_id
+
+page:
+    4
+
+bounding_box:
+    ...
+
+extraction_method:
+    AI_VISION
+
+verification_status:
+    UNVERIFIED
+
+This is required because the engineer must be able to ask:
+
+"Where did this value come from?"
+
+and the application must be able to answer precisely.
+
+============================================================
+9. PROVENANCE MODEL
+============================================================
+
+Every AI-derived value should be traceable to evidence.
+
+Evidence should support:
+
+- Document
+- Page
+- Region/bounding box
+- Image crop
+- OCR text
+- extraction method
+- confidence
+- timestamp
+- model/provider if applicable
+
+Example conceptual structure:
+
+Evidence
+    document_id
+    page_number
+    bbox
+    artifact_id
+    extracted_text
+    confidence
+    extraction_method
+    model_version
+
+The original source file must remain immutable.
+
+Do not overwrite original documents.
+
+============================================================
+10. DOCUMENT PIPELINE
+============================================================
+
+The document processing pipeline should be asynchronous.
+
+Example:
+
+UPLOAD
+    ↓
+FILE VALIDATION
+    ↓
+DOCUMENT CLASSIFICATION
+    ↓
+PDF PROCESSING
+    ↓
+PAGE GENERATION
+    ↓
+OCR
+    ↓
+LAYOUT ANALYSIS
+    ↓
+AI EXTRACTION
+    ↓
+CANDIDATE DATA
+    ↓
+VALIDATION
+    ↓
+RECONCILIATION
+    ↓
+ENGINEER REVIEW
+
+Every stage should have:
+
+- status
+- job ID
+- timestamps
+- error information
+- retry capability
+
+The system must not make the UI wait synchronously for long-running document processing.
+
+============================================================
+11. DOCUMENT CLASSIFICATION
+============================================================
+
+Initially support these classifications:
+
+SINGLE_LINE_DIAGRAM
+ELECTRICAL_DRAWING
+PANEL_SCHEDULE
+EQUIPMENT_SCHEDULE
+CABLE_SCHEDULE
+TRANSFORMER_SHOP_DRAWING
+SWITCHGEAR_SHOP_DRAWING
+BREAKER_DOCUMENT
+MOTOR_DATA
+FAULT_DATA
+SPECIFICATION
+EQUIPMENT_PHOTO
+NAMEPLATE_PHOTO
+STUDY_DOCUMENT
+UNKNOWN
+
+Classification should include confidence.
+
+If confidence is below a configurable threshold, mark the document for review.
+
+============================================================
+12. AI EXTRACTION ARCHITECTURE
+============================================================
+
+Do not create one enormous AI prompt that attempts to understand an entire project.
+
+Use specialized extraction tasks.
+
+Examples:
+
+EquipmentExtractor
+AttributeExtractor
+SLDExtractor
+TopologyExtractor
+TableExtractor
+DocumentClassifier
+EntityMatcher
+
+Each should have a clearly defined input/output contract.
+
+The output should be structured JSON validated against Pydantic schemas.
+
+Never trust raw LLM output.
+
+Pipeline:
+
+AI OUTPUT
+    ↓
+SCHEMA VALIDATION
+    ↓
+DOMAIN VALIDATION
+    ↓
+CANDIDATE RECORD
+
+============================================================
+13. ENTITY RESOLUTION
+============================================================
+
+Entity resolution is a first-class module.
+
+The system should identify when different references probably represent the same physical equipment.
+
+Example:
+
+"T1"
+"TR-1"
+"XFMR-1"
+"Transformer 1"
+
+Potential matching signals:
+
+- Tag similarity
+- Equipment type
+- location
+- connected equipment
+- manufacturer
+- model
+- rating
+- voltage
+- document context
+- spatial proximity
+- surrounding topology
+
+The result should include:
+
+candidate_entity
+match_probability
+matching_evidence
+conflicting_evidence
+
+Do not automatically merge low-confidence matches.
+
+============================================================
+14. TOPOLOGY MODEL
+============================================================
+
+The electrical system must be represented as a graph.
+
+Use concepts such as:
+
+Node
+Connection
+
+A Node may represent:
+
+- Bus
+- Equipment terminal
+- Electrical node
+
+A Connection should support:
+
+- source
+- destination
+- connection type
+- phase information if available
+- voltage information if available
+- evidence
+- confidence
+- verification status
+
+Example:
+
+Transformer T1
+    ↓
+Breaker CB-101
+    ↓
+Bus SWGR-1
+    ↓
+MCC-1
+
+The topology must be independently queryable.
+
+============================================================
+15. SINGLE-LINE DIAGRAM EXTRACTION
+============================================================
+
+SLD extraction is one of the most difficult AI tasks.
+
+Do not treat it as ordinary OCR.
+
+Pipeline:
+
+SLD PAGE
+    ↓
+IMAGE PREPROCESSING
+    ↓
+SYMBOL / COMPONENT DETECTION
+    ↓
+TEXT DETECTION
+    ↓
+TEXT-COMPONENT ASSOCIATION
+    ↓
+EQUIPMENT IDENTIFICATION
+    ↓
+CONNECTION DETECTION
+    ↓
+TOPOLOGY CANDIDATE
+    ↓
+VALIDATION
+    ↓
+ENGINEER REVIEW
+
+The system should preserve the original image and evidence coordinates.
+
+The SLD itself should NOT be the database.
+
+The database model is the source of truth.
+
+The SLD is evidence and/or a visualization.
+
+============================================================
+16. CONFLICT HANDLING
+============================================================
+
+Never silently resolve conflicting engineering information.
+
+Example:
+
+SLD:
+CB-101 = 400 A
+
+Shop drawing:
+CB-101 = 600 A
+
+Nameplate:
+CB-101 = 600 A
+
+The system should represent:
+
+Conflict:
+    equipment = CB-101
+    attribute = ampere_rating
+
+Values:
+    400 A
+    600 A
+
+Sources:
+    SLD
+    Shop Drawing
+    Nameplate
+
+Suggested value:
+    600 A
+
+Confidence:
+    high
+
+Resolution:
+    PENDING_ENGINEER_REVIEW
+
+The engineer can:
+
+- Accept suggested value
+- Select another value
+- Enter a custom value
+- Reject extraction
+- Mark unresolved
+
+All changes must be auditable.
+
+============================================================
+17. MISSING INFORMATION
+============================================================
+
+The model must explicitly support missing data.
+
+Do not use null alone to represent every situation.
+
+Distinguish between:
+
+UNKNOWN
+MISSING
+NOT_APPLICABLE
+NOT_EXTRACTED
+LOW_CONFIDENCE
+CONFLICTING
+INFERRED
+VERIFIED
+
+For example:
+
+Breaker:
+    manufacturer = VERIFIED
+    model = VERIFIED
+    frame_rating = VERIFIED
+    trip_rating = UNKNOWN
+    interrupting_rating = MISSING
+
+This distinction will become extremely important for engineering workflows.
+
+============================================================
+18. CONFIDENCE MODEL
+============================================================
+
+Confidence should exist at the attribute level.
+
+Example:
+
+Transformer T1
+
+tag:
+    confidence = 0.99
+
+rating_kva:
+    confidence = 0.98
+
+primary_voltage:
+    confidence = 0.97
+
+impedance:
+    confidence = 0.71
+
+Do not assign one confidence score to an entire equipment object and assume it applies to all properties.
+
+Confidence should be generated from extraction evidence and may later be modified by reconciliation.
+
+============================================================
+19. SOURCE PRIORITY
+============================================================
+
+Create a configurable source-priority framework.
+
+For example, depending on the attribute:
+
+Nameplate may have higher authority than an SLD.
+
+A final equipment schedule may have higher authority than an older drawing.
+
+Do NOT hard-code simplistic universal rules.
+
+Represent source priority as configuration.
+
+Example:
+
+SourcePriorityRule:
+    equipment_type
+    attribute
+    source_type
+    priority
+
+This allows engineering organizations to configure their own evidence hierarchy.
+
+============================================================
+20. ENGINEER REVIEW SYSTEM
+============================================================
+
+The engineer review workflow is central to the application.
+
+Create a review queue containing:
+
+- Low-confidence values
+- Conflicting values
+- Potential duplicate entities
+- Unknown equipment
+- Unverified topology
+- Missing critical attributes
+
+Example:
+
+PROJECT MODEL STATUS
+
+Equipment: 247
+Verified: 198
+Needs Review: 31
+Conflicts: 11
+Missing Critical Data: 7
+
+The engineer should be able to:
+
+- View evidence
+- Accept
+- Reject
+- Edit
+- Merge
+- Split
+- Mark verified
+- Mark unresolved
+
+Every action should be recorded in an audit trail.
+
+============================================================
+21. ENGINEERING MODEL REVISIONING
+============================================================
+
+The engineering model must support revisions.
+
+Conceptually:
+
+Project
+    Revision 1
+        Engineering Model
+    Revision 2
+        Engineering Model
+    Revision 3
+        Engineering Model
+
+Changes between revisions should eventually be detectable.
+
+Examples:
+
+Equipment added
+Equipment removed
+Rating changed
+Breaker changed
+Topology changed
+Source changed
+
+Do not implement sophisticated diffing unless required by the current phase, but ensure the database architecture does not prevent it.
+
+============================================================
+22. WEB APPLICATION
+============================================================
+
+The initial UI should contain:
+
+Dashboard
+
+Projects
+
+Project Detail
+
+Documents
+
+Document Viewer
+
+Extraction Status
+
+Engineering Model
+
+Equipment List
+
+Equipment Detail
+
+Review Queue
+
+Conflicts
+
+Missing Data
+
+SLD / Topology View
+
+Model Completeness
+
+The UI should prioritize engineering usability over flashy AI features.
+
+The engineer should always be able to see:
+
+"What does the system think?"
+
+and:
+
+"Why does it think that?"
+
+============================================================
+23. EQUIPMENT DETAIL VIEW
+============================================================
+
+An equipment page should look conceptually like:
+
+Transformer T1
+
+Type:
+Transformer
+
+Tag:
+T1
+
+Attributes:
+
+750 kVA       VERIFIED
+13.8 kV       VERIFIED
+480Y/277 V    VERIFIED
+5.75% Z       NEEDS REVIEW
+X/R           MISSING
+
+Evidence:
+
+E-101.pdf
+Page 3
+
+T1-Shop.pdf
+Page 4
+
+Nameplate-003.jpg
+
+Connections:
+
+Upstream:
+Utility
+
+Downstream:
+CB-101
+
+Review:
+
+[Mark Verified]
+
+Every value should be traceable to evidence.
+
+============================================================
+24. INTERACTIVE ELECTRICAL MODEL
+============================================================
+
+The application should eventually render the electrical topology interactively.
+
+Use React Flow or an equivalent graph library.
+
+Example:
+
+             UTILITY
+                 |
+                 T1
+                 |
+              CB-101
+                 |
+             SWGR-1
+             /     \
+           MCC-1   PNL-1
+
+Clicking an object should display its attributes and evidence.
+
+The visualization must be generated from the Engineering Model.
+
+Do not create an independent visualization database.
+
+============================================================
+25. API DESIGN
+============================================================
+
+Use REST APIs initially unless there is a strong reason for another approach.
+
+Maintain clear domain boundaries.
+
+Example:
+
+/api/projects
+/api/projects/{id}
+
+/api/projects/{id}/documents
+/api/documents/{id}
+
+/api/projects/{id}/extraction-jobs
+/api/extraction-jobs/{id}
+
+/api/projects/{id}/equipment
+/api/equipment/{id}
+
+/api/equipment/{id}/evidence
+
+/api/projects/{id}/connections
+
+/api/projects/{id}/reviews
+/api/reviews/{id}
+
+/api/projects/{id}/conflicts
+
+Use Pydantic models for request/response contracts.
+
+Never expose database ORM models directly as API contracts.
+
+============================================================
+26. DATABASE PRINCIPLES
+============================================================
+
+Use PostgreSQL.
+
+Use normalized relational structures for:
+
+- Projects
+- Revisions
+- Documents
+- Pages
+- Equipment
+- Connections
+- Evidence
+- Reviews
+- Conflicts
+- Jobs
+- Audit logs
+
+Use JSON/JSONB where appropriate for:
+
+- equipment-specific attributes
+- AI extraction payloads
+- model metadata
+- flexible document metadata
+
+Do not put the entire project into one JSON document.
+
+The system must remain queryable and maintainable.
+
+============================================================
+27. ASYNCHRONOUS JOB SYSTEM
+============================================================
+
+Document processing and AI extraction must be background jobs.
+
+Example:
+
+POST /documents/{id}/process
+
+returns:
+
+job_id
+
+The frontend can then display:
+
+Processing
+    20% OCR
+    40% Layout
+    60% Classification
+    80% Extraction
+    100% Complete
+
+Jobs must support:
+
+- retries
+- failure state
+- error logging
+- cancellation where practical
+- idempotency
+
+============================================================
+28. AI PROVIDER ABSTRACTION
+============================================================
+
+Do not hard-code application logic to OpenAI, Anthropic, Gemini, etc.
+
+Create interfaces such as:
+
+LLMProvider
+VisionProvider
+OCRProvider
+
+Example conceptual interface:
+
+extract_structured(
+    input,
+    schema,
+    context
+) -> structured_result
+
+The engineering application should not care which model produced the result.
+
+Store:
+
+- provider
+- model
+- model version
+- prompt version
+- extraction timestamp
+
+with extraction metadata.
+
+============================================================
+29. PROMPT VERSIONING
+============================================================
+
+AI prompts must be versioned.
+
+Do not bury large prompts inside random application files.
+
+Create:
+
+/ai/prompts/
+
+or an equivalent version-controlled structure.
+
+Example:
+
+equipment_extraction_v1
+equipment_extraction_v2
+sld_extraction_v1
+
+Store the prompt version with the extraction result.
+
+This is required for reproducibility.
+
+============================================================
+30. SECURITY
+============================================================
+
+Assume uploaded documents are confidential engineering information.
+
+Implement:
+
+- authentication
+- authorization
+- project-level access control
+- secure object storage
+- signed URLs where appropriate
+- encryption in transit
+- encryption at rest where supported
+- audit logging
+
+Never expose object storage directly without authorization controls.
+
+============================================================
+31. TESTING
+============================================================
+
+Testing is mandatory.
+
+Implement:
+
+Unit tests for:
+
+- domain models
+- validation
+- entity resolution
+- topology
+- provenance
+- parsing
+
+Integration tests for:
+
+- document upload
+- document processing
+- extraction pipeline
+- database interactions
+- API endpoints
+
+AI evaluation tests should use fixed sample engineering documents.
+
+Create an evaluation dataset eventually containing:
+
+- known equipment
+- known attributes
+- known topology
+- known conflicts
+
+Measure:
+
+- equipment detection accuracy
+- attribute extraction accuracy
+- topology accuracy
+- entity matching accuracy
+- evidence localization accuracy
+
+Do not rely on subjective "looks good" testing.
+
+============================================================
+32. OBSERVABILITY
+============================================================
+
+Implement structured logging.
+
+Track:
+
+- document processing failures
+- extraction failures
+- AI latency
+- AI cost where available
+- job duration
+- extraction confidence
+- validation failures
+
+Make background processing observable.
+
+============================================================
+33. ENGINEERING SAFETY PRINCIPLE
+============================================================
+
+This system is an engineering data extraction and organization tool.
+
+It must not represent AI-generated information as verified engineering information.
+
+Use explicit states:
+
+AI_EXTRACTED
+SYSTEM_VALIDATED
+ENGINEER_REVIEWED
+ENGINEER_VERIFIED
+
+The system must clearly distinguish these.
+
+Never silently promote AI-extracted values to verified values.
+
+============================================================
+34. DEVELOPMENT PHASES
+============================================================
+
+Implement the application incrementally.
+
+PHASE 0
+Architecture and repository setup.
+
+Deliver:
+
+- repository
+- development environment
+- architecture docs
+- module structure
+- database configuration
+- basic CI
+- coding standards
+
+PHASE 1
+Project management.
+
+Deliver:
+
+- projects
+- project revisions
+- project dashboard
+
+PHASE 2
+Document management.
+
+Deliver:
+
+- upload
+- storage
+- document metadata
+- document viewer
+
+PHASE 3
+Document processing.
+
+Deliver:
+
+- PDF processing
+- page rendering
+- OCR
+- document artifacts
+
+PHASE 4
+Document classification.
+
+Deliver:
+
+- classification
+- confidence
+- manual correction
+
+PHASE 5
+Engineering model.
+
+Deliver:
+
+- equipment entities
+- attributes
+- connections
+- provenance
+- confidence
+- verification states
+
+PHASE 6
+Structured document extraction.
+
+Deliver:
+
+- equipment extraction
+- attribute extraction
+- evidence
+- candidate records
+
+PHASE 7
+Entity resolution.
+
+Deliver:
+
+- duplicate detection
+- entity matching
+- merge workflow
+
+PHASE 8
+SLD extraction.
+
+Deliver:
+
+- component detection
+- text association
+- topology extraction
+- connection candidates
+
+PHASE 9
+Cross-document reconciliation.
+
+Deliver:
+
+- conflicts
+- source priority
+- missing data
+- candidate resolution
+
+PHASE 10
+Engineering validation.
+
+Deliver:
+
+- deterministic validation rules
+- topology checks
+- electrical consistency checks
+
+PHASE 11
+Engineer review.
+
+Deliver:
+
+- review queue
+- evidence viewer
+- conflict resolution
+- verification workflow
+- audit trail
+
+PHASE 12
+Engineering visualization.
+
+Deliver:
+
+- interactive SLD
+- topology navigation
+- equipment detail pages
+- model completeness dashboard
+
+PHASE 13
+Model export.
+
+Deliver:
+
+- JSON export
+- CSV/Excel export
+- versioned model export
+
+ETAP/SKM/EasyPower integration is explicitly NOT part of these phases.
+
+============================================================
+35. CURSOR/CLAUDE DEVELOPMENT RULES
+============================================================
+
+You are an implementation agent operating within an existing codebase.
+
+Before modifying code:
+
+1. Read ARCHITECTURE.md.
+2. Read the relevant domain documentation.
+3. Inspect existing code.
+4. Determine which module owns the requested behavior.
+5. Do not place logic in an unrelated module.
+
+Never implement functionality outside the current requested phase unless explicitly instructed.
+
+Do not prematurely implement future phases.
+
+Do not create placeholder abstractions everywhere without a concrete need.
+
+Prefer simple, well-defined interfaces.
+
+Before making architectural changes:
+
+- explain the change
+- identify affected modules
+- update architecture documentation
+- create an ADR if the decision is significant
+
+============================================================
+36. PHASE EXECUTION FORMAT
+============================================================
+
+When asked to implement a phase, follow this process:
+
+STEP 1
+Inspect the repository.
+
+STEP 2
+Read the architecture and relevant documentation.
+
+STEP 3
+Summarize the existing implementation relevant to this phase.
+
+STEP 4
+Create an implementation plan.
+
+STEP 5
+Identify files/modules that will change.
+
+STEP 6
+Implement the smallest complete version of the phase.
+
+STEP 7
+Write tests.
+
+STEP 8
+Run tests and fix failures.
+
+STEP 9
+Run lint/type checks.
+
+STEP 10
+Update documentation.
+
+STEP 11
+Provide a concise completion report.
+
+Do not skip tests.
+
+============================================================
+37. ACCEPTANCE CRITERIA
+============================================================
+
+A phase is not complete simply because code exists.
+
+A phase is complete when:
+
+- required functionality works
+- APIs are defined
+- database migrations work
+- tests pass
+- error handling exists
+- documentation is updated
+- module boundaries are respected
+- no future-phase functionality has been unnecessarily introduced
+
+============================================================
+38. FIRST TASK
+============================================================
+
+DO NOT START BUILDING THE ENTIRE APPLICATION.
+
+Your first task is PHASE 0 ONLY.
+
+Perform the following:
+
+1. Inspect the current repository.
+
+2. Establish the repository structure.
+
+3. Create ARCHITECTURE.md.
+
+4. Create ENGINEERING_MODEL.md.
+
+5. Create DOCUMENT_PIPELINE.md.
+
+6. Create EXTRACTION.md.
+
+7. Create TOPOLOGY.md.
+
+8. Create VALIDATION.md.
+
+9. Create PROVENANCE.md.
+
+10. Create REVIEW_WORKFLOW.md.
+
+11. Create an ADR explaining why the Engineering Model is independent of AI providers and electrical analysis software.
+
+12. Establish the initial database architecture.
+
+13. Establish the initial TypeScript/Python project boundaries.
+
+14. Configure development tooling.
+
+15. Create a minimal health-check API.
+
+16. Create a minimal Next.js frontend.
+
+17. Create the database connection infrastructure.
+
+18. Add basic automated tests.
+
+DO NOT:
+
+- implement AI extraction
+- implement OCR
+- implement SLD recognition
+- implement ETAP
+- implement SKM
+- implement electrical calculations
+- implement report generation
+
+At the end of Phase 0, the repository should be ready for Phase 1.
+
+Before writing substantial code, explain the proposed Phase 0 implementation plan and identify any architectural decisions that need to be made.

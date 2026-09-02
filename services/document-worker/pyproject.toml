@@ -1,0 +1,17 @@
+[project]
+name = "powerforge-document-worker"
+version = "0.1.0"
+description = "Document processing worker. Phase 0 heartbeat only; no OCR or parsing."
+requires-python = ">=3.12"
+dependencies = [
+    "celery[redis]>=5.4",
+    "redis>=5.1",
+    "pydantic-settings>=2.4",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

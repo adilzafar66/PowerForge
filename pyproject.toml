@@ -1,0 +1,51 @@
+[project]
+name = "powerforge"
+version = "0.1.0"
+description = "PowerForge monorepo tooling (lint and tests)."
+requires-python = ">=3.12"
+readme = "README.md"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["packages", "services", "tests", "database"]
+exclude = [".venv", "node_modules", "apps"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "powerforge_api",
+    "powerforge_shared",
+    "powerforge_engineering_model",
+    "powerforge_document_model",
+    "powerforge_extraction",
+    "powerforge_topology",
+    "powerforge_validation",
+    "powerforge_provenance",
+    "powerforge_ai",
+    "document_worker",
+    "extraction_worker",
+    "validation_worker",
+]
+
+[tool.pytest.ini_options]
+pythonpath = [
+    "services/api/src",
+    "services/document-worker/src",
+    "services/extraction-worker/src",
+    "services/validation-worker/src",
+    "packages/shared/src",
+    "packages/engineering-model/src",
+    "packages/document-model/src",
+    "packages/extraction/src",
+    "packages/topology/src",
+    "packages/validation/src",
+    "packages/provenance/src",
+    "packages/ai/src",
+]
+testpaths = ["tests"]
+markers = [
+    "integration: tests that require a running PostgreSQL instance",
+]
