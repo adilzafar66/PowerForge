@@ -4,6 +4,8 @@ Engineering data extraction platform. Electrical engineers upload project docume
 
 This repository is at **Phase 0**: architecture, module boundaries, and a runnable stack skeleton. It does not extract documents, call AI models, or integrate ETAP/SKM/EasyPower.
 
+Continuing from another machine or chat: start with [docs/PHASE0_HANDOFF.md](docs/PHASE0_HANDOFF.md).
+
 ## Quick start
 
 **Docker Compose** (PostgreSQL, Redis, MinIO, API, workers, web):

@@ -190,3 +190,4 @@ Phase 0 does **not** implement projects, uploads, OCR, AI extraction, SLD recogn
 - [REVIEW_WORKFLOW.md](REVIEW_WORKFLOW.md)
 - [CODING_STANDARDS.md](CODING_STANDARDS.md)
 - [DEVELOPMENT.md](DEVELOPMENT.md)
+- [PHASE0_HANDOFF.md](PHASE0_HANDOFF.md) — current implementation status, blocked environment work, and next-agent context
