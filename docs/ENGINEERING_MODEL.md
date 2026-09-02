@@ -23,18 +23,31 @@ The model initially supports:
 - `UtilitySource`
 - `Generator`
 - `Transformer`
+- `Node`
 - `Bus`
-- `Switchgear`
-- `MCC`
-- `Panel`
+  - `Switchgear`
+  - `MCC`
+  - `Panelboard`
+  - `Switchboard`
+  - `Other`
 - `Breaker`
+  - `LowVoltage`
+  - `HighVoltage`
+- `Relay`
+- `Recloser`
+- `CT`
+- `UPS`
+- `VFD`
 - `Fuse`
 - `Disconnect`
-- `Switch`
+- `SingleSwitch`
+- `DoubleSwitch`
 - `Cable`
 - `Motor`
-- `Load`
-- `Connection`
+- `StaticLoad`
+- `LumpedLoad`
+- `Reactor`
+- `Capacitor`
 
 Additional equipment types must be addable without a disconnected schema per type.
 
