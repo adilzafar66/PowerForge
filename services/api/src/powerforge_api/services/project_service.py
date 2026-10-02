@@ -72,6 +72,8 @@ class ProjectService:
                 or_(
                     Project.project_number.ilike(pattern),
                     Project.project_name.ilike(pattern),
+                    Project.client_name.ilike(pattern),
+                    Project.project_address.ilike(pattern),
                 )
             )
         projects = list(self.session.scalars(stmt).unique().all())

@@ -164,13 +164,30 @@ def test_unarchive_restores_active_and_paused(require_db: None) -> None:
 @pytest.mark.integration
 def test_list_search_and_status_filter(require_db: None) -> None:
     needle = _unique("SEARCH")
-    client.post(
+    client_needle = _unique("CLIENT")
+    address_needle = _unique("ADDR")
+    created = client.post(
         "/api/projects",
-        json={"project_number": needle, "project_name": "Searchable Plant"},
+        json={
+            "project_number": needle,
+            "project_name": "Searchable Plant",
+            "client_name": client_needle,
+            "project_address": address_needle,
+        },
     )
+    assert created.status_code == 201
+
     listed = client.get("/api/projects", params={"search": needle})
     assert listed.status_code == 200
     assert any(item["project_number"] == needle for item in listed.json()["items"])
+
+    by_client = client.get("/api/projects", params={"search": client_needle})
+    assert by_client.status_code == 200
+    assert any(item["project_number"] == needle for item in by_client.json()["items"])
+
+    by_address = client.get("/api/projects", params={"search": address_needle})
+    assert by_address.status_code == 200
+    assert any(item["project_number"] == needle for item in by_address.json()["items"])
 
     filtered = client.get("/api/projects", params={"status": "ACTIVE", "search": needle})
     assert filtered.status_code == 200

@@ -2,9 +2,12 @@
 
 Engineering data extraction platform. Electrical engineers upload project documents; PowerForge extracts structured electrical information, reconciles it across sources, and produces a centralized, traceable engineering model. The engineer remains the final authority.
 
-This repository is at **Phase 0**: architecture, module boundaries, and a runnable stack skeleton. It does not extract documents, call AI models, or integrate ETAP/SKM/EasyPower.
+**Current phase:** Phase 1 — Project & Revision Management  
+**Next phase:** Phase 2 — Document Management
 
-Continuing from another machine or chat: start with [docs/PHASE0_HANDOFF.md](docs/PHASE0_HANDOFF.md).
+Phase status lives in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Do not treat this README or chat history as the source of truth.
+
+The stack does not yet extract documents, call AI models, or integrate ETAP/SKM/EasyPower. Phase 0 setup notes remain in [docs/PHASE0_HANDOFF.md](docs/PHASE0_HANDOFF.md).
 
 ## Quick start
 

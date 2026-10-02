@@ -267,7 +267,7 @@ POST   /api/projects/{project_id}/revisions/{revision_id}/activate
 
 GET /api/projects supports:
 
-- search on project_number and project_name only
+- search on project_number, project_name, client_name, and project_address
 - filter by status
 
 PATCH /api/projects/{project_id} accepts metadata only:

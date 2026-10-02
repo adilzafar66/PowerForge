@@ -41,3 +41,9 @@ Delivered:
 Authentication, a users table, and project-level access control are required by the product spec and are **not** part of Phase 0 or Phase 1. `created_by` remains nullable until then.
 
 ETAP / SKM / EasyPower integration is not part of these phases.
+
+## Technical debt
+
+Not Phase 2 blockers. Record here so later phases do not inherit accidental behavior.
+
+- **Constraint-specific IntegrityError mapping.** `ProjectService.create_project()` treats any `IntegrityError` as `DuplicateProjectNumber`. Revision create/update/activate similarly map any `IntegrityError` to `DuplicateRevisionIdentifier`. That is acceptable while the only uniqueness constraints are project number, revision identifier, and one ACTIVE revision per project. Once foreign keys, checks, enums, and other constraints exist, a generic catch can report the wrong user-facing error. Map by constraint name (or inspect `orig.diag.constraint_name`) and fall through to a generic 500 for unexpected failures. Files: `services/api/src/powerforge_api/services/project_service.py`, `revision_service.py`.

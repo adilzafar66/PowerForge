@@ -70,7 +70,7 @@ Cancelled projects use the same write restrictions as archived projects (no PATC
 - `/` is the project list.
 - `/status` is the Phase 0 stack health page.
 - Opening a revision in Phase 1 is a placeholder.
-- Project list search matches `project_number` and `project_name` only.
+- Project list search matches `project_number`, `project_name`, `client_name`, and `project_address`. Broader search (scope, engineers, revisions) is deferred.
 
 ## Consequences
 

@@ -83,7 +83,7 @@ export function ProjectList({ initialProjects }: { initialProjects: Project[] })
         <SearchField
           value={search}
           onChange={setSearch}
-          placeholder="Search by number, name, or client…"
+          placeholder="Search by number, name, client, or address…"
         />
         <SegmentedControl
           value={statusFilter}

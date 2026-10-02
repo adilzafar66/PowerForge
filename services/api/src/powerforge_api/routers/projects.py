@@ -43,7 +43,7 @@ router = APIRouter(tags=["projects"])
 SessionDep = Annotated[Session, Depends(get_session)]
 SearchQuery = Annotated[
     str | None,
-    Query(description="Match project number or name"),
+    Query(description="Match project number, name, client, or address"),
 ]
 StatusQuery = Annotated[
     ProjectStatus | None,
