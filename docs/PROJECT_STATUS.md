@@ -3,7 +3,8 @@
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
 **Current implemented phase:** 1  
-**Next phase:** 2 (document management) — not started
+**In progress:** 2 (document management) — specified, implementation not started  
+**Next after that:** 3 (document processing)
 
 ## Phase 0 — Architecture and repository setup
 
@@ -17,7 +18,7 @@ Details, environment notes, and verification: [PHASE0_HANDOFF.md](PHASE0_HANDOFF
 
 **Status:** Complete (2026-09-03)
 
-Implementation spec: `cursor/PHASE1_SPECS.txt`  
+Implementation spec: `cursor/phase1_specs.txt`  
 Decisions: [ADR-003](../decisions/ADR-003-project-revision-model.md)
 
 Delivered:
@@ -28,22 +29,91 @@ Delivered:
 - Web UI: `/` project list, `/projects/new`, `/projects/[id]`, revision placeholder, `/status` stack health
 - Backend and frontend tests covering lifecycle, uniqueness, and concurrent activate
 
+## Phase 2 — Document management, immutable storage, revision inheritance
+
+**Status:** In progress. Specified and documented (2026-10-01); **implementation has not started**. Do not mark this phase complete until every item in the spec's definition of done is met and the checklist below is checked.
+
+Implementation spec: `cursor/phase2_specs.txt` (version 2)  
+Decisions: [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md) (Proposed)
+
+Scope:
+
+- `Document` (immutable uploaded artifact) and `RevisionDocument` (revision-scoped association, metadata, origin, status)
+- Revision lineage (`based_on_revision_id`) and copy-on-write document inheritance with no file copies
+- S3-compatible storage behind an `ObjectStorage` abstraction (boto3; MinIO in development), stable machine-oriented keys
+- Validated PDF/PNG/JPEG/TIFF upload (extension and content must agree), streaming size limit, SHA-256, duplicate detection (allowed, not merged)
+- Manual classification, metadata editing, remove/restore, reuse of an existing document in another revision, presigned download through revision-scoped routes
+- Superseded revision packages are read-only; backend enforced
+- Create-revision UI (base revision, carry-forward) and a revision documents workspace (replaces the Phase 1 revision placeholder)
+
+Explicitly **not** in Phase 2: folders, OCR, AI or auto-classification, document pages/thumbnails/rendering, equipment/engineering model, DocumentPackage entities, ETAP/SKM/EasyPower.
+
+### Baseline before implementation (2026-10-01)
+
+Phase 1 code as of commit `4055d85` plus two uncommitted working-tree changes (a project-row lock in `RevisionService.create_revision` when `activate=true`, and a matching test in `tests/test_projects_api.py`).
+
+| Check | Result |
+| --- | --- |
+| `ruff check .` | Passed |
+| `pytest` (integration skipped) | 23 passed, 16 skipped |
+| `RUN_INTEGRATION=1 pytest` against a fresh, migrated throwaway PostgreSQL database | 39 passed |
+| `npm run lint` (`apps/web`) | No warnings or errors |
+| `npm test` (`apps/web`) | 11 passed |
+| `npx tsc --noEmit` (`apps/web`) | No errors |
+
+Integration tests were run against a temporary database (`powerforge_baseline`, since dropped) because the existing integration tests create rows and never clean up; running them against the dev database would add test projects to it. Do the same for Phase 2 runs.
+
+### Work packages
+
+- [ ] Domain: extend `packages/document-model` (add `OTHER`, `DocumentOrigin`, `RevisionDocumentStatus`, pure validation and storage-key builder)
+- [ ] Migration `0004`: lineage column, composite-FK support, enums, `documents`, `revision_documents`
+- [ ] ORM models in `services/api/src/powerforge_api/models.py`
+- [ ] Settings, `.env.example`, `docker-compose.yml`: `S3_PUBLIC_ENDPOINT_URL`, `S3_SIGNED_URL_EXPIRES_SECONDS`, `MAX_UPLOAD_BYTES`, `MAX_IMAGE_PIXELS`
+- [ ] Storage: `ObjectStorage` interface, `S3ObjectStorage`, `InMemoryObjectStorage`, startup `ensure_bucket()`
+- [ ] Dependencies: `boto3`, `Pillow`, `python-multipart` (API package, `requirements-dev.txt`, CI)
+- [ ] `FileInspector` and shared revision-document helper
+- [ ] `DocumentService`
+- [ ] `RevisionService`: lineage, inheritance, base-revision locking, constraint-name error mapping
+- [ ] Schemas and routers (list, upload, get, patch, remove, restore, reuse, download-url) and error mapping
+- [ ] Backend tests (see spec section 30), including the end-to-end workflow in spec section 34 and one `integration` MinIO test
+- [ ] Web: Create Revision changes, documents client (`lib/documents.ts`), documents workspace, tests
+- [ ] Lint, type checks, full test run
+- [ ] Documentation re-verified against the implementation; ADR-004 set to Accepted
+- [ ] This file updated to mark Phase 2 complete
+
+### Intentional deviations and debt expected from Phase 2
+
+Record the final list here when the phase completes. Known in advance:
+
+- Orphaned storage objects (crash between upload and commit; uploaded-then-removed documents); no garbage collection
+- PDF validation is header-only; images are validated structurally, not fully decoded
+- No pagination on document lists
+- No document-level audit trail beyond added/removed fields; `uploaded_by`/`added_by`/`removed_by` stay null until authentication exists
+- Phase 1 still allows editing a superseded revision's identifier and description (only the document package is frozen)
+- `RevisionDocument.project_id` is intentionally denormalized to enable database-level same-project enforcement
+
+## Next — Phase 3: Document processing
+
+Not started and out of scope for Phase 2. Conceptually: PDF/image preprocessing, PDF page generation, page rendering, image normalization, OCR-ready artifacts, and page metadata, built on top of the immutable `Document` produced in Phase 2 and run by `services/document-worker`.
+
 ## Later phases
 
 | Phase | Work | Status |
 | --- | --- | --- |
-| 2 | Document management | Not started |
+| 2 | Document management | In progress (specified, not implemented) |
 | 3 | Document processing | Not started |
 | 4 | Document classification | Not started |
 | 5 | Engineering model persistence | Not started |
 | 6–13 | Extraction through export | Not started |
 
-Authentication, a users table, and project-level access control are required by the product spec and are **not** part of Phase 0 or Phase 1. `created_by` remains nullable until then.
+Authentication, a users table, and project-level access control are required by the product spec and are **not** part of Phase 0, Phase 1, or Phase 2. `created_by` (and Phase 2's `uploaded_by`/`added_by`/`removed_by`) remain nullable until then.
 
 ETAP / SKM / EasyPower integration is not part of these phases.
 
 ## Technical debt
 
-Not Phase 2 blockers. Record here so later phases do not inherit accidental behavior.
+Record here so later phases do not inherit accidental behavior.
 
-- **Constraint-specific IntegrityError mapping.** `ProjectService.create_project()` treats any `IntegrityError` as `DuplicateProjectNumber`. Revision create/update/activate similarly map any `IntegrityError` to `DuplicateRevisionIdentifier`. That is acceptable while the only uniqueness constraints are project number, revision identifier, and one ACTIVE revision per project. Once foreign keys, checks, enums, and other constraints exist, a generic catch can report the wrong user-facing error. Map by constraint name (or inspect `orig.diag.constraint_name`) and fall through to a generic 500 for unexpected failures. Files: `services/api/src/powerforge_api/services/project_service.py`, `revision_service.py`.
+- **Constraint-specific IntegrityError mapping.** *Scheduled for resolution in Phase 2* (spec section 23). `ProjectService.create_project()` treats any `IntegrityError` as `DuplicateProjectNumber`. Revision create/update/activate similarly map any `IntegrityError` to `DuplicateRevisionIdentifier`. That was acceptable while the only uniqueness constraints were project number, revision identifier, and one ACTIVE revision per project. Phase 2 adds foreign keys, checks, and a new unique constraint inside the revision-creation transaction, so a generic catch would report the wrong user-facing error. Map by constraint name (`orig.diag.constraint_name`) and fall through to a generic 500 for unexpected failures. Files: `services/api/src/powerforge_api/services/project_service.py`, `revision_service.py`.
+- **Integration tests write to the configured database and never clean up.** The existing `integration` tests insert uniquely named projects into whatever `DATABASE_URL` points at. Running them against a dev database pollutes it. Use a throwaway database (see [DEVELOPMENT.md](DEVELOPMENT.md)); consider a dedicated test database fixture later.
+- **Stale spec path references (fixed 2026-10-01).** Docs referred to `cursor/PHASE1_SPECS.txt`; the tracked file is `cursor/phase1_specs.txt`. The mismatched case works on macOS but breaks on case-sensitive filesystems.

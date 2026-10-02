@@ -6,7 +6,7 @@ Read this before changing code. This file is the continuation context for a new 
 
 Living phase status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
-**Next phase:** Phase 2 (document management) only when explicitly requested. Do not start Phase 2 as a side effect of other work.
+**Phase 2 (document management):** specified in `cursor/phase2_specs.txt` and [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md); implementation in progress per [PROJECT_STATUS.md](PROJECT_STATUS.md). Do not start Phase 3 as a side effect of Phase 2 work.
 
 ## Agent instructions
 
@@ -14,11 +14,12 @@ Living phase status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
 2. Read the relevant domain docs for the work you were asked to do.
 3. Inspect existing code. Do not invent a second layout.
 4. Stay inside the requested phase. Do not implement OCR, AI extraction, SLD recognition, ETAP/SKM/EasyPower, electrical calculations, or report generation.
-5. Follow the phase process in `cursor/specification.txt` §36 when implementing a named phase. For Phase 1 details see `cursor/PHASE1_SPECS.txt` (complete).
+5. Follow the phase process in `cursor/specification.txt` §36 when implementing a named phase. For Phase 1 details see `cursor/phase1_specs.txt` (complete); for Phase 2 see `cursor/phase2_specs.txt`.
 6. After architectural changes: explain, list affected modules, update docs (including [PROJECT_STATUS.md](PROJECT_STATUS.md)), add an ADR if the decision is significant.
 
 Product specification (source of truth for product scope): `cursor/specification.txt`.
-Phase 1 implementation spec: `cursor/PHASE1_SPECS.txt` (implemented).
+Phase 1 implementation spec: `cursor/phase1_specs.txt` (implemented).  
+Phase 2 implementation spec: `cursor/phase2_specs.txt` (in progress).
 
 ## Product (one paragraph)
 
@@ -32,7 +33,8 @@ PowerForge ingests electrical engineering documents and produces a centralized, 
 | Default branch | `main` |
 | First published commit | `43c1ce1` (`first commit`) — this handoff may be a later commit |
 | Spec | `cursor/specification.txt` |
-| Phase 1 spec | `cursor/PHASE1_SPECS.txt` (implemented) |
+| Phase 1 spec | `cursor/phase1_specs.txt` (implemented) |
+| Phase 2 spec | `cursor/phase2_specs.txt` (in progress) |
 
 ## What Phase 0 delivered
 

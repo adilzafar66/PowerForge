@@ -1,0 +1,1307 @@
+POWERFORGE — PHASE 2 IMPLEMENTATION
+DOCUMENT MANAGEMENT, IMMUTABLE FILE STORAGE, AND REVISION INHERITANCE
+
+Specification version: 2 (amended after review of v1 against the Phase 1 repository)
+
+You are implementing Phase 2 of the PowerForge application.
+
+PowerForge is an engineering software platform that will eventually ingest
+electrical engineering documents, extract equipment and topology information
+using AI, build a centralized engineering model, support engineer
+verification, and later export that model to analysis tools such as ETAP,
+SKM, and EasyPower.
+
+DO NOT implement those future capabilities in this phase.
+
+This phase is strictly about creating a robust document-management and
+revision-inheritance foundation.
+
+The current repository state after Phase 1 is the source of truth. Where this
+specification and the repository disagree, follow the repository for naming
+and conventions, and follow this specification for behavior. If a conflict
+affects behavior, stop and report it rather than guessing.
+
+======================================================================
+0. AMENDMENTS IN THIS VERSION (REVIEW SUMMARY)
+======================================================================
+
+Version 1 contained gaps and contradictions. They are resolved as follows
+(details are in the referenced sections):
+
+ 1. Cross-project lineage was claimed to be DB-enforced but a plain FK cannot
+    do that. Now: composite foreign keys + CHECK constraints (sections 5, 8, 24).
+ 2. Phase 1 maps ANY IntegrityError to DuplicateRevisionIdentifier. With new
+    FKs/uniques this would produce wrong errors. Now: map by constraint name
+    (section 23).
+ 3. The unscoped download route could not satisfy the cross-project rule.
+    Now: download URLs are issued only through the revision-document route
+    (section 21).
+ 4. Presigned URLs break in docker (internal MinIO hostname). Now: separate
+    public endpoint setting (section 29).
+ 5. "No base revision" could not be expressed when an ACTIVE revision exists.
+    Now: omitted vs explicit-null semantics, tri-state carry-forward
+    (section 6).
+ 6. Interaction with the existing `activate` flag is now defined (section 6).
+ 7. Lineage is immutable after creation (section 5).
+ 8. There was no way to reuse an existing Document in a revision that started
+    empty. Now: "reuse document from another revision" operation (section 21).
+ 9. Added concurrency/locking rules (section 18) and snapshot semantics
+    (section 19).
+10. Tightened file validation (extension/content agreement, image pixel cap,
+    filename sanitization, empty files, safe serving) (section 13).
+11. Added put-if-absent object immutability and listed orphan-object debt
+    (sections 10, 40).
+12. The repository already has `packages/document-model`; Phase 2 extends it
+    instead of creating `packages/document` (section 22).
+
+======================================================================
+1. INSPECT THE EXISTING REPOSITORY FIRST
+======================================================================
+
+Before making any changes:
+
+1. Read and understand the existing repository.
+2. Read:
+   - README.md
+   - docs/PROJECT_STATUS.md (including the listed technical debt)
+   - docs/ARCHITECTURE.md
+   - docs/DOCUMENT_PIPELINE.md
+   - docs/PROVENANCE.md
+   - docs/REVIEW_WORKFLOW.md
+   - docs/DEVELOPMENT.md
+   - decisions/* (especially ADR-003-project-revision-model.md)
+   - cursor/phase1_specs.txt
+3. Inspect:
+   - services/api/src/powerforge_api/models.py (single ORM module, Postgres
+     ENUMs declared with create_type=False and values_callable)
+   - database/migrations/ (Alembic; 0001-0003 exist; the new one is 0004)
+   - ProjectService, RevisionService (note _get_project_for_write and the
+     row-locking pattern already used there)
+   - routers/projects.py (exception -> HTTP status mapping)
+   - schemas/projects.py
+   - powerforge_api/exceptions.py (all errors subclass ProjectError)
+   - packages/document-model, packages/project
+   - apps/web/src (components, lib API client patterns, vitest setup)
+   - tests/ (pytest markers: `integration` requires RUN_INTEGRATION=1)
+   - docker-compose.yml (minio, minio-init, api environment)
+   - packages/shared/src/powerforge_shared/config.py (S3_* settings)
+4. Preserve existing architecture and conventions unless this specification
+   explicitly changes them.
+5. Do not rewrite working Phase 0 or Phase 1 functionality unnecessarily.
+6. Check `git status`. Uncommitted work may exist. Do not discard it; report
+   it and include it in the baseline.
+7. Run the existing test suite (pytest, ruff, web lint/test) before
+   implementation and record whether it passes.
+8. Write a concise implementation plan before editing files.
+
+======================================================================
+2. PHASE 2 GOAL
+======================================================================
+
+Implement document management for engineering project revisions.
+
+At the end of Phase 2, a user must be able to:
+
+- open a project revision
+- upload engineering PDFs and images (one or many through the UI)
+- store original files in object storage as immutable bytes
+- view revision documents
+- manually classify documents
+- edit revision-scoped document metadata
+- download/view original files
+- remove a document from the current revision without deleting the file
+- restore a removed document
+- create a new revision based on another revision
+- automatically carry forward the base revision's document package
+- distinguish inherited documents from newly uploaded documents
+- replace a document in a new revision without affecting the previous one
+- reuse an existing project document in another revision without re-uploading
+- preserve historical revision document packages
+- be prevented from changing superseded revisions
+
+Core engineering behavior:
+
+    Revision N+1 is usually built on Revision N.
+    A new revision therefore normally inherits the base revision's documents.
+
+    FILES MUST NOT BE PHYSICALLY COPIED WHEN A REVISION IS CREATED.
+    Inheritance copies database associations only.
+
+======================================================================
+3. ARCHITECTURAL PRINCIPLES
+======================================================================
+
+Long-term conceptual pipeline:
+
+    Documents -> Evidence -> Extraction Candidates -> Engineering Model
+              -> Engineer Verification
+
+Phase 2 implements only the document foundation. AI output must never become
+part of the document domain. Original engineering files are evidence and
+remain immutable.
+
+Mandatory data model. Two distinct concepts:
+
+    DOCUMENT
+        An immutable uploaded file artifact.
+
+    REVISION DOCUMENT
+        The inclusion and interpretation of that artifact within one
+        particular revision.
+
+    Project
+      ├── ProjectRevision (Rev 0)
+      │      └── RevisionDocument ──┐
+      │                             ├──► Document ──► immutable stored object
+      └── ProjectRevision (Rev 1)   │
+             └── RevisionDocument ──┘   (same Document, new association row)
+
+DO NOT model Document as belonging exclusively to one revision.
+
+Example. Revision 1: SLD_RevA, Transformer_T1, Utility_Fault_Data.
+Revision 2 is created based on Revision 1 and initially contains the same
+three (inherited). SLD_RevB arrives. Revision 2 becomes: SLD_RevA REMOVED,
+SLD_RevB INCLUDED/UPLOADED, Transformer_T1 and Utility_Fault_Data
+INCLUDED/INHERITED. Revision 1 is unchanged. This is copy-on-write
+revisioning. No object-storage copies are created.
+
+Revision-scoped metadata lives on RevisionDocument, never on Document, so
+Revision 1 stays historically frozen even if Revision 2 later classifies or
+describes the same Document differently.
+
+======================================================================
+4. EXPLICIT NON-GOALS
+======================================================================
+
+Do NOT implement, and do NOT add placeholder code for:
+
+- OCR, LLM calls, vision models, embeddings, vector DBs, RAG
+- document auto-classification (classification is MANUAL only)
+- document pages, thumbnails, rendered PDF pages, text extraction, layout
+  detection (Phase 3)
+- equipment extraction, entity resolution, SLD extraction, topology
+  inference, engineering-model creation
+- ETAP / SKM / EasyPower integration, calculations, coordination, arc
+  flash, report generation
+- user-facing folders or a folder table
+- DocumentPackage / submission entities (possible future feature; do not
+  design anything that would prevent adding it later)
+- equipment grouping or DocumentEquipmentLink
+- document garbage collection or hard delete
+- authentication (still deferred; keep an architecture that supports
+  project-level authorization later)
+
+======================================================================
+5. REVISION LINEAGE
+======================================================================
+
+Add to ProjectRevision:
+
+    based_on_revision_id   nullable UUID
+
+Meaning: "this revision was created based on that revision."
+
+Rules:
+
+- The base must belong to the SAME project. It may be any status, including
+  SUPERSEDED. It need not be ACTIVE.
+- A revision cannot be based on itself.
+- Lineage is IMMUTABLE after creation. RevisionUpdate must not accept
+  based_on_revision_id. Because lineage is set only at creation, when a
+  revision has no descendants, cycles are impossible by construction.
+- Activation behavior is unchanged from Phase 1 (including the rule that only
+  revisions created after the current ACTIVE revision can be activated).
+  Activating a revision supersedes the current ACTIVE revision regardless of
+  lineage.
+
+Database enforcement (not just service-level):
+
+- project_revisions gets UNIQUE (project_id, id)
+  [uq_project_revisions_project_id_id], used as a composite FK target.
+- Composite FK (project_id, based_on_revision_id)
+  -> project_revisions (project_id, id)  [fk_project_revisions_based_on].
+  With nullable based_on_revision_id the FK is skipped when it is NULL.
+  This makes cross-project lineage impossible at the database level.
+- CHECK (based_on_revision_id IS NULL OR based_on_revision_id <> id)
+  [ck_project_revisions_based_on_not_self].
+- No ON DELETE CASCADE anywhere in Phase 2. Revisions and documents are never
+  deleted.
+
+The service layer ALSO validates and raises InvalidBaseRevision (or the
+repository's equivalent not-found error for a base id from another project)
+so users get clean errors instead of constraint failures.
+
+Revision responses include based_on_revision_id and the base's identifier.
+
+======================================================================
+6. REVISION CREATION BEHAVIOR
+======================================================================
+
+Extend the existing revision-creation API and UI. Request fields:
+
+    identifier                (existing)
+    description               (existing)
+    activate                  (existing Phase 1 flag; keep working)
+    based_on_revision_id      UUID | null | omitted   (three distinct states)
+    carry_forward_documents   bool | null | omitted
+
+The schema must distinguish omitted from explicit null (use
+model_fields_set or equivalent).
+
+Base resolution:
+
+  A. based_on_revision_id = UUID:
+     verify it belongs to the same project; use it.
+  B. based_on_revision_id omitted:
+     use the project's current ACTIVE revision if one exists; otherwise
+     no base (NULL).
+  C. based_on_revision_id explicitly null:
+     NO base, even if an ACTIVE revision exists. Lineage is NULL.
+
+Carry-forward resolution:
+
+  D. carry_forward_documents omitted or null:
+     true if a base was resolved, otherwise false.
+  E. carry_forward_documents = true with no resolved base:
+     reject with InvalidBaseRevision.
+  F. carry_forward_documents = false:
+     no documents are inherited. The base (if any) is still recorded.
+
+Inheritance (when carry-forward resolves to true):
+
+  - copy every RevisionDocument of the base with status INCLUDED
+  - never copy REMOVED associations
+  - never copy file bytes or touch object storage
+  - each copy points to the SAME Document
+  - origin = INHERITED, status = INCLUDED
+  - inherited_from_revision_id = base revision id
+  - copy revision-scoped metadata: document_type, document_number,
+    description, notes
+  - do NOT copy: RevisionDocument.id, added_at, added_by, removed_at,
+    removed_by (set new timestamps normally)
+  - if the base itself contains INHERITED associations, the copies still
+    reference the BASE revision as inherited_from_revision_id (one hop of
+    provenance; the Document identity gives the full history)
+
+Atomicity and ordering (single transaction):
+
+  1. lock the project row (existing _get_project_for_write(for_update=True))
+     when activate is true OR a base is being resolved
+  2. lock the BASE revision row FOR UPDATE so its package cannot change
+     mid-copy (lock order is always project -> revision)
+  3. create the revision and flush
+  4. insert inherited RevisionDocument rows
+  5. if activate is true, run the existing activation logic (this may
+     supersede the base). Documents are copied BEFORE activation so the
+     base's package is read while it is still in its pre-activation state.
+  6. commit once
+
+If any step fails, nothing is persisted; the new revision must not exist
+partially. Response includes inherited_document_count.
+
+Phase 1 activation behavior and the one-ACTIVE-per-project invariant must
+continue to work.
+
+======================================================================
+7. DOCUMENT ENTITY
+======================================================================
+
+Document represents the immutable uploaded artifact.
+
+    id                UUID primary key (generated by the service before
+                      upload so the storage key can use it)
+    project_id        UUID FK -> projects.id, NOT NULL
+    original_filename text NOT NULL (sanitized basename, section 13)
+    storage_key       text NOT NULL, UNIQUE
+    mime_type         text NOT NULL (derived from detected content, never
+                      from the browser)
+    file_extension    text NOT NULL (lowercase, leading dot, e.g. ".pdf")
+    size_bytes        bigint NOT NULL, CHECK > 0
+    sha256            text NOT NULL (lowercase hex)
+    uploaded_at       timestamptz NOT NULL
+    uploaded_by       nullable UUID (matches created_by convention; auth is
+                      deferred)
+
+Additional constraints:
+
+- UNIQUE (project_id, id) [uq_documents_project_id_id] as a composite FK
+  target (section 8).
+- Index on project_id; index on (project_id, sha256) for duplicate detection.
+
+Rules:
+
+- No revision id on Document. No file bytes in PostgreSQL.
+- SHA-256 is NOT unique. Identical content may legitimately exist as
+  separate Documents. The hash is for integrity and duplicate detection,
+  not deduplication.
+- project_id, original_filename, storage_key, mime_type, file_extension,
+  size_bytes, sha256, uploaded_at, uploaded_by are IMMUTABLE after creation.
+  Expose no API that changes them or replaces the stored file.
+
+======================================================================
+8. REVISION DOCUMENT ENTITY
+======================================================================
+
+    id                          UUID primary key
+    project_id                  UUID NOT NULL  (intentional denormalization,
+                                see below)
+    revision_id                 UUID NOT NULL
+    document_id                 UUID NOT NULL
+    origin                      enum UPLOADED | INHERITED
+    inherited_from_revision_id  nullable UUID
+    status                      enum INCLUDED | REMOVED
+    document_type               enum (section 9), default UNKNOWN
+    document_number             nullable text
+    description                 nullable text
+    notes                       nullable text
+    added_at                    timestamptz NOT NULL
+    added_by                    nullable UUID
+    removed_at                  nullable timestamptz
+    removed_by                  nullable UUID
+
+Constraints:
+
+- UNIQUE (revision_id, document_id) [uq_revision_documents_revision_id_document_id].
+  A Document appears at most once in a revision.
+- Composite FKs guarantee that revision, document, and inheritance source all
+  belong to the same project at the database level:
+    (project_id, revision_id)                -> project_revisions (project_id, id)
+    (project_id, document_id)                -> documents (project_id, id)
+    (project_id, inherited_from_revision_id) -> project_revisions (project_id, id)
+  project_id on RevisionDocument is deliberately denormalized to make these
+  FKs possible. The service sets it from the revision and never accepts it
+  from the client.
+- CHECK (origin = 'INHERITED') = (inherited_from_revision_id IS NOT NULL)
+- CHECK inherited_from_revision_id IS NULL OR inherited_from_revision_id <> revision_id
+- CHECK (status = 'REMOVED') = (removed_at IS NOT NULL)
+- Indexes: revision_id, document_id, (revision_id, status),
+  (revision_id, document_type). Do not over-index.
+
+Note: when the same Document is reused via "reuse" (section 21) the origin is
+INHERITED and inherited_from_revision_id is the source revision.
+
+======================================================================
+9. DOCUMENT TYPES
+======================================================================
+
+Reuse and extend the existing enum DocumentClassification in
+packages/document-model (do not create a parallel enum). Add OTHER. Final
+values:
+
+    UNKNOWN (default)            SINGLE_LINE_DIAGRAM       ELECTRICAL_DRAWING
+    PANEL_SCHEDULE               EQUIPMENT_SCHEDULE        CABLE_SCHEDULE
+    TRANSFORMER_SHOP_DRAWING     SWITCHGEAR_SHOP_DRAWING   BREAKER_DOCUMENT
+    MOTOR_DATA                   FAULT_DATA                SPECIFICATION
+    EQUIPMENT_PHOTO              NAMEPLATE_PHOTO           STUDY_DOCUMENT
+    OTHER
+
+API/DB field name: document_type. Classification is manual only.
+
+======================================================================
+10. OBJECT STORAGE
+======================================================================
+
+Files live in S3-compatible object storage (MinIO in development). Domain and
+service code must depend on an abstraction, never on the S3/MinIO SDK.
+
+Define an ObjectStorage interface (Protocol/ABC) in
+powerforge_api/storage/ with behavior equivalent to:
+
+    ensure_bucket()
+    put(key, fileobj, size, content_type)   -> never overwrites an existing key
+    get(key)                                -> readable stream
+    exists(key)                             -> bool
+    delete(key)
+    create_download_url(key, filename, content_type, disposition, expires_seconds)
+
+Implementations:
+
+- S3ObjectStorage using boto3 (S3 API; works with MinIO, AWS S3, and other
+  S3-compatible services; matches the existing S3_* settings). Use SigV4 and
+  path-style addressing for MinIO.
+- InMemoryObjectStorage (fake) for tests, with injectable failures.
+
+Immutability:
+
+- put() must refuse to overwrite an existing key (use conditional put such as
+  If-None-Match where supported, or an exists() check as fallback; the fake
+  raises). Keys contain a fresh UUID so collisions are not expected; this is
+  a safety net.
+- Bucket versioning is recommended for production deployments and documented,
+  but not required in development.
+
+Objects are never public. No anonymous bucket policy. Verify that
+minio-init does not set one.
+
+The storage instance is provided through a FastAPI dependency
+(get_object_storage) that tests can override.
+
+======================================================================
+11. STORAGE KEY DESIGN
+======================================================================
+
+Use only stable machine identifiers:
+
+    projects/{project_uuid}/documents/{document_uuid}/original{extension}
+
+The extension is the normalized lowercase extension from section 13.
+Do NOT use revision names, equipment tags, classifications, or filenames in
+keys. Storage objects must never need to move because metadata changed.
+Keys are built by one pure function in the document domain package.
+
+======================================================================
+12. NO FOLDERS; METADATA-DRIVEN ORGANIZATION
+======================================================================
+
+Do NOT implement physical or virtual folders, and do not create a folder
+table. Engineering documents belong to multiple conceptual categories (a
+switchgear shop drawing contains bus ratings, breaker data, CT ratios,
+relays, nameplates). Organization is metadata-driven.
+
+Phase 2 views/filters only:
+
+    All Documents · By Document Type · Uploaded · Inherited ·
+    Unclassified (UNKNOWN) · Removed
+
+No equipment grouping (no equipment entities exist yet).
+
+======================================================================
+13. FILE VALIDATION
+======================================================================
+
+Supported: PDF (.pdf), PNG (.png), JPEG (.jpg, .jpeg), TIFF (.tif, .tiff).
+
+Validate extension AND actual content. Never trust the browser Content-Type.
+Never store it.
+
+Checks, in order:
+
+ 1. Filename: reduce to basename (strip any path components), remove control
+    characters, trim, max 255 characters, must be non-empty. The result is
+    stored as original_filename. It is never used in storage keys.
+ 2. Extension: lowercase; must be in the allow-list, else
+    UnsupportedDocumentType.
+ 3. Size: must be > 0 and <= MAX_UPLOAD_BYTES (enforced while streaming; a
+    Content-Length header is only an early-reject optimization, never
+    trusted). Else FileTooLarge. Empty file -> InvalidFileContent.
+ 4. Content detection:
+    - PDF: header "%PDF-" within the first 1024 bytes.
+    - Images: open with Pillow (Image.open + verify()). Phase 2 validates
+      structure and header; full pixel decoding is deferred to Phase 3.
+      Set the pixel cap explicitly: reject if width*height exceeds
+      MAX_IMAGE_PIXELS (configurable, default 600,000,000 to allow large
+      engineering scans) by checking dimensions from the header BEFORE any
+      decode. Treat PIL.Image.DecompressionBombError as InvalidFileContent.
+      Multi-page TIFFs are accepted; pages are not inspected.
+ 5. Agreement: the detected format must match the extension family
+    (PNG<->.png, JPEG<->.jpg/.jpeg, TIFF<->.tif/.tiff, PDF<->.pdf).
+    A JPEG named .png is rejected with InvalidFileContent.
+ 6. mime_type is derived from the detected format
+    (application/pdf, image/png, image/jpeg, image/tiff).
+
+Reject executables, renamed arbitrary files, and unsupported formats.
+
+Layering: pure rules (allow-list, extension normalization, filename
+sanitization, PDF header check, extension<->format agreement, storage-key
+builder) live in the document domain package. Pillow-based image inspection
+lives in the API service layer (FileInspector), not the domain package.
+
+Known limitation (record as technical debt): a header check does not detect
+PDF/other polyglot files. This is acceptable because Phase 2 never renders or
+executes uploaded files server-side and serves them with the stored
+content type from the storage domain (section 21).
+
+======================================================================
+14. FILE SIZE AND STREAMING
+======================================================================
+
+    MAX_UPLOAD_BYTES   default 262144000 (250 MB), configurable.
+
+Never read a whole upload into RAM. Use the framework's spooled temporary
+file, pass a binary file-like object plus filename to DocumentService (the
+service must not import FastAPI types), compute SHA-256 and size in a single
+streaming pass, then validate, then stream the same file to object storage.
+Remind operators (docs) that reverse proxies must also allow the configured
+body size.
+
+======================================================================
+15. UPLOAD FLOW
+======================================================================
+
+Each API request uploads exactly ONE file. The frontend may select many
+files and upload them individually (isolated failures, clean retries,
+per-file progress, simple consistency).
+
+Backend flow:
+
+    Request
+      -> Validate project exists            (read, no lock)
+      -> Validate revision belongs to project
+      -> Early mutability check             (cheap fast-fail; re-checked later)
+      -> Stream file: enforce size, compute SHA-256, spool to temp file
+      -> Validate content (section 13)
+      -> Generate Document UUID and storage key
+      -> put() object to storage            (NO locks held during this step)
+      -> Open DB transaction; lock the revision row FOR UPDATE;
+         RE-CHECK project and revision mutability under the lock
+         (guards against a concurrent activation superseding the revision)
+      -> Detect duplicates (same project_id + sha256)
+      -> Insert Document
+      -> Insert RevisionDocument(origin=UPLOADED, status=INCLUDED, metadata)
+      -> Commit
+      -> Return metadata + duplicate info
+
+Failure handling:
+
+- Storage upload fails: create no database records; raise StorageUploadFailed
+  (never expose raw SDK messages).
+- Mutability re-check or database step fails after the object was stored:
+  attempt best-effort deletion of the new object; log cleanup failures
+  clearly. Do not leave a database record pointing to a nonexistent object.
+- A crash between put() and commit can leave an orphaned object. Accept this
+  and record it as technical debt (no GC in Phase 2).
+
+======================================================================
+16. DUPLICATE FILE BEHAVIOR
+======================================================================
+
+Detect identical content by SHA-256 across ALL Documents of the same project
+(including Documents whose associations are all REMOVED).
+
+- DO NOT reject. DO NOT deduplicate. DO NOT make SHA-256 unique.
+- Accept the upload and return duplicate_detected = true and
+  duplicate_document_ids = [...].
+- The new upload is a NEW Document. Never reuse another Document based on
+  hash alone.
+- Frontend shows a non-blocking warning: "An identical file already exists
+  in this project."
+
+Intentional reuse (inheritance, section 6, or "reuse", section 21) is
+different: it points a new association at the SAME Document by explicit
+user/system action.
+
+======================================================================
+17. REVISION AND PROJECT MUTABILITY RULES
+======================================================================
+
+Document mutation = upload, reuse, metadata edit, remove, restore.
+
+Allowed only when ALL are true:
+
+    project status is ACTIVE or PAUSED
+        (verified against Phase 1: _get_project_for_write blocks only
+         ARCHIVED and CANCELLED, so PAUSED is editable; reuse that logic,
+         the existing ArchivedProject and CancelledProject errors, and do
+         not duplicate the rule)
+    revision status is DRAFT or ACTIVE
+
+Rejected:
+
+    ARCHIVED project            -> ArchivedProject (existing)
+    CANCELLED project           -> CancelledProject (existing)
+    SUPERSEDED revision         -> RevisionReadOnly (new)
+
+Reads are ALWAYS allowed regardless of status: list, get, and download for
+superseded revisions and for archived/cancelled projects.
+
+Scope of "frozen": a superseded revision's DOCUMENT PACKAGE is read-only.
+Phase 1 revision metadata editing (identifier, description) is unchanged and
+out of scope; the ADR must state this explicitly.
+
+Backend enforcement is mandatory. Frontend disabling is not enforcement.
+
+======================================================================
+18. CONCURRENCY RULES
+======================================================================
+
+Lock order is always: project row -> revision row(s). Never the reverse.
+
+- Document mutations lock ONLY the target revision row (SELECT ... FOR
+  UPDATE) for the short database phase and re-check mutability after
+  acquiring the lock. Streaming and object upload happen before the lock.
+- Revision activation already locks the project row and then updates revision
+  rows, so it naturally waits for in-flight document mutations on the
+  revision being superseded, and subsequent mutations then see SUPERSEDED.
+- Revision creation with a base locks the project row then the base revision
+  row (section 6).
+
+Concurrency tests may be best-effort, but the locking calls must exist and be
+covered by at least one test that asserts the re-check-after-lock behavior
+(for example by flipping revision status between the early check and the
+locked re-check).
+
+======================================================================
+19. SNAPSHOT SEMANTICS (document in the ADR)
+======================================================================
+
+Inheritance is a SNAPSHOT at revision-creation time. Later changes to the
+base revision's package (while it is still DRAFT/ACTIVE) are NOT propagated to
+revisions created from it. Revision-scoped metadata is copied at creation
+and diverges independently afterwards.
+
+Because an ACTIVE revision's package remains editable, evidence attached to an
+ACTIVE revision can change over time. Later phases that derive data from
+documents must record the RevisionDocument/Document identity they used
+(see docs/PROVENANCE.md update).
+
+======================================================================
+20. REMOVE AND RESTORE
+======================================================================
+
+Remove (while revision is mutable):
+- never delete the Document row or the storage object
+- status = REMOVED, removed_at = now, removed_by = user if available
+- other revisions are unaffected
+- removing an already REMOVED association is an idempotent no-op that does
+  not change removed_at/removed_by
+
+Restore (while revision is mutable):
+- status = INCLUDED, removed_at = NULL, removed_by = NULL
+- restoring an INCLUDED association is an idempotent no-op
+
+Metadata edits on a REMOVED association are rejected (restore first) with a
+conflict error.
+
+======================================================================
+21. API DESIGN
+======================================================================
+
+Follow current REST conventions. Never expose ORM models; use Pydantic
+schemas. Business logic stays in services, not route handlers. PATCH and
+form schemas must reject unknown fields (extra="forbid") so attempts to set
+immutable fields fail validation.
+
+All routes are scoped under /api/projects/{project_id}/revisions/{revision_id}.
+There is NO unscoped /api/documents/{id} route; documents are always reached
+through a revision-document association that is verified to belong to the
+given revision and project.
+
+LIST
+    GET  .../documents
+    Query: status=INCLUDED|REMOVED|ALL (default INCLUDED),
+           document_type=, origin=, search=
+    Search is case-insensitive over original_filename, document_number,
+    description. Escape LIKE wildcards. Deterministic order (added_at,
+    then filename). No pagination in Phase 2 (record as technical debt).
+
+UPLOAD
+    POST .../documents          multipart/form-data, ONE file field
+    Optional form fields: document_type, document_number, description, notes
+    Response (201): revision document + duplicate_detected +
+    duplicate_document_ids
+
+REUSE EXISTING DOCUMENT (add from another revision)
+    POST .../documents/reuse
+    Body: { source_revision_document_id, document_type?/number?/description?/
+            notes? overrides optional }
+    The source association must be INCLUDED and belong to a revision of the
+    SAME project. Creates a RevisionDocument with origin = INHERITED,
+    inherited_from_revision_id = source revision, copying the source's
+    revision-scoped metadata unless overridden. If the Document is already
+    associated with the target revision (INCLUDED or REMOVED) reject with a
+    conflict (for REMOVED, the message says to restore it). Subject to
+    mutability rules. Cross-project sources are rejected
+    (CrossProjectDocumentAccess); the composite FKs are the DB-level backstop.
+
+GET ONE
+    GET  .../documents/{revision_document_id}
+
+UPDATE METADATA
+    PATCH .../documents/{revision_document_id}
+    Editable: document_type, document_number, description, notes
+
+REMOVE / RESTORE
+    POST .../documents/{revision_document_id}/remove
+    POST .../documents/{revision_document_id}/restore
+
+DOWNLOAD / VIEW ORIGINAL
+    GET  .../documents/{revision_document_id}/download-url
+    Query: disposition=inline|attachment (default attachment)
+    Response: { url, expires_at, filename }
+    - Allowed for INCLUDED and REMOVED associations, in any revision/project
+      status (read-only history).
+    - Short-lived presigned URL; default validity 900 seconds, configurable.
+    - Presigned parameters set Content-Disposition (with the sanitized
+      original filename) and Content-Type from the stored mime_type, so the
+      browser never sniffs content.
+    - Large files are never proxied through FastAPI.
+    - A revision_document_id that does not belong to the given revision and
+      project returns not-found. Cross-project access is rejected.
+
+Response schema for a revision document includes: id, revision_id, document
+{id, original_filename, mime_type, file_extension, size_bytes, sha256,
+uploaded_at}, origin, inherited_from_revision_id,
+inherited_from_revision_identifier, status, document_type, document_number,
+description, notes, added_at, removed_at.
+
+Suggested HTTP mapping (follow the existing router's error-mapping style;
+existing code maps not-found/mismatch to 404, conflicts to 409,
+validation-type errors to 422):
+
+    404  ProjectNotFound, RevisionNotFound, RevisionProjectMismatch,
+         RevisionDocumentNotFound, CrossProjectDocumentAccess
+    409  RevisionReadOnly, ArchivedProject, CancelledProject,
+         DocumentAlreadyInRevision, edit of a REMOVED association
+    413  FileTooLarge
+    415  UnsupportedDocumentType
+    422  InvalidFileContent, InvalidBaseRevision
+    502  StorageUploadFailed
+
+======================================================================
+22. SERVICE LAYER AND DOMAIN PACKAGE
+======================================================================
+
+Services (no business logic in routers):
+
+    DocumentService  upload coordination, validation orchestration, duplicate
+                     detection, Document/RevisionDocument creation, reuse,
+                     metadata updates, remove, restore, list/filter,
+                     download-URL issuance, project/revision ownership and
+                     mutability checks
+    RevisionService  remains responsible for revision creation, lineage, and
+                     coordinating inheritance inside the revision transaction
+    ObjectStorage    storage abstraction (section 10)
+    FileInspector    Pillow-based image inspection (section 13)
+
+Avoid circular service dependencies. Put the shared logic both services need
+(mutability checks, "copy included associations from revision A to B") in one
+small helper module or class that neither service owns, for example
+revision_documents.py. RevisionService calls the helper; DocumentService calls
+the helper; neither imports the other.
+
+Domain package: extend the EXISTING packages/document-model
+(powerforge_document_model). Do NOT create packages/document/. Add:
+
+    enums.py       DocumentClassification (add OTHER), DocumentOrigin,
+                   RevisionDocumentStatus
+    validation.py  pure rules from section 13
+    storage_key.py (or within validation.py) the storage-key builder
+
+The domain package must contain no SQLAlchemy, FastAPI, boto3/MinIO, Pillow,
+or storage implementation. Add powerforge-document-model to the API's
+dependencies.
+
+New API dependencies: boto3, Pillow, python-multipart.
+
+======================================================================
+23. ERROR HANDLING
+======================================================================
+
+New domain errors (subclass the existing ProjectError, repository
+conventions):
+
+    RevisionReadOnly
+    UnsupportedDocumentType
+    InvalidFileContent
+    FileTooLarge
+    RevisionDocumentNotFound
+    CrossProjectDocumentAccess
+    DocumentAlreadyInRevision
+    StorageUploadFailed
+    InvalidBaseRevision
+
+Existing errors are reused: ProjectNotFound, RevisionNotFound,
+RevisionProjectMismatch, ArchivedProject, CancelledProject.
+
+Never expose raw database or storage-SDK exception text to users.
+
+IntegrityError handling (required fix of Phase 1 debt):
+
+- Replace the "any IntegrityError => DuplicateRevisionIdentifier" mapping in
+  RevisionService.create_revision (and update/activate paths) with mapping by
+  constraint name (psycopg exposes exc.orig.diag.constraint_name):
+    uq_project_revisions_project_id_identifier -> DuplicateRevisionIdentifier
+    uq_project_revisions_one_active            -> activation conflict
+    fk_project_revisions_based_on / ck_project_revisions_based_on_not_self
+                                               -> InvalidBaseRevision
+    uq_revision_documents_revision_id_document_id -> DocumentAlreadyInRevision
+    anything else                              -> re-raise as an internal
+                                                  error (logged, generic 500)
+- Add tests that a non-identifier constraint failure is NOT reported as a
+  duplicate identifier.
+
+======================================================================
+24. DATABASE MIGRATION
+======================================================================
+
+Add a NEW Alembic migration in database/migrations/ (0004_...). Never modify
+0001-0003. It adds, in a single reversible migration:
+
+- project_revisions.based_on_revision_id (nullable)
+- uq_project_revisions_project_id_id (UNIQUE project_id, id)
+- fk_project_revisions_based_on (composite) and
+  ck_project_revisions_based_on_not_self
+- PostgreSQL enum types: document_classification, document_origin,
+  revision_document_status (follow the repository's enum style:
+  create_type=False in models, created explicitly in the migration, values
+  via values_callable)
+- documents table with all constraints/indexes from section 7
+- revision_documents table with all constraints/indexes from section 8
+- no cascading deletes
+
+Verify the migration applies cleanly on a fresh database AND on a database at
+0003 containing existing projects/revisions (existing revisions get
+based_on_revision_id = NULL). Verify downgrade works.
+
+SQLAlchemy models are added to the existing models.py following the file's
+conventions (server defaults, timezone-aware timestamps).
+
+======================================================================
+25. FRONTEND — REVISION DOCUMENT EXPERIENCE
+======================================================================
+
+Use current frontend conventions (Next.js app, components/ui, lib/ API
+client modules, vitest + testing-library). Add lib/documents.ts for the API
+client.
+
+Revision documents view, conceptually:
+
+    Revision 2 — Documents                         Based on Revision 1
+    [ Upload Documents ]  [ Add from another revision ]
+    Search: [______]  Type: [All v]  Origin: [All v]  View: [Included v]
+    ---------------------------------------------------------------
+    File                    Type          Origin                  Status
+    SLD_RevA.pdf            Single Line   Inherited from Rev 1    Included
+    SLD_RevB.pdf            Single Line   Uploaded                Included
+    ---------------------------------------------------------------
+
+Support:
+
+- drag-and-drop and multi-file selection
+- each file uploaded as an independent request, with limited parallelism
+  (e.g. 3 at a time), per-file status (queued / uploading / done / failed),
+  per-file progress when practical (XMLHttpRequest if fetch cannot report
+  upload progress), and per-file retry
+- non-blocking duplicate warning per file
+- search, type filter, origin filter, and view filter (Included / Removed /
+  All)
+- metadata editing (type, number, description, notes)
+- remove and restore
+- open/download original: "Open" (inline) for PDF/PNG/JPEG; TIFF is offered
+  as "Download" because browsers cannot render TIFF inline
+- "Add from another revision": pick a source revision, list its included
+  documents, add selected ones via the reuse endpoint (minimal picker)
+- clearly distinguish Uploaded vs Inherited, and show
+  "Inherited from Revision <identifier>" where known
+- no folder UI; no manual file organization
+
+======================================================================
+26. CREATE REVISION UI
+======================================================================
+
+Update the existing Create Revision UI:
+
+    Revision Identifier: [ 2 ]
+    Description:         [ Updated design package ]
+    Based on:            [ Revision 1 (Active) v ]   options: each revision
+                         in the project, plus "None (start fresh)"
+    [x] Carry forward documents from Revision 1
+    [ Create Revision ]
+
+Rules:
+
+- "Based on" defaults to the current ACTIVE revision, or "None" if there is
+  no ACTIVE revision
+- carry-forward defaults to checked when a base is selected
+- choosing "None" sends based_on_revision_id = null explicitly and
+  disables/unchecks carry-forward
+- the user may select any revision of the same project, and may uncheck
+  carry-forward to start with an empty package (the base is still recorded)
+- when the selected base is not the ACTIVE revision, show an informational
+  note ("Based on a revision other than the active one.")
+- show lineage ("Based on Revision 1") on revision detail/history
+- show the inherited document count after creation
+
+======================================================================
+27. READ-ONLY UI
+======================================================================
+
+When a revision is SUPERSEDED, or the project is ARCHIVED/CANCELLED, show a
+clear read-only indication and disable/hide upload, reuse, metadata editing,
+remove, and restore. List, filter, view, and download remain available.
+Backend enforcement is authoritative; the UI mirrors it and must handle 409
+responses gracefully (for example if the revision was superseded while the
+page was open).
+
+======================================================================
+28. LOGGING
+======================================================================
+
+Log operationally important events (structured, with project/revision/
+document ids): document uploaded, duplicate hash detected, object storage
+upload failed, database creation failed, orphan cleanup attempted/failed,
+document reused, removed, restored, revision-document inheritance completed
+(with count).
+
+Never log file contents, credentials, signed URLs, or storage secrets.
+
+======================================================================
+29. CONFIGURATION
+======================================================================
+
+Extend the existing Settings (S3_* names are preserved; S3_ENDPOINT_URL
+already includes the scheme, so no separate secure flag):
+
+    S3_ENDPOINT_URL                 existing; used by the API to talk to storage
+                                    (docker: http://minio:9000)
+    S3_PUBLIC_ENDPOINT_URL          NEW, optional; host the BROWSER can reach
+                                    (dev: http://localhost:9000). Presigned
+                                    URLs are generated against this endpoint.
+                                    Defaults to S3_ENDPOINT_URL.
+    S3_ACCESS_KEY / S3_SECRET_KEY   existing
+    S3_BUCKET / S3_REGION           existing
+    S3_SIGNED_URL_EXPIRES_SECONDS   NEW, default 900
+    MAX_UPLOAD_BYTES                NEW, default 262144000
+    MAX_IMAGE_PIXELS                NEW, default 600000000
+
+Presigning is a local signing operation: build the presign client with the
+public endpoint and the same credentials; the API does not need network
+access to the public hostname.
+
+Update .env.example and docker-compose.yml accordingly. No credentials in
+source code beyond the existing dev defaults. Never expose storage
+credentials to the browser.
+
+Bucket initialization must be deterministic: minio-init remains the
+compose-level creator, and the API calls an idempotent ensure_bucket() at
+startup (head_bucket, create if missing, log result without secrets) so it
+also works outside compose. Neither makes the bucket public.
+
+======================================================================
+30. TESTING — REQUIRED
+======================================================================
+
+Phase 2 is not complete without tests. Add domain, unit, integration, and
+API tests as appropriate. Object storage is injectable; use
+InMemoryObjectStorage for most tests. Add at least one real MinIO/S3 test
+marked `integration` following the existing convention (skipped unless
+RUN_INTEGRATION=1) covering put/get/exists/delete and presigned URL
+retrieval. Tests that need to exceed MAX_UPLOAD_BYTES override the setting
+with a small value.
+
+UPLOAD / VALIDATION
+- valid PDF, PNG, JPEG, TIFF accepted
+- unsupported extension rejected; executable renamed to .pdf rejected
+- fake extension / invalid content rejected
+- extension/content mismatch (JPEG named .png) rejected
+- empty file rejected
+- oversize file rejected (413); size enforced while streaming
+- pixel cap exceeded rejected
+- filename sanitization (path components, control chars, long names)
+- browser Content-Type ignored; mime_type derived from content
+- SHA-256 correct; metadata persisted; storage object created at the
+  expected stable key (projects/{pid}/documents/{did}/original{ext})
+- RevisionDocument created with origin UPLOADED, status INCLUDED
+
+DUPLICATES
+- identical hash detected; upload allowed; a NEW Document is created
+  (never silently reused); duplicate_document_ids returned
+- duplicate detection includes Documents whose associations are REMOVED
+
+OWNERSHIP / CROSS-PROJECT
+- document and revision belong to the correct project
+- cross-project access rejected on every route
+- cannot associate another project's Document (reuse endpoint with a
+  cross-project source is rejected; DB composite FK rejects a direct insert)
+- composite FKs reject cross-project lineage and cross-project
+  RevisionDocument rows at the database level
+
+LINEAGE / INHERITANCE
+Given Revision 1 with A INCLUDED, B INCLUDED, C REMOVED, creating Revision 2
+based on Revision 1 with carry-forward yields A and B as INCLUDED/INHERITED,
+and no C. Verify:
+- same Document ids reused; no object-storage copy/put occurs
+- inherited_from_revision_id == Revision 1
+- revision-scoped metadata copied; ids and added_at/added_by not copied
+- Revision 1 unchanged
+- carry_forward_documents=false: no inherited documents, base still recorded
+- explicit based_on_revision_id=null with an ACTIVE revision present: no base,
+  no inheritance
+- explicit carry_forward=true with no base: InvalidBaseRevision
+- omitted base with ACTIVE revision: ACTIVE used as base, carry-forward
+  defaults true; no ACTIVE revision: no base, carry-forward false
+- base may be an older SUPERSEDED revision
+- base from another project rejected; self-base rejected
+- lineage cannot be changed through RevisionUpdate
+- activate=true with carry-forward: documents copied from the base before it
+  is superseded; one ACTIVE revision invariant holds
+- atomicity: a forced failure during inheritance leaves no new revision and no
+  partial rows
+- inheriting from a base with inherited rows references the base as source
+
+MUTABILITY / CONCURRENCY
+- DRAFT and ACTIVE revisions allow upload/edit/remove/restore/reuse
+- SUPERSEDED revision rejects all of those but allows list/get/download
+- CANCELLED and ARCHIVED projects reject mutation but allow reads
+- PAUSED project allows mutation (Phase 1 semantics)
+- mutability is re-checked after the revision row lock is acquired
+
+REMOVE / RESTORE / REUSE
+- remove sets REMOVED with removed_at; Document row and storage object remain;
+  other revisions' associations unchanged
+- restore returns INCLUDED and clears removed_at/removed_by
+- remove/restore are idempotent
+- edit of a REMOVED association rejected
+- reuse creates INHERITED association to the same Document; conflicts when
+  already associated
+
+METADATA
+- editable fields update; unknown/immutable fields rejected by the PATCH
+  schema (422)
+
+STORAGE FAILURE / CLEANUP
+- simulated storage put failure leaves no Document and no RevisionDocument
+- simulated DB failure after put triggers a cleanup delete attempt
+- cleanup failure is logged and does not mask the original error
+- put() refuses to overwrite an existing key
+
+DOWNLOAD
+- valid association yields a presigned URL (expiry, filename, disposition)
+- REMOVED association and superseded revision still allow download
+- a revision_document_id used with the wrong revision or project is rejected
+- URLs are not logged
+
+ERROR MAPPING
+- non-identifier IntegrityErrors are not reported as DuplicateRevisionIdentifier
+- constraint-name mapping for each constraint listed in section 23
+
+MIGRATION
+- migration applies on a fresh DB and on a DB at 0003 with data; downgrade works
+
+EXISTING FUNCTIONALITY
+- all Phase 1 project/revision tests continue to pass
+
+FRONTEND
+- vitest tests for the documents API client and the key components (create
+  revision form defaults and None option; upload queue with mixed
+  success/failure/duplicate; read-only mode hides mutation controls;
+  uploaded vs inherited labels)
+- type check (tsc/next build) and lint pass
+
+======================================================================
+31. DOCUMENTATION
+======================================================================
+
+The Phase 2 documentation (ADR-004 as Proposed, and the Phase 2 sections of
+README.md, PROJECT_STATUS.md, ARCHITECTURE.md, DOCUMENT_PIPELINE.md,
+PROVENANCE.md, DEVELOPMENT.md, PHASE0_HANDOFF.md) was drafted BEFORE
+implementation, describing the target design. During implementation, verify
+each statement against what was actually built, correct any drift, and
+record deviations. At completion set ADR-004 to Accepted and mark Phase 2
+complete in PROJECT_STATUS.md (checking off its work-package list).
+
+Documents to verify/update:
+
+    README.md (if needed: new env vars, MinIO notes)
+    docs/PROJECT_STATUS.md
+    docs/ARCHITECTURE.md
+    docs/DOCUMENT_PIPELINE.md (Phase 2 scope vs Phase 3+; fix the "Document
+        versions" wording to the Document/RevisionDocument model)
+    docs/PROVENANCE.md (Document/RevisionDocument identity and sha256 as
+        provenance anchors; snapshot semantics)
+    docs/DEVELOPMENT.md (new settings, running the MinIO integration test)
+
+This file (cursor/phase2_specs.txt) is the Phase 2 specification; keep it
+consistent with any deviations, recorded under "Deviations" in the final
+report and PROJECT_STATUS.md.
+
+Create decisions/ADR-004-document-storage-and-revision-inheritance.md
+recording:
+
+ 1. Document is an immutable uploaded artifact.
+ 2. RevisionDocument associates Documents with ProjectRevisions.
+ 3. A Document may be referenced by multiple revisions.
+ 4. New revisions may inherit document associations (snapshot at creation).
+ 5. Physical files are not copied during revision inheritance.
+ 6. Revision-scoped document metadata is copied on inheritance.
+ 7. Superseded revisions' document packages are frozen (revision metadata
+    editing is unchanged).
+ 8. Removing a document removes it from a revision, not from evidence storage.
+ 9. Physical storage is flat/stable and uses no human folder hierarchy.
+10. Organization is metadata-driven.
+11. AI classification is deferred.
+12. Document packages/submissions are a possible future feature, not
+    implemented in Phase 2.
+13. Lineage is immutable and database-enforced via composite foreign keys;
+    RevisionDocument.project_id is intentionally denormalized for that
+    purpose.
+14. Downloads are issued only through revision-scoped routes using
+    short-lived presigned URLs against a browser-reachable endpoint.
+15. Storage uses boto3 behind an ObjectStorage abstraction; put never
+    overwrites.
+
+======================================================================
+32. PROJECT STATUS UPDATE
+======================================================================
+
+At the end, update docs/PROJECT_STATUS.md to show:
+
+    Phase 0 — Complete
+    Phase 1 — Complete
+    Phase 2 — Complete
+
+Next phase: Phase 3 — Document Processing, conceptually: PDF/image
+preprocessing, PDF page generation, page rendering, image normalization,
+OCR-ready artifacts, page metadata. Do NOT implement Phase 3.
+
+Also record intentional deviations and technical debt, including at least:
+
+- orphaned storage objects (crash between put and commit; uploaded-then-
+  removed documents) and no garbage collection
+- header-only PDF validation (polyglot files undetected); images validated
+  structurally, not fully decoded
+- no pagination on document lists
+- no document-level audit trail beyond added/removed fields
+- uploaded_by/added_by/removed_by are null until auth exists
+- Phase 1 revision metadata remains editable on superseded revisions
+- Phase 1 debt resolved by this phase: constraint-name IntegrityError mapping
+
+======================================================================
+33. TARGET HIERARCHY (DO NOT COLLAPSE THESE CONCEPTS)
+======================================================================
+
+    Project
+      └── ProjectRevision (lineage: based_on_revision_id)
+             └── RevisionDocument
+                    ├── revision-scoped metadata
+                    ├── origin
+                    ├── inclusion/removal state
+                    └── Document
+                           ├── immutable identity, SHA-256, storage metadata
+                           └── immutable object
+                                  ▼
+                           Future Phase 3: Document Pages
+                                  ▼
+                           Future: Evidence -> Extraction Candidates
+                                  -> Engineering Model -> Engineer Verification
+
+======================================================================
+34. EXAMPLE ENGINEERING WORKFLOW (MUST WORK EXACTLY)
+======================================================================
+
+ 1. User creates Project P-100.
+ 2. User creates Revision 0. No ACTIVE revision exists, so no base; Revision 0
+    starts empty.
+ 3. User uploads SLD_RevA.pdf, T1_Shop_Drawing.pdf, Utility_Fault_Data.pdf.
+    Three Documents exist; Revision 0 has three RevisionDocuments with
+    origin UPLOADED and status INCLUDED.
+ 4. Revision 0 becomes ACTIVE.
+ 5. User creates Revision 1 with defaults: based_on = Revision 0,
+    carry_forward = true. Revision 1 receives three NEW RevisionDocuments
+    pointing to the SAME three Documents, with origin INHERITED,
+    inherited_from_revision_id = Revision 0, status INCLUDED. No object files
+    are duplicated.
+ 6. User uploads SLD_RevB.pdf to Revision 1: a new Document and an
+    UPLOADED/INCLUDED RevisionDocument.
+ 7. User removes the inherited SLD_RevA.pdf from Revision 1. Revision 1 now
+    holds: SLD_RevA REMOVED/INHERITED, SLD_RevB INCLUDED/UPLOADED,
+    T1_Shop_Drawing INCLUDED/INHERITED, Utility_Fault_Data INCLUDED/INHERITED.
+    Revision 0 still holds all three as INCLUDED.
+ 8. Revision 1 is activated. Revision 0 becomes SUPERSEDED and its document
+    package becomes read-only (still listable and downloadable).
+
+Add an end-to-end API test that executes exactly this scenario.
+
+======================================================================
+35. QUALITY REQUIREMENTS
+======================================================================
+
+Prioritize: 1. data integrity  2. historical traceability  3. clean service
+boundaries  4. testability  5. maintainability  6. clear engineering
+semantics  7. UI usability.
+
+Do not optimize for minimum lines of code. Do not introduce abstractions
+without a current or clearly planned purpose. Do not over-engineer future AI
+features. Do not weaken the immutable-evidence model for convenience.
+
+======================================================================
+36. DEFINITION OF DONE
+======================================================================
+
+Phase 2 is complete only when ALL are true:
+
+- existing Phase 1 behavior still works
+- migration 0004 applies cleanly (fresh DB and DB at 0003) and downgrades
+- Document exists as an immutable artifact; RevisionDocument as the
+  revision-scoped association
+- cross-project lineage and associations are rejected at both the service and
+  database level
+- lineage is immutable after creation
+- object storage works through the abstraction (S3ObjectStorage with MinIO)
+- put never overwrites; buckets are not public
+- PDF/image uploads work; extension and content are validated and must agree
+- SHA-256 is generated; duplicates are detected but allowed
+- files are not stored in PostgreSQL; storage keys are stable and
+  machine-oriented
+- new revisions inherit document sets without copying objects; explicit
+  "no base" and "no carry-forward" are supported
+- inheritance and revision creation are atomic, and work with activate=true
+- revision metadata is copied during inheritance
+- an existing document can be reused in another revision of the same project
+- documents can be removed/restored at the revision level
+- superseded revision packages are read-only; backend enforces mutability
+  with re-check under lock
+- download/view works through revision-scoped, short-lived signed URLs that
+  work from the browser in the docker setup
+- constraint-name IntegrityError mapping replaces the blanket mapping
+- multi-file frontend upload works as independent uploads with per-file
+  results and duplicate warnings
+- frontend shows Uploaded vs Inherited, supports manual classification, shows
+  lineage, and shows read-only state
+- no folders, OCR, AI, document pages, engineering model, or
+  ETAP/SKM/EasyPower logic
+- all tests pass; ruff, web lint, and type checks pass
+- docs updated; ADR-004 created; PROJECT_STATUS.md shows Phase 2 complete
+
+======================================================================
+37. IMPLEMENTATION PROCESS
+======================================================================
+
+Perform the work in this order:
+
+ 1. Inspect repository (including git status)
+ 2. Run baseline tests and record results
+ 3. Write implementation plan
+ 4. Extend domain package (enums, validation, storage key)
+ 5. Add database migration 0004
+ 6. Add SQLAlchemy models
+ 7. Add storage abstraction, InMemoryObjectStorage, S3ObjectStorage, settings
+ 8. Add shared revision-document helper and FileInspector
+ 9. Implement DocumentService
+10. Extend RevisionService (lineage, inheritance, constraint-name mapping)
+11. Add schemas
+12. Add APIs and error mapping
+13. Add backend tests
+14. Update Create Revision frontend
+15. Add revision document UI
+16. Add frontend tests, lint, and type checks
+17. Run all tests (including `RUN_INTEGRATION=1` MinIO test if the stack is up)
+18. Run lint/type checks
+19. Update documentation
+20. Add ADR-004
+21. Update PROJECT_STATUS.md
+22. Review git diff for accidental scope creep
+23. Produce implementation summary
+
+Do not begin Phase 3.
+
+======================================================================
+38. FINAL RESPONSE REQUIRED FROM THE AGENT
+======================================================================
+
+When implementation is complete, provide a concise engineering handoff:
+
+A. Files/modules added or changed
+B. Database changes
+C. API endpoints added or changed
+D. Revision inheritance behavior
+E. Object-storage implementation
+F. Frontend behavior
+G. Tests added
+H. Commands/tests executed and their results
+I. Any deviations from this specification
+J. Any technical debt discovered or introduced
+K. Confirmation that Phase 3 functionality was NOT implemented
+L. Suggested commit message
+
+Do not claim tests passed unless they were actually executed successfully.

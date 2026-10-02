@@ -88,7 +88,8 @@ Cancelled projects use the same write restrictions as archived projects (no PATC
 
 ## References
 
-- `cursor/PHASE1_SPECS.txt`
+- `cursor/phase1_specs.txt`
 - `cursor/specification.txt` §6, §21, §34
 - `docs/ARCHITECTURE.md`
 - `docs/ENGINEERING_MODEL.md`
+- [ADR-004](ADR-004-document-storage-and-revision-inheritance.md) — extends this model with revision lineage and revision-scoped documents (Phase 2)

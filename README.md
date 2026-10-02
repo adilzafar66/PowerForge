@@ -2,12 +2,13 @@
 
 Engineering data extraction platform. Electrical engineers upload project documents; PowerForge extracts structured electrical information, reconciles it across sources, and produces a centralized, traceable engineering model. The engineer remains the final authority.
 
-**Current phase:** Phase 1 — Project & Revision Management  
-**Next phase:** Phase 2 — Document Management
+**Current implemented phase:** Phase 1 — Project & Revision Management  
+**In progress:** Phase 2 — Document Management (specified in [cursor/phase2_specs.txt](cursor/phase2_specs.txt); implementation not started)  
+**Next:** Phase 3 — Document Processing
 
 Phase status lives in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Do not treat this README or chat history as the source of truth.
 
-The stack does not yet extract documents, call AI models, or integrate ETAP/SKM/EasyPower. Phase 0 setup notes remain in [docs/PHASE0_HANDOFF.md](docs/PHASE0_HANDOFF.md).
+The stack does not yet store documents, extract them, call AI models, or integrate ETAP/SKM/EasyPower. Phase 2 will add immutable document storage, revision-scoped document packages, and revision inheritance; see [ADR-004](decisions/ADR-004-document-storage-and-revision-inheritance.md). Phase 0 setup notes remain in [docs/PHASE0_HANDOFF.md](docs/PHASE0_HANDOFF.md).
 
 ## Quick start
 
@@ -48,5 +49,6 @@ services/document-worker  Celery (heartbeat in Phase 0)
 services/extraction-worker
 services/validation-worker
 packages/*                Domain packages (no AI vendor SDKs in the engineering model)
+cursor/                   Product and per-phase implementation specifications
 database/                 Alembic migrations
 ```

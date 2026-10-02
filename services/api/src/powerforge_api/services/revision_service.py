@@ -29,7 +29,9 @@ class RevisionService:
         self.session = session
 
     def create_revision(self, project_id: uuid.UUID, data: RevisionCreate) -> ProjectRevision:
-        project = self._get_project_for_write(project_id)
+        # Lock the project row before inspecting/replacing ACTIVE when activate=True,
+        # same serialization as activate_revision().
+        project = self._get_project_for_write(project_id, for_update=data.activate)
         identifier = data.identifier.strip()
         if not identifier:
             raise InvalidRevisionIdentifier("Revision identifier must not be blank")

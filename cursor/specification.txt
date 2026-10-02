@@ -1361,7 +1361,7 @@ Deliver:
 - project revisions (the revision documents and the engineering model attach to)
 - project list / dashboard at `/`
 
-Phase 1 details and locked decisions: `cursor/PHASE1_SPECS.txt` and ADR-003.
+Phase 1 details and locked decisions: `cursor/phase1_specs.txt` and ADR-003.
 
 PHASE 2
 Document management.

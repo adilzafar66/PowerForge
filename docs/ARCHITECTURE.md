@@ -77,7 +77,7 @@ These boundaries are mandatory. Do not place logic in an unrelated module.
 | Module | Owns | Must not contain |
 | --- | --- | --- |
 | Project | Projects, metadata, revisions, lifecycle | AI, OCR, calculations, document parsing |
-| Document | Upload, metadata, classification, versions, pages, storage refs | Engineering model, electrical calculations |
+| Document | Upload, immutable `Document` artifacts, revision-scoped `RevisionDocument` associations and metadata, classification, storage refs; pages (Phase 3) | Engineering model, electrical calculations |
 | Document processing | PDF parse, page render, OCR, text/image/layout/table extraction | Mutating the verified model |
 | AI extraction | Equipment, attributes, SLD, topology candidates, relationships | Direct writes to the verified model |
 | Entity resolution | Duplicate detection, match probability, merge candidates | Silent merges of low-confidence matches |
@@ -98,7 +98,7 @@ Package and service mapping:
 - `services/validation-worker` — deterministic validation jobs
 - `packages/project` — project/revision enums and domain schemas
 - `packages/engineering-model` — canonical model types and contracts
-- `packages/document-model` — document and page contracts
+- `packages/document-model` — document vocabulary: classification, origin and status enums, pure file-validation rules, storage-key builder (no SQLAlchemy, FastAPI, S3 SDK, or Pillow); page contracts arrive in Phase 3
 - `packages/extraction` — candidate extraction contracts
 - `packages/topology` — graph contracts
 - `packages/validation` — deterministic rule contracts
@@ -115,7 +115,7 @@ Workers and the API may depend on domain packages. Domain packages must not depe
 | Frontend | Next.js, TypeScript, React, Tailwind CSS, shadcn/ui | React Flow is reserved for topology visualization (Phase 12) |
 | API | Python, FastAPI, Pydantic | REST; Pydantic schemas are API contracts, not ORM models |
 | Persistence | PostgreSQL, SQLAlchemy 2, Alembic | Hybrid relational + JSONB; queryable, not a document dump |
-| Object storage | S3-compatible (MinIO locally) | Signed URLs; originals never overwritten |
+| Object storage | S3-compatible (MinIO locally), accessed through an `ObjectStorage` abstraction (boto3 implementation) | Presigned URLs; originals never overwritten; stable machine-oriented keys (Phase 2) |
 | Jobs | Redis + Celery | Document processing and extraction are never synchronous HTTP |
 | Document processing | PyMuPDF, pdfplumber, OpenCV, OCR abstraction | Introduced in Phase 3; not implemented in Phase 0 |
 | AI | `LLMProvider`, `VisionProvider`, `OCRProvider` | Swappable; prompt-versioned; never trusted raw |
@@ -164,7 +164,7 @@ The backend is not a monolith. Each worker is a separate process with a narrow j
 
 Uploaded documents are confidential engineering information. The platform requires authentication, authorization, project-level access control, authorized object-storage access (signed URLs), encryption in transit, encryption at rest where supported, and audit logging. Object storage is never exposed without authorization.
 
-Auth is not implemented in Phase 0 or Phase 1. The API is bound to localhost in local development. Do not add a fake users table or fake auth in Phase 1. `created_by` on projects and revisions is a nullable UUID with no foreign key until a users table exists. Project-level access control arrives with authentication, not merely because project rows exist. See [ADR-003](../decisions/ADR-003-project-revision-model.md).
+Auth is not implemented in Phase 0, Phase 1, or Phase 2. Phase 2 still issues object access only through backend-authorized presigned URLs, so project-level authorization can be added at the API later without changing storage. The API is bound to localhost in local development. Do not add a fake users table or fake auth in Phase 1. `created_by` on projects and revisions is a nullable UUID with no foreign key until a users table exists. Project-level access control arrives with authentication, not merely because project rows exist. See [ADR-003](../decisions/ADR-003-project-revision-model.md).
 
 ## Phase 0 scope
 
@@ -183,7 +183,7 @@ Phase 0 does **not** implement projects, uploads, OCR, AI extraction, SLD recogn
 
 ## Phase 1
 
-Phase 1 is project and revision management. Implementation followed `cursor/PHASE1_SPECS.txt` and [ADR-003](../decisions/ADR-003-project-revision-model.md). Status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
+Phase 1 is project and revision management. Implementation followed `cursor/phase1_specs.txt` and [ADR-003](../decisions/ADR-003-project-revision-model.md). Status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 Delivered:
 
@@ -193,6 +193,51 @@ Delivered:
 - No auto-created revision. New revisions are `DRAFT`. Activate is atomic and is the only path to `ACTIVE`.
 - Project statuses `ACTIVE`, `PAUSED`, `CANCELLED`, `ARCHIVED` via `/pause`, `/resume`, `/cancel`, `/archive`, `/unarchive`. PATCH is metadata only.
 - `/` is the project list. Stack status is at `/status`.
+
+## Phase 2
+
+Phase 2 is document management and revision inheritance. Specification: `cursor/phase2_specs.txt`. Decision record: [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md). Status (specified, implementation in progress): [PROJECT_STATUS.md](PROJECT_STATUS.md). This section describes the target design; the status file says what is actually implemented.
+
+### Two concepts, deliberately separate
+
+```
+Project
+  ├── ProjectRevision (Rev 0)
+  │      └── RevisionDocument ──┐
+  │                             ├──► Document ──► immutable object in storage
+  └── ProjectRevision (Rev 1)   │
+         └── RevisionDocument ──┘   same Document, new association row
+```
+
+- **`Document`** is the immutable uploaded artifact: project, original filename, storage key, MIME type, extension, size, SHA-256, upload time. It has no revision and no editable fields.
+- **`RevisionDocument`** is the inclusion and interpretation of that artifact in one revision: document type, number, description, notes, origin (`UPLOADED` or `INHERITED`), status (`INCLUDED` or `REMOVED`), and add/remove audit fields. `(revision_id, document_id)` is unique.
+
+Revision-scoped metadata lives only on `RevisionDocument`, so a superseded revision's package stays historically frozen even when a later revision describes the same file differently.
+
+### Lineage and inheritance
+
+`ProjectRevision.based_on_revision_id` records which revision a revision was created from (same project only, any status, immutable after creation). When a revision is created with carry-forward enabled, the base's `INCLUDED` associations are copied as new `INHERITED` rows pointing at the **same** `Document`. No object-storage copy happens. Revision creation and inheritance are one transaction. Inheritance is a snapshot at creation time: later edits to the base are not propagated.
+
+### Storage
+
+- Objects live in S3-compatible storage behind an `ObjectStorage` interface; the rest of the application never calls the S3/MinIO SDK directly.
+- Keys use only stable identifiers: `projects/{project_uuid}/documents/{document_uuid}/original{ext}`. No filenames, revision names, equipment tags, or classifications, so objects never move when metadata changes.
+- Bucket access is private. Downloads are short-lived presigned URLs issued only through revision-scoped routes, signed against a browser-reachable endpoint (`S3_PUBLIC_ENDPOINT_URL`). Storage credentials never reach the browser.
+- Bytes are never stored in PostgreSQL. One upload request carries one file; the UI uploads many files as independent requests.
+
+### Integrity and mutability
+
+- Same-project integrity is enforced by the database (composite foreign keys including `project_id`; `RevisionDocument.project_id` is intentionally denormalized for this), and also validated in the service layer.
+- A revision's document package is editable while the revision is `DRAFT` or `ACTIVE` and the project is `ACTIVE` or `PAUSED`. It is read-only when the revision is `SUPERSEDED` or the project is `ARCHIVED` or `CANCELLED`. Reads and downloads are always allowed. Enforcement is in the backend; mutations re-check after locking the revision row.
+- Duplicate content (same SHA-256 in a project) is detected and allowed; it is never deduplicated automatically.
+
+### Organization
+
+No folders. Organization is metadata-driven (document type, origin, status, search). Future virtual views (by equipment) and submission/document packages are possible later and are not designed out, but are not part of Phase 2.
+
+### Not in Phase 2
+
+OCR, AI or auto-classification, document pages and rendering, thumbnails, equipment and engineering-model entities, ETAP/SKM/EasyPower. Phase 3 (document processing) builds on `Document`.
 
 ## Related documents
 
@@ -208,3 +253,4 @@ Delivered:
 - [PROJECT_STATUS.md](PROJECT_STATUS.md) — living phase status
 - [PHASE0_HANDOFF.md](PHASE0_HANDOFF.md) — Phase 0 implementation context and environment notes
 - [ADR-003](../decisions/ADR-003-project-revision-model.md) — project/revision model (Phase 1, accepted)
+- [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md) — document storage and revision inheritance (Phase 2, proposed)

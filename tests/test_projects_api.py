@@ -430,3 +430,27 @@ def test_concurrent_activate_leaves_one_active(require_db: None) -> None:
     revisions = client.get(f"/api/projects/{project_id}/revisions").json()["items"]
     active = [item for item in revisions if item["status"] == "ACTIVE"]
     assert len(active) == 1
+
+
+@pytest.mark.integration
+def test_concurrent_create_and_activate_leaves_one_active(require_db: None) -> None:
+    number = _unique("CONC-C")
+    project_id = client.post(
+        "/api/projects",
+        json={"project_number": number, "project_name": "Concurrent Create"},
+    ).json()["id"]
+
+    def create_and_activate(identifier: str) -> int:
+        local = TestClient(app)
+        return local.post(
+            f"/api/projects/{project_id}/revisions",
+            json={"identifier": identifier, "activate": True},
+        ).status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(create_and_activate, ["A", "B"]))
+
+    assert results == [201, 201]
+    revisions = client.get(f"/api/projects/{project_id}/revisions").json()["items"]
+    active = [item for item in revisions if item["status"] == "ACTIVE"]
+    assert len(active) == 1
