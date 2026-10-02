@@ -18,6 +18,7 @@ select = ["E", "F", "I", "UP", "B"]
 known-first-party = [
     "powerforge_api",
     "powerforge_shared",
+    "powerforge_project",
     "powerforge_engineering_model",
     "powerforge_document_model",
     "powerforge_extraction",
@@ -37,6 +38,7 @@ pythonpath = [
     "services/extraction-worker/src",
     "services/validation-worker/src",
     "packages/shared/src",
+    "packages/project/src",
     "packages/engineering-model/src",
     "packages/document-model/src",
     "packages/extraction/src",

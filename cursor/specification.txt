@@ -226,6 +226,7 @@ Use a monorepo structure similar to:
     /validation-worker
 
 /packages
+    /project
     /engineering-model
     /document-model
     /extraction
@@ -248,10 +249,12 @@ Use a monorepo structure similar to:
     VALIDATION.md
     PROVENANCE.md
     REVIEW_WORKFLOW.md
+    PROJECT_STATUS.md
 
 /decisions
     ADR-001-...
     ADR-002-...
+    ADR-003-...
 
 /tests
 
@@ -333,8 +336,11 @@ Responsible for:
 - Electrical attributes
 - Connections
 - Topology
-- model revisions
+- the engineering-model snapshot associated with a project revision
 - model state
+
+It does not own Project or ProjectRevision. Those belong to the Project module.
+There is no separate model-revision table. See ADR-003.
 
 It must have no dependency on AI providers.
 
@@ -937,6 +943,10 @@ Project
     Revision 3
         Engineering Model
 
+These are project revisions (`ProjectRevision`). The engineering model for a
+revision is a snapshot stored on that same revision, not a second revision
+entity. Documents and extraction jobs also attach to the project revision.
+
 Changes between revisions should eventually be detectable.
 
 Examples:
@@ -1238,6 +1248,10 @@ Implement:
 
 Never expose object storage directly without authorization controls.
 
+Authentication, a users table, and project-level access control are not part of
+Phase 0 or Phase 1. Phase 1 stores nullable `created_by` UUIDs with no foreign
+key. Do not add a fake auth system in those phases.
+
 ============================================================
 31. TESTING
 ============================================================
@@ -1344,8 +1358,10 @@ Project management.
 Deliver:
 
 - projects
-- project revisions
-- project dashboard
+- project revisions (the revision documents and the engineering model attach to)
+- project list / dashboard at `/`
+
+Phase 1 details and locked decisions: `cursor/PHASE1_SPECS.txt` and ADR-003.
 
 PHASE 2
 Document management.

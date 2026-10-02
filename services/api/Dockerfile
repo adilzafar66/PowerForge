@@ -13,6 +13,7 @@ COPY database /app/database
 RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir \
         -e /app/packages/shared \
+        -e /app/packages/project \
         -e /app/packages/engineering-model \
         -e /app/packages/document-model \
         -e /app/packages/extraction \

@@ -11,10 +11,12 @@ The engineering model module owns:
 - Equipment entities
 - Electrical attributes
 - Connections and topology
-- Model revisions
+- The engineering-model snapshot stored on a project revision
 - Model state
 
-It does not own document parsing, OCR, prompts, provider SDKs, or analysis calculations.
+It does not own `Project` or `ProjectRevision` (those belong to the Project module). It does not own document parsing, OCR, prompts, provider SDKs, or analysis calculations.
+
+There is no separate model-revision table. `ProjectRevision` is the revision. Equipment and later model rows reference `project_revisions.id`. See [ADR-003](../decisions/ADR-003-project-revision-model.md).
 
 ## Entity types (initial)
 
@@ -61,7 +63,7 @@ Use a common `Equipment` concept:
 | --- | --- |
 | `id` | Stable identifier |
 | `project_id` | Owning project |
-| `revision_id` | Owning model revision |
+| `revision_id` | Owning `ProjectRevision` (`project_revisions.id`) |
 | `equipment_type` | Discriminator |
 | `tag` | Engineer-facing tag (`T1`, `CB-101`) |
 | `name` | Display name |
@@ -84,7 +86,7 @@ Hybrid relational / JSONB:
 
 Do not store an entire project as one JSON document. The model must remain queryable in PostgreSQL.
 
-Phase 0 does not create equipment tables. It establishes Alembic and documents this shape so Phase 1 (projects) and Phase 5 (equipment) can add tables without redesign.
+Phase 0 does not create equipment tables. Phase 1 creates `projects` and `project_revisions`. Phase 5 adds equipment tables that reference `project_revisions.id`.
 
 ## Attribute model
 
@@ -142,10 +144,12 @@ Never silently promote `AI_EXTRACTED` to `ENGINEER_VERIFIED`.
 
 ```
 Project
-  Revision 1 → Engineering Model
-  Revision 2 → Engineering Model
-  Revision 3 → Engineering Model
+  ProjectRevision 1 → Engineering Model snapshot
+  ProjectRevision 2 → Engineering Model snapshot
+  ProjectRevision 3 → Engineering Model snapshot
 ```
+
+`ProjectRevision` is owned by the Project module and is created in Phase 1. The engineering model snapshot on that revision is created in Phase 5+. Multiple project revisions are how “model revisions” exist; do not add a second revision hierarchy.
 
 The schema must allow detecting later: equipment added/removed, rating changes, breaker changes, topology changes, source changes. Sophisticated diffing is not required until a later phase; the data model must not prevent it.
 

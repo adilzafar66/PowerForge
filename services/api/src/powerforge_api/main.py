@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from powerforge_api.routers.health import router as health_router
+from powerforge_api.routers.projects import router as projects_router
 from powerforge_shared.config import get_settings
 from powerforge_shared.logging import configure_logging
 
@@ -21,7 +22,10 @@ def create_app() -> FastAPI:
     application = FastAPI(
         title="PowerForge API",
         version=settings.app_version,
-        description="Engineering data extraction platform API. Phase 0: health and readiness only.",
+        description=(
+            "Engineering data extraction platform API. "
+            "Phase 1: health/readiness and project/revision management."
+        ),
         lifespan=lifespan,
     )
     application.add_middleware(
@@ -32,6 +36,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     application.include_router(health_router)
+    application.include_router(projects_router)
     return application
 
 

@@ -1,0 +1,853 @@
+# PHASE 1 — PROJECT & REVISION MANAGEMENT
+
+You are implementing PHASE 1 of the PowerForge application.
+
+Decisions in this file were confirmed before implementation. Do not re-litigate them.
+Do not implement until explicitly asked. This file is the Phase 1 implementation spec.
+
+Before doing anything, read:
+
+- docs/ARCHITECTURE.md
+- docs/ENGINEERING_MODEL.md
+- docs/DOCUMENT_PIPELINE.md
+- docs/EXTRACTION.md
+- docs/TOPOLOGY.md
+- docs/VALIDATION.md
+- docs/PROVENANCE.md
+- docs/REVIEW_WORKFLOW.md
+- docs/PROJECT_STATUS.md
+- docs/PHASE0_HANDOFF.md
+- decisions/ADR-001-engineering-model-independence.md
+- decisions/ADR-002-phase-0-technology-stack.md
+- decisions/ADR-003-project-revision-model.md
+- cursor/specification.txt
+
+Also inspect the existing repository and understand what Phase 0 has already implemented.
+
+============================================================
+1. PHASE OBJECTIVE
+============================================================
+
+Implement the foundational Project Management domain.
+
+The goal is to allow an engineer to:
+
+1. Create a project.
+2. View a list of projects.
+3. Open a project.
+4. Edit project information.
+5. Pause, resume, cancel, archive, and unarchive a project.
+6. Create project revisions.
+7. View revision history.
+8. Select a revision as the active/current revision.
+9. View basic project/revision status.
+
+This phase establishes the organizational structure that all future modules will use.
+
+The application should conceptually support:
+
+Project
+    ├── Revision 1  → (future) documents, extraction, engineering model
+    ├── Revision 2  → (future) documents, extraction, engineering model
+    └── Revision 3  → (future) documents, extraction, engineering model
+
+There is one revision entity: ProjectRevision. Documents, extraction jobs, and the
+engineering model attach to that entity in later phases. There is no separate
+"model revision" table.
+
+============================================================
+2. IMPORTANT SCOPE RESTRICTION
+============================================================
+
+Implement ONLY project and revision management.
+
+DO NOT implement:
+
+- Document uploads
+- PDF processing
+- OCR
+- Image processing
+- AI extraction
+- Engineering equipment
+- Engineering model
+- Electrical topology
+- SLD processing
+- Entity resolution
+- Engineering validation
+- Electrical calculations
+- Report generation
+- AI assistant
+- Authentication, a users table, or project-level access control
+
+Do not create fake implementations or placeholder logic for these features.
+
+The project should be architecturally ready for them, but they should not be
+implemented during this phase.
+
+============================================================
+3. PROJECT DOMAIN
+============================================================
+
+Create a Project domain entity.
+
+A project should contain, at minimum:
+
+- id
+- project_number
+- project_name
+- project_address
+- project_scope
+- engineer_names
+- client_name
+- description
+- status
+- created_at
+- updated_at
+- archived_at
+- created_by
+
+`project_address` is the project location. Do not add a separate `location` field.
+
+`engineer_names` is a list of free-text names (PostgreSQL text array or JSONB list).
+There is no users table in Phase 1. Do not create one. A users table arrives with
+authentication; engineer names can be migrated to user references later.
+
+`created_by` is a nullable UUID with no foreign key. It becomes a non-null FK to
+users when authentication is implemented.
+
+Project status:
+
+ACTIVE
+PAUSED
+CANCELLED
+ARCHIVED
+
+New projects start as ACTIVE. `archived_at` is null until the project is archived
+and is cleared when the project is unarchived. `status_before_archive` records the
+status at archive time and is cleared on unarchive.
+
+Use a PostgreSQL enum (or equivalent constrained type), not unconstrained strings.
+
+Project numbers are unique and immutable after create.
+
+Project IDs are UUIDs generated with `gen_random_uuid()` (pgcrypto, enabled in
+Phase 0 migration `0001_enable_extensions`).
+
+============================================================
+4. PROJECT REVISION DOMAIN
+============================================================
+
+Create a ProjectRevision entity.
+
+A revision belongs to exactly one project.
+
+This is the single revision documents and the engineering model will attach to.
+"Model revisions" in ENGINEERING_MODEL.md means the model snapshot stored on a
+ProjectRevision in a later phase, not a second revision table.
+
+At minimum, support:
+
+- id                 (UUID primary key)
+- project_id
+- identifier         (human-readable revision code; not the UUID)
+- description
+- status
+- created_at
+- updated_at
+- created_by         (nullable UUID, no FK, same rule as Project)
+
+Do not name the human-readable code `revision_id`. That name is reserved for
+UUID foreign keys (for example future `equipment.revision_id` → `project_revisions.id`).
+
+Revision status:
+
+DRAFT
+ACTIVE
+SUPERSEDED
+
+New revisions are always persisted as DRAFT.
+
+Activate is the only way a revision becomes ACTIVE. `create_revision` must not
+write ACTIVE itself. If the user chooses to activate at create time, the service
+persists DRAFT and then calls `activate_revision` in the same transaction.
+
+Only one revision may be ACTIVE for a project at any time. Enforce this with a
+partial unique index, for example:
+
+    UNIQUE (project_id) WHERE status = 'ACTIVE'
+
+Activating a revision must atomically:
+
+- set the previous ACTIVE revision (if any) to SUPERSEDED
+- set the selected revision to ACTIVE
+
+Do not delete old revisions. Historical revisions remain accessible.
+
+A project may have zero revisions. A project may have only DRAFT revisions and
+no ACTIVE revision.
+
+============================================================
+5. REVISION IDENTIFIERS
+============================================================
+
+Allow human-readable identifiers such as:
+
+- 0
+- 1
+- 2
+- A
+- B
+- C
+- ABC-IFC
+- IFC-REV-1
+- ABC-IFC-REV-2
+
+Do not assume revisions are numeric.
+
+Store `identifier` separately from the internal UUID `id`.
+
+`identifier` is unique per project: UNIQUE (project_id, identifier).
+
+API paths use the UUID (`{revision_id}` means `project_revisions.id`), not the
+human-readable identifier. The UI displays the identifier.
+
+============================================================
+6. DATABASE
+============================================================
+
+Create the necessary PostgreSQL tables and Alembic migrations.
+
+At minimum:
+
+projects
+project_revisions
+
+Do not create a users table in this phase.
+
+Create appropriate:
+
+- primary keys (UUID, `gen_random_uuid()`)
+- foreign keys (`project_revisions.project_id` → `projects.id`)
+- indexes
+- unique constraints (`projects.project_number`; `(project_id, identifier)`;
+  partial unique one ACTIVE revision per project)
+- timestamps (`created_at`, `updated_at`; `archived_at` on projects)
+
+The project revision relationship must enforce referential integrity.
+
+Do not ON DELETE CASCADE project revisions when a project row is removed.
+Normal UI workflow never physically deletes a project.
+
+============================================================
+7. API
+============================================================
+
+Implement REST APIs following the conventions established in Phase 0.
+`{project_id}` and `{revision_id}` are UUIDs.
+
+Project endpoints:
+
+POST   /api/projects
+GET    /api/projects
+GET    /api/projects/{project_id}
+PATCH  /api/projects/{project_id}
+POST   /api/projects/{project_id}/pause
+POST   /api/projects/{project_id}/resume
+POST   /api/projects/{project_id}/cancel
+POST   /api/projects/{project_id}/archive
+POST   /api/projects/{project_id}/unarchive
+
+Revision endpoints:
+
+POST   /api/projects/{project_id}/revisions
+GET    /api/projects/{project_id}/revisions
+GET    /api/projects/{project_id}/revisions/{revision_id}
+PATCH  /api/projects/{project_id}/revisions/{revision_id}
+POST   /api/projects/{project_id}/revisions/{revision_id}/activate
+
+GET /api/projects supports:
+
+- search on project_number and project_name only
+- filter by status
+
+PATCH /api/projects/{project_id} accepts metadata only:
+
+- project_name
+- project_address
+- client_name
+- project_scope
+- engineer_names
+- description
+
+PATCH must reject `status` and `project_number`. Status changes use the action
+endpoints above.
+
+PATCH /api/projects/{project_id}/revisions/{revision_id} accepts:
+
+- description
+- identifier
+
+PATCH revision must reject `status`. Activation uses POST .../activate.
+
+POST /api/projects does not create a revision. The first revision is a separate
+explicit create. The create-project UI may offer an optional "also create first
+revision" step that calls the revision API; it must not be implicit in
+create_project().
+
+Do not expose ORM/database models directly through the API.
+
+Use Pydantic request/response schemas.
+
+Validate all incoming data.
+
+Return appropriate HTTP status codes and meaningful error responses.
+
+============================================================
+8. PROJECT LIST UI
+============================================================
+
+`/` is the Projects page (the Phase 1 "project dashboard").
+
+The Phase 0 stack status page moves to `/status`. Keep a link to it (nav item
+or footer). Do not delete it.
+
+The projects page should show:
+
+- Project number
+- Project name
+- Project address
+- Client name
+- Project scope
+- Engineer name(s)
+- Active revision (empty if none)
+- Status
+- Last updated
+
+Include:
+
+- Search (project number and project name only)
+- Basic filtering by status
+- Create Project button
+
+Keep the UI clean and professional.
+
+This is an engineering application, not a generic consumer dashboard.
+
+Layout: main pane is the project table, or the open project when one is selected.
+A left project navigator may be added if it fits the existing Phase 0 design
+system. Prefer a professional engineering layout over a ChatGPT-style
+conversation list. Omit the sidebar if it does not suit the app.
+
+============================================================
+9. CREATE PROJECT
+============================================================
+
+Create a project creation form.
+
+Required:
+
+- Project Number
+- Project Name
+
+Optional:
+
+- Client
+- Project Address
+- Project Scope
+- Engineer Name(s)
+- Description
+
+Do not auto-create a revision.
+
+After (or as an optional follow-up step to) project create, the user may
+explicitly create the first revision: they choose the identifier and whether to
+activate it. Activation still goes through `activate_revision`.
+
+============================================================
+10. PROJECT DETAIL PAGE
+============================================================
+
+Create a project detail page.
+
+It should show:
+
+Project Number
+Project Name
+Project Address
+Client Name
+Engineer Name(s)
+Project Scope
+Description
+Status
+Created Date
+Updated Date
+
+And:
+
+Revision History
+
+Example:
+
+-----------------------------------------
+ABC Hospital
+123 Hallowel Rd, Vancouver, BC V8Y 181, Canada
+Project #2026-001
+
+Engineer(s):
+Bob Smith
+Jennifer Black
+
+Client:
+ABC Engineering
+
+Project Scope:
+Short-circuit, Coordination and Arc Flash Study
+Sitewide Electrical Equipment shown in XXX Single Line Diagram
+
+Status:
+ACTIVE
+
+Current Revision:
+REV-2
+
+-----------------------------------------
+
+REVISION HISTORY
+
+REV-2     ACTIVE
+REV-1     SUPERSEDED
+REV-0     SUPERSEDED
+
+-----------------------------------------
+
+Provide project lifecycle actions allowed by the current status
+(pause / resume / cancel / archive / unarchive).
+
+Future sections may eventually include:
+
+Documents
+Engineering Model
+Extraction
+SLD
+Studies
+Reports
+
+Do NOT implement those sections yet.
+
+If placeholders are needed for navigation, clearly mark them as future
+functionality rather than pretending they work.
+
+============================================================
+11. REVISION MANAGEMENT UI
+============================================================
+
+Allow the engineer to:
+
+- Create a revision (identifier + optional description; optional activate)
+- View revision history
+- Open a revision
+- Activate a revision
+
+Opening a revision in Phase 1 shows a placeholder page stating that revision
+workspace content (documents, model, extraction) is not implemented yet. Do not
+fake those features.
+
+When activating a revision:
+
+Current ACTIVE revision:
+    becomes SUPERSEDED
+
+Selected revision:
+    becomes ACTIVE
+
+This operation must be atomic.
+
+Do not allow a project to end up with two active revisions because of
+concurrent requests.
+
+Activating a revision that is already ACTIVE may be idempotent.
+
+SUPERSEDED revisions cannot be activated.
+
+Only a revision created after the current ACTIVE revision may be activated
+(compared by created_at). Older DRAFT revisions remain DRAFT and cannot jump
+ahead of the current active line. If the project has no ACTIVE revision, any
+DRAFT may be activated.
+
+============================================================
+12. PROJECT LIFECYCLE
+============================================================
+
+Projects are never physically deleted in the normal UI workflow.
+
+Status transitions:
+
+    ACTIVE   ↔  PAUSED
+    ACTIVE   →  CANCELLED
+    PAUSED   →  CANCELLED
+    ACTIVE | PAUSED | CANCELLED | ARCHIVED  →  ARCHIVED
+    ARCHIVED →  status_before_archive (ACTIVE, PAUSED, or CANCELLED)
+
+There is no direct CANCELLED → ACTIVE or CANCELLED → PAUSED.
+Archive is a filing action. Unarchive restores the pre-archive status; it does
+not uncancel. Existing archived rows with no recorded history restore to ACTIVE.
+
+Action endpoints:
+
+- POST .../pause      ACTIVE → PAUSED
+- POST .../resume     PAUSED → ACTIVE
+- POST .../cancel     ACTIVE or PAUSED → CANCELLED
+- POST .../archive    any non-archived → ARCHIVED; set archived_at and
+                      status_before_archive
+- POST .../unarchive  ARCHIVED → status_before_archive or ACTIVE if null;
+                      clear archived_at and status_before_archive
+
+Reject other transitions with a clear error.
+
+When a project is ARCHIVED:
+
+- status is ARCHIVED and archived_at is set
+- PATCH project is rejected
+- creating revisions is rejected
+- activating a revision is rejected
+- PATCH revision is rejected
+- pause / resume / cancel are rejected
+- unarchive is allowed
+- historical rows remain intact
+- the UI clearly indicates archived status
+
+Unarchive restores `status_before_archive`. If that value is missing (legacy
+archived rows), restore ACTIVE.
+
+PAUSED and CANCELLED projects:
+
+- PAUSED projects may still be edited and may still receive revisions.
+- CANCELLED projects are read-only (same write restrictions as ARCHIVED):
+  PATCH, new revisions, activate, and pause/resume/cancel are rejected.
+  Archive is still allowed (CANCELLED → ARCHIVED).
+
+============================================================
+13. DOMAIN LOGIC
+============================================================
+
+Keep business rules out of API route handlers.
+
+Package layout:
+
+- packages/project (`powerforge_project`): enums and domain schemas only.
+  No SQLAlchemy. No FastAPI. No Celery.
+- services/api: SQLAlchemy models, Alembic-facing persistence, ProjectService
+  and RevisionService, FastAPI routes.
+
+Example service methods:
+
+ProjectService.create_project()
+ProjectService.update_project()
+ProjectService.pause_project()
+ProjectService.resume_project()
+ProjectService.cancel_project()
+ProjectService.archive_project()
+ProjectService.unarchive_project()
+
+RevisionService.create_revision()
+RevisionService.update_revision()
+RevisionService.activate_revision()
+
+Follow the module boundaries defined in ARCHITECTURE.md.
+
+============================================================
+14. FUTURE COMPATIBILITY
+============================================================
+
+The architecture must support:
+
+Project
+    ↓
+ProjectRevision
+    ↓
+Documents / Document Processing / AI Extraction / Engineering Model
+
+Therefore:
+
+- Documents attach to a ProjectRevision (later).
+- The engineering model snapshot attaches to a ProjectRevision (later).
+- Extraction jobs attach to a ProjectRevision (later).
+- Multiple project revisions are possible; each may hold its own model snapshot.
+
+Do not implement those future modules yet.
+
+Do not add a separate model_revisions table.
+
+============================================================
+15. DATA OWNERSHIP
+============================================================
+
+The Project Management module owns:
+
+- Project
+- ProjectRevision
+
+It does NOT own:
+
+- Documents
+- Equipment
+- Connections
+- Evidence
+- AI extraction
+- Validation
+- Users / authentication
+
+Do not add fields to Project simply because another future module may need them.
+
+Maintain clear domain boundaries.
+
+============================================================
+16. ERROR HANDLING
+============================================================
+
+Handle cases such as:
+
+- Duplicate project number
+- Project not found
+- Revision not found
+- Revision belongs to another project
+- Attempt to PATCH an archived project
+- Attempt to create or activate a revision on an archived project
+- Invalid revision identifier (empty, or duplicate within the project)
+- Attempt to activate a revision from another project
+- Invalid project status transition
+- Attempt to change project_number or project status via PATCH
+
+Return clear errors.
+
+Do not expose raw database exceptions to the frontend.
+
+============================================================
+17. AUDITABILITY
+============================================================
+
+Preserve created_at / updated_at on projects and revisions.
+
+Phase 0 did not establish an audit log. Do not build one in this phase.
+
+created_by stays nullable so a future users table and audit system can attach
+identity without rewriting these tables.
+
+============================================================
+18. TESTING
+============================================================
+
+Write tests before considering the phase complete.
+
+At minimum, test:
+
+PROJECT
+
+- Create project (ACTIVE, no revision)
+- Retrieve project
+- Update metadata
+- project_number and status rejected on PATCH
+- Duplicate project number rejected
+- Pause, resume, cancel
+- Invalid status transitions rejected
+- Archive project
+- Archived project cannot be PATCHed
+- Archived project cannot receive new revisions
+- Unarchive restores the pre-archive status (cancelled stays cancelled)
+
+REVISION
+
+- Create revision as DRAFT
+- Retrieve revisions
+- Revision belongs to correct project
+- Duplicate identifier rejected (including on PATCH)
+- Activate revision
+- Previous active revision becomes superseded
+- Only one active revision exists (including concurrent activate)
+- Cannot activate a revision belonging to another project
+- Cannot create or activate a revision on an archived project
+
+API
+
+- Valid requests
+- Invalid requests
+- Not-found behavior
+
+Do not add a fake authorization suite. Authentication does not exist yet.
+
+DATABASE
+
+- Migrations execute successfully
+- Unique and partial-unique constraints work as expected
+
+============================================================
+19. FRONTEND TESTING
+============================================================
+
+Add appropriate frontend tests for:
+
+- Project list rendering
+- Project creation
+- Project detail
+- Revision list
+- Revision activation
+- Pause / cancel / archive / unarchive
+- Error states
+
+Do not over-test trivial visual details.
+
+Focus on behavior.
+
+============================================================
+20. UI/UX PRINCIPLES
+============================================================
+
+Use the existing design system established during Phase 0.
+
+Do not introduce a second UI library.
+
+The interface should feel like professional engineering software.
+
+Prioritize:
+
+- clarity
+- information density
+- predictable navigation
+- clear status indicators
+- minimal unnecessary animation
+- responsive layout
+
+Do not create a flashy AI-themed interface.
+
+The product should eventually feel like a serious electrical engineering
+application.
+
+============================================================
+21. DOCUMENTATION
+============================================================
+
+After implementation, update:
+
+- docs/ARCHITECTURE.md
+- docs/ENGINEERING_MODEL.md if the implemented relationship needs a correction
+- docs/DEVELOPMENT.md (routes: `/` projects, `/status` stack)
+- API documentation (FastAPI descriptions / OpenAPI)
+- docs/PROJECT_STATUS.md — mark Phase 1 complete
+- docs/PHASE0_HANDOFF.md if continuation context changes
+- An ADR if a new significant decision is made during implementation
+
+============================================================
+22. IMPLEMENTATION PROCESS
+============================================================
+
+Follow this sequence.
+
+STEP 1:
+Inspect the existing repository and Phase 0 implementation.
+
+STEP 2:
+Read all relevant documentation.
+
+STEP 3:
+Identify existing conventions for:
+
+- database
+- migrations
+- API
+- authentication (none)
+- frontend routing
+- UI components
+- testing
+- error handling
+
+STEP 4:
+Create a concise implementation plan.
+
+STEP 5:
+Identify all files/modules that will be modified or created.
+
+STEP 6:
+Implement the database model and migration.
+
+STEP 7:
+Implement domain/service logic.
+
+STEP 8:
+Implement API endpoints.
+
+STEP 9:
+Implement frontend pages/components.
+
+STEP 10:
+Implement tests.
+
+STEP 11:
+Run migrations against a development database.
+
+STEP 12:
+Run backend tests.
+
+STEP 13:
+Run frontend tests.
+
+STEP 14:
+Run linting and type checks.
+
+STEP 15:
+Fix all failures.
+
+STEP 16:
+Update documentation.
+
+STEP 17:
+Update PROJECT_STATUS.md.
+
+============================================================
+23. DEFINITION OF DONE
+============================================================
+
+Phase 1 is complete only when an engineer can:
+
+1. Open the application at `/` and see the project list.
+2. Open `/status` and see stack health.
+3. Create a project (no automatic revision).
+4. See the project in the project list.
+5. Open the project.
+6. Create a revision as DRAFT.
+7. See the revision history.
+8. Activate a revision.
+9. See the previous revision become superseded.
+10. Edit project metadata (not number or status via the edit form).
+11. Pause, resume, and cancel a project according to the transition table.
+12. Archive the project.
+13. Confirm archived projects remain visible and cannot be edited or given
+    new revisions.
+14. Unarchive the project and see it return to the status it had before archive.
+
+All tests must pass.
+
+The application must start successfully from a clean development environment.
+
+No functionality from future phases should be implemented.
+
+============================================================
+24. FINAL RESPONSE AFTER IMPLEMENTATION
+============================================================
+
+When finished, provide:
+
+1. Summary of what was implemented.
+2. Database changes.
+3. API endpoints created.
+4. Frontend pages/components created.
+5. Tests added.
+6. Tests/results.
+7. Documentation updated.
+8. Any architectural decisions made.
+9. Any issues or limitations.
+10. Confirmation that no future-phase functionality was implemented.
+
+Do not claim the phase is complete if tests are failing.
+
+Begin by inspecting the repository and existing Phase 0 architecture.
+Do not start coding until you have understood the existing structure.

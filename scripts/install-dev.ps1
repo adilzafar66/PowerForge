@@ -9,6 +9,7 @@ Set-Location (Split-Path -Parent $PSScriptRoot)
 python -m pip install --upgrade pip
 pip install -r requirements-dev.txt
 pip install -e packages/shared `
+  -e packages/project `
   -e packages/engineering-model `
   -e packages/document-model `
   -e packages/extraction `

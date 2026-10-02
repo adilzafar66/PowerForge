@@ -81,7 +81,7 @@ These boundaries are mandatory. Do not place logic in an unrelated module.
 | Document processing | PDF parse, page render, OCR, text/image/layout/table extraction | Mutating the verified model |
 | AI extraction | Equipment, attributes, SLD, topology candidates, relationships | Direct writes to the verified model |
 | Entity resolution | Duplicate detection, match probability, merge candidates | Silent merges of low-confidence matches |
-| Engineering model | Equipment, attributes, connections, topology, revisions, state | AI provider SDKs |
+| Engineering model | Equipment, attributes, connections, topology, model snapshot on a project revision, state | AI provider SDKs; project/revision tables |
 | Electrical topology | Graph of nodes and connections | Independent visualization database |
 | Provenance | Documents, pages, bboxes, evidence, confidence, source hierarchy | Engineering calculations |
 | Validation | Deterministic rules and sanity checks | LLM-based “validation” as truth |
@@ -96,6 +96,7 @@ Package and service mapping:
 - `services/document-worker` — document processing jobs
 - `services/extraction-worker` — AI extraction jobs
 - `services/validation-worker` — deterministic validation jobs
+- `packages/project` — project/revision enums and domain schemas
 - `packages/engineering-model` — canonical model types and contracts
 - `packages/document-model` — document and page contracts
 - `packages/extraction` — candidate extraction contracts
@@ -129,6 +130,7 @@ See [ADR-002](../decisions/ADR-002-phase-0-technology-stack.md) for why these Ph
 /services/document-worker
 /services/extraction-worker
 /services/validation-worker
+/packages/project
 /packages/engineering-model
 /packages/document-model
 /packages/extraction
@@ -162,7 +164,7 @@ The backend is not a monolith. Each worker is a separate process with a narrow j
 
 Uploaded documents are confidential engineering information. The platform requires authentication, authorization, project-level access control, authorized object-storage access (signed URLs), encryption in transit, encryption at rest where supported, and audit logging. Object storage is never exposed without authorization.
 
-Auth is not implemented in Phase 0. The API is bound to localhost in local development. Project-level access control begins when projects exist (Phase 1+).
+Auth is not implemented in Phase 0 or Phase 1. The API is bound to localhost in local development. Do not add a fake users table or fake auth in Phase 1. `created_by` on projects and revisions is a nullable UUID with no foreign key until a users table exists. Project-level access control arrives with authentication, not merely because project rows exist. See [ADR-003](../decisions/ADR-003-project-revision-model.md).
 
 ## Phase 0 scope
 
@@ -179,6 +181,19 @@ Phase 0 establishes architecture and a runnable skeleton:
 
 Phase 0 does **not** implement projects, uploads, OCR, AI extraction, SLD recognition, entity resolution, review workflows, visualization of topology, ETAP/SKM/EasyPower, electrical calculations, or report generation.
 
+## Phase 1
+
+Phase 1 is project and revision management. Implementation followed `cursor/PHASE1_SPECS.txt` and [ADR-003](../decisions/ADR-003-project-revision-model.md). Status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
+
+Delivered:
+
+- One `ProjectRevision` entity. Documents and the engineering model attach to it later. No separate model-revision table.
+- `packages/project` (enums/schemas) + SQLAlchemy/services in `services/api`.
+- UUIDs in API paths (`gen_random_uuid()`). Human-readable revision `identifier` is unique per project.
+- No auto-created revision. New revisions are `DRAFT`. Activate is atomic and is the only path to `ACTIVE`.
+- Project statuses `ACTIVE`, `PAUSED`, `CANCELLED`, `ARCHIVED` via `/pause`, `/resume`, `/cancel`, `/archive`, `/unarchive`. PATCH is metadata only.
+- `/` is the project list. Stack status is at `/status`.
+
 ## Related documents
 
 - [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md)
@@ -190,4 +205,6 @@ Phase 0 does **not** implement projects, uploads, OCR, AI extraction, SLD recogn
 - [REVIEW_WORKFLOW.md](REVIEW_WORKFLOW.md)
 - [CODING_STANDARDS.md](CODING_STANDARDS.md)
 - [DEVELOPMENT.md](DEVELOPMENT.md)
-- [PHASE0_HANDOFF.md](PHASE0_HANDOFF.md) — current implementation status, blocked environment work, and next-agent context
+- [PROJECT_STATUS.md](PROJECT_STATUS.md) — living phase status
+- [PHASE0_HANDOFF.md](PHASE0_HANDOFF.md) — Phase 0 implementation context and environment notes
+- [ADR-003](../decisions/ADR-003-project-revision-model.md) — project/revision model (Phase 1, accepted)

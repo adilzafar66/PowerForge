@@ -1,12 +1,26 @@
 # Local development
 
-Phase 0 delivers a runnable skeleton: API health/readiness, PostgreSQL, Redis, MinIO, Celery heartbeats, and a Next.js status page.
+Phase 0 delivered a runnable skeleton: API health/readiness, PostgreSQL, Redis, MinIO, Celery heartbeats, and a Next.js status page.
+
+Phase 1 adds project and revision management. Routes:
+
+| Path | Purpose |
+| --- | --- |
+| `/` | Project list |
+| `/projects/new` | Create project |
+| `/projects/[id]` | Project detail and revisions |
+| `/projects/[id]/revisions/[revisionId]` | Revision workspace placeholder |
+| `/status` | Stack health (API / PostgreSQL / Redis) |
+
+API: `http://localhost:8000/api/projects` (see OpenAPI at `/docs`).
 
 ## Prerequisites
 
 - Python 3.12
 - Node.js 22+ (LTS)
-- Docker Desktop (recommended) **or** a local PostgreSQL 16+ instance
+- Docker Desktop or Colima + Docker CLI (recommended) **or** a local PostgreSQL 16+ instance
+
+If Homebrew already runs `postgresql@16` or `redis`, stop those services before Compose. They occupy the same host ports (5432 and 6379) that `docker-compose.yml` publishes.
 
 ## Environment
 
@@ -14,7 +28,7 @@ Copy `.env.example` to `.env` in the repository root. The API and workers read `
 
 ## Option A — Docker Compose (full stack)
 
-From the repository root:
+Docker Desktop or Colima is enough. From the repository root:
 
 ```bash
 docker compose up --build
@@ -22,7 +36,8 @@ docker compose up --build
 
 | Service | URL |
 | --- | --- |
-| Web | http://localhost:3000 |
+| Web | http://localhost:3000 (projects) |
+| System status | http://localhost:3000/status |
 | API health | http://localhost:8000/health |
 | API ready | http://localhost:8000/ready |
 | API docs | http://localhost:8000/docs |
@@ -53,7 +68,7 @@ Create a virtualenv and install the workspace:
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
-pip install -e packages/shared -e packages/engineering-model -e packages/document-model -e packages/extraction -e packages/topology -e packages/validation -e packages/provenance -e packages/ai -e services/api
+pip install -e packages/shared -e packages/project -e packages/engineering-model -e packages/document-model -e packages/extraction -e packages/topology -e packages/validation -e packages/provenance -e packages/ai -e services/api
 pip install -e ".[dev]"
 ```
 

@@ -39,7 +39,7 @@ Architectural changes require: an explanation, affected modules, documentation u
 
 ## Naming
 
-- Python packages: `powerforge_*` import names (`powerforge_shared`, `powerforge_api`, …).
+- Python packages: `powerforge_*` import names (`powerforge_shared`, `powerforge_api`, `powerforge_project`, …).
 - REST paths: `/api/...` as specified in ARCHITECTURE.md.
 - Database: snake_case tables and columns.
 
@@ -57,4 +57,4 @@ Architectural changes require: an explanation, affected modules, documentation u
 
 ## Completeness
 
-A phase is complete when required functionality works, APIs are defined, migrations work, tests pass, errors are handled, docs are updated, module boundaries are respected, and future-phase features have not been smuggled in.
+A phase is complete when required functionality works, APIs are defined, migrations work, tests pass, errors are handled, docs are updated (including [PROJECT_STATUS.md](PROJECT_STATUS.md)), module boundaries are respected, and future-phase features have not been smuggled in.
