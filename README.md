@@ -3,7 +3,7 @@
 Engineering data extraction platform. Electrical engineers upload project documents; PowerForge extracts structured electrical information, reconciles it across sources, and produces a centralized, traceable engineering model. The engineer remains the final authority.
 
 **Current implemented phase:** Phase 1 — Project & Revision Management  
-**In progress:** Phase 2 — Document Management (specified in [cursor/phase2_specs.txt](cursor/phase2_specs.txt); implementation not started)  
+**In progress:** Phase 2 — Document Management (specified in [cursor/phase2_specs.txt](cursor/phase2_specs.txt), delivered via [docs/PHASE2_PR_PLAN.md](docs/PHASE2_PR_PLAN.md); implementation not started)  
 **Next:** Phase 3 — Document Processing
 
 Phase status lives in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Do not treat this README or chat history as the source of truth.

@@ -34,6 +34,7 @@ Delivered:
 **Status:** In progress. Specified and documented (2026-10-01); **implementation has not started**. Do not mark this phase complete until every item in the spec's definition of done is met and the checklist below is checked.
 
 Implementation spec: `cursor/phase2_specs.txt` (version 2)  
+Delivery plan: [PHASE2_PR_PLAN.md](PHASE2_PR_PLAN.md)  
 Decisions: [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md) (Proposed)
 
 Scope:
@@ -50,7 +51,7 @@ Explicitly **not** in Phase 2: folders, OCR, AI or auto-classification, document
 
 ### Baseline before implementation (2026-10-01)
 
-Phase 1 code as of commit `4055d85` plus two uncommitted working-tree changes (a project-row lock in `RevisionService.create_revision` when `activate=true`, and a matching test in `tests/test_projects_api.py`).
+Phase 1 code as of commit `4055d85` plus two then-uncommitted working-tree changes (a project-row lock in `RevisionService.create_revision` when `activate=true`, and a matching test in `tests/test_projects_api.py`). Those two changes are now committed in `9a42b3b`.
 
 | Check | Result |
 | --- | --- |
@@ -63,23 +64,20 @@ Phase 1 code as of commit `4055d85` plus two uncommitted working-tree changes (a
 
 Integration tests were run against a temporary database (`powerforge_baseline`, since dropped) because the existing integration tests create rows and never clean up; running them against the dev database would add test projects to it. Do the same for Phase 2 runs.
 
-### Work packages
+### Delivery plan
 
-- [ ] Domain: extend `packages/document-model` (add `OTHER`, `DocumentOrigin`, `RevisionDocumentStatus`, pure validation and storage-key builder)
-- [ ] Migration `0004`: lineage column, composite-FK support, enums, `documents`, `revision_documents`
-- [ ] ORM models in `services/api/src/powerforge_api/models.py`
-- [ ] Settings, `.env.example`, `docker-compose.yml`: `S3_PUBLIC_ENDPOINT_URL`, `S3_SIGNED_URL_EXPIRES_SECONDS`, `MAX_UPLOAD_BYTES`, `MAX_IMAGE_PIXELS`
-- [ ] Storage: `ObjectStorage` interface, `S3ObjectStorage`, `InMemoryObjectStorage`, startup `ensure_bucket()`
-- [ ] Dependencies: `boto3`, `Pillow`, `python-multipart` (API package, `requirements-dev.txt`, CI)
-- [ ] `FileInspector` and shared revision-document helper
-- [ ] `DocumentService`
-- [ ] `RevisionService`: lineage, inheritance, base-revision locking, constraint-name error mapping
-- [ ] Schemas and routers (list, upload, get, patch, remove, restore, reuse, download-url) and error mapping
-- [ ] Backend tests (see spec section 30), including the end-to-end workflow in spec section 34 and one `integration` MinIO test
-- [ ] Web: Create Revision changes, documents client (`lib/documents.ts`), documents workspace, tests
-- [ ] Lint, type checks, full test run
-- [ ] Documentation re-verified against the implementation; ADR-004 set to Accepted
-- [ ] This file updated to mark Phase 2 complete
+Phase 2 is delivered as 16 sequenced pull requests (PR-00 to PR-15) with scope, tests, acceptance criteria, and spec traceability defined in [PHASE2_PR_PLAN.md](PHASE2_PR_PLAN.md). That document's tracker table is the single source for per-PR progress; update it when a PR merges.
+
+| Stage | PRs |
+| --- | --- |
+| Housekeeping and docs | PR-00, PR-01 |
+| Foundations (domain, error mapping, schema, storage, validation) | PR-02 to PR-06 |
+| Revision lineage and inheritance | PR-07 |
+| Document API (upload/list/get, mutations, download) | PR-08 to PR-10 |
+| Frontend (Create Revision, workspace, upload, actions) | PR-11 to PR-14 |
+| Hardening and completion | PR-15 |
+
+PRs merged so far: PR-00 and most of PR-01 (commit `9a42b3b`); no implementation PRs yet. Phase 2 is complete only when PR-15 has merged and every item in the spec's definition of done (section 36) is demonstrably met.
 
 ### Intentional deviations and debt expected from Phase 2
 
