@@ -47,7 +47,7 @@ Notes:
 - `minio-init` in `docker-compose.yml` creates the bucket (`mc mb --ignore-existing`). The API also calls an idempotent bucket check at startup so it works outside Compose. The bucket is private; do not add an anonymous policy.
 - A reverse proxy in front of the API must allow request bodies at least as large as `MAX_UPLOAD_BYTES`.
 - Phase 2 adds Python dependencies (`boto3`, `Pillow`, `python-multipart`) to `services/api`, `requirements-dev.txt`, and CI. After pulling, reinstall (`pip install -e services/api`) and rebuild the API image (`docker compose up --build`).
-- Phase 2 adds migration `0004` (revision lineage, `documents`, `revision_documents`). Existing revisions get `based_on_revision_id = NULL`. Apply with `alembic -c database/alembic.ini upgrade head` (Compose does this on API startup).
+- Phase 2 adds migration `0004` (revision lineage, `documents`, `revision_documents`). Existing revisions get `based_on_revision_id = NULL`. Apply with `alembic -c database/alembic.ini upgrade head` (Compose does this on API startup). `tests/test_migration_0004.py` (with `RUN_INTEGRATION=1`) creates and drops its own scratch databases and runs Alembic in a subprocess, so it needs a `DATABASE_URL` whose user may `CREATE DATABASE`.
 
 ## Option A — Docker Compose (full stack)
 

@@ -79,7 +79,7 @@ Specification: `cursor/phase2_specs.txt`. Decisions: [ADR-004](../decisions/ADR-
 
 ```
 validate project/revision → stream (enforce size, SHA-256, spool to temp file)
-  → validate content → put immutable object → lock revision, re-check mutability
+  → validate content → put immutable object → lock project (shared) + revision, re-check mutability
   → insert Document + RevisionDocument(origin=UPLOADED) → commit
 ```
 

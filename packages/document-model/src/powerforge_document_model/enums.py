@@ -16,4 +16,22 @@ class DocumentClassification(StrEnum):
     EQUIPMENT_PHOTO = "EQUIPMENT_PHOTO"
     NAMEPLATE_PHOTO = "NAMEPLATE_PHOTO"
     STUDY_DOCUMENT = "STUDY_DOCUMENT"
+    OTHER = "OTHER"
     UNKNOWN = "UNKNOWN"
+
+
+class DocumentOrigin(StrEnum):
+    UPLOADED = "UPLOADED"
+    INHERITED = "INHERITED"
+
+
+class RevisionDocumentStatus(StrEnum):
+    INCLUDED = "INCLUDED"
+    REMOVED = "REMOVED"
+
+
+class FileFormat(StrEnum):
+    PDF = "pdf"
+    PNG = "png"
+    JPEG = "jpeg"
+    TIFF = "tiff"

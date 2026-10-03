@@ -44,7 +44,7 @@ Phase 2 must also leave later phases (page processing, evidence, extraction, the
 12. **Superseded revisions' document packages are frozen.** Upload, reuse, metadata edit, remove, and restore are rejected. Reading and downloading remain allowed in every status. DRAFT and ACTIVE revisions are editable, as are documents in ACTIVE and PAUSED projects; ARCHIVED and CANCELLED projects reject document changes. This reuses the Phase 1 project lifecycle check.
 13. **"Frozen" covers the document package only.** Phase 1 still allows editing a superseded revision's identifier and description; that is unchanged and out of scope.
 14. **Removing a document removes it from a revision, not from evidence storage.** The `Document` row and object are kept. Remove and restore are idempotent.
-15. **Mutations re-check mutability after taking a row lock** on the target revision, so a concurrent activation cannot race an upload. Lock order is project row, then revision rows.
+15. **Mutations re-check mutability after taking row locks**, so a concurrent activation, archive, or cancel cannot race an upload. A document mutation locks the project row `FOR SHARE` and then the target revision row `FOR UPDATE`; activation, archive, and cancel lock the project row `FOR UPDATE`, so they wait for in-flight mutations and later mutations see the new state. Lock order is always project row, then revision rows, and a mutation never upgrades its project lock.
 
 ### Storage
 

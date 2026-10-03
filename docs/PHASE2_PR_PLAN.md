@@ -82,9 +82,9 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | --- | --- | --- | --- | --- | --- |
 | [PR-00](#pr-00--land-pending-phase-1-lock-fix) | Land pending Phase 1 lock fix | Backend | XS | — | [x] landed in `9a42b3b` (bundled with PR-01 content) |
 | [PR-01](#pr-01--phase-2-specification-adr-and-documentation) | Phase 2 specification, ADR-004, docs, PR plan | Docs | S | — | [ ] spec/ADR/docs landed in `9a42b3b`; PR plan doc pending |
-| [PR-02](#pr-02--document-domain-vocabulary-and-pure-validation) | Document domain vocabulary and pure validation | Domain | S | — | [ ] |
+| [PR-02](#pr-02--document-domain-vocabulary-and-pure-validation) | Document domain vocabulary and pure validation | Domain | S | — | [x] |
 | [PR-03](#pr-03--constraint-name-integrityerror-mapping) | Constraint-name IntegrityError mapping | Backend | S | — | [ ] |
-| [PR-04](#pr-04--database-migration-0004-and-orm-models) | Migration `0004` and ORM models | DB | M | PR-02 | [ ] |
+| [PR-04](#pr-04--database-migration-0004-and-orm-models) | Migration `0004` and ORM models | DB | M | PR-02 | [x] |
 | [PR-05](#pr-05--configuration-and-object-storage-abstraction) | Configuration and object-storage abstraction | Backend/Infra | M | PR-02 | [ ] |
 | [PR-06](#pr-06--file-ingestion-and-validation) | File ingestion and validation | Backend | M | PR-02, PR-05 | [ ] |
 | [PR-07](#pr-07--revision-lineage-and-document-inheritance) | Revision lineage and document inheritance | Backend | L | PR-03, PR-04 | [ ] |
@@ -192,26 +192,28 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 
 **Scope** (`packages/document-model/src/powerforge_document_model/`):
 - `enums.py`
-  - Add `OTHER` to `DocumentClassification` (keep `UNKNOWN` as the default; do not rename the enum).
-  - Add `DocumentOrigin` (`UPLOADED`, `INHERITED`) and `RevisionDocumentStatus` (`INCLUDED`, `REMOVED`).
+  - Add `OTHER` to `DocumentClassification` immediately before `UNKNOWN` (keep `UNKNOWN` as the default and last member; do not rename the enum or shuffle members — order is the future PostgreSQL enum label order).
+  - Add `DocumentOrigin` (`UPLOADED`, `INHERITED`), `RevisionDocumentStatus` (`INCLUDED`, `REMOVED`), and `FileFormat` (`pdf`, `png`, `jpeg`, `tiff`).
+- `errors.py`: `DocumentValidationError` (`ValueError` subclass), `InvalidFilename`, `UnsupportedExtension`. PR-06 maps these to API exceptions (D3).
 - `validation.py` (pure, no Pillow/SQLAlchemy/FastAPI):
-  - supported-type table: extension → format family (`pdf`, `png`, `jpeg`, `tiff`) → canonical MIME (`application/pdf`, `image/png`, `image/jpeg`, `image/tiff`)
-  - `normalize_extension(filename)` (lowercase, leading dot; only the final extension counts)
-  - `sanitize_filename(raw)` (basename only; strips `/`, `\`, drive prefixes, control characters; trims; max 255; rejects empty)
-  - `looks_like_pdf(header: bytes)` (`%PDF-` within first 1024 bytes)
+  - `SUPPORTED_FORMATS` and `MIME_TYPES` (immutable)
+  - `normalize_extension(filename)` (lowercase, leading dot; only the final extension counts; `""` for missing, trailing-dot, or dotfile)
+  - `sanitize_filename(raw)` (basename only; strips `/`, `\`, drive prefixes, control characters, and bidi override/isolate characters; trims; truncates the stem so the total is at most 255 characters while keeping the final extension; rejects empty / `.` / `..`)
+  - `looks_like_pdf(header: bytes)` (full `%PDF-` marker within first 1024 bytes)
   - `format_matches_extension(detected_format, extension)`
-- `storage_key.py`: `build_storage_key(project_id, document_id, extension)` → `projects/{project}/documents/{document}/original{ext}`.
+- `storage_key.py`: `build_storage_key(project_id: UUID, document_id: UUID, extension)` → `projects/{project}/documents/{document}/original{ext}`; rejects extensions outside the allow-list.
 - Update `__init__.py` exports and the package docstring.
 
-**Out of scope.** Pillow inspection (PR-06), any API exception types (they live in `powerforge_api`; this package raises its own small exceptions or returns results, mapped in PR-06), DB, storage.
+**Out of scope.** Pillow inspection (PR-06), any API exception types (they live in `powerforge_api`), DB, storage.
 
 **Tests** (`tests/test_document_domain.py`, unit, no DB):
-- enum values are stable strings; `OTHER` and `UNKNOWN` both present; defaults.
-- `sanitize_filename`: path traversal (`../../etc/passwd.pdf`), Windows paths (`C:\x\y.pdf`), control characters, very long names, empty/whitespace-only, unicode names preserved.
-- `normalize_extension`: `.PDF`, `.JpEg`, `.tif`; double extension (`a.pdf.exe` → `.exe`, unsupported); no extension.
-- `looks_like_pdf`: header at offset 0 and within 1024 bytes; absent; empty.
+- enum values are stable strings; `OTHER` before `UNKNOWN`; original 15 values unchanged.
+- `sanitize_filename`: path traversal, Windows paths, control and bidi characters, truncation keeping the extension, empty/whitespace/dot names, unicode names preserved.
+- `normalize_extension`: `.PDF`, `.JpEg`, `.tif`; double extension (`a.pdf.exe` → `.exe`); no extension; trailing dot; dotfile.
+- `looks_like_pdf`: header at offset 0 and 1019 (true), 1020 (false); absent; empty.
 - extension/format agreement matrix (every allowed pair true; mismatches false).
-- `build_storage_key`: exact format; contains no filename, revision, or classification input.
+- `build_storage_key`: exact format; contains no filename, revision, or classification input; unsupported extensions rejected.
+- purity guard: no forbidden imports; `dependencies = []`.
 
 **Acceptance.** Package still has zero third-party dependencies; `ruff` clean; no import of SQLAlchemy/FastAPI/boto3/Pillow anywhere in the package.
 
@@ -280,6 +282,12 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
   - CHECKs: origin ↔ `inherited_from_revision_id`; status ↔ `removed_at`; `inherited_from <> revision_id`; `size_bytes > 0`
   - `storage_key` uniqueness; `sha256` is **not** unique (two documents, same hash, both insert)
   - nullable `based_on_revision_id` / `inherited_from_revision_id` insert fine (MATCH SIMPLE)
+
+**Implementation notes (as landed).**
+- Enum labels in the migration are hard-coded (a migration must not change when the Python enum later changes); `tests/test_phase2_models.py` and `tests/test_migration_0004.py` assert they equal the Python enums.
+- `downgrade()` is destructive for Phase 2 data (drops `documents` and `revision_documents`); it is meant for development databases.
+- `RevisionDocument.document` and `.revision` are read-only (`viewonly`) relationships over the composite keys; writes go through the scalar columns.
+- `tests/test_migration_0004.py` runs Alembic in a subprocess against a scratch database it creates and drops. `tests/test_phase2_constraints.py` rolls back its transaction, leaving no rows behind.
 
 **Acceptance.** `alembic upgrade head` clean on fresh DB and on a `0003` DB with data; downgrade works; all Phase 1 tests still pass (the new column is nullable and unused).
 
@@ -409,6 +417,8 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - `exceptions.py`: `RevisionDocumentNotFound`, `CrossProjectDocumentAccess`, `StorageUploadFailed`.
 - `services/document_service.py` (`DocumentService`):
   - `upload(project_id, revision_id, fileobj, filename, metadata)`: validate project/revision ownership → early mutability check → `ingest_upload` → `FileInspector` → generate UUID + storage key → `storage.put` (no locks held) → open DB step: lock revision row, **re-check mutability under lock**, duplicate lookup `(project_id, sha256)`, insert `Document` + `RevisionDocument(UPLOADED, INCLUDED)` → commit
+  - locking per [D11](#6-open-decisions): the DB step takes `FOR SHARE` on the project row, then `FOR UPDATE` on the revision row, then re-checks project and revision mutability; the lock helper introduced here (in `revision_documents.py`, next to `lock_revision`) is reused by every PR-09 mutation
+- `services/project_service.py`: `archive_project` and `cancel_project` load the project `FOR UPDATE` before checking status, so they serialize with in-flight document mutations (D11). No behavior or response change.
   - failure handling per §15: put fails → no DB rows (`StorageUploadFailed`, no SDK text); DB/mutability failure after put → best-effort `delete`, log cleanup failure without masking the original error
   - `list_documents(…, status, document_type, origin, search)`: `status` default `INCLUDED` (`INCLUDED|REMOVED|ALL`); case-insensitive search across filename/number/description with escaped LIKE wildcards; deterministic order (`added_at`, filename)
   - `get_document(project_id, revision_id, revision_document_id)`: ownership verified through the association; mismatches → not found
@@ -427,6 +437,8 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - ownership: unknown project/revision → 404; revision from another project → 404; revision-document id from another revision/project → 404
 - mutability: DRAFT and ACTIVE allow upload; SUPERSEDED → 409 `RevisionReadOnly`; CANCELLED/ARCHIVED → 409; PAUSED allowed
 - **re-check under lock**: simulate status flipping to SUPERSEDED between the early check and the locked re-check → rejected, uploaded object cleaned up
+- **archive/cancel race (D11)**: simulate the project becoming ARCHIVED/CANCELLED between the early check and the locked re-check → rejected (`ArchivedProject`/`CancelledProject`), uploaded object cleaned up; assert the DB step issues `FOR SHARE` on the project before `FOR UPDATE` on the revision (for example by capturing the emitted SQL), and that two uploads to the same project do not deadlock
+- `archive_project`/`cancel_project` still behave identically for existing Phase 1 tests; a best-effort concurrent test shows an archive started during an in-flight upload waits for it, and the next upload then gets 409
 - invalid `document_type` form value → 422 and nothing stored; omitted → `UNKNOWN`
 - CORS: a preflight `OPTIONS` for multipart `POST …/documents` from each configured origin (`http://localhost:3000`, `http://127.0.0.1:3000`) succeeds, since the browser uploads directly to the API (existing middleware; test only, unless it fails)
 - storage failure on put → 502, zero DB rows
@@ -449,11 +461,11 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 
 **Scope.**
 - `exceptions.py`: `DocumentAlreadyInRevision`; mapping for edit-of-REMOVED conflict (reuse an existing 409 error type with a clear code, or add `DocumentRemoved`; decide in PR).
-- `DocumentService` (all mutations: `assert_documents_mutable` + revision row lock + re-check):
+- `DocumentService` (all mutations: `assert_documents_mutable` + project `FOR SHARE` + revision `FOR UPDATE` lock via the PR-08 helper + re-check):
   - `update_metadata` — `document_type`, `document_number`, `description`, `notes` only; PATCH schema `extra="forbid"` so immutable fields (`original_filename`, `sha256`, `storage_key`, size, MIME, `uploaded_at`, `project_id`, `status`, `origin`) → 422; editing a REMOVED association → 409
   - `remove` — `status=REMOVED`, `removed_at`, `removed_by` (null for now); never touches `Document` or storage; idempotent (second call does not change `removed_at`)
   - `restore` — `INCLUDED`, clears `removed_at`/`removed_by`; idempotent
-  - `reuse(source_revision_document_id, overrides)` — source must be an INCLUDED association of the same project; creates `INHERITED` association with `inherited_from_revision_id` = source revision, copies source metadata unless overridden; already associated (INCLUDED or REMOVED) → `DocumentAlreadyInRevision` (message tells the user to restore for REMOVED); cross-project source → `CrossProjectDocumentAccess`
+  - `reuse(source_revision_document_id, overrides)` — source must be an INCLUDED association of the same project; creates `INHERITED` association with `inherited_from_revision_id` = source revision, copies source metadata unless overridden; already associated (INCLUDED or REMOVED) → `DocumentAlreadyInRevision` (message tells the user to restore for REMOVED; see [D10](#6-open-decisions)); cross-project source → `CrossProjectDocumentAccess`
 - Routes: `PATCH …/{id}`, `POST …/{id}/remove`, `POST …/{id}/restore`, `POST …/documents/reuse`; map `DocumentAlreadyInRevision` → 409.
 - Race handling: the service pre-check for an existing association is not enough under concurrency, so `IntegrityError` on `uq_revision_documents_revision_id_document_id` is mapped (via the PR-03 helper) to `DocumentAlreadyInRevision`; any other unknown constraint on these paths falls through to the generic internal error (spec §23).
 - Structured logs: removed, restored, reused.
@@ -711,13 +723,15 @@ Settle these in the PR named; record the outcome in that PR's description and, i
 | --- | --- | --- | --- |
 | D1 | Which error does the "one ACTIVE revision" unique-index violation raise? Phase 1 reports it as `duplicate_revision_identifier`, which is misleading. | PR-03 | `RevisionNotActivatable` (409, code `revision_not_activatable`); update any test asserting the old code. |
 | D2 | If MinIO is unreachable at API startup, is that fatal? Is storage added to `/ready`? Does CI get a MinIO service? | PR-05 | Non-fatal: log a warning; uploads fail with `StorageUploadFailed`. Add an optional storage entry to `/ready` only if it does not change existing health tests' semantics. Add a MinIO service to CI if the GitHub Actions setup is a few lines; otherwise keep the MinIO test local-only and say so. |
-| D3 | How does the pure domain package signal validation failures? | PR-02/PR-06 | Small domain-local exceptions (or result values) mapped to API exceptions in `file_ingest`/`FileInspector`. |
+| D3 | How does the pure domain package signal validation failures? | PR-02/PR-06 | **Decided in PR-02:** package-local `ValueError` subclasses (`InvalidFilename`, `UnsupportedExtension`). PR-06 maps them to `InvalidFileContent` / `UnsupportedDocumentType`. Long names are truncated (stem only, extension kept) rather than rejected. |
 | D4 | Behavior when deleting a missing key in `ObjectStorage.delete`. | PR-05 | Idempotent no-op (cleanup paths must not raise on missing objects). |
 | D5 | Exception/code for editing a REMOVED association. | PR-09 | New `DocumentRemoved` (409) rather than overloading another error. |
 | D6 | Do reuse requests allow metadata overrides, or copy only? | PR-09 | Optional overrides, as in spec §21. |
 | D7 | Upload progress mechanism and concurrency in the UI. | PR-13 | `XMLHttpRequest`, concurrency 3, per-file retry. |
 | D8 | Should the optional per-batch default document type ship? | PR-13 | Only if trivial; otherwise defer and note as follow-up. |
 | D9 | Developer ergonomics: add a script that creates/migrates/drops a throwaway test DB (the manual recipe is in section 1)? | PR-05 | Optional small `scripts/` helper; skip if it adds maintenance burden. |
+| D10 | Reuse of a document that already has a **REMOVED** association in the target revision. `UNIQUE (revision_id, document_id)` means the REMOVED row still occupies the slot. | PR-09 | Already reflected in PR-09 scope: reject with `DocumentAlreadyInRevision` (409) whose message tells the user to restore the existing association instead. Do not silently restore or create a second row. Confirm the UI offers a "Restore" action from that error. |
+| D11 | Archive/cancel do not serialize with document mutations. Spec §18 relies on activation updating revision rows, but `archive_project`/`cancel_project` take no row lock and touch no revision rows, so an upload can pass its locked re-check and commit just after the project is archived or cancelled (one extra document in a closed project). | PR-08 | **Decided:** shared project lock. Every document mutation takes `FOR SHARE` on the project row, then `FOR UPDATE` on the target revision row (lock order stays project → revision), and re-checks project and revision mutability after both locks. `archive_project` and `cancel_project` take `FOR UPDATE` on the project row before checking status. Activation already takes `FOR UPDATE`, so it also waits for in-flight mutations. Concurrent document mutations share the project lock and do not block each other. Rules that keep this deadlock-free: a document mutation never upgrades its project lock to `FOR UPDATE`, and nothing locks a revision row before its project row. Spec §18, ADR-004 #15, and the architecture and pipeline docs are updated to match. |
 
 ---
 
@@ -727,7 +741,7 @@ What a user of the running app sees while Phase 2 is only partly merged:
 
 | After | Behavior |
 | --- | --- |
-| PR-04 | New tables exist but nothing uses them. API image rebuild not strictly required unless models imported. |
+| PR-04 | New tables exist but nothing uses them. Rebuild the API image: `models.py` now imports `powerforge_document_model` (new dependency in `services/api/pyproject.toml`), and the container runs `alembic upgrade head` at startup. |
 | PR-07 | Creating a revision **without** sending `based_on_revision_id` now defaults to the ACTIVE revision as base and carries forward its (currently empty) document set. Visible change: revisions record lineage. Old UI keeps working. |
 | PR-08 | Documents can be uploaded only through the API (Swagger at `/docs`). Rebuild the API image (`boto3`, `Pillow`, `python-multipart`). Set `S3_PUBLIC_ENDPOINT_URL` in `.env`/compose (done in PR-05). |
 | PR-11 | Create Revision UI changed; the revision page still shows the placeholder. |
@@ -743,7 +757,7 @@ Never merge a PR that requires a later PR to avoid breaking existing flows. Afte
 | --- | --- |
 | Composite FKs with nullable columns behave unexpectedly (MATCH SIMPLE) | Explicit tests in PR-04 for null and non-null cases |
 | Alembic enum creation conflicts with ORM `create_type=False` | Mirror the existing `0002` enum approach; test fresh upgrade and downgrade |
-| Deadlocks from inconsistent lock order | Single documented order (project → revision), centralised in `revision_documents.py`; concurrency tests in PR-07/PR-08 |
+| Deadlocks from inconsistent lock order | Single documented order (project → revision), centralised in `revision_documents.py`; document mutations take the project lock `FOR SHARE` and never upgrade it (D11); concurrency tests in PR-07/PR-08 |
 | Pillow decoding large TIFFs is slow or memory-hungry | Header-only dimension check before any decode; `verify()` only; no full decode in Phase 2; pixel cap configurable |
 | Large uploads exhaust memory in tests or prod | Spooled temp file; streaming hash; test asserts bounded reads |
 | Presigned URLs unusable from the browser in Docker | `S3_PUBLIC_ENDPOINT_URL`; verified end-to-end in PR-10 (MinIO test), PR-12 (browser), PR-15 (clean stack) |

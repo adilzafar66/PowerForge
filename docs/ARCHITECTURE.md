@@ -228,7 +228,7 @@ Revision-scoped metadata lives only on `RevisionDocument`, so a superseded revis
 ### Integrity and mutability
 
 - Same-project integrity is enforced by the database (composite foreign keys including `project_id`; `RevisionDocument.project_id` is intentionally denormalized for this), and also validated in the service layer.
-- A revision's document package is editable while the revision is `DRAFT` or `ACTIVE` and the project is `ACTIVE` or `PAUSED`. It is read-only when the revision is `SUPERSEDED` or the project is `ARCHIVED` or `CANCELLED`. Reads and downloads are always allowed. Enforcement is in the backend; mutations re-check after locking the revision row.
+- A revision's document package is editable while the revision is `DRAFT` or `ACTIVE` and the project is `ACTIVE` or `PAUSED`. It is read-only when the revision is `SUPERSEDED` or the project is `ARCHIVED` or `CANCELLED`. Reads and downloads are always allowed. Enforcement is in the backend; mutations re-check after locking the project row (shared) and the revision row, and archive, cancel, and activation take the project row exclusively, so they cannot race an in-flight upload.
 - Duplicate content (same SHA-256 in a project) is detected and allowed; it is never deduplicated automatically.
 
 ### Organization

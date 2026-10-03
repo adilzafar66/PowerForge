@@ -376,6 +376,17 @@ Constraints:
 - CHECK (status = 'REMOVED') = (removed_at IS NOT NULL)
 - Indexes: revision_id, document_id, (revision_id, status),
   (revision_id, document_type). Do not over-index.
+- Constraint names (implemented in migration 0004):
+    fk_revision_documents_revision, fk_revision_documents_document,
+    fk_revision_documents_inherited_from,
+    ck_revision_documents_origin_inherited_from,
+    ck_revision_documents_inherited_not_self,
+    ck_revision_documents_status_removed_at
+  Index names: ix_revision_documents_revision_id,
+    ix_revision_documents_document_id, ix_revision_documents_revision_id_status,
+    ix_revision_documents_revision_id_document_type
+- Foreign keys are MATCH SIMPLE: a NULL inherited_from_revision_id skips that
+  FK, which is the intended behavior for UPLOADED rows.
 
 Note: when the same Document is reused via "reuse" (section 21) the origin is
 INHERITED and inherited_from_revision_id is the source revision.
@@ -476,9 +487,13 @@ Never store it.
 
 Checks, in order:
 
- 1. Filename: reduce to basename (strip any path components), remove control
-    characters, trim, max 255 characters, must be non-empty. The result is
-    stored as original_filename. It is never used in storage keys.
+ 1. Filename: reduce to basename (strip any path components and drive
+    prefixes), remove control characters and bidirectional override/isolate
+    characters, trim. If longer than 255 characters, truncate the stem so
+    the total is at most 255 while keeping the final extension. The result
+    must be non-empty and not "." or "..". It is stored as original_filename
+    and is never used in storage keys. Unusable names raise InvalidFilename
+    in the domain package (mapped to an API error in the ingest layer).
  2. Extension: lowercase; must be in the allow-list, else
     UnsupportedDocumentType.
  3. Size: must be > 0 and <= MAX_UPLOAD_BYTES (enforced while streaming; a
@@ -542,8 +557,9 @@ Backend flow:
       -> Validate content (section 13)
       -> Generate Document UUID and storage key
       -> put() object to storage            (NO locks held during this step)
-      -> Open DB transaction; lock the revision row FOR UPDATE;
-         RE-CHECK project and revision mutability under the lock
+      -> Open DB transaction; lock the project row FOR SHARE, then the
+         revision row FOR UPDATE;
+         RE-CHECK project and revision mutability under the locks
          (guards against a concurrent activation superseding the revision)
       -> Detect duplicates (same project_id + sha256)
       -> Insert Document
@@ -616,12 +632,20 @@ Backend enforcement is mandatory. Frontend disabling is not enforcement.
 
 Lock order is always: project row -> revision row(s). Never the reverse.
 
-- Document mutations lock ONLY the target revision row (SELECT ... FOR
-  UPDATE) for the short database phase and re-check mutability after
-  acquiring the lock. Streaming and object upload happen before the lock.
-- Revision activation already locks the project row and then updates revision
-  rows, so it naturally waits for in-flight document mutations on the
-  revision being superseded, and subsequent mutations then see SUPERSEDED.
+- Document mutations lock the project row FOR SHARE and then the target
+  revision row FOR UPDATE, for the short database phase only, and re-check
+  project and revision mutability after acquiring both locks. Streaming and
+  object upload happen before any lock. Concurrent document mutations share
+  the project lock and do not block each other. A document mutation never
+  upgrades its project lock to FOR UPDATE.
+- Anything that changes project status to a state that blocks mutation
+  (archive, cancel) locks the project row FOR UPDATE before checking status,
+  so it waits for in-flight document mutations and later mutations see the
+  new status. Without this, an upload could commit just after the project was
+  archived or cancelled.
+- Revision activation locks the project row FOR UPDATE, so it likewise waits
+  for in-flight document mutations; subsequent mutations then see the revision
+  as SUPERSEDED.
 - Revision creation with a base locks the project row then the base revision
   row (section 6).
 
@@ -772,10 +796,12 @@ the helper; neither imports the other.
 Domain package: extend the EXISTING packages/document-model
 (powerforge_document_model). Do NOT create packages/document/. Add:
 
-    enums.py       DocumentClassification (add OTHER), DocumentOrigin,
-                   RevisionDocumentStatus
+    enums.py       DocumentClassification (OTHER immediately before UNKNOWN),
+                   DocumentOrigin, RevisionDocumentStatus, FileFormat
+    errors.py      DocumentValidationError, InvalidFilename,
+                   UnsupportedExtension (mapped to API errors in PR-06)
     validation.py  pure rules from section 13
-    storage_key.py (or within validation.py) the storage-key builder
+    storage_key.py the storage-key builder (UUID ids; allow-listed extension)
 
 The domain package must contain no SQLAlchemy, FastAPI, boto3/MinIO, Pillow,
 or storage implementation. Add powerforge-document-model to the API's
@@ -845,6 +871,15 @@ based_on_revision_id = NULL). Verify downgrade works.
 
 SQLAlchemy models are added to the existing models.py following the file's
 conventions (server defaults, timezone-aware timestamps).
+
+Implemented as database/migrations/0004_documents_and_lineage.py. Enum labels
+are hard-coded in the migration (tests assert they match the Python enums).
+downgrade() drops revision_documents, documents, the lineage constraints and
+column, and the three enum types; it destroys Phase 2 data and is intended for
+development databases. Document constraint and index names:
+    fk_documents_project_id, uq_documents_storage_key,
+    uq_documents_project_id_id, ck_documents_size_positive,
+    ix_documents_project_id, ix_documents_project_id_sha256
 
 ======================================================================
 25. FRONTEND — REVISION DOCUMENT EXPERIENCE

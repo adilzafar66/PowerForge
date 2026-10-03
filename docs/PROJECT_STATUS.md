@@ -24,7 +24,7 @@ Decisions: [ADR-003](../decisions/ADR-003-project-revision-model.md)
 Delivered:
 
 - `packages/project` (`powerforge_project`) — status enums and transition helper
-- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`)
+- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`
 - REST API under `/api/projects` and nested revisions (create/list/get/patch + pause/resume/cancel/archive/unarchive + activate)
 - Web UI: `/` project list, `/projects/new`, `/projects/[id]`, revision placeholder, `/status` stack health
 - Backend and frontend tests covering lifecycle, uniqueness, and concurrent activate
@@ -77,7 +77,7 @@ Phase 2 is delivered as 16 sequenced pull requests (PR-00 to PR-15) with scope, 
 | Frontend (Create Revision, workspace, upload, actions) | PR-11 to PR-14 |
 | Hardening and completion | PR-15 |
 
-PRs merged so far: PR-00 and most of PR-01 (commit `9a42b3b`); no implementation PRs yet. Phase 2 is complete only when PR-15 has merged and every item in the spec's definition of done (section 36) is demonstrably met.
+PRs merged so far: PR-00 and most of PR-01 (commit `9a42b3b`); PR-02 lands document-domain vocabulary and pure validation; PR-04 adds migration `0004` and the ORM models (no service or API behavior uses them yet, rebuild the API image after pulling). Phase 2 is complete only when PR-15 has merged and every item in the spec's definition of done (section 36) is demonstrably met.
 
 ### Intentional deviations and debt expected from Phase 2
 
