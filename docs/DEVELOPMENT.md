@@ -30,7 +30,7 @@ Copy `.env.example` to `.env` in the repository root. The API and workers read `
 
 ## Phase 2 configuration (document storage)
 
-These settings are introduced by Phase 2 and are read through `powerforge_shared.config.Settings`. Existing `S3_*` names are unchanged. Add the new ones to `.env` and `docker-compose.yml` when implementing; they have defaults for local use.
+These settings are introduced by Phase 2 and are read through `powerforge_shared.config.Settings`. Existing `S3_*` names are unchanged. They are already listed in `.env.example` and set for the `api` service in `docker-compose.yml`, and they have defaults for local use. `S3_SIGNED_URL_EXPIRES_SECONDS` must be between 1 and 604800; `MAX_UPLOAD_BYTES` and `MAX_IMAGE_PIXELS` must be positive. A blank `S3_PUBLIC_ENDPOINT_URL` counts as unset.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -44,7 +44,7 @@ These settings are introduced by Phase 2 and are read through `powerforge_shared
 
 Notes:
 
-- `minio-init` in `docker-compose.yml` creates the bucket (`mc mb --ignore-existing`). The API also calls an idempotent bucket check at startup so it works outside Compose. The bucket is private; do not add an anonymous policy.
+- `minio-init` in `docker-compose.yml` creates the bucket (`mc mb --ignore-existing`). The API also calls an idempotent bucket check at startup so it works outside Compose; if storage is unreachable it logs a warning and keeps starting (uploads fail until it is back). `/ready` does not report storage. The bucket is private; do not add an anonymous policy.
 - A reverse proxy in front of the API must allow request bodies at least as large as `MAX_UPLOAD_BYTES`.
 - Phase 2 adds Python dependencies (`boto3`, `Pillow`, `python-multipart`) to `services/api`, `requirements-dev.txt`, and CI. After pulling, reinstall (`pip install -e services/api`) and rebuild the API image (`docker compose up --build`).
 - Phase 2 adds migration `0004` (revision lineage, `documents`, `revision_documents`). Existing revisions get `based_on_revision_id = NULL`. Apply with `alembic -c database/alembic.ini upgrade head` (Compose does this on API startup). `tests/test_migration_0004.py` (with `RUN_INTEGRATION=1`) creates and drops its own scratch databases and runs Alembic in a subprocess, so it needs a `DATABASE_URL` whose user may `CREATE DATABASE`.
@@ -142,8 +142,8 @@ RUN_INTEGRATION=1 pytest
 docker exec powerforge-postgres-1 psql -U powerforge -d postgres -c "DROP DATABASE powerforge_test;"
 ```
 
-Phase 2 tests use an in-memory `ObjectStorage` fake, so they need no MinIO. The one real-storage test is also marked `integration` and additionally needs the Compose MinIO service running (`docker compose up minio minio-init -d`).
+Most Phase 2 tests use the in-memory `ObjectStorage` fake (the `object_storage` fixture in `tests/conftest.py`), so they need no MinIO. The real-storage cases in `tests/test_storage.py` are marked `integration` and additionally need MinIO (`docker compose up minio minio-init -d`). They create a scratch bucket (`powerforge-test-<hex>`) and remove it at the end of the session. If MinIO is unreachable they skip locally, but fail when the `CI` environment variable is set so CI cannot skip them silently.
 
 ## CI
 
-GitHub Actions (`.github/workflows/ci.yml`) runs Ruff, Pytest (with PostgreSQL service), and the Next.js lint/test job.
+GitHub Actions (`.github/workflows/ci.yml`) runs Ruff, Pytest (with PostgreSQL and Redis service containers plus a MinIO container started by a `docker run` step, because service containers cannot pass MinIO's `server /data` command), and the Next.js lint/test job.

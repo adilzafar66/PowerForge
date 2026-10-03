@@ -25,6 +25,17 @@ class Settings(BaseSettings):
     s3_secret_key: str = "powerforge_minio"
     s3_bucket: str = "powerforge"
     s3_region: str = "us-east-1"
+    s3_public_endpoint_url: str | None = Field(
+        default=None,
+        description=(
+            "Endpoint browsers can reach; presigned download URLs are signed against it. "
+            "Falls back to s3_endpoint_url when unset."
+        ),
+    )
+    s3_signed_url_expires_seconds: int = Field(default=900, ge=1, le=604_800)
+
+    max_upload_bytes: int = Field(default=262_144_000, gt=0)
+    max_image_pixels: int = Field(default=600_000_000, gt=0)
 
     cors_origins: str = Field(
         default="http://localhost:3000",
@@ -39,6 +50,16 @@ class Settings(BaseSettings):
         if value.startswith("postgresql://"):
             return "postgresql+psycopg://" + value.removeprefix("postgresql://")
         return value
+
+    @field_validator("s3_public_endpoint_url", mode="before")
+    @classmethod
+    def blank_public_endpoint_is_unset(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    def s3_public_endpoint(self) -> str:
+        return self.s3_public_endpoint_url or self.s3_endpoint_url
 
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

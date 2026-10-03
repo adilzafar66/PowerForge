@@ -49,5 +49,5 @@ pythonpath = [
 ]
 testpaths = ["tests"]
 markers = [
-    "integration: tests that require a running PostgreSQL instance",
+    "integration: tests that require running PostgreSQL and/or MinIO",
 ]

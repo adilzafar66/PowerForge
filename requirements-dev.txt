@@ -9,4 +9,5 @@ alembic>=1.13
 pydantic>=2.8
 pydantic-settings>=2.4
 redis>=5.1
+boto3>=1.36
 celery[redis]>=5.4

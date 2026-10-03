@@ -45,6 +45,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
           pip install -e packages/shared -e packages/project -e packages/engineering-model -e packages/document-model -e packages/extraction -e packages/topology -e packages/validation -e packages/provenance -e packages/ai -e services/api -e services/document-worker -e services/extraction-worker -e services/validation-worker
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=powerforge -e MINIO_ROOT_PASSWORD=powerforge_minio \
+            minio/minio server /data
+          for i in $(seq 1 30); do
+            if curl -fs http://localhost:9000/minio/health/live > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          docker logs minio
+          exit 1
       - name: Lint
         run: ruff check .
       - name: Migrate

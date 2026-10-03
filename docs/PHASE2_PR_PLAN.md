@@ -85,7 +85,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-02](#pr-02--document-domain-vocabulary-and-pure-validation) | Document domain vocabulary and pure validation | Domain | S | — | [x] |
 | [PR-03](#pr-03--constraint-name-integrityerror-mapping) | Constraint-name IntegrityError mapping | Backend | S | — | [ ] |
 | [PR-04](#pr-04--database-migration-0004-and-orm-models) | Migration `0004` and ORM models | DB | M | PR-02 | [x] |
-| [PR-05](#pr-05--configuration-and-object-storage-abstraction) | Configuration and object-storage abstraction | Backend/Infra | M | PR-02 | [ ] |
+| [PR-05](#pr-05--configuration-and-object-storage-abstraction) | Configuration and object-storage abstraction | Backend/Infra | M | PR-02 | [x] |
 | [PR-06](#pr-06--file-ingestion-and-validation) | File ingestion and validation | Backend | M | PR-02, PR-05 | [ ] |
 | [PR-07](#pr-07--revision-lineage-and-document-inheritance) | Revision lineage and document inheritance | Backend | L | PR-03, PR-04 | [ ] |
 | [PR-08](#pr-08--document-upload-list-and-get) | Document upload, list, and get | Backend | L | PR-04, PR-05, PR-06, PR-07 | [ ] |
@@ -327,6 +327,17 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - `tests/test_settings.py`: defaults and env overrides for the new settings; public endpoint falls back correctly.
 - Integration (`RUN_INTEGRATION=1`, MinIO running): real put/get/exists/delete + fetch of a presigned URL returns the bytes; bucket is not anonymously readable (unsigned GET is 403).
 - Logging: `extra` fields appear in JSON output; no secret fields.
+
+**Implementation notes (as landed).**
+- `/ready` is unchanged (decided: storage state shows only in the startup log and, later, as upload errors), so the web status dashboard is untouched.
+- `delete` of a missing key is a no-op (D4). `get` of a missing key raises `ObjectNotFound`. Storage errors carry generic messages; only the S3 error code is logged, never SDK text, endpoints, or URLs.
+- `put` does an `exists()` pre-check and also sends `If-None-Match: *`. `tests/test_storage.py` bypasses the pre-check once to prove the server itself returns 412 (MinIO `RELEASE.2025-09-07` does).
+- The boto3 client sets `request_checksum_calculation` and `response_checksum_validation` to `when_required`, because boto3 1.36+ adds default checksums that S3-compatible servers may reject.
+- The `Content-Disposition` builder lives in `storage/disposition.py` (pure, shared by the fake and S3 implementations) rather than in `s3.py`. `get_object_storage` is in `storage/factory.py`.
+- `JsonFormatter` redacts top-level `extra` keys containing `secret`, `password`, `token`, `credential`, `signature`, `authorization`, `access_key`, or `url`.
+- CI starts MinIO with a `docker run` step (service containers cannot pass `server /data`). The S3 contract cases skip locally when MinIO is unreachable and fail when `CI` is set. They use a scratch bucket that is emptied and deleted at the end of the session.
+- The project/revision builder fixture from the original scope is deferred to PR-08, where it is first used. `tests/conftest.py` provides only the `object_storage` override fixture.
+- D9 (throwaway-DB script) is skipped: the manual recipe and the self-cleaning migration test are enough.
 
 **Acceptance.** App boots with and without MinIO reachable; compose stack starts and logs bucket status; no credentials in source beyond existing dev defaults; domain/service code imports only `ObjectStorage`, never boto3.
 
@@ -722,14 +733,14 @@ Settle these in the PR named; record the outcome in that PR's description and, i
 | ID | Decision | Needed by | Proposed default |
 | --- | --- | --- | --- |
 | D1 | Which error does the "one ACTIVE revision" unique-index violation raise? Phase 1 reports it as `duplicate_revision_identifier`, which is misleading. | PR-03 | `RevisionNotActivatable` (409, code `revision_not_activatable`); update any test asserting the old code. |
-| D2 | If MinIO is unreachable at API startup, is that fatal? Is storage added to `/ready`? Does CI get a MinIO service? | PR-05 | Non-fatal: log a warning; uploads fail with `StorageUploadFailed`. Add an optional storage entry to `/ready` only if it does not change existing health tests' semantics. Add a MinIO service to CI if the GitHub Actions setup is a few lines; otherwise keep the MinIO test local-only and say so. |
+| D2 | If MinIO is unreachable at API startup, is that fatal? Is storage added to `/ready`? Does CI get a MinIO service? | PR-05 | **Decided in PR-05:** non-fatal (log a warning; uploads fail with `StorageUploadFailed`); `/ready` is unchanged; CI runs MinIO through a `docker run` step so the real-storage tests run there. |
 | D3 | How does the pure domain package signal validation failures? | PR-02/PR-06 | **Decided in PR-02:** package-local `ValueError` subclasses (`InvalidFilename`, `UnsupportedExtension`). PR-06 maps them to `InvalidFileContent` / `UnsupportedDocumentType`. Long names are truncated (stem only, extension kept) rather than rejected. |
-| D4 | Behavior when deleting a missing key in `ObjectStorage.delete`. | PR-05 | Idempotent no-op (cleanup paths must not raise on missing objects). |
+| D4 | Behavior when deleting a missing key in `ObjectStorage.delete`. | PR-05 | **Decided in PR-05:** idempotent no-op (cleanup paths must not raise on missing objects). |
 | D5 | Exception/code for editing a REMOVED association. | PR-09 | New `DocumentRemoved` (409) rather than overloading another error. |
 | D6 | Do reuse requests allow metadata overrides, or copy only? | PR-09 | Optional overrides, as in spec §21. |
 | D7 | Upload progress mechanism and concurrency in the UI. | PR-13 | `XMLHttpRequest`, concurrency 3, per-file retry. |
 | D8 | Should the optional per-batch default document type ship? | PR-13 | Only if trivial; otherwise defer and note as follow-up. |
-| D9 | Developer ergonomics: add a script that creates/migrates/drops a throwaway test DB (the manual recipe is in section 1)? | PR-05 | Optional small `scripts/` helper; skip if it adds maintenance burden. |
+| D9 | Developer ergonomics: add a script that creates/migrates/drops a throwaway test DB (the manual recipe is in section 1)? | PR-05 | **Decided in PR-05:** skipped. The manual recipe in `docs/DEVELOPMENT.md` and the self-cleaning migration and storage tests cover the need. |
 | D10 | Reuse of a document that already has a **REMOVED** association in the target revision. `UNIQUE (revision_id, document_id)` means the REMOVED row still occupies the slot. | PR-09 | Already reflected in PR-09 scope: reject with `DocumentAlreadyInRevision` (409) whose message tells the user to restore the existing association instead. Do not silently restore or create a second row. Confirm the UI offers a "Restore" action from that error. |
 | D11 | Archive/cancel do not serialize with document mutations. Spec §18 relies on activation updating revision rows, but `archive_project`/`cancel_project` take no row lock and touch no revision rows, so an upload can pass its locked re-check and commit just after the project is archived or cancelled (one extra document in a closed project). | PR-08 | **Decided:** shared project lock. Every document mutation takes `FOR SHARE` on the project row, then `FOR UPDATE` on the target revision row (lock order stays project → revision), and re-checks project and revision mutability after both locks. `archive_project` and `cancel_project` take `FOR UPDATE` on the project row before checking status. Activation already takes `FOR UPDATE`, so it also waits for in-flight mutations. Concurrent document mutations share the project lock and do not block each other. Rules that keep this deadlock-free: a document mutation never upgrades its project lock to `FOR UPDATE`, and nothing locks a revision row before its project row. Spec §18, ADR-004 #15, and the architecture and pipeline docs are updated to match. |
 
@@ -742,8 +753,9 @@ What a user of the running app sees while Phase 2 is only partly merged:
 | After | Behavior |
 | --- | --- |
 | PR-04 | New tables exist but nothing uses them. Rebuild the API image: `models.py` now imports `powerforge_document_model` (new dependency in `services/api/pyproject.toml`), and the container runs `alembic upgrade head` at startup. |
+| PR-05 | No user-visible change. Rebuild the API image (`boto3` is a new dependency). The API now checks the storage bucket at startup and logs the result; MinIO being down does not stop it from booting. New settings have local defaults; compose sets `S3_PUBLIC_ENDPOINT_URL=http://localhost:9000`. |
 | PR-07 | Creating a revision **without** sending `based_on_revision_id` now defaults to the ACTIVE revision as base and carries forward its (currently empty) document set. Visible change: revisions record lineage. Old UI keeps working. |
-| PR-08 | Documents can be uploaded only through the API (Swagger at `/docs`). Rebuild the API image (`boto3`, `Pillow`, `python-multipart`). Set `S3_PUBLIC_ENDPOINT_URL` in `.env`/compose (done in PR-05). |
+| PR-08 | Documents can be uploaded only through the API (Swagger at `/docs`). Rebuild the API image (`Pillow`, `python-multipart`; `boto3` arrived in PR-05). `S3_PUBLIC_ENDPOINT_URL` is already set in `.env.example` and compose (PR-05). |
 | PR-11 | Create Revision UI changed; the revision page still shows the placeholder. |
 | PR-12 | Revision page becomes the documents workspace (read-only until PR-13/14). |
 

@@ -12,6 +12,7 @@ dependencies = [
     "redis>=5.1",
     "pydantic>=2.8",
     "pydantic-settings>=2.4",
+    "boto3>=1.36",
     "powerforge-project",
     "powerforge-document-model",
 ]

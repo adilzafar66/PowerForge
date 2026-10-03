@@ -59,6 +59,10 @@ services:
       S3_ACCESS_KEY: powerforge
       S3_SECRET_KEY: powerforge_minio
       S3_BUCKET: powerforge
+      S3_PUBLIC_ENDPOINT_URL: http://localhost:9000
+      S3_SIGNED_URL_EXPIRES_SECONDS: "900"
+      MAX_UPLOAD_BYTES: "262144000"
+      MAX_IMAGE_PIXELS: "600000000"
       CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
       LOG_LEVEL: INFO
     ports:
@@ -68,6 +72,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_started
 
   web:
     build:
