@@ -53,3 +53,13 @@ class InvalidRevisionIdentifier(ProjectError):
 
 class RevisionNotActivatable(ProjectError):
     code = "revision_not_activatable"
+
+
+class UnexpectedIntegrityError(ProjectError):
+    code = "unexpected_integrity_error"
+
+    def __init__(
+        self,
+        message: str = "An unexpected database integrity error occurred",
+    ) -> None:
+        super().__init__(message)

@@ -6,9 +6,9 @@ import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import or_, select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from powerforge_api.db_errors import integrity_guard
 from powerforge_api.exceptions import (
     ArchivedProject,
     CancelledProject,
@@ -36,14 +36,17 @@ class ProjectService:
             engineer_names=list(data.engineer_names),
             status=ProjectStatus.ACTIVE,
         )
-        self.session.add(project)
-        try:
+        with integrity_guard(
+            self.session,
+            {
+                "uq_projects_project_number": DuplicateProjectNumber(
+                    f"Project number '{data.project_number}' already exists"
+                )
+            },
+            operation="create_project",
+        ):
+            self.session.add(project)
             self.session.commit()
-        except IntegrityError as exc:
-            self.session.rollback()
-            raise DuplicateProjectNumber(
-                f"Project number '{data.project_number}' already exists"
-            ) from exc
         self.session.refresh(project)
         return project
 

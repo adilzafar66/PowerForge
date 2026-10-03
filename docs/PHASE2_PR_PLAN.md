@@ -81,9 +81,9 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | PR | Title | Area | Size | Depends on | Status |
 | --- | --- | --- | --- | --- | --- |
 | [PR-00](#pr-00--land-pending-phase-1-lock-fix) | Land pending Phase 1 lock fix | Backend | XS | — | [x] landed in `9a42b3b` (bundled with PR-01 content) |
-| [PR-01](#pr-01--phase-2-specification-adr-and-documentation) | Phase 2 specification, ADR-004, docs, PR plan | Docs | S | — | [ ] spec/ADR/docs landed in `9a42b3b`; PR plan doc pending |
+| [PR-01](#pr-01--phase-2-specification-adr-and-documentation) | Phase 2 specification, ADR-004, docs, PR plan | Docs | S | — | [x] landed in `9a42b3b` / `3289937` |
 | [PR-02](#pr-02--document-domain-vocabulary-and-pure-validation) | Document domain vocabulary and pure validation | Domain | S | — | [x] |
-| [PR-03](#pr-03--constraint-name-integrityerror-mapping) | Constraint-name IntegrityError mapping | Backend | S | — | [ ] |
+| [PR-03](#pr-03--constraint-name-integrityerror-mapping) | Constraint-name IntegrityError mapping | Backend | S | — | [x] |
 | [PR-04](#pr-04--database-migration-0004-and-orm-models) | Migration `0004` and ORM models | DB | M | PR-02 | [x] |
 | [PR-05](#pr-05--configuration-and-object-storage-abstraction) | Configuration and object-storage abstraction | Backend/Infra | M | PR-02 | [x] |
 | [PR-06](#pr-06--file-ingestion-and-validation) | File ingestion and validation | Backend | M | PR-02, PR-05 | [ ] |
@@ -162,7 +162,7 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 
 ### PR-01 — Phase 2 specification, ADR, and documentation
 
-**Status.** Partly done. The spec, ADR-004, and the Phase 2 documentation updates landed in `9a42b3b` (together with PR-00). Remaining: `docs/PHASE2_PR_PLAN.md` (this file) and the links to it from `README.md` and `docs/PROJECT_STATUS.md`. Close this PR by committing those.
+**Status.** Done. Spec, ADR-004, Phase 2 documentation, this plan, and the links from `README.md` and `docs/PROJECT_STATUS.md` are on `main` (`9a42b3b`, `3289937`).
 
 **Goal.** Land the written design before code: spec v2, ADR-004 (Proposed), the Phase 2 doc updates, and this plan.
 
@@ -228,22 +228,23 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 **Depends on.** Nothing. Deliberately before the migration so it is reviewed on its own.
 
 **Scope** (`services/api/src/powerforge_api/`):
-- New `db_errors.py`: `constraint_name(exc: IntegrityError) -> str | None` (reads `exc.orig.diag.constraint_name`, tolerant of missing attributes) and a small helper to map names to domain errors.
-- `services/project_service.py`: `create_project` maps `uq_projects_project_number` → `DuplicateProjectNumber`; anything else re-raised.
+- New `db_errors.py`: `constraint_name(exc) -> str | None` (reads `exc.orig.diag.constraint_name`, tolerant of missing attributes), `translate_integrity_error`, and `integrity_guard`.
+- `UnexpectedIntegrityError` (`ProjectError`, code `unexpected_integrity_error`); `_http_for` maps it to JSON 500.
+- `services/project_service.py`: `create_project` maps `uq_projects_project_number` → `DuplicateProjectNumber`.
 - `services/revision_service.py`: create/update/activate map
   - `uq_project_revisions_project_id_identifier` → `DuplicateRevisionIdentifier`
-  - `uq_project_revisions_one_active` → `RevisionNotActivatable` (see [D1](#6-open-decisions))
-  - anything else → re-raised (logged at error, surfaces as 500; never mislabelled as a duplicate).
-- Unknown-constraint path logs the constraint name and statement context, not parameters or user data.
+  - `uq_project_revisions_one_active` → `RevisionNotActivatable` (D1, decided)
+  - anything else → `UnexpectedIntegrityError` (logged at error with constraint name and SQLSTATE only; never mislabelled as a duplicate).
 
 **Out of scope.** New Phase 2 constraints (added in the PRs that introduce them, PR-07/08/09).
 
 **Tests** (`tests/test_integrity_error_mapping.py`):
 - unit: `constraint_name` with a real-shaped psycopg error and with objects lacking `diag`.
-- unit: service-level, with a simulated `IntegrityError` for an unknown constraint → not `DuplicateRevisionIdentifier`/`DuplicateProjectNumber`.
-- integration: existing duplicate-number, duplicate-identifier, and concurrent-activate tests still pass with the same HTTP codes/`code` values (unless D1 changes the one-active code, then update the assertion and note it).
+- unit: unknown/missing constraint → `UnexpectedIntegrityError`; log contains the constraint name and SQLSTATE, not user data.
+- integration: real psycopg names for identifier unique, one-active partial unique index, and project FK; unknown-constraint POST → 500 `unexpected_integrity_error`; one-active violation → 409 `revision_not_activatable`.
+- existing duplicate-number, duplicate-identifier, and concurrent-activate tests still pass.
 
-**Acceptance.** No blanket `except IntegrityError → Duplicate…` remains in the two services; existing Phase 1 behavior unchanged except as recorded; debt entry in `PROJECT_STATUS.md` updated to "resolved".
+**Acceptance.** No blanket `except IntegrityError → Duplicate…` remains in the two services; existing Phase 1 behavior unchanged except D1; debt entry in `PROJECT_STATUS.md` updated to "resolved".
 
 **Size.** S.
 
@@ -732,7 +733,7 @@ Settle these in the PR named; record the outcome in that PR's description and, i
 
 | ID | Decision | Needed by | Proposed default |
 | --- | --- | --- | --- |
-| D1 | Which error does the "one ACTIVE revision" unique-index violation raise? Phase 1 reports it as `duplicate_revision_identifier`, which is misleading. | PR-03 | `RevisionNotActivatable` (409, code `revision_not_activatable`); update any test asserting the old code. |
+| D1 | Which error does the "one ACTIVE revision" unique-index violation raise? Phase 1 reports it as `duplicate_revision_identifier`, which is misleading. | PR-03 | **Decided:** `RevisionNotActivatable` (409, code `revision_not_activatable`). Unmapped constraints are `UnexpectedIntegrityError` (500, `unexpected_integrity_error`). |
 | D2 | If MinIO is unreachable at API startup, is that fatal? Is storage added to `/ready`? Does CI get a MinIO service? | PR-05 | **Decided in PR-05:** non-fatal (log a warning; uploads fail with `StorageUploadFailed`); `/ready` is unchanged; CI runs MinIO through a `docker run` step so the real-storage tests run there. |
 | D3 | How does the pure domain package signal validation failures? | PR-02/PR-06 | **Decided in PR-02:** package-local `ValueError` subclasses (`InvalidFilename`, `UnsupportedExtension`). PR-06 maps them to `InvalidFileContent` / `UnsupportedDocumentType`. Long names are truncated (stem only, extension kept) rather than rejected. |
 | D4 | Behavior when deleting a missing key in `ObjectStorage.delete`. | PR-05 | **Decided in PR-05:** idempotent no-op (cleanup paths must not raise on missing objects). |

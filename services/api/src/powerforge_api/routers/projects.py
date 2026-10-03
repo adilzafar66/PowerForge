@@ -22,6 +22,7 @@ from powerforge_api.exceptions import (
     RevisionNotActivatable,
     RevisionNotFound,
     RevisionProjectMismatch,
+    UnexpectedIntegrityError,
 )
 from powerforge_api.models import Project, ProjectRevision
 from powerforge_api.schemas.projects import (
@@ -68,6 +69,8 @@ def _http_for(exc: ProjectError) -> HTTPException:
         status_code = status.HTTP_409_CONFLICT
     elif isinstance(exc, InvalidRevisionIdentifier):
         status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    elif isinstance(exc, UnexpectedIntegrityError):
+        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     return HTTPException(
         status_code=status_code,
         detail={"detail": exc.message, "code": exc.code},

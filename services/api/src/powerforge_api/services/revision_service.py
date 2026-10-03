@@ -6,9 +6,9 @@ import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from powerforge_api.db_errors import integrity_guard
 from powerforge_api.exceptions import (
     ArchivedProject,
     CancelledProject,
@@ -42,26 +42,24 @@ class RevisionService:
             description=data.description,
             status=RevisionStatus.DRAFT,
         )
-        self.session.add(revision)
-        try:
+        with integrity_guard(
+            self.session,
+            {
+                "uq_project_revisions_project_id_identifier": DuplicateRevisionIdentifier(
+                    f"Revision identifier '{identifier}' already exists on this project"
+                ),
+                "uq_project_revisions_one_active": RevisionNotActivatable(
+                    "Could not activate revision; another active revision exists"
+                ),
+            },
+            operation="create_revision",
+        ):
+            self.session.add(revision)
             self.session.flush()
-        except IntegrityError as exc:
-            self.session.rollback()
-            raise DuplicateRevisionIdentifier(
-                f"Revision identifier '{identifier}' already exists on this project"
-            ) from exc
-
-        if data.activate:
-            self._activate_locked(project, revision)
-
-        project.updated_at = datetime.now(UTC)
-        try:
+            if data.activate:
+                self._activate_locked(project, revision)
+            project.updated_at = datetime.now(UTC)
             self.session.commit()
-        except IntegrityError as exc:
-            self.session.rollback()
-            raise DuplicateRevisionIdentifier(
-                f"Revision identifier '{identifier}' already exists on this project"
-            ) from exc
         self.session.refresh(revision)
         return revision
 
@@ -101,13 +99,16 @@ class RevisionService:
             setattr(revision, field, value)
         revision.updated_at = datetime.now(UTC)
         project.updated_at = datetime.now(UTC)
-        try:
+        with integrity_guard(
+            self.session,
+            {
+                "uq_project_revisions_project_id_identifier": DuplicateRevisionIdentifier(
+                    "Revision identifier already exists on this project"
+                ),
+            },
+            operation="update_revision",
+        ):
             self.session.commit()
-        except IntegrityError as exc:
-            self.session.rollback()
-            raise DuplicateRevisionIdentifier(
-                "Revision identifier already exists on this project"
-            ) from exc
         self.session.refresh(revision)
         return revision
 
@@ -118,15 +119,18 @@ class RevisionService:
     ) -> ProjectRevision:
         project = self._get_project_for_write(project_id, for_update=True)
         revision = self.get_revision(project_id, revision_id)
-        self._activate_locked(project, revision)
-        project.updated_at = datetime.now(UTC)
-        try:
+        with integrity_guard(
+            self.session,
+            {
+                "uq_project_revisions_one_active": RevisionNotActivatable(
+                    "Could not activate revision; another active revision exists"
+                ),
+            },
+            operation="activate_revision",
+        ):
+            self._activate_locked(project, revision)
+            project.updated_at = datetime.now(UTC)
             self.session.commit()
-        except IntegrityError as exc:
-            self.session.rollback()
-            raise DuplicateRevisionIdentifier(
-                "Could not activate revision; another active revision exists"
-            ) from exc
         self.session.refresh(revision)
         return revision
 

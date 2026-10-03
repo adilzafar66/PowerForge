@@ -765,10 +765,12 @@ validation-type errors to 422):
     404  ProjectNotFound, RevisionNotFound, RevisionProjectMismatch,
          RevisionDocumentNotFound, CrossProjectDocumentAccess
     409  RevisionReadOnly, ArchivedProject, CancelledProject,
-         DocumentAlreadyInRevision, edit of a REMOVED association
+         DocumentAlreadyInRevision, edit of a REMOVED association,
+         RevisionNotActivatable
     413  FileTooLarge
     415  UnsupportedDocumentType
     422  InvalidFileContent, InvalidBaseRevision
+    500  UnexpectedIntegrityError (unmapped IntegrityError; see §23)
     502  StorageUploadFailed
 
 ======================================================================
@@ -825,26 +827,32 @@ conventions):
     DocumentAlreadyInRevision
     StorageUploadFailed
     InvalidBaseRevision
+    UnexpectedIntegrityError
 
 Existing errors are reused: ProjectNotFound, RevisionNotFound,
 RevisionProjectMismatch, ArchivedProject, CancelledProject.
 
 Never expose raw database or storage-SDK exception text to users.
 
-IntegrityError handling (required fix of Phase 1 debt):
+IntegrityError handling (required fix of Phase 1 debt; landed in PR-03):
 
 - Replace the "any IntegrityError => DuplicateRevisionIdentifier" mapping in
   RevisionService.create_revision (and update/activate paths) with mapping by
   constraint name (psycopg exposes exc.orig.diag.constraint_name):
+    uq_projects_project_number                 -> DuplicateProjectNumber
     uq_project_revisions_project_id_identifier -> DuplicateRevisionIdentifier
-    uq_project_revisions_one_active            -> activation conflict
+    uq_project_revisions_one_active            -> RevisionNotActivatable
+                                                 (409, revision_not_activatable)
     fk_project_revisions_based_on / ck_project_revisions_based_on_not_self
-                                               -> InvalidBaseRevision
-    uq_revision_documents_revision_id_document_id -> DocumentAlreadyInRevision
-    anything else                              -> re-raise as an internal
-                                                  error (logged, generic 500)
+                                               -> InvalidBaseRevision (PR-07)
+    uq_revision_documents_revision_id_document_id
+                                               -> DocumentAlreadyInRevision (PR-09)
+    anything else                              -> UnexpectedIntegrityError
+                                                 (500, unexpected_integrity_error;
+                                                 logged with constraint name and
+                                                 SQLSTATE only; no raw DB text)
 - Add tests that a non-identifier constraint failure is NOT reported as a
-  duplicate identifier.
+  duplicate identifier. PR-07 and PR-09 extend the same mapping helper.
 
 ======================================================================
 24. DATABASE MIGRATION
