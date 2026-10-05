@@ -14,6 +14,7 @@ from powerforge_api.exceptions import (
     CancelledProject,
     DuplicateProjectNumber,
     DuplicateRevisionIdentifier,
+    InvalidBaseRevision,
     InvalidRevisionIdentifier,
     InvalidStatusTransition,
     ProjectError,
@@ -22,6 +23,7 @@ from powerforge_api.exceptions import (
     RevisionNotActivatable,
     RevisionNotFound,
     RevisionProjectMismatch,
+    RevisionReadOnly,
     UnexpectedIntegrityError,
 )
 from powerforge_api.models import Project, ProjectRevision
@@ -67,7 +69,9 @@ def _http_for(exc: ProjectError) -> HTTPException:
         | RevisionNotActivatable,
     ):
         status_code = status.HTTP_409_CONFLICT
-    elif isinstance(exc, InvalidRevisionIdentifier):
+    elif isinstance(exc, RevisionReadOnly):
+        status_code = status.HTTP_409_CONFLICT
+    elif isinstance(exc, InvalidRevisionIdentifier | InvalidBaseRevision):
         status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     elif isinstance(exc, UnexpectedIntegrityError):
         status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -100,8 +104,15 @@ def _project_response(
     )
 
 
-def _revision_response(revision: ProjectRevision) -> RevisionResponse:
-    return RevisionResponse.model_validate(revision)
+def _revision_response(
+    revision: ProjectRevision,
+    base_identifier: str | None = None,
+    inherited_document_count: int | None = None,
+) -> RevisionResponse:
+    response = RevisionResponse.model_validate(revision)
+    response.based_on_identifier = base_identifier
+    response.inherited_document_count = inherited_document_count
+    return response
 
 
 @router.post(
@@ -226,11 +237,16 @@ def create_revision(
     body: RevisionCreate,
     session: SessionDep,
 ) -> RevisionResponse:
+    service = RevisionService(session)
     try:
-        revision = RevisionService(session).create_revision(project_id, body)
+        result = service.create_revision(project_id, body)
     except ProjectError as exc:
         raise _http_for(exc) from exc
-    return _revision_response(revision)
+    return _revision_response(
+        result.revision,
+        service.base_identifier(result.revision),
+        result.inherited_document_count,
+    )
 
 
 @router.get(
@@ -243,7 +259,10 @@ def list_revisions(project_id: UUID, session: SessionDep) -> RevisionListRespons
         revisions = RevisionService(session).list_revisions(project_id)
     except ProjectError as exc:
         raise _http_for(exc) from exc
-    return RevisionListResponse(items=[_revision_response(r) for r in revisions])
+    identifiers = {r.id: r.identifier for r in revisions}
+    return RevisionListResponse(
+        items=[_revision_response(r, identifiers.get(r.based_on_revision_id)) for r in revisions]
+    )
 
 
 @router.get(
@@ -256,11 +275,12 @@ def get_revision(
     revision_id: UUID,
     session: SessionDep,
 ) -> RevisionResponse:
+    service = RevisionService(session)
     try:
-        revision = RevisionService(session).get_revision(project_id, revision_id)
+        revision = service.get_revision(project_id, revision_id)
     except ProjectError as exc:
         raise _http_for(exc) from exc
-    return _revision_response(revision)
+    return _revision_response(revision, service.base_identifier(revision))
 
 
 @router.patch(
@@ -274,11 +294,12 @@ def update_revision(
     body: RevisionUpdate,
     session: SessionDep,
 ) -> RevisionResponse:
+    service = RevisionService(session)
     try:
-        revision = RevisionService(session).update_revision(project_id, revision_id, body)
+        revision = service.update_revision(project_id, revision_id, body)
     except ProjectError as exc:
         raise _http_for(exc) from exc
-    return _revision_response(revision)
+    return _revision_response(revision, service.base_identifier(revision))
 
 
 @router.post(
@@ -291,8 +312,9 @@ def activate_revision(
     revision_id: UUID,
     session: SessionDep,
 ) -> RevisionResponse:
+    service = RevisionService(session)
     try:
-        revision = RevisionService(session).activate_revision(project_id, revision_id)
+        revision = service.activate_revision(project_id, revision_id)
     except ProjectError as exc:
         raise _http_for(exc) from exc
-    return _revision_response(revision)
+    return _revision_response(revision, service.base_identifier(revision))

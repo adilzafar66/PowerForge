@@ -10,14 +10,13 @@ from sqlalchemy.orm import Session, selectinload
 
 from powerforge_api.db_errors import integrity_guard
 from powerforge_api.exceptions import (
-    ArchivedProject,
-    CancelledProject,
     DuplicateProjectNumber,
     InvalidStatusTransition,
     ProjectNotFound,
 )
 from powerforge_api.models import Project, ProjectRevision
 from powerforge_api.schemas.projects import ProjectCreate, ProjectUpdate
+from powerforge_api.services.revision_documents import assert_project_modifiable
 from powerforge_project import ProjectStatus, RevisionStatus, can_transition
 
 
@@ -172,10 +171,7 @@ class ProjectService:
 
     @staticmethod
     def _reject_if_locked(project: Project) -> None:
-        if project.status == ProjectStatus.ARCHIVED:
-            raise ArchivedProject("Archived projects cannot be modified")
-        if project.status == ProjectStatus.CANCELLED:
-            raise CancelledProject("Cancelled projects cannot be modified")
+        assert_project_modifiable(project)
 
     @staticmethod
     def _active_identifier(project: Project) -> str | None:

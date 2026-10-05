@@ -55,6 +55,14 @@ class RevisionNotActivatable(ProjectError):
     code = "revision_not_activatable"
 
 
+class InvalidBaseRevision(ProjectError):
+    code = "invalid_base_revision"
+
+
+class RevisionReadOnly(ProjectError):
+    code = "revision_read_only"
+
+
 class UnsupportedDocumentType(ProjectError):
     code = "unsupported_document_type"
 

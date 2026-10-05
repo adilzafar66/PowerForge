@@ -87,7 +87,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-04](#pr-04--database-migration-0004-and-orm-models) | Migration `0004` and ORM models | DB | M | PR-02 | [x] |
 | [PR-05](#pr-05--configuration-and-object-storage-abstraction) | Configuration and object-storage abstraction | Backend/Infra | M | PR-02 | [x] |
 | [PR-06](#pr-06--file-ingestion-and-validation) | File ingestion and validation | Backend | M | PR-02, PR-05 | [x] |
-| [PR-07](#pr-07--revision-lineage-and-document-inheritance) | Revision lineage and document inheritance | Backend | L | PR-03, PR-04 | [ ] |
+| [PR-07](#pr-07--revision-lineage-and-document-inheritance) | Revision lineage and document inheritance | Backend | L | PR-03, PR-04 | [x] |
 | [PR-08](#pr-08--document-upload-list-and-get) | Document upload, list, and get | Backend | L | PR-04, PR-05, PR-06, PR-07 | [ ] |
 | [PR-09](#pr-09--metadata-remove-restore-and-reuse) | Metadata, remove, restore, and reuse | Backend | M | PR-08 | [ ] |
 | [PR-10](#pr-10--download-urls-and-end-to-end-backend-workflow) | Download URLs and end-to-end backend workflow | Backend | M | PR-08, PR-09 | [ ] |
@@ -420,6 +420,16 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - snapshot semantics: editing base after creation does not change the child (and vice versa)
 - helper unit tests: `assert_documents_mutable` matrix (revision DRAFT/ACTIVE/SUPERSEDED × project ACTIVE/PAUSED/CANCELLED/ARCHIVED)
 - Phase 1 revision tests unchanged and passing; concurrent create/activate tests still pass with the new lock
+
+**Implementation notes (as landed).**
+- Every unusable base (unknown id, another project's revision) is `InvalidBaseRevision` (422), never 404. The base lookup is filtered by `project_id` inside `lock_revision`, so a foreign revision is reported as missing and its row is never locked. A self-base cannot be requested through the API (the new id is generated server-side); `ck_project_revisions_based_on_not_self` still guards it and both lineage constraints are mapped to `InvalidBaseRevision`.
+- The project row is locked `FOR UPDATE` when `activate` is true or the base is not an explicit `null`, because resolving the default ACTIVE base must not race an activation. An explicit `null` without `activate` takes no lock, as before. The base revision is then locked `FOR UPDATE` (project first, then revision).
+- `create_revision` returns a `RevisionCreateResult(revision, inherited_document_count)`. `inherited_document_count` is set only on the create response and is `null` on get, list, update and activate, to avoid per-row queries. `based_on_identifier` is resolved with one lookup on single-revision responses and from the already-loaded list on the list endpoint.
+- Any exception during revision creation (not only `IntegrityError`) rolls the session back, so a failure inside inheritance or activation leaves neither a revision row nor partial associations.
+- Inheritance is a single `INSERT ... SELECT ... RETURNING` in `copy_included_associations`; the inserted ids are counted because `rowcount` is unreliable for ORM `INSERT ... SELECT` (it reported -1).
+- The project lifecycle rule (ARCHIVED and CANCELLED block writes, PAUSED does not) now lives in one function, `assert_project_modifiable`, used by `RevisionService`, `ProjectService` and `assert_documents_mutable`. The plan's `session` argument on `assert_documents_mutable` was dropped because nothing needs it.
+- Not added here: the `FOR SHARE` project lock for document mutations and the `FOR UPDATE` upgrade in `archive_project` and `cancel_project` (decision D11). They land with the first mutating endpoint in PR-08. Phase 1 `archive_project` and `cancel_project` still do not lock the project row.
+- `RevisionReadOnly` (409) is defined and mapped but nothing raises it until document mutations exist (PR-08).
 
 **Acceptance.** Revision creation is a single transaction; the lock order is project → revision; no circular import between services; API docs show the new fields.
 
@@ -765,7 +775,7 @@ What a user of the running app sees while Phase 2 is only partly merged:
 | PR-04 | New tables exist but nothing uses them. Rebuild the API image: `models.py` now imports `powerforge_document_model` (new dependency in `services/api/pyproject.toml`), and the container runs `alembic upgrade head` at startup. |
 | PR-05 | No user-visible change. Rebuild the API image (`boto3` is a new dependency). The API now checks the storage bucket at startup and logs the result; MinIO being down does not stop it from booting. New settings have local defaults; compose sets `S3_PUBLIC_ENDPOINT_URL=http://localhost:9000`. |
 | PR-06 | No user-visible change; nothing calls the new ingest and inspector code yet. Reinstall (`pip install -e services/api`) and rebuild the API image (`Pillow` is a new dependency). |
-| PR-07 | Creating a revision **without** sending `based_on_revision_id` now defaults to the ACTIVE revision as base and carries forward its (currently empty) document set. Visible change: revisions record lineage. Old UI keeps working. |
+| PR-07 | Creating a revision **without** sending `based_on_revision_id` now defaults to the ACTIVE revision as base and carries forward its (currently empty) document set. Visible change: revisions record lineage, and revision responses gain `based_on_revision_id`, `based_on_identifier` and (on create only) `inherited_document_count`. Old UI keeps working. No new dependencies; rebuild the API image to pick up the code. |
 | PR-08 | Documents can be uploaded only through the API (Swagger at `/docs`). Rebuild the API image (`Pillow`, `python-multipart`; `boto3` arrived in PR-05). `S3_PUBLIC_ENDPOINT_URL` is already set in `.env.example` and compose (PR-05). |
 | PR-11 | Create Revision UI changed; the revision page still shows the placeholder. |
 | PR-12 | Revision page becomes the documents workspace (read-only until PR-13/14). |

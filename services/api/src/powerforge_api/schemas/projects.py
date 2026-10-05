@@ -89,6 +89,22 @@ class RevisionCreate(BaseModel):
     identifier: str = Field(min_length=1, max_length=128)
     description: str | None = None
     activate: bool = False
+    based_on_revision_id: UUID | None = Field(
+        default=None,
+        description=(
+            "Revision this one is based on. Omitted: use the project's ACTIVE revision "
+            "if one exists, else no base. Explicit null: no base, even if an ACTIVE "
+            "revision exists. A UUID: use that revision (must belong to this project)."
+        ),
+    )
+    carry_forward_documents: bool | None = Field(
+        default=None,
+        description=(
+            "Whether to inherit the base revision's INCLUDED documents. Omitted or null: "
+            "true when a base is resolved, otherwise false. True without a base is "
+            "rejected. False records the base but copies nothing."
+        ),
+    )
 
     @field_validator("identifier")
     @classmethod
@@ -127,6 +143,12 @@ class RevisionResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     created_by: UUID | None
+    based_on_revision_id: UUID | None = None
+    based_on_identifier: str | None = None
+    inherited_document_count: int | None = Field(
+        default=None,
+        description="Documents inherited at creation. Set only on the create response.",
+    )
 
 
 class RevisionListResponse(BaseModel):
