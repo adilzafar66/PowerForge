@@ -86,7 +86,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-03](#pr-03--constraint-name-integrityerror-mapping) | Constraint-name IntegrityError mapping | Backend | S | — | [x] |
 | [PR-04](#pr-04--database-migration-0004-and-orm-models) | Migration `0004` and ORM models | DB | M | PR-02 | [x] |
 | [PR-05](#pr-05--configuration-and-object-storage-abstraction) | Configuration and object-storage abstraction | Backend/Infra | M | PR-02 | [x] |
-| [PR-06](#pr-06--file-ingestion-and-validation) | File ingestion and validation | Backend | M | PR-02, PR-05 | [ ] |
+| [PR-06](#pr-06--file-ingestion-and-validation) | File ingestion and validation | Backend | M | PR-02, PR-05 | [x] |
 | [PR-07](#pr-07--revision-lineage-and-document-inheritance) | Revision lineage and document inheritance | Backend | L | PR-03, PR-04 | [ ] |
 | [PR-08](#pr-08--document-upload-list-and-get) | Document upload, list, and get | Backend | L | PR-04, PR-05, PR-06, PR-07 | [ ] |
 | [PR-09](#pr-09--metadata-remove-restore-and-reuse) | Metadata, remove, restore, and reuse | Backend | M | PR-08 | [ ] |
@@ -370,6 +370,15 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - SHA-256 equals `hashlib.sha256(data)` on multi-chunk input; size equals bytes; file rewound for the caller
 - filename sanitization applied; storage key never receives the filename
 - browser-supplied content type is not an input to any decision
+
+**Implementation notes (as landed).**
+- `ingest_upload` checks the filename and extension before reading any of the body, so unsupported types cost nothing. `InvalidFilename` maps to `InvalidFileContent` and an unknown extension to `UnsupportedDocumentType` (D3). The returned `IngestedUpload` owns the spooled file; callers must `close()` it (it is also a context manager).
+- Oversize is detected mid-stream: at most one chunk past `max_bytes` is read. Spooling uses `SpooledTemporaryFile` (8 MiB in memory, then disk), so memory is bounded by the spool threshold plus one chunk.
+- `FileInspector` opens images with `Image.open(..., formats=[PNG, JPEG, TIFF])`: other formats fail as unidentified, and camera JPEGs are not detected as MPO. The pixel cap is checked from the header right after open, before `verify()`.
+- `file_inspector.py` sets `Image.MAX_IMAGE_PIXELS = None` at import. Pillow's own guard raises above about 178M pixels, which would reject legitimate scans under our 600M default; the explicit header check replaces it. This is process-wide, but this module is the only Pillow user in the API (enforced by an AST test).
+- HTTP status mapping (413, 415, 422) is not added here. It arrives with the documents router in PR-08; the new exceptions only carry `code`s.
+- Known limitation (technical debt): `verify()` only walks PNG structure. A JPEG or TIFF with an intact header and a truncated body is accepted, since Phase 2 does not decode pixels. `test_known_limitation_truncated_jpeg_and_tiff_bodies_pass_header_validation` pins this so a change is noticed.
+- `Pillow>=11.0` is in `services/api/pyproject.toml` and `requirements-dev.txt`. CI installs `requirements-dev.txt` and the Dockerfile installs `-e services/api`, so neither needed an edit.
 
 **Acceptance.** Coverage of every rejection class in §13; memory use is bounded by the spool threshold, not file size (documented in the test); no filenames or content in log output.
 
@@ -755,6 +764,7 @@ What a user of the running app sees while Phase 2 is only partly merged:
 | --- | --- |
 | PR-04 | New tables exist but nothing uses them. Rebuild the API image: `models.py` now imports `powerforge_document_model` (new dependency in `services/api/pyproject.toml`), and the container runs `alembic upgrade head` at startup. |
 | PR-05 | No user-visible change. Rebuild the API image (`boto3` is a new dependency). The API now checks the storage bucket at startup and logs the result; MinIO being down does not stop it from booting. New settings have local defaults; compose sets `S3_PUBLIC_ENDPOINT_URL=http://localhost:9000`. |
+| PR-06 | No user-visible change; nothing calls the new ingest and inspector code yet. Reinstall (`pip install -e services/api`) and rebuild the API image (`Pillow` is a new dependency). |
 | PR-07 | Creating a revision **without** sending `based_on_revision_id` now defaults to the ACTIVE revision as base and carries forward its (currently empty) document set. Visible change: revisions record lineage. Old UI keeps working. |
 | PR-08 | Documents can be uploaded only through the API (Swagger at `/docs`). Rebuild the API image (`Pillow`, `python-multipart`; `boto3` arrived in PR-05). `S3_PUBLIC_ENDPOINT_URL` is already set in `.env.example` and compose (PR-05). |
 | PR-11 | Create Revision UI changed; the revision page still shows the placeholder. |

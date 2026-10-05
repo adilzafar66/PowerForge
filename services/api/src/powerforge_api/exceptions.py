@@ -55,6 +55,18 @@ class RevisionNotActivatable(ProjectError):
     code = "revision_not_activatable"
 
 
+class UnsupportedDocumentType(ProjectError):
+    code = "unsupported_document_type"
+
+
+class InvalidFileContent(ProjectError):
+    code = "invalid_file_content"
+
+
+class FileTooLarge(ProjectError):
+    code = "file_too_large"
+
+
 class UnexpectedIntegrityError(ProjectError):
     code = "unexpected_integrity_error"
 

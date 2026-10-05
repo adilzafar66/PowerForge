@@ -77,14 +77,14 @@ Phase 2 is delivered as 16 sequenced pull requests (PR-00 to PR-15) with scope, 
 | Frontend (Create Revision, workspace, upload, actions) | PR-11 to PR-14 |
 | Hardening and completion | PR-15 |
 
-PRs merged so far: PR-00 and PR-01 (commits `9a42b3b`, `3289937`); PR-02 lands document-domain vocabulary and pure validation; PR-03 lands constraint-name IntegrityError mapping; PR-04 adds migration `0004` and the ORM models (no service or API behavior uses them yet, rebuild the API image after pulling); PR-05 adds the new storage and upload settings, `extra` fields in JSON logs, and the `ObjectStorage` abstraction (in-memory fake and boto3 S3/MinIO implementation) with a non-fatal startup bucket check, and CI now runs MinIO. Phase 2 is complete only when PR-15 has merged and every item in the spec's definition of done (section 36) is demonstrably met.
+PRs merged so far: PR-00 and PR-01 (commits `9a42b3b`, `3289937`); PR-02 lands document-domain vocabulary and pure validation; PR-03 lands constraint-name IntegrityError mapping; PR-04 adds migration `0004` and the ORM models (no service or API behavior uses them yet, rebuild the API image after pulling); PR-05 adds the new storage and upload settings, `extra` fields in JSON logs, and the `ObjectStorage` abstraction (in-memory fake and boto3 S3/MinIO implementation) with a non-fatal startup bucket check, and CI now runs MinIO; PR-06 adds streaming upload ingestion (size bound, SHA-256, spooled temp file) and the Pillow-based `FileInspector` (nothing calls them yet, rebuild the API image for `Pillow`). Phase 2 is complete only when PR-15 has merged and every item in the spec's definition of done (section 36) is demonstrably met.
 
 ### Intentional deviations and debt expected from Phase 2
 
 Record the final list here when the phase completes. Known in advance:
 
 - Orphaned storage objects (crash between upload and commit; uploaded-then-removed documents); no garbage collection
-- PDF validation is header-only; images are validated structurally, not fully decoded
+- PDF validation is header-only; images are validated structurally, not fully decoded (a JPEG or TIFF with a valid header but truncated body is accepted; only PNG structure is walked by `verify()`)
 - No pagination on document lists
 - No document-level audit trail beyond added/removed fields; `uploaded_by`/`added_by`/`removed_by` stay null until authentication exists
 - Phase 1 still allows editing a superseded revision's identifier and description (only the document package is frozen)
