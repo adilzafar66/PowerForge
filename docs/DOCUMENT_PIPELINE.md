@@ -75,7 +75,7 @@ Application code uses an `ObjectStorage` abstraction (put, get, exists, delete, 
 
 Specification: `cursor/phase2_specs.txt`. Decisions: [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md). Implementation status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
-**Upload.** Each API request uploads exactly one file; the UI uploads many files as independent requests (isolated failures, retries, per-file progress).
+**Upload.** (Implemented in PR-08: `POST /api/projects/{pid}/revisions/{rid}/documents`, plus list and get endpoints.) Each API request uploads exactly one file; the UI uploads many files as independent requests (isolated failures, retries, per-file progress).
 
 ```
 validate project/revision → stream (enforce size, SHA-256, spool to temp file)

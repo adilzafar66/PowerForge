@@ -88,7 +88,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-05](#pr-05--configuration-and-object-storage-abstraction) | Configuration and object-storage abstraction | Backend/Infra | M | PR-02 | [x] |
 | [PR-06](#pr-06--file-ingestion-and-validation) | File ingestion and validation | Backend | M | PR-02, PR-05 | [x] |
 | [PR-07](#pr-07--revision-lineage-and-document-inheritance) | Revision lineage and document inheritance | Backend | L | PR-03, PR-04 | [x] |
-| [PR-08](#pr-08--document-upload-list-and-get) | Document upload, list, and get | Backend | L | PR-04, PR-05, PR-06, PR-07 | [ ] |
+| [PR-08](#pr-08--document-upload-list-and-get) | Document upload, list, and get | Backend | L | PR-04, PR-05, PR-06, PR-07 | [x] |
 | [PR-09](#pr-09--metadata-remove-restore-and-reuse) | Metadata, remove, restore, and reuse | Backend | M | PR-08 | [ ] |
 | [PR-10](#pr-10--download-urls-and-end-to-end-backend-workflow) | Download URLs and end-to-end backend workflow | Backend | M | PR-08, PR-09 | [ ] |
 | [PR-11](#pr-11--frontend-foundations-and-create-revision-ui) | Frontend foundations and Create Revision UI | Web | M | PR-07 | [ ] |
@@ -428,7 +428,7 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - Any exception during revision creation (not only `IntegrityError`) rolls the session back, so a failure inside inheritance or activation leaves neither a revision row nor partial associations.
 - Inheritance is a single `INSERT ... SELECT ... RETURNING` in `copy_included_associations`; the inserted ids are counted because `rowcount` is unreliable for ORM `INSERT ... SELECT` (it reported -1).
 - The project lifecycle rule (ARCHIVED and CANCELLED block writes, PAUSED does not) now lives in one function, `assert_project_modifiable`, used by `RevisionService`, `ProjectService` and `assert_documents_mutable`. The plan's `session` argument on `assert_documents_mutable` was dropped because nothing needs it.
-- Not added here: the `FOR SHARE` project lock for document mutations and the `FOR UPDATE` upgrade in `archive_project` and `cancel_project` (decision D11). They land with the first mutating endpoint in PR-08. Phase 1 `archive_project` and `cancel_project` still do not lock the project row.
+- Not added here: the `FOR SHARE` project lock for document mutations and the `FOR UPDATE` upgrade in `archive_project` and `cancel_project` (decision D11). They landed with the first mutating endpoint in PR-08.
 - `RevisionReadOnly` (409) is defined and mapped but nothing raises it until document mutations exist (PR-08).
 
 **Acceptance.** Revision creation is a single transaction; the lock order is project → revision; no circular import between services; API docs show the new fields.
@@ -477,6 +477,18 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - list: default hides REMOVED; `status=REMOVED|ALL`; `document_type`, `origin`, `search` (filename, number, description; case-insensitive; `%`/`_` treated literally); stable order
 - never logs contents/secrets (capture logs)
 - Phase 1 tests unchanged
+
+**Implementation notes (as landed).**
+- Upload order: ownership and early mutability check, then `session.rollback()` so no connection sits idle during the slow ingest and storage write, then `ingest_upload`, `FileInspector`, `storage.put`, then the locked DB step (`FOR SHARE` on the project, `FOR UPDATE` on the revision, mutability re-check, duplicate lookup, inserts, commit). The locked selects use `populate_existing` so a status changed by another transaction is never masked by a cached row. The session factory has `autoflush=False`, so the `Document` row is flushed explicitly before its association.
+- The upload never writes to the project row (that would upgrade the shared lock, which D11 forbids); it bumps `updated_at` on the locked revision only. A test asserts no `UPDATE projects` is issued.
+- `archive_project` and `cancel_project` now load the project `FOR UPDATE` first (`_get_project_for_update`); pause, resume and unarchive are unchanged. Tests show an archive waits for a simulated in-flight mutation and the next upload gets `archived_project`.
+- `_http_for` moved to `routers/errors.py` (`http_for`) so both routers share one mapping; `projects.py` imports it under the old name. 413, 415, 422 and 502 use numeric codes to avoid deprecated status-constant names. `CrossProjectDocumentAccess` is mapped to 404 now but first raised in PR-09.
+- The `Content-Length` guard is a custom `APIRoute` (`UploadSizeGuardRoute`), because FastAPI parses the multipart form before dependencies run. It allows `max_upload_bytes` plus 256 KiB of multipart overhead and reads settings through `dependency_overrides`, so tests can lower the limit. It is only an optimisation; `ingest_upload` enforces the real cap.
+- Known limitation: Starlette spools the whole multipart body to a temporary file before the handler runs, so a client that omits or lies about `Content-Length` (for example chunked encoding) can still make the server write its full body to temp disk before the streaming cap rejects it. A true streaming cap needs a proxy limit or a custom ASGI body limiter; recorded as hardening debt for PR-15.
+- `document_type` is parsed as an enum form field, so an invalid value produces FastAPI's standard 422 body (`detail` is a list), not the `{detail, code}` shape. Unknown form fields are ignored. Form text limits: number 128, description 2000, notes 10000 characters; blank strings are stored as null.
+- Storage failures of any kind during `put` become `StorageUploadFailed` (502) with a fixed message; the error class is logged, the SDK text is not. Log events carry ids and counts only (never filenames, object keys or URLs): `document uploaded`, `duplicate document detected`, `object storage upload failed`, `document database step failed`, `orphan object cleanup failed`.
+- `tests/file_factory.py` now holds the shared PDF/PNG/JPEG/TIFF builders (`test_file_validation.py` imports them). `tests/test_documents_api.py` adds 43 tests (38 need the database).
+- Dependency added: `python-multipart` (`services/api/pyproject.toml`, `requirements-dev.txt`); CI and the API image install from those files.
 
 **Acceptance.** An engineer can upload to a revision through the API and see it listed; failure paths leave storage and DB consistent; all routes enforce project/revision ownership.
 

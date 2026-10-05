@@ -5,28 +5,13 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from powerforge_api.db import get_session
-from powerforge_api.exceptions import (
-    ArchivedProject,
-    CancelledProject,
-    DuplicateProjectNumber,
-    DuplicateRevisionIdentifier,
-    InvalidBaseRevision,
-    InvalidRevisionIdentifier,
-    InvalidStatusTransition,
-    ProjectError,
-    ProjectNotFound,
-    ProjectNotModifiable,
-    RevisionNotActivatable,
-    RevisionNotFound,
-    RevisionProjectMismatch,
-    RevisionReadOnly,
-    UnexpectedIntegrityError,
-)
+from powerforge_api.exceptions import ProjectError
 from powerforge_api.models import Project, ProjectRevision
+from powerforge_api.routers.errors import http_for as _http_for
 from powerforge_api.schemas.projects import (
     ProjectCreate,
     ProjectListResponse,
@@ -52,33 +37,6 @@ StatusQuery = Annotated[
     ProjectStatus | None,
     Query(alias="status", description="Filter by project status"),
 ]
-
-
-def _http_for(exc: ProjectError) -> HTTPException:
-    status_code = status.HTTP_400_BAD_REQUEST
-    if isinstance(exc, ProjectNotFound | RevisionNotFound | RevisionProjectMismatch):
-        status_code = status.HTTP_404_NOT_FOUND
-    elif isinstance(
-        exc,
-        DuplicateProjectNumber
-        | DuplicateRevisionIdentifier
-        | InvalidStatusTransition
-        | ProjectNotModifiable
-        | ArchivedProject
-        | CancelledProject
-        | RevisionNotActivatable,
-    ):
-        status_code = status.HTTP_409_CONFLICT
-    elif isinstance(exc, RevisionReadOnly):
-        status_code = status.HTTP_409_CONFLICT
-    elif isinstance(exc, InvalidRevisionIdentifier | InvalidBaseRevision):
-        status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-    elif isinstance(exc, UnexpectedIntegrityError):
-        status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    return HTTPException(
-        status_code=status_code,
-        detail={"detail": exc.message, "code": exc.code},
-    )
 
 
 def _project_response(

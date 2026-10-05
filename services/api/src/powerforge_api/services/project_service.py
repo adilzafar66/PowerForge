@@ -94,6 +94,24 @@ class ProjectService:
         self.session.refresh(project)
         return project
 
+    def _get_project_for_update(self, project_id: uuid.UUID) -> Project:
+        """Load the project row FOR UPDATE, refreshing any cached copy.
+
+        Transitions that block document writes take this lock before reading the
+        status, so they wait for in-flight document mutations (which hold the
+        project FOR SHARE) and later mutations see the new status.
+        """
+        stmt = (
+            select(Project)
+            .where(Project.id == project_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        project = self.session.scalar(stmt)
+        if project is None:
+            raise ProjectNotFound(f"Project {project_id} not found")
+        return project
+
     def pause_project(self, project_id: uuid.UUID) -> Project:
         return self._transition(project_id, ProjectStatus.PAUSED)
 
@@ -109,10 +127,11 @@ class ProjectService:
             project_id,
             ProjectStatus.CANCELLED,
             from_statuses={ProjectStatus.ACTIVE, ProjectStatus.PAUSED},
+            lock_project=True,
         )
 
     def archive_project(self, project_id: uuid.UUID) -> Project:
-        project = self.get_project(project_id)
+        project = self._get_project_for_update(project_id)
         if project.status == ProjectStatus.ARCHIVED:
             return project
         if not can_transition(project.status, ProjectStatus.ARCHIVED):
@@ -152,8 +171,13 @@ class ProjectService:
         to_status: ProjectStatus,
         *,
         from_statuses: set[ProjectStatus] | None = None,
+        lock_project: bool = False,
     ) -> Project:
-        project = self.get_project(project_id)
+        project = (
+            self._get_project_for_update(project_id)
+            if lock_project
+            else self.get_project(project_id)
+        )
         self._reject_if_locked(project)
         if from_statuses is not None and project.status not in from_statuses:
             raise InvalidStatusTransition(

@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from powerforge_api.routers.documents import router as documents_router
 from powerforge_api.routers.health import router as health_router
 from powerforge_api.routers.projects import router as projects_router
 from powerforge_api.storage.factory import get_object_storage
@@ -44,7 +45,8 @@ def create_app() -> FastAPI:
         version=settings.app_version,
         description=(
             "Engineering data extraction platform API. "
-            "Phase 1: health/readiness and project/revision management."
+            "Health/readiness, project and revision management, and revision document "
+            "upload, listing and retrieval."
         ),
         lifespan=lifespan,
     )
@@ -57,6 +59,7 @@ def create_app() -> FastAPI:
     )
     application.include_router(health_router)
     application.include_router(projects_router)
+    application.include_router(documents_router)
     return application
 
 

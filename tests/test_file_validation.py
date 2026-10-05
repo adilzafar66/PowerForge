@@ -7,13 +7,12 @@ import hashlib
 import inspect
 import io
 import logging
-import struct
-import zlib
 from pathlib import Path
 
 import pytest
 from PIL import Image
 
+from file_factory import PDF, jpeg_bytes, png_bytes, png_header_only, tiff_bytes
 from powerforge_api.exceptions import (
     FileTooLarge,
     InvalidFileContent,
@@ -27,40 +26,6 @@ from powerforge_document_model import FileFormat, build_storage_key
 API_SOURCE = Path(__file__).resolve().parents[1] / "services" / "api" / "src" / "powerforge_api"
 MAX_BYTES = 10 * 1024 * 1024
 MAX_PIXELS = 600_000_000
-PDF = b"%PDF-1.7\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n"
-
-
-def png_bytes(size: tuple[int, int] = (16, 12)) -> bytes:
-    buf = io.BytesIO()
-    Image.new("RGB", size, (10, 120, 200)).save(buf, "PNG")
-    return buf.getvalue()
-
-
-def jpeg_bytes() -> bytes:
-    buf = io.BytesIO()
-    Image.new("RGB", (16, 12), (200, 30, 30)).save(buf, "JPEG")
-    return buf.getvalue()
-
-
-def tiff_bytes(pages: int = 1) -> bytes:
-    frames = [Image.new("RGB", (16, 12), (i * 40, 0, 0)) for i in range(pages)]
-    buf = io.BytesIO()
-    frames[0].save(buf, "TIFF", save_all=pages > 1, append_images=frames[1:])
-    return buf.getvalue()
-
-
-def _png_chunk(kind: bytes, payload: bytes) -> bytes:
-    crc = zlib.crc32(kind + payload)
-    return struct.pack(">I", len(payload)) + kind + payload + struct.pack(">I", crc)
-
-
-def png_header_only(width: int, height: int) -> bytes:
-    """A PNG with real dimensions in IHDR and one empty IDAT, so Pillow opens it
-    (reads the header) but there is no pixel data to decode."""
-    ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
-    return (
-        b"\x89PNG\r\n\x1a\n" + _png_chunk(b"IHDR", ihdr) + _png_chunk(b"IDAT", zlib.compress(b""))
-    )
 
 
 class CountingStream:

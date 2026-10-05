@@ -75,6 +75,18 @@ class FileTooLarge(ProjectError):
     code = "file_too_large"
 
 
+class RevisionDocumentNotFound(ProjectError):
+    code = "revision_document_not_found"
+
+
+class CrossProjectDocumentAccess(ProjectError):
+    code = "cross_project_document_access"
+
+
+class StorageUploadFailed(ProjectError):
+    code = "storage_upload_failed"
+
+
 class UnexpectedIntegrityError(ProjectError):
     code = "unexpected_integrity_error"
 

@@ -45,8 +45,14 @@ These settings are introduced by Phase 2 and are read through `powerforge_shared
 Notes:
 
 - `minio-init` in `docker-compose.yml` creates the bucket (`mc mb --ignore-existing`). The API also calls an idempotent bucket check at startup so it works outside Compose; if storage is unreachable it logs a warning and keeps starting (uploads fail until it is back). `/ready` does not report storage. The bucket is private; do not add an anonymous policy.
-- A reverse proxy in front of the API must allow request bodies at least as large as `MAX_UPLOAD_BYTES`.
-- Phase 2 adds Python dependencies (`boto3` and `Pillow` are already in; `python-multipart` follows with the upload endpoint) to `services/api` and `requirements-dev.txt`, which CI installs. After pulling, reinstall (`pip install -e services/api`) and rebuild the API image (`docker compose up --build`).
+- A reverse proxy in front of the API must allow request bodies at least as large as `MAX_UPLOAD_BYTES`. The API rejects requests whose `Content-Length` exceeds that limit plus 256 KiB before reading the body, but the framework still spools an accepted multipart body to a temporary file, so apply a proxy-level body limit in any shared environment.
+- Upload a document from the command line (Swagger at `/docs` works too; `document_type` and the other text fields are optional):
+
+  ```bash
+  curl -F "file=@plan.pdf" -F "document_type=SINGLE_LINE_DIAGRAM" \
+    http://localhost:8000/api/projects/$PROJECT_ID/revisions/$REVISION_ID/documents
+  ```
+- Phase 2 adds Python dependencies (`boto3`, `Pillow` and `python-multipart` for the upload endpoint) to `services/api` and `requirements-dev.txt`, which CI installs. After pulling, reinstall (`pip install -e services/api`) and rebuild the API image (`docker compose up --build`).
 - Phase 2 adds migration `0004` (revision lineage, `documents`, `revision_documents`). Existing revisions get `based_on_revision_id = NULL`. Apply with `alembic -c database/alembic.ini upgrade head` (Compose does this on API startup). `tests/test_migration_0004.py` (with `RUN_INTEGRATION=1`) creates and drops its own scratch databases and runs Alembic in a subprocess, so it needs a `DATABASE_URL` whose user may `CREATE DATABASE`.
 
 ## Option A — Docker Compose (full stack)

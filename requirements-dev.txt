@@ -11,4 +11,5 @@ pydantic-settings>=2.4
 redis>=5.1
 boto3>=1.36
 Pillow>=11.0
+python-multipart>=0.0.18
 celery[redis]>=5.4
