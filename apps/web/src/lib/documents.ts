@@ -1,4 +1,4 @@
-import { request } from "@/lib/api";
+import { parseError, request, resolveBase } from "@/lib/api";
 import type { Project, Revision } from "@/lib/projects";
 
 export const DOCUMENT_TYPES = [
@@ -255,4 +255,119 @@ export async function getDownloadUrl(
   return request<DownloadUrl>(
     `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/download-url?disposition=${disposition}`,
   );
+}
+
+const DEFAULT_MAX_UPLOAD_BYTES = 262_144_000;
+
+function configuredMaxUploadBytes(): number {
+  const value = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_BYTES);
+  return Number.isFinite(value) && value > 0 ? value : DEFAULT_MAX_UPLOAD_BYTES;
+}
+
+/** Advisory size hint for the browser. The API's own limit is authoritative. */
+export const MAX_UPLOAD_BYTES = configuredMaxUploadBytes();
+
+const UPLOAD_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff"];
+export const UPLOAD_ACCEPT = UPLOAD_EXTENSIONS.join(",");
+
+/** A quick pre-check so obvious mistakes fail without a round trip. The server still validates. */
+export function validateUploadFile(file: File, maxBytes: number = MAX_UPLOAD_BYTES): string | null {
+  const name = file.name;
+  const dot = name.lastIndexOf(".");
+  const extension = dot >= 0 ? name.slice(dot).toLowerCase() : "";
+  if (!UPLOAD_EXTENSIONS.includes(extension)) {
+    return `${name}: unsupported file type. Use PDF, PNG, JPEG or TIFF.`;
+  }
+  if (file.size === 0) {
+    return `${name}: the file is empty.`;
+  }
+  if (file.size > maxBytes) {
+    return `${name}: larger than the ${formatFileSize(maxBytes)} limit.`;
+  }
+  return null;
+}
+
+export type UploadMetadata = {
+  document_type?: DocumentType;
+  document_number?: string | null;
+  description?: string | null;
+  notes?: string | null;
+};
+
+export type UploadOptions = {
+  onProgress?: (percent: number) => void;
+  signal?: AbortSignal;
+};
+
+/**
+ * Uploads one file as its own request. XMLHttpRequest is used because `fetch` cannot report
+ * upload progress. Failures are thrown in the same shape as `request`, with status 0 for
+ * network errors and an `AbortError` when the signal fires.
+ */
+export function uploadDocument(
+  projectId: string,
+  revisionId: string,
+  file: File,
+  metadata: UploadMetadata = {},
+  { onProgress, signal }: UploadOptions = {},
+): Promise<UploadResult> {
+  return new Promise<UploadResult>((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(abortError());
+      return;
+    }
+
+    const form = new FormData();
+    form.append("file", file, file.name);
+    for (const key of ["document_type", "document_number", "description", "notes"] as const) {
+      const value = metadata[key];
+      if (value !== undefined && value !== null) {
+        form.append(key, value);
+      }
+    }
+
+    const xhr = new XMLHttpRequest();
+    const onAbort = () => xhr.abort();
+    const cleanup = () => signal?.removeEventListener("abort", onAbort);
+
+    xhr.open("POST", `${resolveBase()}${documentsPath(projectId, revisionId)}`);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) {
+        onProgress?.(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+      }
+    };
+    xhr.onload = async () => {
+      cleanup();
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as UploadResult);
+        } catch {
+          reject(new Error("The server returned an unreadable response."));
+        }
+        return;
+      }
+      const apiError = await parseError(
+        new Response(xhr.responseText, { status: xhr.status, statusText: xhr.statusText }),
+      );
+      reject(Object.assign(new Error(apiError.detail), { apiError, status: xhr.status }));
+    };
+    xhr.onerror = () => {
+      cleanup();
+      const detail = "Could not reach the server. Check your connection and retry.";
+      reject(Object.assign(new Error(detail), { apiError: { detail }, status: 0 }));
+    };
+    xhr.onabort = () => {
+      cleanup();
+      reject(abortError());
+    };
+
+    signal?.addEventListener("abort", onAbort, { once: true });
+    xhr.send(form);
+  });
+}
+
+function abortError(): Error {
+  const error = new Error("Upload cancelled.");
+  error.name = "AbortError";
+  return error;
 }

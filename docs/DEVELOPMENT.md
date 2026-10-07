@@ -41,6 +41,7 @@ These settings are introduced by Phase 2 and are read through `powerforge_shared
 | `S3_SIGNED_URL_EXPIRES_SECONDS` | `900` | Download URL lifetime |
 | `MAX_UPLOAD_BYTES` | `262144000` (250 MB) | Per-file upload limit, enforced while streaming |
 | `MAX_IMAGE_PIXELS` | `600000000` | Image dimension cap checked from the header before decode |
+| `NEXT_PUBLIC_MAX_UPLOAD_BYTES` (web) | `262144000` | Optional. Size hint the upload UI uses to reject oversized files early; set it to the same value as `MAX_UPLOAD_BYTES` if you change that. The API remains authoritative |
 
 Notes:
 

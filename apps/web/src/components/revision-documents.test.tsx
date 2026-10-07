@@ -12,14 +12,23 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+const refresh = vi.fn();
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
+
 vi.mock("@/lib/documents", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/documents")>()),
   listDocuments: vi.fn(),
   getDownloadUrl: vi.fn(),
+  uploadDocument: vi.fn(),
 }));
 
 import { RevisionDocuments } from "@/components/revision-documents";
-import { getDownloadUrl, listDocuments, type RevisionDocument } from "@/lib/documents";
+import {
+  getDownloadUrl,
+  listDocuments,
+  uploadDocument,
+  type RevisionDocument,
+} from "@/lib/documents";
 
 const P = "p-1";
 const R = "r-2";
@@ -59,8 +68,8 @@ function apiError(status: number, detail: string) {
 const list = vi.mocked(listDocuments);
 const download = vi.mocked(getDownloadUrl);
 
-function renderWorkspace() {
-  return render(<RevisionDocuments projectId={P} revisionId={R} />);
+function renderWorkspace(canMutate = false) {
+  return render(<RevisionDocuments projectId={P} revisionId={R} canMutate={canMutate} />);
 }
 
 beforeEach(() => {
@@ -317,5 +326,53 @@ describe("RevisionDocuments download actions", () => {
     expect(await screen.findByText("No documents in this revision yet.")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Document not found");
     expect(list).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("RevisionDocuments upload area", () => {
+  const upload = vi.mocked(uploadDocument);
+
+  function choose(file: File) {
+    fireEvent.change(screen.getByLabelText("Choose files"), { target: { files: [file] } });
+  }
+  const pdf = () => new File([new Uint8Array(10)], "new.pdf", { type: "application/pdf" });
+
+  it("is absent when the revision cannot be changed and present when it can", async () => {
+    const first = renderWorkspace(false);
+    await waitFor(() => expect(list).toHaveBeenCalled());
+    expect(screen.queryByRole("button", { name: "Upload Documents" })).toBeNull();
+    first.unmount();
+
+    renderWorkspace(true);
+    expect(await screen.findByRole("button", { name: "Upload Documents" })).toBeInTheDocument();
+  });
+
+  it("reloads the list when an upload completes", async () => {
+    upload.mockResolvedValue({ duplicate_detected: false, duplicate_document_ids: [] } as never);
+    renderWorkspace(true);
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
+    list.mockResolvedValue([makeRow({ name: "new.pdf" })]);
+
+    choose(pdf());
+
+    expect(await screen.findByRole("cell", { name: /new\.pdf/ })).toBeInTheDocument();
+    expect(list).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows a notice, refreshes the page and reloads the list on a read-only 409", async () => {
+    upload.mockRejectedValue(
+      Object.assign(new Error("Revision is superseded."), {
+        apiError: { detail: "Revision is superseded.", code: "revision_read_only" },
+        status: 409,
+      }),
+    );
+    renderWorkspace(true);
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
+
+    choose(pdf());
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Revision is superseded.");
+    expect(refresh).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
   });
 });

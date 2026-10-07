@@ -6,6 +6,9 @@ import {
   canMutate,
   canOpenInline,
   readOnlyReason,
+  uploadDocument,
+  validateUploadFile,
+  MAX_UPLOAD_BYTES,
   DOCUMENT_TYPE_LABELS,
   DOCUMENT_TYPE_OPTIONS,
   documentTypeLabel,
@@ -248,5 +251,171 @@ describe("canOpenInline", () => {
     ["image/tiff", false],
   ])("%s -> %s", (mime, expected) => {
     expect(canOpenInline({ mime_type: mime })).toBe(expected);
+  });
+});
+
+class FakeXhr {
+  static last: FakeXhr;
+  method = "";
+  url = "";
+  body: FormData | null = null;
+  status = 0;
+  statusText = "";
+  responseText = "";
+  aborted = false;
+  upload: { onprogress: ((event: unknown) => void) | null } = { onprogress: null };
+  onload: (() => void) | null = null;
+  onerror: (() => void) | null = null;
+  onabort: (() => void) | null = null;
+
+  constructor() {
+    FakeXhr.last = this;
+  }
+  open(method: string, url: string) {
+    this.method = method;
+    this.url = url;
+  }
+  send(body: FormData) {
+    this.body = body;
+  }
+  abort() {
+    this.aborted = true;
+    this.onabort?.();
+  }
+  respond(status: number, body: unknown) {
+    this.status = status;
+    this.responseText = JSON.stringify(body);
+    this.onload?.();
+  }
+}
+
+describe("uploadDocument", () => {
+  const file = new File(["%PDF-1.7"], "sld.pdf", { type: "application/pdf" });
+
+  function install() {
+    vi.stubGlobal("XMLHttpRequest", FakeXhr);
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts the file as multipart form data and omits unset metadata", async () => {
+    install();
+    const promise = uploadDocument(P, R, file);
+    const xhr = FakeXhr.last;
+    expect(xhr.method).toBe("POST");
+    expect(xhr.url.endsWith(BASE)).toBe(true);
+    expect(xhr.body?.get("file")).toBeInstanceOf(File);
+    expect((xhr.body?.get("file") as File).name).toBe("sld.pdf");
+    expect([...xhr.body!.keys()]).toEqual(["file"]);
+
+    xhr.respond(201, { id: D, duplicate_detected: false, duplicate_document_ids: [] });
+    await expect(promise).resolves.toMatchObject({ id: D, duplicate_detected: false });
+  });
+
+  it("sends only the metadata that was provided", async () => {
+    install();
+    const promise = uploadDocument(P, R, file, {
+      document_type: "CABLE_SCHEDULE",
+      document_number: null,
+      notes: "scan",
+    });
+    const xhr = FakeXhr.last;
+    expect(xhr.body?.get("document_type")).toBe("CABLE_SCHEDULE");
+    expect(xhr.body?.get("notes")).toBe("scan");
+    expect(xhr.body?.has("document_number")).toBe(false);
+    expect(xhr.body?.has("description")).toBe(false);
+    xhr.respond(201, { id: D });
+    await promise;
+  });
+
+  it("reports upload progress as a percentage", async () => {
+    install();
+    const onProgress = vi.fn();
+    const promise = uploadDocument(P, R, file, {}, { onProgress });
+    const xhr = FakeXhr.last;
+    xhr.upload.onprogress?.({ lengthComputable: true, loaded: 25, total: 100 });
+    xhr.upload.onprogress?.({ lengthComputable: false, loaded: 50, total: 0 });
+    xhr.upload.onprogress?.({ lengthComputable: true, loaded: 100, total: 100 });
+    expect(onProgress.mock.calls).toEqual([[25], [100]]);
+    xhr.respond(201, { id: D });
+    await promise;
+  });
+
+  it("returns the duplicate flag from the response", async () => {
+    install();
+    const promise = uploadDocument(P, R, file);
+    FakeXhr.last.respond(201, { id: D, duplicate_detected: true, duplicate_document_ids: ["x"] });
+    await expect(promise).resolves.toMatchObject({ duplicate_detected: true });
+  });
+
+  it.each([
+    [415, "unsupported_document_type"],
+    [413, "file_too_large"],
+    [422, "invalid_file_content"],
+    [409, "revision_read_only"],
+    [502, "storage_upload_failed"],
+  ])("throws the shared error shape for HTTP %i", async (status, code) => {
+    install();
+    const promise = uploadDocument(P, R, file);
+    FakeXhr.last.respond(status, { detail: { detail: `problem ${code}`, code } });
+    const error = await promise.catch((err) => err);
+    expect(apiErrorOf(error)).toMatchObject({ status, code, detail: `problem ${code}` });
+  });
+
+  it("rejects with status 0 on a network error", async () => {
+    install();
+    const promise = uploadDocument(P, R, file);
+    FakeXhr.last.onerror?.();
+    const error = await promise.catch((err) => err);
+    expect(apiErrorOf(error)).toMatchObject({ status: 0 });
+    expect(apiErrorOf(error).detail).toMatch(/Could not reach the server/);
+  });
+
+  it("aborts the request and rejects with AbortError when the signal fires", async () => {
+    install();
+    const controller = new AbortController();
+    const promise = uploadDocument(P, R, file, {}, { signal: controller.signal });
+    controller.abort();
+    const error = await promise.catch((err) => err);
+    expect(FakeXhr.last.aborted).toBe(true);
+    expect((error as Error).name).toBe("AbortError");
+  });
+
+  it("does not start a request when the signal is already aborted", async () => {
+    install();
+    const controller = new AbortController();
+    controller.abort();
+    await expect(uploadDocument(P, R, file, {}, { signal: controller.signal })).rejects.toMatchObject(
+      { name: "AbortError" },
+    );
+  });
+});
+
+describe("validateUploadFile", () => {
+  const make = (name: string, size = 10) =>
+    new File([new Uint8Array(size)], name, { type: "application/octet-stream" });
+
+  it.each(["a.pdf", "a.PNG", "a.jpg", "a.JPEG", "a.tif", "a.TIFF"])("accepts %s", (name) => {
+    expect(validateUploadFile(make(name))).toBeNull();
+  });
+
+  it("rejects an unsupported extension and a missing extension", () => {
+    expect(validateUploadFile(make("macro.exe"))).toMatch(/unsupported file type/);
+    expect(validateUploadFile(make("README"))).toMatch(/unsupported file type/);
+  });
+
+  it("rejects an empty file", () => {
+    expect(validateUploadFile(make("a.pdf", 0))).toMatch(/empty/);
+  });
+
+  it("rejects a file above the size hint", () => {
+    expect(validateUploadFile(make("a.pdf", 11), 10)).toMatch(/larger than the/);
+    expect(validateUploadFile(make("a.pdf", 10), 10)).toBeNull();
+  });
+
+  it("defaults the size hint to 250 MB", () => {
+    expect(MAX_UPLOAD_BYTES).toBe(262_144_000);
   });
 });

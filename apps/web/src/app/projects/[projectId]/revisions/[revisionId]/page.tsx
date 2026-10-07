@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Card } from "@/components/ui/card";
 import { Mono } from "@/components/ui/mono";
+import { canMutate } from "@/lib/documents";
 import { formatDateShort, getProject, getRevision } from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
@@ -91,7 +92,11 @@ export default async function RevisionPage({
           </div>
 
           <ReadOnlyBanner project={project} revision={revision} />
-          <RevisionDocuments projectId={project.id} revisionId={revision.id} />
+          <RevisionDocuments
+            projectId={project.id}
+            revisionId={revision.id}
+            canMutate={canMutate({ project, revision })}
+          />
         </div>
       </AppShell>
     );

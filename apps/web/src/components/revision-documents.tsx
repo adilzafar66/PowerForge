@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { DocumentRowActions } from "@/components/document-row-actions";
+import { DocumentUpload } from "@/components/document-upload";
 import { Card } from "@/components/ui/card";
 import { fieldClassName } from "@/components/ui/input";
 import { SearchField } from "@/components/ui/search-field";
@@ -30,6 +32,8 @@ const SEARCH_DEBOUNCE_MS = 300;
 type Props = {
   projectId: string;
   revisionId: string;
+  /** From `canMutate` on the server; controls that change documents render only when true. */
+  canMutate: boolean;
 };
 
 type Filters = {
@@ -48,7 +52,8 @@ const DEFAULT_FILTERS: Filters = {
 
 const TH = "px-4 py-3 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase";
 
-export function RevisionDocuments({ projectId, revisionId }: Props) {
+export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
+  const router = useRouter();
   const [searchInput, setSearchInput] = useState("");
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [items, setItems] = useState<RevisionDocument[] | null>(null);
@@ -121,6 +126,17 @@ export function RevisionDocuments({ projectId, revisionId }: Props) {
     setReloadToken((token) => token + 1);
   }, []);
 
+  const reloadList = useCallback(() => setReloadToken((token) => token + 1), []);
+
+  const handleReadOnly = useCallback(
+    (message: string) => {
+      setNotice(message);
+      router.refresh();
+      setReloadToken((token) => token + 1);
+    },
+    [router],
+  );
+
   const filtersActive =
     filters.search !== "" ||
     filters.type !== "" ||
@@ -134,6 +150,14 @@ export function RevisionDocuments({ projectId, revisionId }: Props) {
 
   return (
     <section aria-label="Documents">
+      {canMutate ? (
+        <DocumentUpload
+          projectId={projectId}
+          revisionId={revisionId}
+          onUploaded={reloadList}
+          onReadOnly={handleReadOnly}
+        />
+      ) : null}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <SearchField
           value={searchInput}

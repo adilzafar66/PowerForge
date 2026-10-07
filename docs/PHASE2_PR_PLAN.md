@@ -93,7 +93,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-10](#pr-10--download-urls-and-end-to-end-backend-workflow) | Download URLs and end-to-end backend workflow | Backend | M | PR-08, PR-09 | [x] |
 | [PR-11](#pr-11--frontend-foundations-and-create-revision-ui) | Frontend foundations and Create Revision UI | Web | M | PR-07 | [x] |
 | [PR-12](#pr-12--revision-documents-workspace-read-side) | Revision documents workspace (read side) | Web | M | PR-10, PR-11 | [x] |
-| [PR-13](#pr-13--multi-file-upload-ui) | Multi-file upload UI | Web | M | PR-08, PR-12 | [ ] |
+| [PR-13](#pr-13--multi-file-upload-ui) | Multi-file upload UI | Web | M | PR-08, PR-12 | [x] |
 | [PR-14](#pr-14--document-actions-ui) | Document actions UI | Web | M | PR-09, PR-12 | [ ] |
 | [PR-15](#pr-15--hardening-verification-and-phase-2-completion) | Hardening, verification, and Phase 2 completion | All | M | all | [ ] |
 
@@ -693,6 +693,14 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - controls absent/disabled in read-only mode; 409 on upload shows read-only message and refreshes
 - unsupported extension rejected client-side with a clear message (server still enforces)
 
+**Implementation notes (as landed).**
+- `uploadDocument` uses `XMLHttpRequest` with a `FormData` body (the browser sets the multipart boundary). HTTP errors go through the shared `parseError` and are thrown in the same `{ apiError, status }` shape as `request`, so `apiErrorOf` works; a network failure is status 0, and an aborted signal rejects with an `AbortError`. Only metadata keys that are provided are sent, so the server default (`UNKNOWN`) applies.
+- Queue logic lives in `components/use-upload-queue.ts` (states `queued`, `uploading`, `done`, `failed`; at most 3 uploads at once; each file is its own request with its own `AbortController`; unmount aborts everything). `components/document-upload.tsx` is the drop zone, picker and queue list.
+- Client validation (`validateUploadFile`: extension allow-list, empty file, size hint) is advisory. A rejected file appears in the queue as failed with its reason and no Retry, and no request is made. The size hint is `NEXT_PUBLIC_MAX_UPLOAD_BYTES` (default 250 MB, matching the API default) because the API does not expose its limit; set it to match a changed `MAX_UPLOAD_BYTES`.
+- The optional per-batch document type (D8) shipped: it is captured when files are added and omitted from the request when it is Unclassified.
+- A read-only 409 (`revision_read_only`, `archived_project`, `cancelled_project`) fails the file and every still-queued file without sending them, and calls `onReadOnly`. The workspace then shows the message, calls `router.refresh()` so the server recomputes the banner and `canMutate`, and reloads the list. The upload area renders only when `canMutate` is true.
+- The list reloads each time a file completes. Duplicates are a non-blocking amber note on an uploaded file.
+
 **Acceptance.** Manual check: drag 5 files (including one bad file and one duplicate) into a revision; each resolves independently; list updates; no folder UI anywhere. Verify the browser upload works from both `http://localhost:3000` and `http://127.0.0.1:3000` (CORS; no Next.js proxy is involved, so no body-size limit applies there).
 
 **Size.** M.
@@ -856,6 +864,7 @@ What a user of the running app sees while Phase 2 is only partly merged:
 | PR-11 | Web UI only: the Add Revision form gains Based on and Carry forward, and revisions show lineage. No backend, migration or dependency change; rebuild the web image to pick it up. |
 | PR-11 | Create Revision UI changed; the revision page still shows the placeholder. |
 | PR-12 | Web UI only: the revision page becomes the documents workspace (list, filter, open, download; no mutations until PR-13/14). Set `S3_PUBLIC_ENDPOINT_URL=http://localhost:9000` under Docker Compose so signed links work from the browser; rebuild the web image. No backend, migration or dependency change. |
+| PR-13 | Web UI only: upload area on the revision page (drag and drop, up to 3 uploads at once). Uploads go from the browser straight to the API, so `CORS_ORIGINS` must include the origin you open the web app from (`http://localhost:3000` and `http://127.0.0.1:3000` are set by default). Optional `NEXT_PUBLIC_MAX_UPLOAD_BYTES` for the size hint; rebuild the web image. No backend, migration or dependency change. |
 
 Never merge a PR that requires a later PR to avoid breaking existing flows. After PR-04 and every PR that adds dependencies, rebuild the API image (`docker compose up --build`) and re-run migrations.
 
