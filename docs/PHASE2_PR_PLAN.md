@@ -89,7 +89,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-06](#pr-06--file-ingestion-and-validation) | File ingestion and validation | Backend | M | PR-02, PR-05 | [x] |
 | [PR-07](#pr-07--revision-lineage-and-document-inheritance) | Revision lineage and document inheritance | Backend | L | PR-03, PR-04 | [x] |
 | [PR-08](#pr-08--document-upload-list-and-get) | Document upload, list, and get | Backend | L | PR-04, PR-05, PR-06, PR-07 | [x] |
-| [PR-09](#pr-09--metadata-remove-restore-and-reuse) | Metadata, remove, restore, and reuse | Backend | M | PR-08 | [ ] |
+| [PR-09](#pr-09--metadata-remove-restore-and-reuse) | Metadata, remove, restore, and reuse | Backend | M | PR-08 | [x] |
 | [PR-10](#pr-10--download-urls-and-end-to-end-backend-workflow) | Download URLs and end-to-end backend workflow | Backend | M | PR-08, PR-09 | [ ] |
 | [PR-11](#pr-11--frontend-foundations-and-create-revision-ui) | Frontend foundations and Create Revision UI | Web | M | PR-07 | [ ] |
 | [PR-12](#pr-12--revision-documents-workspace-read-side) | Revision documents workspace (read side) | Web | M | PR-10, PR-11 | [ ] |
@@ -524,6 +524,18 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - the workflow: replace a document in a new revision (upload B, remove inherited A) leaves the previous revision unchanged
 - race: two concurrent reuse requests for the same document/revision → one succeeds, the other gets 409 `DocumentAlreadyInRevision` (not a 500 and not a duplicate row); an unrelated constraint failure is not reported as `DocumentAlreadyInRevision`
 
+**Implementation notes (as landed).**
+- One shared mutation path: `DocumentService._mutate` loads the project and revision (404s), then `_lock_for_mutation` takes the project `FOR SHARE`, the revision `FOR UPDATE`, and re-checks `assert_documents_mutable` (D11). Upload's DB step uses the same lock helper. Error order is project/revision 404, then not-mutable 409, then association 404. No mutation writes the project row.
+- PATCH: omitted fields are left alone (`model_fields_set`); an explicit `null` clears `document_number`, `description` and `notes`; `document_type: null` is a 422; blank strings become null. `extra="forbid"` rejects every immutable or unknown field. An empty body on an INCLUDED row is a 200 no-op. Editing a REMOVED association is a 409 `document_removed`.
+- Remove and restore are idempotent; the second call changes nothing (including `removed_at`) and logs nothing. `Document` rows and storage are never touched (tests assert no storage calls).
+- Reuse looks up the source after the target lock. Order of checks: source exists (404), same project (`CrossProjectDocumentAccess`, 404), target already holds the document (409 `document_already_in_revision`, with a restore hint for REMOVED and the existing id and status in the body), source is not REMOVED (409 `document_removed`). Checking the target first means reuse into the source's own revision is a clean 409 and never reaches `ck_revision_documents_inherited_not_self`.
+- The source revision is deliberately not locked, so two reuses in opposite directions cannot deadlock; a source changed just after the read only affects that snapshot. Reuse from a SUPERSEDED revision is allowed (the main use case); reuse into one is rejected.
+- Because every reuse into one revision serializes on that revision's lock, the pre-check normally decides a race. The `uq_revision_documents_revision_id_document_id` mapping is the backstop; a test bypasses the pre-check to prove it, and proves that another constraint (`ck_..._inherited_not_self`) stays `unexpected_integrity_error`.
+- The `Content-Length` guard from PR-08 now applies only to the upload route (`add_api_route(..., route_class_override=UploadSizeGuardRoute)`), not to JSON routes.
+- `routers/errors.py` adds 409 for the two new errors and merges `existing_revision_document_id` and `existing_status` into the `DocumentAlreadyInRevision` body.
+- Logs carry ids and field names only: `document metadata updated` (`changed_fields`), `document removed`, `document restored`, `document reused` (with source ids).
+- Tests: `tests/test_documents_mutations_api.py`. Shared helpers moved to `tests/documents_support.py` and the `require_db`, `use_storage` and `ctx` fixtures to `tests/conftest.py` (PR-08 tests unchanged apart from the OpenAPI assertion now listing `patch`).
+
 **Acceptance.** No endpoint can change `Document` identity fields; every mutation passes through the shared mutability check and revision lock.
 
 **Size.** M.
@@ -768,12 +780,12 @@ Settle these in the PR named; record the outcome in that PR's description and, i
 | D2 | If MinIO is unreachable at API startup, is that fatal? Is storage added to `/ready`? Does CI get a MinIO service? | PR-05 | **Decided in PR-05:** non-fatal (log a warning; uploads fail with `StorageUploadFailed`); `/ready` is unchanged; CI runs MinIO through a `docker run` step so the real-storage tests run there. |
 | D3 | How does the pure domain package signal validation failures? | PR-02/PR-06 | **Decided in PR-02:** package-local `ValueError` subclasses (`InvalidFilename`, `UnsupportedExtension`). PR-06 maps them to `InvalidFileContent` / `UnsupportedDocumentType`. Long names are truncated (stem only, extension kept) rather than rejected. |
 | D4 | Behavior when deleting a missing key in `ObjectStorage.delete`. | PR-05 | **Decided in PR-05:** idempotent no-op (cleanup paths must not raise on missing objects). |
-| D5 | Exception/code for editing a REMOVED association. | PR-09 | New `DocumentRemoved` (409) rather than overloading another error. |
-| D6 | Do reuse requests allow metadata overrides, or copy only? | PR-09 | Optional overrides, as in spec §21. |
+| D5 | Exception/code for editing a REMOVED association. | PR-09 | **Decided and implemented in PR-09:** new `DocumentRemoved` (409, `document_removed`) rather than overloading another error. It is also used when the reuse source association is REMOVED. |
+| D6 | Do reuse requests allow metadata overrides, or copy only? | PR-09 | **Decided and implemented in PR-09:** optional overrides, as in spec §21. A provided override replaces the copied value; an explicit `null` clears a text field. |
 | D7 | Upload progress mechanism and concurrency in the UI. | PR-13 | `XMLHttpRequest`, concurrency 3, per-file retry. |
 | D8 | Should the optional per-batch default document type ship? | PR-13 | Only if trivial; otherwise defer and note as follow-up. |
 | D9 | Developer ergonomics: add a script that creates/migrates/drops a throwaway test DB (the manual recipe is in section 1)? | PR-05 | **Decided in PR-05:** skipped. The manual recipe in `docs/DEVELOPMENT.md` and the self-cleaning migration and storage tests cover the need. |
-| D10 | Reuse of a document that already has a **REMOVED** association in the target revision. `UNIQUE (revision_id, document_id)` means the REMOVED row still occupies the slot. | PR-09 | Already reflected in PR-09 scope: reject with `DocumentAlreadyInRevision` (409) whose message tells the user to restore the existing association instead. Do not silently restore or create a second row. Confirm the UI offers a "Restore" action from that error. |
+| D10 | Reuse of a document that already has a **REMOVED** association in the target revision. `UNIQUE (revision_id, document_id)` means the REMOVED row still occupies the slot. | PR-09 | Already reflected in PR-09 scope: reject with `DocumentAlreadyInRevision` (409) whose message tells the user to restore the existing association instead. Do not silently restore or create a second row. Confirm the UI offers a "Restore" action from that error. **Implemented in PR-09:** the 409 body also carries `existing_revision_document_id` and `existing_status`, so the UI (PR-14) can call restore without a lookup. |
 | D11 | Archive/cancel do not serialize with document mutations. Spec §18 relies on activation updating revision rows, but `archive_project`/`cancel_project` take no row lock and touch no revision rows, so an upload can pass its locked re-check and commit just after the project is archived or cancelled (one extra document in a closed project). | PR-08 | **Decided:** shared project lock. Every document mutation takes `FOR SHARE` on the project row, then `FOR UPDATE` on the target revision row (lock order stays project → revision), and re-checks project and revision mutability after both locks. `archive_project` and `cancel_project` take `FOR UPDATE` on the project row before checking status. Activation already takes `FOR UPDATE`, so it also waits for in-flight mutations. Concurrent document mutations share the project lock and do not block each other. Rules that keep this deadlock-free: a document mutation never upgrades its project lock to `FOR UPDATE`, and nothing locks a revision row before its project row. Spec §18, ADR-004 #15, and the architecture and pipeline docs are updated to match. |
 
 ---
@@ -789,6 +801,7 @@ What a user of the running app sees while Phase 2 is only partly merged:
 | PR-06 | No user-visible change; nothing calls the new ingest and inspector code yet. Reinstall (`pip install -e services/api`) and rebuild the API image (`Pillow` is a new dependency). |
 | PR-07 | Creating a revision **without** sending `based_on_revision_id` now defaults to the ACTIVE revision as base and carries forward its (currently empty) document set. Visible change: revisions record lineage, and revision responses gain `based_on_revision_id`, `based_on_identifier` and (on create only) `inherited_document_count`. Old UI keeps working. No new dependencies; rebuild the API image to pick up the code. |
 | PR-08 | Documents can be uploaded only through the API (Swagger at `/docs`). Rebuild the API image (`Pillow`, `python-multipart`; `boto3` arrived in PR-05). `S3_PUBLIC_ENDPOINT_URL` is already set in `.env.example` and compose (PR-05). |
+| PR-09 | Documents can now be edited (`PATCH`), removed, restored and reused in another revision, still only through the API (Swagger at `/docs`). No new dependencies or migrations; rebuild the API image to pick up the code. |
 | PR-11 | Create Revision UI changed; the revision page still shows the placeholder. |
 | PR-12 | Revision page becomes the documents workspace (read-only until PR-13/14). |
 

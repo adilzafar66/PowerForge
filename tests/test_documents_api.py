@@ -1,66 +1,54 @@
 """Document upload, list and get API. Integration cases need RUN_INTEGRATION=1.
 
 Object storage is always the in-memory fake. Every test installs its own instance
-through ``use_storage``.
+through ``use_storage``. Shared helpers are in ``documents_support``; the
+``require_db``, ``use_storage`` and ``ctx`` fixtures are in ``conftest.py``.
 """
 
 from __future__ import annotations
 
 import hashlib
 import logging
-import os
 import re
 import threading
 import time
 import uuid
 from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import event, func, select, text
 
+from documents_support import (
+    JSON_TIMEOUT,
+    OLD,
+    HookedStorage,
+    association_total,
+    captured_sql,
+    client,
+    code,
+    docs_url,
+    documents_of,
+    make_project,
+    make_revision,
+    nothing_stored,
+    seed_association,
+    set_sql,
+    upload,
+)
 from file_factory import PDF, jpeg_bytes, png_bytes, png_header_only, tiff_bytes
-from powerforge_api.db import get_engine, get_session_factory
+from powerforge_api.db import get_session_factory
 from powerforge_api.main import app, create_app
-from powerforge_api.models import Document, RevisionDocument
 from powerforge_api.routers.documents import MULTIPART_OVERHEAD_BYTES
 from powerforge_api.services import document_service
 from powerforge_api.services.document_service import _like_pattern
 from powerforge_api.services.revision_documents import lock_project_shared
 from powerforge_api.storage import InMemoryObjectStorage
 from powerforge_api.storage.base import StorageError
-from powerforge_api.storage.factory import get_object_storage
-from powerforge_document_model import DocumentOrigin, RevisionDocumentStatus
+from powerforge_document_model import RevisionDocumentStatus
 from powerforge_shared.config import Settings, get_settings
-
-client = TestClient(app)
-
-OLD = datetime(2020, 1, 1, tzinfo=UTC)
-JSON_TIMEOUT = 20
-
-
-@pytest.fixture
-def require_db() -> None:
-    if os.environ.get("RUN_INTEGRATION") != "1":
-        pytest.skip("Set RUN_INTEGRATION=1 to run live database tests.")
-    get_engine.cache_clear()
-    get_session_factory.cache_clear()
-    with get_engine().connect() as connection:
-        connection.execute(text("SELECT 1"))
-
-
-@pytest.fixture
-def use_storage() -> Iterator[Callable[[InMemoryObjectStorage], InMemoryObjectStorage]]:
-    def install(storage: InMemoryObjectStorage) -> InMemoryObjectStorage:
-        app.dependency_overrides[get_object_storage] = lambda: storage
-        return storage
-
-    yield install
-    app.dependency_overrides.pop(get_object_storage, None)
 
 
 @pytest.fixture
@@ -70,153 +58,6 @@ def upload_limit() -> Iterator[Callable[[int], None]]:
 
     yield set_limit
     app.dependency_overrides.pop(get_settings, None)
-
-
-@pytest.fixture
-def ctx(require_db: None, use_storage: Any) -> dict[str, Any]:
-    """A fresh project with ACTIVE revision "0" and a clean in-memory storage."""
-    storage = use_storage(InMemoryObjectStorage())
-    project_id = make_project()
-    revision = make_revision(project_id, "0", activate=True).json()
-    return {"project_id": project_id, "revision_id": revision["id"], "storage": storage}
-
-
-def _unique(prefix: str) -> str:
-    return f"{prefix}-{uuid.uuid4().hex[:8]}"
-
-
-def make_project() -> str:
-    response = client.post(
-        "/api/projects",
-        json={"project_number": _unique("DOC"), "project_name": "Documents"},
-    )
-    assert response.status_code == 201, response.text
-    return response.json()["id"]
-
-
-def make_revision(project_id: str, identifier: str, **body: Any) -> Any:
-    return client.post(
-        f"/api/projects/{project_id}/revisions",
-        json={"identifier": identifier, **body},
-    )
-
-
-def docs_url(project_id: object, revision_id: object) -> str:
-    return f"/api/projects/{project_id}/revisions/{revision_id}/documents"
-
-
-def upload(
-    project_id: object,
-    revision_id: object,
-    data: bytes = PDF,
-    filename: str = "plan.pdf",
-    *,
-    http: TestClient = client,
-    **form: str,
-) -> Any:
-    return http.post(
-        docs_url(project_id, revision_id),
-        files={"file": (filename, data, "application/octet-stream")},
-        data=form,
-    )
-
-
-def code(response: Any) -> str:
-    return response.json()["detail"]["code"]
-
-
-def documents_of(project_id: str) -> list[Document]:
-    with get_session_factory()() as session:
-        rows = session.scalars(
-            select(Document).where(Document.project_id == uuid.UUID(project_id))
-        ).all()
-        session.expunge_all()
-        return list(rows)
-
-
-def association_total(revision_id: str) -> int:
-    with get_session_factory()() as session:
-        return session.scalar(
-            select(func.count())
-            .select_from(RevisionDocument)
-            .where(RevisionDocument.revision_id == uuid.UUID(revision_id))
-        )
-
-
-def nothing_stored(ctx: dict[str, Any]) -> None:
-    assert documents_of(ctx["project_id"]) == []
-    assert association_total(ctx["revision_id"]) == 0
-    assert ctx["storage"].objects == {}
-
-
-def seed_association(
-    project_id: str,
-    revision_id: str,
-    *,
-    status: RevisionDocumentStatus = RevisionDocumentStatus.INCLUDED,
-    filename: str = "seeded.pdf",
-    sha256: str = "0" * 64,
-    added_at: datetime = OLD,
-) -> uuid.UUID:
-    with get_session_factory()() as session:
-        document_id = uuid.uuid4()
-        session.add(
-            Document(
-                id=document_id,
-                project_id=uuid.UUID(project_id),
-                original_filename=filename,
-                storage_key=f"projects/{project_id}/documents/{document_id}/original.pdf",
-                mime_type="application/pdf",
-                file_extension=".pdf",
-                size_bytes=10,
-                sha256=sha256,
-            )
-        )
-        session.flush()
-        link = RevisionDocument(
-            project_id=uuid.UUID(project_id),
-            revision_id=uuid.UUID(revision_id),
-            document_id=document_id,
-            origin=DocumentOrigin.UPLOADED,
-            status=status,
-            removed_at=OLD if status is RevisionDocumentStatus.REMOVED else None,
-            added_at=added_at,
-        )
-        session.add(link)
-        session.commit()
-        return link.id
-
-
-def set_sql(statement: str, **params: Any) -> None:
-    with get_engine().begin() as connection:
-        connection.execute(text(statement), params)
-
-
-@contextmanager
-def captured_sql() -> Iterator[list[str]]:
-    statements: list[str] = []
-
-    def record(_conn: Any, _cursor: Any, statement: str, *_args: Any) -> None:
-        statements.append(statement)
-
-    engine = get_engine()
-    event.listen(engine, "before_cursor_execute", record)
-    try:
-        yield statements
-    finally:
-        event.remove(engine, "before_cursor_execute", record)
-
-
-class HookedStorage(InMemoryObjectStorage):
-    """Runs ``hook`` inside ``put``, i.e. between the early check and the locked step."""
-
-    def __init__(self, hook: Callable[[], None]) -> None:
-        super().__init__()
-        self.hook = hook
-
-    def put(self, key: str, fileobj: Any, size: int, content_type: str) -> None:
-        self.hook()
-        super().put(key, fileobj, size, content_type)
 
 
 # --- valid uploads -----------------------------------------------------------------
@@ -836,7 +677,7 @@ def test_openapi_lists_the_document_endpoints() -> None:
     ]
 
     assert set(collection) == {"get", "post"}
-    assert set(item) == {"get"}
+    assert set(item) == {"get", "patch"}
     assert "multipart/form-data" in collection["post"]["requestBody"]["content"]
 
 

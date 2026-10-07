@@ -89,7 +89,7 @@ If the storage upload fails, no database rows are created. If the database step 
 
 **Duplicates.** The same SHA-256 within a project is detected and reported (`duplicate_detected`, `duplicate_document_ids`) but the upload is accepted and creates a new `Document`. SHA-256 is an integrity and warning signal, not a deduplication key.
 
-**Revisions.** New revisions normally inherit the base revision's `INCLUDED` documents as `INHERITED` associations to the same `Document`; no files are copied. Documents can be removed from and restored to a revision, and an existing project document can be reused in another revision. Superseded revisions' packages are read-only.
+**Revisions.** New revisions normally inherit the base revision's `INCLUDED` documents as `INHERITED` associations to the same `Document`; no files are copied. Documents can be removed from and restored to a revision, their metadata edited, and an existing project document reused in another revision (implemented in PR-09: `PATCH …/documents/{id}`, `POST …/documents/{id}/remove`, `…/restore` and `POST …/documents/reuse`). Removing never deletes the file or the `Document`. Superseded revisions' packages are read-only.
 
 **Download.** `GET …/revisions/{rid}/documents/{rdid}/download-url` returns a short-lived presigned URL (default 15 minutes) with the original filename and stored content type. There is no unscoped document route.
 

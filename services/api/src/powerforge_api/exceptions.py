@@ -1,5 +1,7 @@
 """Domain exceptions for the project module."""
 
+import uuid
+
 
 class ProjectError(Exception):
     """Base class for project-domain errors."""
@@ -85,6 +87,30 @@ class CrossProjectDocumentAccess(ProjectError):
 
 class StorageUploadFailed(ProjectError):
     code = "storage_upload_failed"
+
+
+class DocumentAlreadyInRevision(ProjectError):
+    """The target revision already holds an association for this Document.
+
+    ``existing_revision_document_id`` and ``existing_status`` let a client offer
+    "restore" when the existing association is REMOVED.
+    """
+
+    code = "document_already_in_revision"
+
+    def __init__(
+        self,
+        message: str,
+        existing_revision_document_id: uuid.UUID | None = None,
+        existing_status: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.existing_revision_document_id = existing_revision_document_id
+        self.existing_status = existing_status
+
+
+class DocumentRemoved(ProjectError):
+    code = "document_removed"
 
 
 class UnexpectedIntegrityError(ProjectError):

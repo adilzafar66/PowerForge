@@ -1,4 +1,4 @@
-"""REST API for revision documents: upload, list and get."""
+"""REST API for revision documents: upload, list, get, edit, remove, restore and reuse."""
 
 from __future__ import annotations
 
@@ -19,8 +19,10 @@ from powerforge_api.schemas.documents import (
     MAX_DOCUMENT_NUMBER_LENGTH,
     MAX_NOTES_LENGTH,
     DocumentStatusFilter,
+    ReuseDocumentRequest,
     RevisionDocumentListResponse,
     RevisionDocumentResponse,
+    RevisionDocumentUpdate,
     UploadResponse,
 )
 from powerforge_api.services.document_service import DocumentService, UploadMetadata
@@ -69,7 +71,6 @@ def _reject_oversized(request: Request) -> None:
 router = APIRouter(
     prefix="/api/projects/{project_id}/revisions/{revision_id}/documents",
     tags=["documents"],
-    route_class=UploadSizeGuardRoute,
 )
 
 
@@ -80,12 +81,6 @@ def _blank_to_none(value: str | None) -> str | None:
     return stripped or None
 
 
-@router.post(
-    "",
-    response_model=UploadResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Upload a document into a revision",
-)
 def upload_document(
     project_id: UUID,
     revision_id: UUID,
@@ -109,6 +104,18 @@ def upload_document(
         return service.upload(project_id, revision_id, file.file, file.filename or "", metadata)
     except ProjectError as exc:
         raise http_for(exc) from exc
+
+
+# Only the upload route carries the Content-Length guard; the JSON routes do not.
+router.add_api_route(
+    "",
+    upload_document,
+    methods=["POST"],
+    response_model=UploadResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Upload a document into a revision",
+    route_class_override=UploadSizeGuardRoute,
+)
 
 
 @router.get(
@@ -164,5 +171,87 @@ def get_document(
     service = DocumentService(session, storage, settings)
     try:
         return service.get_document(project_id, revision_id, revision_document_id)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+
+
+@router.post(
+    "/reuse",
+    response_model=RevisionDocumentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add an existing project document to this revision",
+)
+def reuse_document(
+    project_id: UUID,
+    revision_id: UUID,
+    body: ReuseDocumentRequest,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> RevisionDocumentResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        return service.reuse(project_id, revision_id, body)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+
+
+@router.patch(
+    "/{revision_document_id}",
+    response_model=RevisionDocumentResponse,
+    summary="Edit the metadata of a document in a revision",
+)
+def update_document(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    body: RevisionDocumentUpdate,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> RevisionDocumentResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        return service.update_metadata(project_id, revision_id, revision_document_id, body)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+
+
+@router.post(
+    "/{revision_document_id}/remove",
+    response_model=RevisionDocumentResponse,
+    summary="Remove a document from a revision (the file is kept)",
+)
+def remove_document(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> RevisionDocumentResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        return service.remove(project_id, revision_id, revision_document_id)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+
+
+@router.post(
+    "/{revision_document_id}/restore",
+    response_model=RevisionDocumentResponse,
+    summary="Restore a removed document to a revision",
+)
+def restore_document(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> RevisionDocumentResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        return service.restore(project_id, revision_id, revision_document_id)
     except ProjectError as exc:
         raise http_for(exc) from exc

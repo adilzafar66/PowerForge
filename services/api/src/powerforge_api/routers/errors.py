@@ -8,6 +8,8 @@ from powerforge_api.exceptions import (
     ArchivedProject,
     CancelledProject,
     CrossProjectDocumentAccess,
+    DocumentAlreadyInRevision,
+    DocumentRemoved,
     DuplicateProjectNumber,
     DuplicateRevisionIdentifier,
     FileTooLarge,
@@ -52,7 +54,9 @@ def http_for(exc: ProjectError) -> HTTPException:
         | ArchivedProject
         | CancelledProject
         | RevisionNotActivatable
-        | RevisionReadOnly,
+        | RevisionReadOnly
+        | DocumentAlreadyInRevision
+        | DocumentRemoved,
     ):
         status_code = status.HTTP_409_CONFLICT
     elif isinstance(exc, FileTooLarge):
@@ -65,7 +69,10 @@ def http_for(exc: ProjectError) -> HTTPException:
         status_code = status.HTTP_502_BAD_GATEWAY
     elif isinstance(exc, UnexpectedIntegrityError):
         status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    return HTTPException(
-        status_code=status_code,
-        detail={"detail": exc.message, "code": exc.code},
-    )
+    detail: dict[str, str] = {"detail": exc.message, "code": exc.code}
+    if isinstance(exc, DocumentAlreadyInRevision):
+        if exc.existing_revision_document_id is not None:
+            detail["existing_revision_document_id"] = str(exc.existing_revision_document_id)
+        if exc.existing_status is not None:
+            detail["existing_status"] = exc.existing_status
+    return HTTPException(status_code=status_code, detail=detail)

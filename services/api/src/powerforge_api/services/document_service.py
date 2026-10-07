@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import logging
 import uuid
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any, BinaryIO
 
@@ -19,6 +20,9 @@ from sqlalchemy.orm import Session, aliased
 
 from powerforge_api.db_errors import integrity_guard
 from powerforge_api.exceptions import (
+    CrossProjectDocumentAccess,
+    DocumentAlreadyInRevision,
+    DocumentRemoved,
     ProjectError,
     ProjectNotFound,
     RevisionDocumentNotFound,
@@ -30,7 +34,9 @@ from powerforge_api.models import Document, Project, ProjectRevision, RevisionDo
 from powerforge_api.schemas.documents import (
     DocumentStatusFilter,
     DocumentSummary,
+    ReuseDocumentRequest,
     RevisionDocumentResponse,
+    RevisionDocumentUpdate,
     UploadResponse,
 )
 from powerforge_api.services.file_ingest import IngestedUpload, ingest_upload
@@ -62,6 +68,16 @@ class UploadMetadata:
     document_number: str | None = None
     description: str | None = None
     notes: str | None = None
+
+
+@dataclass(frozen=True)
+class _MutationResult:
+    """What a mutation did, so the caller can log and decide whether the revision changed."""
+
+    revision_document_id: uuid.UUID
+    document_id: uuid.UUID
+    changed: bool = True
+    log_extra: Mapping[str, Any] = field(default_factory=dict)
 
 
 class DocumentService:
@@ -195,6 +211,249 @@ class DocumentService:
             raise RevisionProjectMismatch("Revision does not belong to this project")
         return project, revision
 
+    def update_metadata(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+        data: RevisionDocumentUpdate,
+    ) -> RevisionDocumentResponse:
+        updates = data.provided_metadata()
+
+        def apply(_revision: ProjectRevision) -> _MutationResult:
+            association = self._load_association(project_id, revision_id, revision_document_id)
+            if association.status == RevisionDocumentStatus.REMOVED:
+                raise DocumentRemoved("Restore the document before editing its metadata")
+            changed = sorted(
+                name for name, value in updates.items() if getattr(association, name) != value
+            )
+            for name in changed:
+                setattr(association, name, updates[name])
+            return _MutationResult(
+                association.id,
+                association.document_id,
+                changed=bool(changed),
+                log_extra={"changed_fields": changed},
+            )
+
+        result = self._mutate(project_id, revision_id, "update_document_metadata", apply)
+        if result.changed:
+            self._log("document metadata updated", project_id, revision_id, result)
+        return self._load_response(project_id, revision_id, result.revision_document_id)
+
+    def remove(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+    ) -> RevisionDocumentResponse:
+        def apply(_revision: ProjectRevision) -> _MutationResult:
+            association = self._load_association(project_id, revision_id, revision_document_id)
+            if association.status == RevisionDocumentStatus.REMOVED:
+                return _MutationResult(association.id, association.document_id, changed=False)
+            association.status = RevisionDocumentStatus.REMOVED
+            association.removed_at = datetime.now(UTC)
+            association.removed_by = None
+            return _MutationResult(association.id, association.document_id)
+
+        result = self._mutate(project_id, revision_id, "remove_document", apply)
+        if result.changed:
+            self._log("document removed", project_id, revision_id, result)
+        return self._load_response(project_id, revision_id, result.revision_document_id)
+
+    def restore(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+    ) -> RevisionDocumentResponse:
+        def apply(_revision: ProjectRevision) -> _MutationResult:
+            association = self._load_association(project_id, revision_id, revision_document_id)
+            if association.status == RevisionDocumentStatus.INCLUDED:
+                return _MutationResult(association.id, association.document_id, changed=False)
+            association.status = RevisionDocumentStatus.INCLUDED
+            association.removed_at = None
+            association.removed_by = None
+            return _MutationResult(association.id, association.document_id)
+
+        result = self._mutate(project_id, revision_id, "restore_document", apply)
+        if result.changed:
+            self._log("document restored", project_id, revision_id, result)
+        return self._load_response(project_id, revision_id, result.revision_document_id)
+
+    def reuse(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        data: ReuseDocumentRequest,
+    ) -> RevisionDocumentResponse:
+        overrides = data.provided_metadata()
+
+        def apply(_revision: ProjectRevision) -> _MutationResult:
+            # The source revision is deliberately not locked: only the target is, so two
+            # reuses in opposite directions cannot deadlock. The source is read after the
+            # target lock, and a concurrent change to it only affects this snapshot.
+            source = self.session.execute(
+                select(RevisionDocument)
+                .where(RevisionDocument.id == data.source_revision_document_id)
+                .execution_options(populate_existing=True)
+            ).scalar_one_or_none()
+            if source is None:
+                raise RevisionDocumentNotFound(
+                    f"Document {data.source_revision_document_id} not found"
+                )
+            if source.project_id != project_id:
+                raise CrossProjectDocumentAccess(
+                    "The source document belongs to a different project"
+                )
+            # Checked before anything else: reusing into the source's own revision, or
+            # into a revision that already holds the document, is a conflict.
+            existing = self._existing_association(revision_id, source.document_id)
+            if existing is not None:
+                if existing.status == RevisionDocumentStatus.REMOVED:
+                    message = (
+                        "This document was removed from the revision; restore it instead "
+                        "of adding it again"
+                    )
+                else:
+                    message = "This document is already in the revision"
+                raise DocumentAlreadyInRevision(message, existing.id, existing.status.value)
+            if source.status == RevisionDocumentStatus.REMOVED:
+                raise DocumentRemoved(
+                    "The source document was removed from its revision; restore it first"
+                )
+
+            fields = {
+                "document_type": source.document_type,
+                "document_number": source.document_number,
+                "description": source.description,
+                "notes": source.notes,
+                **overrides,
+            }
+            association = RevisionDocument(
+                project_id=project_id,
+                revision_id=revision_id,
+                document_id=source.document_id,
+                origin=DocumentOrigin.INHERITED,
+                inherited_from_revision_id=source.revision_id,
+                status=RevisionDocumentStatus.INCLUDED,
+                **fields,
+            )
+            self.session.add(association)
+            self.session.flush()
+            return _MutationResult(
+                association.id,
+                source.document_id,
+                log_extra={
+                    "source_revision_document_id": source.id,
+                    "source_revision_id": source.revision_id,
+                },
+            )
+
+        result = self._mutate(
+            project_id,
+            revision_id,
+            "reuse_document",
+            apply,
+            {
+                "uq_revision_documents_revision_id_document_id": DocumentAlreadyInRevision(
+                    "This document is already in the revision; if it was removed, "
+                    "restore it instead"
+                )
+            },
+        )
+        self._log("document reused", project_id, revision_id, result)
+        return self._load_response(project_id, revision_id, result.revision_document_id)
+
+    def _mutate(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        operation: str,
+        apply: Callable[[ProjectRevision], _MutationResult],
+        constraint_errors: Mapping[str, ProjectError] | None = None,
+    ) -> _MutationResult:
+        """Run ``apply`` under the shared lock-and-recheck path, then commit.
+
+        Project and revision existence is checked first (404s). ``apply`` runs with the
+        project locked FOR SHARE, the revision locked FOR UPDATE and mutability re-checked.
+        """
+        self._load_context(project_id, revision_id)
+        try:
+            with integrity_guard(self.session, constraint_errors or {}, operation=operation):
+                revision = self._lock_for_mutation(project_id, revision_id)
+                result = apply(revision)
+                if result.changed:
+                    revision.updated_at = datetime.now(UTC)
+                self.session.commit()
+        except BaseException:
+            # Release the locks on every failure, not only integrity errors.
+            self.session.rollback()
+            raise
+        return result
+
+    def _lock_for_mutation(self, project_id: uuid.UUID, revision_id: uuid.UUID) -> ProjectRevision:
+        """Project FOR SHARE, then revision FOR UPDATE, then the mutability re-check (D11)."""
+        project = lock_project_shared(self.session, project_id)
+        if project is None:
+            raise ProjectNotFound(f"Project {project_id} not found")
+        revision = lock_revision(self.session, project_id, revision_id)
+        if revision is None:
+            raise RevisionNotFound(f"Revision {revision_id} not found")
+        assert_documents_mutable(project, revision)
+        return revision
+
+    def _load_association(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+    ) -> RevisionDocument:
+        association = self.session.execute(
+            select(RevisionDocument)
+            .where(
+                RevisionDocument.id == revision_document_id,
+                RevisionDocument.revision_id == revision_id,
+                RevisionDocument.project_id == project_id,
+            )
+            .execution_options(populate_existing=True)
+        ).scalar_one_or_none()
+        if association is None:
+            raise RevisionDocumentNotFound(f"Document {revision_document_id} not found")
+        return association
+
+    def _existing_association(
+        self,
+        revision_id: uuid.UUID,
+        document_id: uuid.UUID,
+    ) -> RevisionDocument | None:
+        return self.session.execute(
+            select(RevisionDocument)
+            .where(
+                RevisionDocument.revision_id == revision_id,
+                RevisionDocument.document_id == document_id,
+            )
+            .execution_options(populate_existing=True)
+        ).scalar_one_or_none()
+
+    @staticmethod
+    def _log(
+        message: str,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        result: _MutationResult,
+    ) -> None:
+        logger.info(
+            message,
+            extra={
+                "project_id": project_id,
+                "revision_id": revision_id,
+                "document_id": result.document_id,
+                "revision_document_id": result.revision_document_id,
+                **result.log_extra,
+            },
+        )
+
     def _store_object(
         self,
         project_id: uuid.UUID,
@@ -230,13 +489,7 @@ class DocumentService:
         metadata: UploadMetadata,
     ) -> tuple[uuid.UUID, list[uuid.UUID]]:
         with integrity_guard(self.session, {}, operation="upload_document"):
-            project = lock_project_shared(self.session, project_id)
-            if project is None:
-                raise ProjectNotFound(f"Project {project_id} not found")
-            revision = lock_revision(self.session, project_id, revision_id)
-            if revision is None:
-                raise RevisionNotFound(f"Revision {revision_id} not found")
-            assert_documents_mutable(project, revision)
+            revision = self._lock_for_mutation(project_id, revision_id)
 
             duplicate_ids = list(
                 self.session.scalars(
