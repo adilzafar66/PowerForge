@@ -3,6 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiErrorOf } from "./api";
 import {
   DOCUMENT_TYPES,
+  canMutate,
+  canOpenInline,
+  readOnlyReason,
   DOCUMENT_TYPE_LABELS,
   DOCUMENT_TYPE_OPTIONS,
   documentTypeLabel,
@@ -200,5 +203,50 @@ describe("document errors", () => {
       expect(info.error?.existing_revision_document_id).toBe(D);
       expect(info.error?.existing_status).toBe("REMOVED");
     }
+  });
+});
+
+describe("canMutate and readOnlyReason", () => {
+  const projectStatuses = ["ACTIVE", "PAUSED", "ARCHIVED", "CANCELLED"] as const;
+  const revisionStatuses = ["DRAFT", "ACTIVE", "SUPERSEDED"] as const;
+
+  for (const project of projectStatuses) {
+    for (const revision of revisionStatuses) {
+      const writable =
+        revision !== "SUPERSEDED" && project !== "ARCHIVED" && project !== "CANCELLED";
+      it(`project ${project} with revision ${revision} is ${writable ? "writable" : "read-only"}`, () => {
+        const context = {
+          project: { status: project },
+          revision: { status: revision },
+        };
+        expect(canMutate(context)).toBe(writable);
+        expect(readOnlyReason(context) === null).toBe(writable);
+      });
+    }
+  }
+
+  it("explains which state made the package read-only", () => {
+    const reason = (
+      project: "ACTIVE" | "ARCHIVED" | "CANCELLED",
+      revision: "ACTIVE" | "SUPERSEDED",
+    ) =>
+      readOnlyReason({
+        project: { status: project },
+        revision: { status: revision },
+      });
+    expect(reason("ACTIVE", "SUPERSEDED")).toMatch(/revision is superseded/);
+    expect(reason("ARCHIVED", "ACTIVE")).toMatch(/project is archived/);
+    expect(reason("CANCELLED", "ACTIVE")).toMatch(/project is cancelled/);
+  });
+});
+
+describe("canOpenInline", () => {
+  it.each([
+    ["application/pdf", true],
+    ["image/png", true],
+    ["image/jpeg", true],
+    ["image/tiff", false],
+  ])("%s -> %s", (mime, expected) => {
+    expect(canOpenInline({ mime_type: mime })).toBe(expected);
   });
 });

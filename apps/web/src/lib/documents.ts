@@ -1,4 +1,5 @@
 import { request } from "@/lib/api";
+import type { Project, Revision } from "@/lib/projects";
 
 export const DOCUMENT_TYPES = [
   "SINGLE_LINE_DIAGRAM",
@@ -129,6 +130,35 @@ export function formatFileSize(bytes: number): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
+type MutabilityContext = {
+  project: Pick<Project, "status">;
+  revision: Pick<Revision, "status">;
+};
+
+/** Why the document package cannot be changed, or null when it can. The backend is authoritative. */
+export function readOnlyReason({ project, revision }: MutabilityContext): string | null {
+  if (project.status === "ARCHIVED") {
+    return "This project is archived, so its documents are read-only.";
+  }
+  if (project.status === "CANCELLED") {
+    return "This project is cancelled, so its documents are read-only.";
+  }
+  if (revision.status === "SUPERSEDED") {
+    return "This revision is superseded and is read-only.";
+  }
+  return null;
+}
+
+/** The single rule for showing mutation controls (upload, edit, remove, restore, reuse). */
+export function canMutate(context: MutabilityContext): boolean {
+  return readOnlyReason(context) === null;
+}
+
+/** Browsers cannot render TIFF, so it is offered as a download only. */
+export function canOpenInline(document: Pick<DocumentSummary, "mime_type">): boolean {
+  return document.mime_type.toLowerCase() !== "image/tiff";
 }
 
 function documentsPath(projectId: string, revisionId: string): string {

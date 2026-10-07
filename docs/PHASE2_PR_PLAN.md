@@ -92,7 +92,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-09](#pr-09--metadata-remove-restore-and-reuse) | Metadata, remove, restore, and reuse | Backend | M | PR-08 | [x] |
 | [PR-10](#pr-10--download-urls-and-end-to-end-backend-workflow) | Download URLs and end-to-end backend workflow | Backend | M | PR-08, PR-09 | [x] |
 | [PR-11](#pr-11--frontend-foundations-and-create-revision-ui) | Frontend foundations and Create Revision UI | Web | M | PR-07 | [x] |
-| [PR-12](#pr-12--revision-documents-workspace-read-side) | Revision documents workspace (read side) | Web | M | PR-10, PR-11 | [ ] |
+| [PR-12](#pr-12--revision-documents-workspace-read-side) | Revision documents workspace (read side) | Web | M | PR-10, PR-11 | [x] |
 | [PR-13](#pr-13--multi-file-upload-ui) | Multi-file upload UI | Web | M | PR-08, PR-12 | [ ] |
 | [PR-14](#pr-14--document-actions-ui) | Document actions UI | Web | M | PR-09, PR-12 | [ ] |
 | [PR-15](#pr-15--hardening-verification-and-phase-2-completion) | Hardening, verification, and Phase 2 completion | All | M | all | [ ] |
@@ -657,6 +657,14 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - read-only banner shown for SUPERSEDED / ARCHIVED / CANCELLED, hidden for DRAFT/ACTIVE and PAUSED; `canMutate` unit-tested across the matrix
 - download action requests a URL and opens it (mock `window.open`)
 
+**Implementation notes (as landed).**
+- `lib/documents.ts` gained `readOnlyReason`, `canMutate` and `canOpenInline`. `canMutate` is true unless the revision is `SUPERSEDED` or the project is `ARCHIVED` or `CANCELLED` (PAUSED stays mutable, as in the backend); the banner and PR-13/14 controls must read it. `canOpenInline` is decided by MIME type (`image/tiff` is download only).
+- "Inherited from Revision X" uses `inherited_from_revision_identifier` from the API (linked through `inherited_from_revision_id`), so no revisions-list lookup is needed.
+- Documents are fetched on the client after mount, so the first load and every filter change share one path. Search is debounced by 300 ms, and a request counter drops responses that arrive out of order.
+- A 404 or 409 from the list or a download shows the server message and refreshes the list once; other list errors show Retry.
+- Open pre-opens a blank tab inside the click handler and sets its location when the signed URL arrives (so popup blockers do not block it), and closes the tab on failure; Download assigns the location to an attachment URL. Each click requests a fresh URL, which is never stored or logged.
+- The revision page keeps its header, lineage link and metadata cards; the "Coming Soon" block is replaced by the banner and `RevisionDocuments`. Type and Origin are native selects, View is a `SegmentedControl`.
+
 **Acceptance.** Against a running stack, a user can open a revision, see inherited vs uploaded documents (seeded through the API or Swagger), filter/search them, and open/download an original via a signed URL that works from the browser (this is the first end-to-end proof of `S3_PUBLIC_ENDPOINT_URL`).
 
 **Size.** M.
@@ -847,7 +855,7 @@ What a user of the running app sees while Phase 2 is only partly merged:
 | PR-10 | Documents can be downloaded through `GET …/documents/{rdid}/download-url`, still only through the API (Swagger at `/docs`). The URL host is `S3_PUBLIC_ENDPOINT_URL`, so set it to `http://localhost:9000` under Docker Compose for the link to work from a browser. No new dependencies or migrations; rebuild the API image. |
 | PR-11 | Web UI only: the Add Revision form gains Based on and Carry forward, and revisions show lineage. No backend, migration or dependency change; rebuild the web image to pick it up. |
 | PR-11 | Create Revision UI changed; the revision page still shows the placeholder. |
-| PR-12 | Revision page becomes the documents workspace (read-only until PR-13/14). |
+| PR-12 | Web UI only: the revision page becomes the documents workspace (list, filter, open, download; no mutations until PR-13/14). Set `S3_PUBLIC_ENDPOINT_URL=http://localhost:9000` under Docker Compose so signed links work from the browser; rebuild the web image. No backend, migration or dependency change. |
 
 Never merge a PR that requires a later PR to avoid breaking existing flows. After PR-04 and every PR that adds dependencies, rebuild the API image (`docker compose up --build`) and re-run migrations.
 
