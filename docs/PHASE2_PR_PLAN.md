@@ -94,7 +94,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-11](#pr-11--frontend-foundations-and-create-revision-ui) | Frontend foundations and Create Revision UI | Web | M | PR-07 | [x] |
 | [PR-12](#pr-12--revision-documents-workspace-read-side) | Revision documents workspace (read side) | Web | M | PR-10, PR-11 | [x] |
 | [PR-13](#pr-13--multi-file-upload-ui) | Multi-file upload UI | Web | M | PR-08, PR-12 | [x] |
-| [PR-14](#pr-14--document-actions-ui) | Document actions UI | Web | M | PR-09, PR-12 | [ ] |
+| [PR-14](#pr-14--document-actions-ui) | Document actions UI | Web | M | PR-09, PR-12 | [x] |
 | [PR-15](#pr-15--hardening-verification-and-phase-2-completion) | Hardening, verification, and Phase 2 completion | All | M | all | [ ] |
 
 ---
@@ -729,6 +729,15 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - controls hidden/disabled in read-only mode (SUPERSEDED, ARCHIVED, CANCELLED); allowed in PAUSED
 - Unclassified chip filters to `document_type=UNKNOWN`
 
+**Implementation notes (as landed).**
+- Each row has a kebab menu next to Open and Download. An included row in a mutable revision offers Edit details and Remove from this revision; a removed row offers Restore; when `canMutate` is false the only item is View details. The menu never offers a mutation the server would refuse, but the server stays authoritative.
+- `components/document-editor.tsx` is a modal. It sends only the fields the user changed (`changedFields`): text fields are trimmed and a blank one is sent as `null`, the type only when it differs, and nothing else is ever sent. Save stays disabled until something changes. The file facts (name, type, size, SHA-256, uploaded, added, origin with a link to the source revision) are display only. For a removed row or a read-only revision the same dialog opens as view-only with no Save.
+- Remove asks for confirmation with the existing `ConfirmDialog`; Restore does not. Both, and Save, reload the list and show a one-line success message. The workspace status line now has three tones (success, warning, error).
+- Failures share one path in the workspace: a read-only code (`isReadOnlyErrorCode`, now exported from `lib/documents.ts` and used by the upload queue too) shows the message, calls `router.refresh()` and reloads; any other 404/409 shows the message and reloads; anything else (for example a 422 on save) stays inline in the dialog.
+- `components/reuse-document-dialog.tsx` ("Add from another revision", shown only when `canMutate`): pick a source revision of the same project (the current one is excluded), tick included documents, and Add. Documents already in this revision are matched by `document.id` against this revision's rows of every status and are disabled with a reason; a removed one says to restore it from the Removed view. Selections are sent one request at a time with only `source_revision_document_id`, so the server's copy of the source details is used, and each row shows Added or the server's message. If the server answers `document_already_in_revision` for a removed row, the row offers Restore using `existing_revision_document_id` from the 409 body. A read-only 409 stops the batch, marks the unsent rows as not added and goes through the workspace read-only path. Changing the source revision clears the selection.
+- The quick filter chips (All, Uploaded, Inherited, Unclassified, Removed) are presets over the existing Type, Origin and View filters, not extra state: a chip is active when the filters equal its preset, clicking one keeps the typed search, and changing a dropdown by hand updates which chip is active. `SegmentedControl` gained an optional `label` (renders `role="group"`) so the View buttons can be told apart from the chips of the same name.
+- No backend, migration or dependency change. The Edit PATCH goes from the browser to the API, so the same CORS origins as uploads apply.
+
 **Acceptance.** Manual end-to-end walk-through of the §34 scenario entirely in the browser.
 
 **Size.** M.
@@ -865,6 +874,7 @@ What a user of the running app sees while Phase 2 is only partly merged:
 | PR-11 | Create Revision UI changed; the revision page still shows the placeholder. |
 | PR-12 | Web UI only: the revision page becomes the documents workspace (list, filter, open, download; no mutations until PR-13/14). Set `S3_PUBLIC_ENDPOINT_URL=http://localhost:9000` under Docker Compose so signed links work from the browser; rebuild the web image. No backend, migration or dependency change. |
 | PR-13 | Web UI only: upload area on the revision page (drag and drop, up to 3 uploads at once). Uploads go from the browser straight to the API, so `CORS_ORIGINS` must include the origin you open the web app from (`http://localhost:3000` and `http://127.0.0.1:3000` are set by default). Optional `NEXT_PUBLIC_MAX_UPLOAD_BYTES` for the size hint; rebuild the web image. No backend, migration or dependency change. |
+| PR-14 | Web UI only: row menu (edit details, remove, restore), Add from another revision, and quick filter chips on the revision page. Edits are PATCH requests from the browser, so the existing `CORS_ORIGINS` setting applies; rebuild the web image. No backend, migration or dependency change. |
 
 Never merge a PR that requires a later PR to avoid breaking existing flows. After PR-04 and every PR that adds dependencies, rebuild the API image (`docker compose up --build`) and re-run migrations.
 

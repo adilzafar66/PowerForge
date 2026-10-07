@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, type DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { apiErrorOf } from "@/lib/api";
 import {
   canOpenInline,
@@ -17,9 +18,24 @@ type Props = {
   document: RevisionDocument;
   /** Called when the server says the revision or document changed (404 or 409). */
   onStateChanged?: (message: string) => void;
+  /** When false the menu offers View details only. */
+  canMutate?: boolean;
+  onEdit?: (document: RevisionDocument) => void;
+  onRemove?: (document: RevisionDocument) => void;
+  /** Resolves when the restore has finished; errors are reported by the owner. */
+  onRestore?: (document: RevisionDocument) => Promise<void>;
 };
 
-export function DocumentRowActions({ projectId, revisionId, document, onStateChanged }: Props) {
+export function DocumentRowActions({
+  projectId,
+  revisionId,
+  document,
+  onStateChanged,
+  canMutate = false,
+  onEdit,
+  onRemove,
+  onRestore,
+}: Props) {
   const [busy, setBusy] = useState<DownloadDisposition | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +69,35 @@ export function DocumentRowActions({ projectId, revisionId, document, onStateCha
   }
 
   const name = document.document.original_filename;
+  const [restoring, setRestoring] = useState(false);
+  const included = document.status === "INCLUDED";
+
+  const menuItems: DropdownMenuItem[] = [
+    {
+      id: "details",
+      label: canMutate && included ? "Edit details" : "View details",
+      onSelect: () => onEdit?.(document),
+    },
+  ];
+  if (canMutate && included) {
+    menuItems.push({
+      id: "remove",
+      label: "Remove from this revision",
+      destructive: true,
+      separatorBefore: true,
+      onSelect: () => onRemove?.(document),
+    });
+  }
+  if (canMutate && !included) {
+    menuItems.push({
+      id: "restore",
+      label: "Restore",
+      onSelect: () => {
+        setRestoring(true);
+        void (onRestore?.(document) ?? Promise.resolve()).finally(() => setRestoring(false));
+      },
+    });
+  }
 
   return (
     <div className="flex flex-col items-end gap-1">
@@ -79,6 +124,11 @@ export function DocumentRowActions({ projectId, revisionId, document, onStateCha
         >
           {busy === "attachment" ? "Preparing…" : "Download"}
         </Button>
+        <DropdownMenu
+          items={menuItems}
+          label={`Actions for ${name}`}
+          disabled={restoring}
+        />
       </div>
       {error ? (
         <p role="alert" className="max-w-56 text-right text-[11.5px] text-red-600">

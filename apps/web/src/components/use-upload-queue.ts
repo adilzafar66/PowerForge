@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiErrorOf } from "@/lib/api";
 import {
+  isReadOnlyErrorCode,
   uploadDocument,
   validateUploadFile,
   type DocumentType,
@@ -11,8 +12,6 @@ import {
 } from "@/lib/documents";
 
 export const MAX_CONCURRENT_UPLOADS = 3;
-
-const READ_ONLY_CODES = new Set(["revision_read_only", "archived_project", "cancelled_project"]);
 
 export type UploadItemStatus = "queued" | "uploading" | "done" | "failed";
 
@@ -73,7 +72,7 @@ export function useUploadQueue({ projectId, revisionId, onUploaded, onReadOnly }
           return;
         }
         const { code, detail } = apiErrorOf(err);
-        if (code && READ_ONLY_CODES.has(code)) {
+        if (isReadOnlyErrorCode(code)) {
           setItems((current) =>
             current.map((candidate) =>
               candidate.id === item.id || candidate.status === "queued"

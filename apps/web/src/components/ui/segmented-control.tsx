@@ -11,14 +11,21 @@ export function SegmentedControl<T extends string>({
   options,
   onChange,
   className,
+  label,
 }: {
   value: T;
   options: Array<SegmentOption<T>>;
   onChange: (value: T) => void;
   className?: string;
+  /** Names the group for assistive technology and lets tests scope to it. */
+  label?: string;
 }) {
   return (
-    <div className={cn("flex items-center gap-0.5 rounded-lg bg-slate-100 p-0.5", className)}>
+    <div
+      role={label ? "group" : undefined}
+      aria-label={label}
+      className={cn("flex items-center gap-0.5 rounded-lg bg-slate-100 p-0.5", className)}
+    >
       {options.map((option) => {
         const active = value === option.value;
         return (

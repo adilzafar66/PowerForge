@@ -132,6 +132,17 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
+const READ_ONLY_ERROR_CODES: ReadonlySet<string> = new Set([
+  "revision_read_only",
+  "archived_project",
+  "cancelled_project",
+]);
+
+/** True when an API error code means the package can no longer be changed. */
+export function isReadOnlyErrorCode(code: string | null | undefined): boolean {
+  return !!code && READ_ONLY_ERROR_CODES.has(code);
+}
+
 type MutabilityContext = {
   project: Pick<Project, "status">;
   revision: Pick<Revision, "status">;

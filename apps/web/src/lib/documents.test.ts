@@ -6,6 +6,7 @@ import {
   canMutate,
   canOpenInline,
   readOnlyReason,
+  isReadOnlyErrorCode,
   uploadDocument,
   validateUploadFile,
   MAX_UPLOAD_BYTES,
@@ -418,4 +419,17 @@ describe("validateUploadFile", () => {
   it("defaults the size hint to 250 MB", () => {
     expect(MAX_UPLOAD_BYTES).toBe(262_144_000);
   });
+});
+
+describe("isReadOnlyErrorCode", () => {
+  it.each(["revision_read_only", "archived_project", "cancelled_project"])("%s is read-only", (code) => {
+    expect(isReadOnlyErrorCode(code)).toBe(true);
+  });
+
+  it.each(["document_removed", "document_already_in_revision", "file_too_large", "", null, undefined])(
+    "%s is not read-only",
+    (code) => {
+      expect(isReadOnlyErrorCode(code)).toBe(false);
+    },
+  );
 });

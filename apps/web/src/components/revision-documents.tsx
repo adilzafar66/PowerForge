@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { DocumentEditor } from "@/components/document-editor";
 import { DocumentRowActions } from "@/components/document-row-actions";
 import { DocumentUpload } from "@/components/document-upload";
+import { ReuseDocumentDialog } from "@/components/reuse-document-dialog";
 import { Card } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { fieldClassName } from "@/components/ui/input";
 import { SearchField } from "@/components/ui/search-field";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -17,8 +20,11 @@ import {
   DOCUMENT_TYPE_OPTIONS,
   documentTypeLabel,
   formatFileSize,
+  isReadOnlyErrorCode,
   listDocuments,
   originLabel,
+  removeDocument,
+  restoreDocument,
   type DocumentOrigin,
   type DocumentStatusFilter,
   type DocumentType,
@@ -50,6 +56,31 @@ const DEFAULT_FILTERS: Filters = {
   view: "INCLUDED",
 };
 
+type Message = {
+  tone: "success" | "warning" | "error";
+  text: string;
+  /** Warnings say the list was refreshed because the server state had changed. */
+  refreshed?: boolean;
+};
+
+type Preset = Pick<Filters, "type" | "origin" | "view">;
+
+const QUICK_FILTERS: { id: string; label: string; preset: Preset }[] = [
+  { id: "all", label: "All", preset: { type: "", origin: "", view: "INCLUDED" } },
+  { id: "uploaded", label: "Uploaded", preset: { type: "", origin: "UPLOADED", view: "INCLUDED" } },
+  {
+    id: "inherited",
+    label: "Inherited",
+    preset: { type: "", origin: "INHERITED", view: "INCLUDED" },
+  },
+  {
+    id: "unclassified",
+    label: "Unclassified",
+    preset: { type: "UNKNOWN", origin: "", view: "INCLUDED" },
+  },
+  { id: "removed", label: "Removed", preset: { type: "", origin: "", view: "REMOVED" } },
+];
+
 const TH = "px-4 py-3 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase";
 
 export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
@@ -59,7 +90,10 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
   const [items, setItems] = useState<RevisionDocument[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [message, setMessage] = useState<Message | null>(null);
+  const [editing, setEditing] = useState<RevisionDocument | null>(null);
+  const [removing, setRemoving] = useState<RevisionDocument | null>(null);
+  const [reuseOpen, setReuseOpen] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   const latestRequest = useRef(0);
 
@@ -97,7 +131,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
         const { status, detail } = apiErrorOf(err);
         if (status === 404 || status === 409) {
           // The state changed under the user: say so, then refresh once.
-          setNotice(detail);
+          setMessage({ tone: "warning", text: detail, refreshed: true });
           try {
             const result = await listDocuments(projectId, revisionId, query);
             if (isCurrent()) {
@@ -121,27 +155,99 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     void load();
   }, [projectId, revisionId, filters, reloadToken]);
 
-  const refreshAfterChange = useCallback((message: string) => {
-    setNotice(message);
-    setReloadToken((token) => token + 1);
-  }, []);
-
   const reloadList = useCallback(() => setReloadToken((token) => token + 1), []);
 
-  const handleReadOnly = useCallback(
-    (message: string) => {
-      setNotice(message);
-      router.refresh();
-      setReloadToken((token) => token + 1);
+  const refreshAfterChange = useCallback(
+    (text: string) => {
+      setMessage({ tone: "warning", text, refreshed: true });
+      reloadList();
     },
-    [router],
+    [reloadList],
   );
+
+  const handleReadOnly = useCallback(
+    (text: string) => {
+      setMessage({ tone: "warning", text, refreshed: true });
+      router.refresh();
+      reloadList();
+    },
+    [router, reloadList],
+  );
+
+  /** Returns true when the failure was a state change that the page has now handled. */
+  const handleMutationError = useCallback(
+    (err: unknown): boolean => {
+      const { status, code, detail } = apiErrorOf(err);
+      if (isReadOnlyErrorCode(code)) {
+        handleReadOnly(detail);
+        return true;
+      }
+      if (status === 404 || status === 409) {
+        refreshAfterChange(detail);
+        return true;
+      }
+      return false;
+    },
+    [handleReadOnly, refreshAfterChange],
+  );
+
+  const restoreRow = useCallback(
+    async (row: RevisionDocument) => {
+      const name = row.document.original_filename;
+      try {
+        await restoreDocument(projectId, revisionId, row.id);
+        setMessage({ tone: "success", text: `Restored ${name}.` });
+        reloadList();
+      } catch (err) {
+        if (!handleMutationError(err)) {
+          setMessage({ tone: "error", text: apiErrorOf(err).detail });
+        }
+      }
+    },
+    [projectId, revisionId, reloadList, handleMutationError],
+  );
+
+  async function confirmRemove(row: RevisionDocument) {
+    setRemoving(null);
+    const name = row.document.original_filename;
+    try {
+      await removeDocument(projectId, revisionId, row.id);
+      setMessage({ tone: "success", text: `Removed ${name} from this revision.` });
+      reloadList();
+    } catch (err) {
+      if (!handleMutationError(err)) {
+        setMessage({ tone: "error", text: apiErrorOf(err).detail });
+      }
+    }
+  }
+
+  function handleSaved(updated: RevisionDocument) {
+    setEditing(null);
+    setItems((current) =>
+      current ? current.map((item) => (item.id === updated.id ? updated : item)) : current,
+    );
+    setMessage({
+      tone: "success",
+      text: `Saved changes to ${updated.document.original_filename}.`,
+    });
+    reloadList();
+  }
 
   const filtersActive =
     filters.search !== "" ||
     filters.type !== "" ||
     filters.origin !== "" ||
     filters.view !== "INCLUDED";
+
+  function handleReuseChanged(count: number) {
+    if (count > 0) {
+      setMessage({
+        tone: "success",
+        text: `Added ${count} ${count === 1 ? "document" : "documents"} from another revision.`,
+      });
+      reloadList();
+    }
+  }
 
   function clearFilters() {
     setSearchInput("");
@@ -158,6 +264,43 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
           onReadOnly={handleReadOnly}
         />
       ) : null}
+      {canMutate ? (
+        <div className="mb-3 flex justify-end">
+          <Button type="button" variant="secondary" size="sm" onClick={() => setReuseOpen(true)}>
+            Add from another revision
+          </Button>
+        </div>
+      ) : null}
+
+      <div
+        role="group"
+        aria-label="Quick filters"
+        className="mb-3 flex flex-wrap items-center gap-1.5"
+      >
+        {QUICK_FILTERS.map(({ id, label, preset }) => {
+          const active =
+            filters.type === preset.type &&
+            filters.origin === preset.origin &&
+            filters.view === preset.view;
+          return (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={active}
+              onClick={() => setFilters((current) => ({ ...current, ...preset }))}
+              className={cn(
+                "cursor-pointer rounded-full border px-3 py-1 text-[12px] font-semibold transition-colors",
+                active
+                  ? "border-blue-200 bg-blue-50 text-blue-700"
+                  : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700",
+              )}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <SearchField
           value={searchInput}
@@ -198,6 +341,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
           <option value="INHERITED">Inherited</option>
         </select>
         <SegmentedControl
+          label="View"
           value={filters.view}
           onChange={(view) => setFilters({ ...filters, view })}
           options={[
@@ -208,10 +352,53 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
         />
       </div>
 
-      {notice ? (
-        <p role="status" className="mb-3 text-[13px] text-amber-700">
-          {notice} The list has been refreshed.
+      {message ? (
+        <p
+          role={message.tone === "error" ? "alert" : "status"}
+          className={cn(
+            "mb-3 text-[13px]",
+            message.tone === "success" && "text-emerald-700",
+            message.tone === "warning" && "text-amber-700",
+            message.tone === "error" && "text-red-600",
+          )}
+        >
+          {message.text}
+          {message.refreshed ? " The list has been refreshed." : ""}
         </p>
+      ) : null}
+
+      {removing ? (
+        <ConfirmDialog
+          title="Remove document from this revision?"
+          message="It stays in the project and in any other revision that includes it. You can restore it from the Removed view."
+          confirmLabel="Remove"
+          danger
+          onConfirm={() => void confirmRemove(removing)}
+          onCancel={() => setRemoving(null)}
+        />
+      ) : null}
+
+      {reuseOpen ? (
+        <ReuseDocumentDialog
+          projectId={projectId}
+          revisionId={revisionId}
+          onClose={() => setReuseOpen(false)}
+          onChanged={handleReuseChanged}
+          onReadOnly={handleReadOnly}
+        />
+      ) : null}
+
+      {editing ? (
+        <DocumentEditor
+          key={editing.id}
+          projectId={projectId}
+          revisionId={revisionId}
+          document={editing}
+          canMutate={canMutate}
+          onClose={() => setEditing(null)}
+          onSaved={handleSaved}
+          onMutationError={handleMutationError}
+        />
       ) : null}
 
       <Card className="overflow-hidden">
@@ -284,7 +471,11 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
                   first={index === 0}
                   projectId={projectId}
                   revisionId={revisionId}
+                  canMutate={canMutate}
                   onStateChanged={refreshAfterChange}
+                  onEdit={setEditing}
+                  onRemove={setRemoving}
+                  onRestore={restoreRow}
                 />
               ))
             )}
@@ -300,13 +491,21 @@ function DocumentRow({
   first,
   projectId,
   revisionId,
+  canMutate,
   onStateChanged,
+  onEdit,
+  onRemove,
+  onRestore,
 }: {
   row: RevisionDocument;
   first: boolean;
   projectId: string;
   revisionId: string;
+  canMutate: boolean;
   onStateChanged: (message: string) => void;
+  onEdit: (row: RevisionDocument) => void;
+  onRemove: (row: RevisionDocument) => void;
+  onRestore: (row: RevisionDocument) => Promise<void>;
 }) {
   const removed = row.status === "REMOVED";
   return (
@@ -378,7 +577,11 @@ function DocumentRow({
           projectId={projectId}
           revisionId={revisionId}
           document={row}
+          canMutate={canMutate}
           onStateChanged={onStateChanged}
+          onEdit={onEdit}
+          onRemove={onRemove}
+          onRestore={onRestore}
         />
       </td>
     </tr>

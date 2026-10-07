@@ -20,12 +20,24 @@ vi.mock("@/lib/documents", async (importOriginal) => ({
   listDocuments: vi.fn(),
   getDownloadUrl: vi.fn(),
   uploadDocument: vi.fn(),
+  removeDocument: vi.fn(),
+  restoreDocument: vi.fn(),
+  updateDocument: vi.fn(),
+}));
+
+vi.mock("@/lib/projects", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/projects")>()),
+  listRevisions: vi.fn(),
 }));
 
 import { RevisionDocuments } from "@/components/revision-documents";
+import { listRevisions } from "@/lib/projects";
 import {
   getDownloadUrl,
   listDocuments,
+  removeDocument,
+  restoreDocument,
+  updateDocument,
   uploadDocument,
   type RevisionDocument,
 } from "@/lib/documents";
@@ -70,6 +82,10 @@ const download = vi.mocked(getDownloadUrl);
 
 function renderWorkspace(canMutate = false) {
   return render(<RevisionDocuments projectId={P} revisionId={R} canMutate={canMutate} />);
+}
+
+function viewButton(name: string) {
+  return within(screen.getByRole("group", { name: "View" })).getByRole("button", { name });
 }
 
 beforeEach(() => {
@@ -168,11 +184,11 @@ describe("RevisionDocuments filters", () => {
     await waitFor(() =>
       expect(list).toHaveBeenLastCalledWith(P, R, expect.objectContaining({ origin: "INHERITED" })),
     );
-    await user.click(screen.getByRole("button", { name: "Removed" }));
+    await user.click(viewButton("Removed"));
     await waitFor(() =>
       expect(list).toHaveBeenLastCalledWith(P, R, expect.objectContaining({ status: "REMOVED" })),
     );
-    await user.click(screen.getByRole("button", { name: "All" }));
+    await user.click(viewButton("All"));
     await waitFor(() =>
       expect(list).toHaveBeenLastCalledWith(P, R, expect.objectContaining({ status: "ALL" })),
     );
@@ -189,7 +205,7 @@ describe("RevisionDocuments filters", () => {
     expect(await screen.findByText("new.pdf")).toBeInTheDocument();
     expect(list).toHaveBeenCalledWith(P, R, expect.objectContaining({ status: "INCLUDED" }));
 
-    await user.click(screen.getByRole("button", { name: "Removed" }));
+    await user.click(viewButton("Removed"));
     const row = (await screen.findByText("old.pdf")).closest("tr")!;
     expect(within(row).getByText("Removed")).toBeInTheDocument();
     expect(screen.queryByText("new.pdf")).toBeNull();
@@ -221,7 +237,7 @@ describe("RevisionDocuments filters", () => {
     renderWorkspace();
     await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
 
-    await user.click(screen.getByRole("button", { name: "All" }));
+    await user.click(viewButton("All"));
     expect(await screen.findByText("fresh.pdf")).toBeInTheDocument();
 
     await act(async () => {
@@ -374,5 +390,190 @@ describe("RevisionDocuments upload area", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("Revision is superseded.");
     expect(refresh).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+  });
+});
+
+describe("RevisionDocuments quick filters", () => {
+  const chip = (name: string) =>
+    within(screen.getByRole("group", { name: "Quick filters" })).getByRole("button", { name });
+
+  it("marks All as active by default", async () => {
+    renderWorkspace();
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
+    expect(chip("All")).toHaveAttribute("aria-pressed", "true");
+    expect(chip("Removed")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it.each([
+    ["Uploaded", { status: "INCLUDED", origin: "UPLOADED", document_type: "" }],
+    ["Inherited", { status: "INCLUDED", origin: "INHERITED", document_type: "" }],
+    ["Unclassified", { status: "INCLUDED", origin: "", document_type: "UNKNOWN" }],
+    ["Removed", { status: "REMOVED", origin: "", document_type: "" }],
+  ])("%s requests the matching filters and becomes active", async (name, expected) => {
+    const user = userEvent.setup();
+    renderWorkspace();
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
+
+    await user.click(chip(name));
+
+    await waitFor(() =>
+      expect(list).toHaveBeenLastCalledWith(P, R, expect.objectContaining(expected)),
+    );
+    expect(chip(name)).toHaveAttribute("aria-pressed", "true");
+    expect(chip("All")).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("keeps the typed search and tracks manual filter changes", async () => {
+    const user = userEvent.setup();
+    renderWorkspace();
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "sld" } });
+    await user.click(chip("Inherited"));
+    await waitFor(() =>
+      expect(list).toHaveBeenLastCalledWith(
+        P,
+        R,
+        expect.objectContaining({ origin: "INHERITED", search: "sld" }),
+      ),
+    );
+
+    await user.selectOptions(screen.getByLabelText("Origin"), "UPLOADED");
+    expect(chip("Inherited")).toHaveAttribute("aria-pressed", "false");
+    expect(chip("Uploaded")).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+describe("RevisionDocuments row actions", () => {
+  const remove = vi.mocked(removeDocument);
+  const restore = vi.mocked(restoreDocument);
+  const update = vi.mocked(updateDocument);
+
+  async function openMenu(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await user.click(await screen.findByRole("button", { name: `Actions for ${name}` }));
+  }
+
+  it("offers only View details when the revision cannot be changed", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([makeRow({ name: "a.pdf" })]);
+    renderWorkspace(false);
+
+    await openMenu(user, "a.pdf");
+    expect(screen.getByRole("menuitem", { name: "View details" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Remove from this revision" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Edit details" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add from another revision" })).toBeNull();
+  });
+
+  it("offers Edit and Remove for an included row, and Restore for a removed one", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([
+      makeRow({ name: "a.pdf" }),
+      makeRow({ name: "b.pdf", status: "REMOVED" }),
+    ]);
+    renderWorkspace(true);
+
+    await openMenu(user, "a.pdf");
+    expect(screen.getByRole("menuitem", { name: "Edit details" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Remove from this revision" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Restore" })).toBeNull();
+    await user.keyboard("{Escape}");
+
+    await openMenu(user, "b.pdf");
+    expect(screen.getByRole("menuitem", { name: "Restore" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Remove from this revision" })).toBeNull();
+  });
+
+  it("removes only after confirmation and reloads the list", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValueOnce([makeRow({ name: "a.pdf" })]);
+    remove.mockResolvedValue({} as never);
+    renderWorkspace(true);
+
+    await openMenu(user, "a.pdf");
+    await user.click(screen.getByRole("menuitem", { name: "Remove from this revision" }));
+    expect(remove).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toHaveTextContent("Remove document from this revision?");
+
+    list.mockResolvedValueOnce([]);
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+
+    expect(remove).toHaveBeenCalledWith(P, R, "rd-a.pdf");
+    expect(await screen.findByText("No documents in this revision yet.")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Removed a.pdf from this revision.");
+  });
+
+  it("does nothing when the confirmation is cancelled", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([makeRow({ name: "a.pdf" })]);
+    renderWorkspace(true);
+
+    await openMenu(user, "a.pdf");
+    await user.click(screen.getByRole("menuitem", { name: "Remove from this revision" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(remove).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("restores a removed row without confirmation", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([makeRow({ name: "b.pdf", status: "REMOVED" })]);
+    restore.mockResolvedValue({} as never);
+    renderWorkspace(true);
+
+    await openMenu(user, "b.pdf");
+    await user.click(screen.getByRole("menuitem", { name: "Restore" }));
+
+    expect(restore).toHaveBeenCalledWith(P, R, "rd-b.pdf");
+    expect(await screen.findByText("Restored b.pdf.")).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("explains a 409 on remove and refreshes the list", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValueOnce([makeRow({ name: "a.pdf" })]);
+    remove.mockRejectedValue(
+      Object.assign(new Error("Document state changed."), {
+        status: 409,
+        apiError: { code: "document_removed", detail: "Document state changed." },
+      }),
+    );
+    renderWorkspace(true);
+
+    await openMenu(user, "a.pdf");
+    await user.click(screen.getByRole("menuitem", { name: "Remove from this revision" }));
+    list.mockResolvedValueOnce([makeRow({ name: "a.pdf", status: "REMOVED" })]);
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Document state changed.");
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(2));
+  });
+
+  it("saves edited details and reloads the list", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValueOnce([makeRow({ name: "a.pdf" })]);
+    update.mockResolvedValue(makeRow({ name: "a.pdf", document_number: "E-7" }));
+    renderWorkspace(true);
+
+    await openMenu(user, "a.pdf");
+    await user.click(screen.getByRole("menuitem", { name: "Edit details" }));
+    await user.type(screen.getByLabelText("Document number"), "E-7");
+    list.mockResolvedValueOnce([makeRow({ name: "a.pdf", document_number: "E-7" })]);
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    expect(update).toHaveBeenCalledWith(P, R, "rd-a.pdf", { document_number: "E-7" });
+    expect(await screen.findByText("E-7")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Saved changes to a.pdf.");
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("opens the reuse dialog from Add from another revision", async () => {
+    const user = userEvent.setup();
+    vi.mocked(listRevisions).mockResolvedValue([]);
+    renderWorkspace(true);
+
+    await user.click(await screen.findByRole("button", { name: "Add from another revision" }));
+    expect(await screen.findByText("This project has no other revisions.")).toBeInTheDocument();
   });
 });
