@@ -2,13 +2,14 @@
 
 Engineering data extraction platform. Electrical engineers upload project documents; PowerForge extracts structured electrical information, reconciles it across sources, and produces a centralized, traceable engineering model. The engineer remains the final authority.
 
-**Current implemented phase:** Phase 1 — Project & Revision Management  
-**In progress:** Phase 2 — Document Management (specified in [cursor/phase2_specs.txt](cursor/phase2_specs.txt), delivered via [docs/PHASE2_PR_PLAN.md](docs/PHASE2_PR_PLAN.md); implementation not started)  
-**Next:** Phase 3 — Document Processing
+**Current implemented phase:** Phase 2 — Document Management (specified in [cursor/phase2_specs.txt](cursor/phase2_specs.txt), delivered via [docs/PHASE2_PR_PLAN.md](docs/PHASE2_PR_PLAN.md))  
+**Next:** Phase 3 — Document Processing (not started)
 
 Phase status lives in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Do not treat this README or chat history as the source of truth.
 
-The stack does not yet store documents, extract them, call AI models, or integrate ETAP/SKM/EasyPower. Phase 2 will add immutable document storage, revision-scoped document packages, and revision inheritance; see [ADR-004](decisions/ADR-004-document-storage-and-revision-inheritance.md). Phase 0 setup notes remain in [docs/PHASE0_HANDOFF.md](docs/PHASE0_HANDOFF.md).
+Engineers can create projects and revisions, upload PDF and image documents to a revision (stored unchanged in S3-compatible storage, MinIO locally), classify and edit them, remove and restore them per revision, reuse a document from another revision, and have new revisions inherit the previous revision's documents without copying files; see [ADR-004](decisions/ADR-004-document-storage-and-revision-inheritance.md). The stack does not yet read, render or extract the documents, call AI models, or integrate ETAP/SKM/EasyPower. Phase 0 setup notes remain in [docs/PHASE0_HANDOFF.md](docs/PHASE0_HANDOFF.md).
+
+When you run Compose, uploads go from the browser to the API, so `CORS_ORIGINS` must include the origin you open the web app from, and signed download links use `S3_PUBLIC_ENDPOINT_URL` (`http://localhost:9000`); see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#phase-2-configuration-document-storage).
 
 ## Quick start
 

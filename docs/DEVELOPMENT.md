@@ -9,12 +9,12 @@ Phase 1 adds project and revision management. Routes:
 | `/` | Project list |
 | `/projects/new` | Create project |
 | `/projects/[id]` | Project detail and revisions |
-| `/projects/[id]/revisions/[revisionId]` | Revision workspace placeholder |
+| `/projects/[id]/revisions/[revisionId]` | Revision documents workspace (Phase 2) |
 | `/status` | Stack health (API / PostgreSQL / Redis) |
 
 API: `http://localhost:8000/api/projects` (see OpenAPI at `/docs`).
 
-Phase 2 (in progress; see [PROJECT_STATUS.md](PROJECT_STATUS.md)) adds document management. The revision workspace route above becomes the revision documents page, and the API gains `.../revisions/{revisionId}/documents` routes. See [Phase 2 configuration](#phase-2-configuration-document-storage).
+Phase 2 (complete; see [PROJECT_STATUS.md](PROJECT_STATUS.md)) added document management. The revision workspace route above is the revision documents page, and the API has `.../revisions/{revisionId}/documents` routes (list the routes in OpenAPI at `/docs`). See [Phase 2 configuration](#phase-2-configuration-document-storage).
 
 ## Prerequisites
 
@@ -30,7 +30,7 @@ Copy `.env.example` to `.env` in the repository root. The API and workers read `
 
 ## Phase 2 configuration (document storage)
 
-These settings are introduced by Phase 2 and are read through `powerforge_shared.config.Settings`. Existing `S3_*` names are unchanged. They are already listed in `.env.example` and set for the `api` service in `docker-compose.yml`, and they have defaults for local use. `S3_SIGNED_URL_EXPIRES_SECONDS` must be between 1 and 604800; `MAX_UPLOAD_BYTES` and `MAX_IMAGE_PIXELS` must be positive. A blank `S3_PUBLIC_ENDPOINT_URL` counts as unset.
+These settings were introduced by Phase 2 and are read through `powerforge_shared.config.Settings`. Existing `S3_*` names are unchanged. They are already listed in `.env.example` and set for the `api` service in `docker-compose.yml`, and they have defaults for local use. `S3_SIGNED_URL_EXPIRES_SECONDS` must be between 1 and 604800; `MAX_UPLOAD_BYTES` and `MAX_IMAGE_PIXELS` must be positive. A blank `S3_PUBLIC_ENDPOINT_URL` counts as unset.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -41,6 +41,7 @@ These settings are introduced by Phase 2 and are read through `powerforge_shared
 | `S3_SIGNED_URL_EXPIRES_SECONDS` | `900` | Download URL lifetime |
 | `MAX_UPLOAD_BYTES` | `262144000` (250 MB) | Per-file upload limit, enforced while streaming |
 | `MAX_IMAGE_PIXELS` | `600000000` | Image dimension cap checked from the header before decode |
+| `CORS_ORIGINS` | `http://localhost:3000` (`.env.example` and Compose also allow `http://127.0.0.1:3000`) | Comma-separated origins allowed to call the API from the browser. Uploads and edits go straight from the browser to the API, so it must include the origin you open the web app from |
 | `NEXT_PUBLIC_MAX_UPLOAD_BYTES` (web) | `262144000` | Optional. Size hint the upload UI uses to reject oversized files early; set it to the same value as `MAX_UPLOAD_BYTES` if you change that. The API remains authoritative |
 
 Notes:

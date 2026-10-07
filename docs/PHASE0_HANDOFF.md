@@ -2,11 +2,11 @@
 
 Read this before changing code. This file is the continuation context for a new agent or machine. Cursor chat history is **not** in git and will not follow a clone.
 
-**Status:** Phase 0 and Phase 1 are implemented. Full-stack runtime was verified on a second machine (macOS + Colima) on 2026-09-02 (Phase 0). Phase 1 projects/revisions shipped 2026-09-03.
+**Status:** Phase 0, Phase 1 and Phase 2 are implemented. Full-stack runtime was verified on a second machine (macOS + Colima) on 2026-09-02 (Phase 0). Phase 1 projects/revisions shipped 2026-09-03.
 
 Living phase status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
-**Phase 2 (document management):** specified in `cursor/phase2_specs.txt` and [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md); implementation in progress per [PROJECT_STATUS.md](PROJECT_STATUS.md). Do not start Phase 3 as a side effect of Phase 2 work.
+**Phase 2 (document management):** implemented; specified in `cursor/phase2_specs.txt`, decided in [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md) (Accepted), and recorded in [PROJECT_STATUS.md](PROJECT_STATUS.md). Do not start Phase 3 as a side effect of other work.
 
 ## Agent instructions
 
@@ -19,7 +19,7 @@ Living phase status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 Product specification (source of truth for product scope): `cursor/specification.txt`.
 Phase 1 implementation spec: `cursor/phase1_specs.txt` (implemented).  
-Phase 2 implementation spec: `cursor/phase2_specs.txt` (in progress).
+Phase 2 implementation spec: `cursor/phase2_specs.txt` (implemented).
 
 ## Product (one paragraph)
 
@@ -34,7 +34,7 @@ PowerForge ingests electrical engineering documents and produces a centralized, 
 | First published commit | `43c1ce1` (`first commit`) — this handoff may be a later commit |
 | Spec | `cursor/specification.txt` |
 | Phase 1 spec | `cursor/phase1_specs.txt` (implemented) |
-| Phase 2 spec | `cursor/phase2_specs.txt` (in progress) |
+| Phase 2 spec | `cursor/phase2_specs.txt` (implemented) |
 
 ## What Phase 0 delivered
 
@@ -66,14 +66,14 @@ services/validation-worker    Celery heartbeat only
 packages/shared               Settings + JSON logging
 packages/project              ProjectStatus, RevisionStatus, transitions
 packages/engineering-model    EquipmentType, InformationState, VerificationState
-packages/document-model       DocumentClassification
+packages/document-model       Document vocabulary (classification, origin, status, file formats), filename and storage-key rules
 packages/extraction           ExtractionMethod
 packages/topology             NodeKind
 packages/validation           Empty RuleRegistry
 packages/provenance           EvidenceRef (Pydantic contract, no tables)
 packages/ai                   LLMProvider / VisionProvider / OCRProvider Protocols; no vendor SDKs
 packages/ai/prompts           README only; no production prompts
-database/                     Alembic; `0001_enable_extensions` (pgcrypto), `0002_projects_and_revisions`
+database/                     Alembic; `0001_enable_extensions` (pgcrypto), `0002_projects_and_revisions`, `0003_status_before_archive`, `0004_documents_and_lineage`
 .github/workflows/ci.yml      Ruff, Pytest + Postgres/Redis services, Next lint/test/build
 docker-compose.yml            postgres, redis, minio, minio-init, api, web, three workers
 ```
@@ -204,7 +204,7 @@ If `/ready` is still unavailable after Compose is healthy, check API logs for `D
 | Phase | Work |
 | --- | --- |
 | 1 | Projects, revisions, project list at `/` — **complete** |
-| 2 | Upload, object storage usage, document viewer |
+| 2 | Upload, object storage, document management — **complete** (a document viewer in the browser is limited to signed Open/Download links; page rendering is Phase 3) |
 | 3 | PDF processing, OCR, artifacts |
 | 4 | Classification + manual correction |
 | 5 | Equipment entities, attributes, connections, provenance persistence |
@@ -256,4 +256,4 @@ Browser MCP was not available; the status page was checked via the rendered HTML
 
 ## Suggested first message to a new agent
 
-> Read `docs/PROJECT_STATUS.md`, `docs/PHASE0_HANDOFF.md`, and `docs/ARCHITECTURE.md`. Phase 0 and Phase 1 are done. Compose may already be running. Confirm `/ready` is ok. Do not start Phase 2 unless I ask.
+> Read `docs/PROJECT_STATUS.md`, `docs/PHASE0_HANDOFF.md`, and `docs/ARCHITECTURE.md`. Phase 0, Phase 1 and Phase 2 are done. Compose may already be running. Confirm `/ready` is ok. Do not start Phase 3 unless I ask.

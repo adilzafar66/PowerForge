@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import warnings
 
-from sqlalchemy import CheckConstraint, ForeignKeyConstraint, Index, UniqueConstraint
+from sqlalchemy import CheckConstraint, ForeignKeyConstraint, Index, LargeBinary, UniqueConstraint
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm import configure_mappers
 
@@ -97,6 +97,13 @@ def test_revision_document_constraints_and_indexes() -> None:
     table = RevisionDocument.__table__
     assert EXPECTED_REVISION_DOCUMENT_CONSTRAINTS <= _constraint_names(table)
     assert EXPECTED_REVISION_DOCUMENT_INDEXES <= _index_names(table)
+
+
+def test_no_table_can_hold_file_content() -> None:
+    for table in Base.metadata.tables.values():
+        for column in table.columns:
+            assert not isinstance(column.type, LargeBinary), f"{table.name}.{column.name}"
+    assert "storage_key" in Document.__table__.c
 
 
 def test_no_cascading_deletes() -> None:

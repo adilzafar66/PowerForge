@@ -95,7 +95,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-12](#pr-12--revision-documents-workspace-read-side) | Revision documents workspace (read side) | Web | M | PR-10, PR-11 | [x] |
 | [PR-13](#pr-13--multi-file-upload-ui) | Multi-file upload UI | Web | M | PR-08, PR-12 | [x] |
 | [PR-14](#pr-14--document-actions-ui) | Document actions UI | Web | M | PR-09, PR-12 | [x] |
-| [PR-15](#pr-15--hardening-verification-and-phase-2-completion) | Hardening, verification, and Phase 2 completion | All | M | all | [ ] |
+| [PR-15](#pr-15--hardening-verification-and-phase-2-completion) | Hardening, verification, and Phase 2 completion | All | M | all | [x] |
 
 ---
 
@@ -762,6 +762,12 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 
 **Out of scope.** Any Phase 3 work.
 
+**Implementation notes (as landed).**
+- The §30 and §36 audit found one gap (no test that no table can hold file bytes); `test_no_table_can_hold_file_content` was added. Everything else already had named tests; see the re-audit paragraph in section 9.
+- Verified: `ruff`, `pytest` and `RUN_INTEGRATION=1 pytest` (including the real MinIO and migration tests) on a throwaway database, web lint, vitest, `tsc` and `next build`. A clean Compose stack (`down -v`, `up --build`) migrated from empty to `0004`, passed `/ready`, kept the bucket private (anonymous list and object GET refused), ran the §34 scenario over HTTP, served a presigned download from `localhost:9000`, and passed CORS preflights from both web origins. The `0003`-with-data upgrade and downgrade are covered by `tests/test_migration_0004.py`.
+- Not done: a click-through of the web UI in a real browser (including PR-12 signed Open/Download, PR-13 drag-and-drop and PR-14 menus).
+- Docs corrected: README, PHASE0_HANDOFF, ARCHITECTURE (adds the API and web surface), DEVELOPMENT (adds `CORS_ORIGINS`), PROVENANCE, the spec (deviations), ADR-004 (Accepted with amendments) and PROJECT_STATUS (Phase 2 complete, final debt list).
+
 **Acceptance.** Every bullet in spec §36 is demonstrably true; CI green; the handoff report states only commands that were actually run.
 
 **Size.** M (mostly verification and docs).
@@ -871,10 +877,10 @@ What a user of the running app sees while Phase 2 is only partly merged:
 | PR-09 | Documents can now be edited (`PATCH`), removed, restored and reused in another revision, still only through the API (Swagger at `/docs`). No new dependencies or migrations; rebuild the API image to pick up the code. |
 | PR-10 | Documents can be downloaded through `GET …/documents/{rdid}/download-url`, still only through the API (Swagger at `/docs`). The URL host is `S3_PUBLIC_ENDPOINT_URL`, so set it to `http://localhost:9000` under Docker Compose for the link to work from a browser. No new dependencies or migrations; rebuild the API image. |
 | PR-11 | Web UI only: the Add Revision form gains Based on and Carry forward, and revisions show lineage. No backend, migration or dependency change; rebuild the web image to pick it up. |
-| PR-11 | Create Revision UI changed; the revision page still shows the placeholder. |
 | PR-12 | Web UI only: the revision page becomes the documents workspace (list, filter, open, download; no mutations until PR-13/14). Set `S3_PUBLIC_ENDPOINT_URL=http://localhost:9000` under Docker Compose so signed links work from the browser; rebuild the web image. No backend, migration or dependency change. |
 | PR-13 | Web UI only: upload area on the revision page (drag and drop, up to 3 uploads at once). Uploads go from the browser straight to the API, so `CORS_ORIGINS` must include the origin you open the web app from (`http://localhost:3000` and `http://127.0.0.1:3000` are set by default). Optional `NEXT_PUBLIC_MAX_UPLOAD_BYTES` for the size hint; rebuild the web image. No backend, migration or dependency change. |
 | PR-14 | Web UI only: row menu (edit details, remove, restore), Add from another revision, and quick filter chips on the revision page. Edits are PATCH requests from the browser, so the existing `CORS_ORIGINS` setting applies; rebuild the web image. No backend, migration or dependency change. |
+| PR-15 | Docs and one extra test only. After pulling, run `docker compose down -v && docker compose up --build` if you want a clean stack; no migration, dependency or setting changes. |
 
 Never merge a PR that requires a later PR to avoid breaking existing flows. After PR-04 and every PR that adds dependencies, rebuild the API image (`docker compose up --build`) and re-run migrations.
 
@@ -889,7 +895,7 @@ Never merge a PR that requires a later PR to avoid breaking existing flows. Afte
 | Deadlocks from inconsistent lock order | Single documented order (project → revision), centralised in `revision_documents.py`; document mutations take the project lock `FOR SHARE` and never upgrade it (D11); concurrency tests in PR-07/PR-08 |
 | Pillow decoding large TIFFs is slow or memory-hungry | Header-only dimension check before any decode; `verify()` only; no full decode in Phase 2; pixel cap configurable |
 | Large uploads exhaust memory in tests or prod | Spooled temp file; streaming hash; test asserts bounded reads |
-| Presigned URLs unusable from the browser in Docker | `S3_PUBLIC_ENDPOINT_URL`; verified end-to-end in PR-10 (MinIO test), PR-12 (browser), PR-15 (clean stack) |
+| Presigned URLs unusable from the browser in Docker | `S3_PUBLIC_ENDPOINT_URL`; verified in PR-10 (MinIO test) and PR-15 (clean Compose stack, over HTTP); a click-through in a real browser was not performed |
 | Non-ASCII filenames break `Content-Disposition` | RFC 5987 helper and test in PR-05 |
 | Integration tests pollute the dev database | Always use the throwaway DB recipe; never run `RUN_INTEGRATION=1` against `powerforge` |
 | Circular service dependencies | Shared helper module (PR-07); `DocumentService` and `RevisionService` never import each other; import-cycle check in review |
@@ -900,7 +906,7 @@ Never merge a PR that requires a later PR to avoid breaking existing flows. Afte
 
 ## 9. Coverage audit and intentional exclusions
 
-**Audit (2026-10-02).** Every spec section (§1–§38), every test group in spec §30, every bullet of the §36 definition of done, and every constraint/setting/exception name introduced by the spec were checked against the PR scopes and test lists. Gaps found and fixed in this plan: concurrent-duplicate constraint mapping (PR-09), invalid `document_type` form value and CORS preflight tests (PR-08), `uploaded_by`/`added_by` null behavior and the stale OpenAPI description (PR-08), the `integration` marker description (PR-05), and explicit mapping of the "By Document Type" view (PR-12). Re-run this audit in PR-15 against the finished code.
+**Audit (2026-10-02).** Every spec section (§1–§38), every test group in spec §30, every bullet of the §36 definition of done, and every constraint/setting/exception name introduced by the spec were checked against the PR scopes and test lists. Gaps found and fixed in this plan: concurrent-duplicate constraint mapping (PR-09), invalid `document_type` form value and CORS preflight tests (PR-08), `uploaded_by`/`added_by` null behavior and the stale OpenAPI description (PR-08), the `integration` marker description (PR-05), and explicit mapping of the "By Document Type" view (PR-12). **Re-audit in PR-15 (2026-10-06).** Every test group in spec §30 and every §36 bullet was mapped to named tests (backend `tests/`, web `apps/web/src`) or to a manual or live check. One gap was found and closed: nothing asserted that no table can hold file bytes, so `test_no_table_can_hold_file_content` was added (and shown to fail when a binary column is added). The §34 scenario is covered by `tests/test_phase2_workflow.py` and was also run over HTTP against a clean Compose stack. Not covered by automation: a click-through in a real browser (recorded as not performed in PROJECT_STATUS).
 
 **Intentionally not covered by any PR** (documented as debt or non-goals, spec §4 and §32):
 

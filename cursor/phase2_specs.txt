@@ -1348,3 +1348,30 @@ K. Confirmation that Phase 3 functionality was NOT implemented
 L. Suggested commit message
 
 Do not claim tests passed unless they were actually executed successfully.
+
+======================================================================
+DEVIATIONS RECORDED AT COMPLETION (2026-10-06)
+======================================================================
+
+The implementation follows this specification. Where it clarified or
+differs from the text above:
+
+- Conflict responses nest the domain error: {"detail": {"detail": "...",
+  "code": "..."}}. document_already_in_revision also returns
+  existing_revision_document_id and existing_status.
+- A new error DocumentRemoved (409, document_removed) covers editing a
+  REMOVED association and reusing from a REMOVED source association.
+- Reuse accepts a source association from a revision in any status
+  (including SUPERSEDED); the source association itself must be INCLUDED.
+- Section 18 is implemented as a shared project lock: document mutations take
+  FOR SHARE on the project row then FOR UPDATE on the revision row;
+  archive, cancel and activation take FOR UPDATE on the project row.
+- The optional per-batch document type and the reuse dialog's Restore action
+  shipped in the web UI; the web size limit
+  (NEXT_PUBLIC_MAX_UPLOAD_BYTES) is advisory.
+- No paginated lists and no browser end-to-end automation. The section 34
+  scenario is covered by an API test and was re-run over HTTP against a clean
+  Compose stack; a manual click-through in a real browser is recorded as not
+  performed in PROJECT_STATUS.md.
+
+Technical debt is listed in docs/PROJECT_STATUS.md.

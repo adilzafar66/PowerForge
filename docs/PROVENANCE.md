@@ -18,7 +18,7 @@ Original source files are **immutable**. Never overwrite originals. New versions
 
 ## Document identity (Phase 2)
 
-Phase 2 defines what evidence will point at. See [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md).
+Phase 2 defines, and implements, what evidence will point at. See [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md).
 
 - **`Document`** is the immutable artifact: stored object, original filename, size, MIME type, and **SHA-256**. Its `id` is the stable `document_id` that `Evidence` references. Its SHA-256 lets anyone verify that the bytes cited as evidence are the bytes that were uploaded. SHA-256 is not unique: identical bytes uploaded twice are two `Document`s, and provenance records which one was actually used.
 - **`RevisionDocument`** is the revision-scoped interpretation: document type, number, description, notes, origin (`UPLOADED` / `INHERITED`), and `INCLUDED` / `REMOVED` status. It answers "which documents were part of revision N's package, and how were they classified at the time?"

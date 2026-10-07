@@ -2,9 +2,9 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** 1  
-**In progress:** 2 (document management) — specified, implementation not started  
-**Next after that:** 3 (document processing)
+**Current implemented phase:** 2 (document management)  
+**In progress:** none  
+**Next:** 3 (document processing) — not started
 
 ## Phase 0 — Architecture and repository setup
 
@@ -31,13 +31,13 @@ Delivered:
 
 ## Phase 2 — Document management, immutable storage, revision inheritance
 
-**Status:** In progress. Specified and documented (2026-10-01); **implementation has not started**. Do not mark this phase complete until every item in the spec's definition of done is met and the checklist below is checked.
+**Status:** Complete (2026-10-06). Every item in the spec's definition of done (section 36) was checked against named tests or recorded checks in PR-15; the one thing not performed is a click-through of the web UI in a real browser (see "Verification" below).
 
 Implementation spec: `cursor/phase2_specs.txt` (version 2)  
 Delivery plan: [PHASE2_PR_PLAN.md](PHASE2_PR_PLAN.md)  
-Decisions: [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md) (Proposed)
+Decisions: [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md) (Accepted)
 
-Scope:
+Delivered:
 
 - `Document` (immutable uploaded artifact) and `RevisionDocument` (revision-scoped association, metadata, origin, status)
 - Revision lineage (`based_on_revision_id`) and copy-on-write document inheritance with no file copies
@@ -64,24 +64,34 @@ Phase 1 code as of commit `4055d85` plus two then-uncommitted working-tree chang
 
 Integration tests were run against a temporary database (`powerforge_baseline`, since dropped) because the existing integration tests create rows and never clean up; running them against the dev database would add test projects to it. Do the same for Phase 2 runs.
 
-### Delivery plan
+### Delivery
 
-Phase 2 is delivered as 16 sequenced pull requests (PR-00 to PR-15) with scope, tests, acceptance criteria, and spec traceability defined in [PHASE2_PR_PLAN.md](PHASE2_PR_PLAN.md). That document's tracker table is the single source for per-PR progress; update it when a PR merges.
+Phase 2 was delivered as 16 pull requests (PR-00 to PR-15), tracked with scope, tests and spec traceability in [PHASE2_PR_PLAN.md](PHASE2_PR_PLAN.md). Work packages (all done):
 
-| Stage | PRs |
+- [x] PR-00, PR-01: Phase 1 lock fix; specification, ADR-004 and documentation
+- [x] PR-02 to PR-06: document vocabulary and validation, constraint-name IntegrityError mapping, migration `0004` and ORM models, storage abstraction and settings, streaming ingestion and file inspection
+- [x] PR-07: revision lineage and inheritance in one transaction
+- [x] PR-08 to PR-10: upload/list/get, edit/remove/restore/reuse, signed downloads, and the spec section 34 end-to-end test
+- [x] PR-11 to PR-14: web foundations and Create Revision, documents workspace, multi-file upload, document actions
+- [x] PR-15: requirements audit, full verification, documentation correction, ADR-004 accepted
+
+### Verification (PR-15, 2026-10-06)
+
+| Check | Result |
 | --- | --- |
-| Housekeeping and docs | PR-00, PR-01 |
-| Foundations (domain, error mapping, schema, storage, validation) | PR-02 to PR-06 |
-| Revision lineage and inheritance | PR-07 |
-| Document API (upload/list/get, mutations, download) | PR-08 to PR-10 |
-| Frontend (Create Revision, workspace, upload, actions) | PR-11 to PR-14 |
-| Hardening and completion | PR-15 |
+| `ruff check .` | Passed |
+| `pytest` (integration skipped) | 200 passed, 246 skipped |
+| `RUN_INTEGRATION=1 pytest` on a fresh, migrated throwaway database with MinIO running | 446 passed |
+| `npm run lint`, `npx tsc --noEmit`, `npm run build` (`apps/web`) | Clean |
+| `npm test` (`apps/web`) | 172 passed (11 files) |
+| Clean Compose stack (`down -v`, `up --build`) | Migrated from empty to `0004`; `/ready` ok; bucket created and private |
+| Section 34 scenario over HTTP against that stack | Passed, including exactly one stored object per `Document`, read-only superseded revision, and download of a superseded revision's file through a presigned URL from `http://localhost:9000` |
+| Bucket privacy | Anonymous bucket listing and object GET were refused (403) |
+| CORS preflight (`PATCH`, `POST`) from `http://localhost:3000` and `http://127.0.0.1:3000` | Allowed |
+| Upgrade from `0003` with data, and downgrade | Covered by `tests/test_migration_0004.py` (part of the integration run) |
+| Click-through of the web UI in a real browser (signed Open/Download, drag-and-drop upload, row menu, reuse dialog) | **Not performed.** Web behavior is covered by vitest component tests and HTTP checks only |
 
-PRs merged so far: PR-00 and PR-01 (commits `9a42b3b`, `3289937`); PR-02 lands document-domain vocabulary and pure validation; PR-03 lands constraint-name IntegrityError mapping; PR-04 adds migration `0004` and the ORM models (no service or API behavior uses them yet, rebuild the API image after pulling); PR-05 adds the new storage and upload settings, `extra` fields in JSON logs, and the `ObjectStorage` abstraction (in-memory fake and boto3 S3/MinIO implementation) with a non-fatal startup bucket check, and CI now runs MinIO; PR-06 adds streaming upload ingestion (size bound, SHA-256, spooled temp file) and the Pillow-based `FileInspector` (nothing calls them yet, rebuild the API image for `Pillow`); PR-07 records revision lineage (`based_on_revision_id`) and makes new revisions inherit the base revision's included documents in one transaction (there are no documents yet, so nothing is visible beyond the new response fields); PR-08 adds the first document endpoints (`POST`/`GET …/revisions/{rid}/documents` and `GET …/documents/{rdid}`, multipart upload with validation, duplicate detection and project-then-revision locking), and `archive`/`cancel` now lock the project row; rebuild the API image for `python-multipart`; PR-09 adds metadata edit (`PATCH`), `remove`, `restore` and `reuse` endpoints, all through one lock-and-recheck path, with conflict errors `document_already_in_revision` and `document_removed`. PR-10 adds `GET …/documents/{rdid}/download-url` (short-lived signed URL, any revision or project status, `no-store`, error `storage_download_failed`), the spec section 34 end-to-end test and the spec section 30 coverage map, which completes the backend. PR-11 is web only: shared API client plumbing (`lib/api.ts`), the typed documents client (`lib/documents.ts`), the Based on and Carry forward controls on Add Revision with the inherited-document count, and lineage text on revisions. PR-12 is web only: the revision page now shows the documents workspace (search, Type, Origin and Included/Removed/All filters, uploaded vs inherited origin, signed Open and Download, and a read-only banner), seeded through the API or Swagger until PR-13 adds uploads; no backend, migration or dependency change. PR-13 is web only: the revision page has an upload area (drag and drop or choose files, each file its own request, 3 at a time, with progress, per-file results, duplicate warnings, Retry and an optional batch document type); it is hidden when the revision is read-only; no backend, migration or dependency change. PR-14 is web only: each document has a menu to edit its details (type, number, description, notes), remove it from the revision (with confirmation) or restore it, the revision page can add documents from another revision of the project, and quick filter chips (All, Uploaded, Inherited, Unclassified, Removed) sit above the filters; the actions are hidden when the revision is read-only; no backend, migration or dependency change. Phase 2 is complete only when PR-15 has merged and every item in the spec's definition of done (section 36) is demonstrably met.
-
-### Intentional deviations and debt expected from Phase 2
-
-Record the final list here when the phase completes. Known in advance:
+### Intentional deviations and technical debt (final)
 
 - Orphaned storage objects (crash between upload and commit; uploaded-then-removed documents); no garbage collection
 - PDF validation is header-only; images are validated structurally, not fully decoded (a JPEG or TIFF with a valid header but truncated body is accepted; only PNG structure is walked by `verify()`)
@@ -89,16 +99,21 @@ Record the final list here when the phase completes. Known in advance:
 - No document-level audit trail beyond added/removed fields; `uploaded_by`/`added_by`/`removed_by` stay null until authentication exists
 - Phase 1 still allows editing a superseded revision's identifier and description (only the document package is frozen)
 - `RevisionDocument.project_id` is intentionally denormalized to enable database-level same-project enforcement
+- Document lists are not paginated; the reuse dialog loads whole lists
+- Starlette spools an accepted multipart body to a temporary file before the handler runs, so a client that omits or lies about `Content-Length` (for example chunked encoding) can write a full body to temp disk before the streaming cap rejects it; apply a proxy body limit in shared environments
+- The web size limit (`NEXT_PUBLIC_MAX_UPLOAD_BYTES`) is advisory because the API does not publish its limit
+- No browser end-to-end automation (Playwright or similar)
+- Deviations from the spec text are listed at the end of `cursor/phase2_specs.txt`
 
 ## Next — Phase 3: Document processing
 
-Not started and out of scope for Phase 2. Conceptually: PDF/image preprocessing, PDF page generation, page rendering, image normalization, OCR-ready artifacts, and page metadata, built on top of the immutable `Document` produced in Phase 2 and run by `services/document-worker`.
+Not started; nothing for it was implemented in Phase 2. Conceptually: PDF/image preprocessing, PDF page generation, page rendering, image normalization, OCR-ready artifacts, and page metadata, built on top of the immutable `Document` produced in Phase 2 and run by `services/document-worker`.
 
 ## Later phases
 
 | Phase | Work | Status |
 | --- | --- | --- |
-| 2 | Document management | In progress (specified, not implemented) |
+| 2 | Document management | Complete (2026-10-06) |
 | 3 | Document processing | Not started |
 | 4 | Document classification | Not started |
 | 5 | Engineering model persistence | Not started |

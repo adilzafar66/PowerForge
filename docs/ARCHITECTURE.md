@@ -196,7 +196,7 @@ Delivered:
 
 ## Phase 2
 
-Phase 2 is document management and revision inheritance. Specification: `cursor/phase2_specs.txt`. Decision record: [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md). Status (specified, implementation in progress): [PROJECT_STATUS.md](PROJECT_STATUS.md). This section describes the target design; the status file says what is actually implemented.
+Phase 2 is document management and revision inheritance. Specification: `cursor/phase2_specs.txt`. Decision record: [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md). Status: implemented and complete, see [PROJECT_STATUS.md](PROJECT_STATUS.md), which also lists the known debt.
 
 ### Two concepts, deliberately separate
 
@@ -235,6 +235,24 @@ Revision-scoped metadata lives only on `RevisionDocument`, so a superseded revis
 
 No folders. Organization is metadata-driven (document type, origin, status, search). Future virtual views (by equipment) and submission/document packages are possible later and are not designed out, but are not part of Phase 2.
 
+### API and web surface
+
+All document routes are nested under a revision, so a document is always reached through the revision and project that own it (a mismatched id is a 404):
+
+| Method and path (under `/api/projects/{project_id}/revisions/{revision_id}/documents`) | Purpose |
+| --- | --- |
+| `POST` | Upload one file (multipart); duplicates are flagged, not rejected |
+| `GET` | List with `status`, `document_type`, `origin` and `search` filters (no pagination) |
+| `GET /{revision_document_id}` | One association with its `Document` facts |
+| `PATCH /{revision_document_id}` | Edit type, number, description, notes (unknown or immutable fields are 422) |
+| `POST /{revision_document_id}/remove`, `/restore` | Revision-level remove and restore (idempotent) |
+| `POST /reuse` | Add an existing document from another revision of the same project |
+| `GET /{revision_document_id}/download-url` | Short-lived signed URL (`inline` or `attachment`), allowed in any revision or project state |
+
+Revision creation accepts `based_on_revision_id` and `carry_forward_documents`; revision responses expose lineage. Conflicts use the body `{"detail": {"detail": "...", "code": "..."}}`; `document_already_in_revision` also carries `existing_revision_document_id` and `existing_status`.
+
+The web app (`apps/web`) shows the revision page as the documents workspace: filters and quick filter chips, uploaded vs inherited origin, signed Open and Download, multi-file upload (independent requests, three at a time), a row menu for edit, remove and restore, "Add from another revision", and a read-only banner. Mutation controls are hidden when the backend would refuse them.
+
 ### Not in Phase 2
 
 OCR, AI or auto-classification, document pages and rendering, thumbnails, equipment and engineering-model entities, ETAP/SKM/EasyPower. Phase 3 (document processing) builds on `Document`.
@@ -253,4 +271,4 @@ OCR, AI or auto-classification, document pages and rendering, thumbnails, equipm
 - [PROJECT_STATUS.md](PROJECT_STATUS.md) — living phase status
 - [PHASE0_HANDOFF.md](PHASE0_HANDOFF.md) — Phase 0 implementation context and environment notes
 - [ADR-003](../decisions/ADR-003-project-revision-model.md) — project/revision model (Phase 1, accepted)
-- [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md) — document storage and revision inheritance (Phase 2, proposed)
+- [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md) — document storage and revision inheritance (Phase 2, accepted)

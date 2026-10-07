@@ -2,11 +2,11 @@
 
 ## Status
 
-Proposed. Becomes Accepted when Phase 2 implementation is merged. Specification: `cursor/phase2_specs.txt` (version 2).
+Accepted (2026-10-06). Phase 2 is implemented and verified; see [PROJECT_STATUS.md](../docs/PROJECT_STATUS.md). Specification: `cursor/phase2_specs.txt` (version 2).
 
 ## Date
 
-2026-10-01
+2026-10-01 (proposed); accepted 2026-10-06
 
 ## Context
 
@@ -85,6 +85,20 @@ Phase 2 must also leave later phases (page processing, evidence, extraction, the
 - Document lists are not paginated.
 - `uploaded_by`, `added_by`, and `removed_by` stay null until authentication exists, consistent with ADR-003.
 - Lineage means activating a revision based on an older revision supersedes the current ACTIVE revision regardless of ancestry. Phase 1 activation rules are unchanged.
+- Document mutations take a shared lock on the project row, so concurrent uploads to different revisions of one project do not block each other, but archive, cancel and activation wait for them.
+- The browser upload size limit (`NEXT_PUBLIC_MAX_UPLOAD_BYTES`) is advisory because the API does not publish its limit.
+
+## Amendments made during implementation
+
+The decisions above stand. The implementation added or clarified:
+
+- **Project row lock (decision 15).** Document mutations lock the project row `FOR SHARE` before the revision row `FOR UPDATE`; archive and cancel now lock the project row `FOR UPDATE` too, so an upload cannot slip in after a project is closed (plan decision D11).
+- **`DocumentRemoved` (409, `document_removed`).** Editing a `REMOVED` association, or reusing a document from a `REMOVED` source association, is a distinct conflict rather than a reuse of another error.
+- **Conflict body for reuse.** `document_already_in_revision` carries `existing_revision_document_id` and `existing_status`. A document whose association in the target revision is `REMOVED` is never silently restored or duplicated; the client is told to restore the existing association (the unique key `(revision_id, document_id)` keeps that row).
+- **Reuse source.** The source association must be `INCLUDED`; its revision may be in any status (including `SUPERSEDED`), and reuse may be requested with optional metadata overrides.
+- **Error shape.** Domain errors are returned as `{"detail": {"detail": "<message>", "code": "<code>"}}`; request validation errors keep FastAPI's default list under `detail`.
+- **`OTHER`** was added to `DocumentClassification` as decided; `UNKNOWN` is the default and is shown as "Unclassified" in the UI.
+- **Constraint mapping** is by constraint name for projects, revisions, lineage and `revision_documents`; any other constraint is `unexpected_integrity_error` (500).
 
 ## References
 
