@@ -401,7 +401,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
         />
       ) : null}
 
-      <Card className="overflow-hidden">
+      <Card>
         <table className="w-full text-[13.5px]">
           <thead>
             <tr className="border-b border-slate-100">
