@@ -91,7 +91,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-08](#pr-08--document-upload-list-and-get) | Document upload, list, and get | Backend | L | PR-04, PR-05, PR-06, PR-07 | [x] |
 | [PR-09](#pr-09--metadata-remove-restore-and-reuse) | Metadata, remove, restore, and reuse | Backend | M | PR-08 | [x] |
 | [PR-10](#pr-10--download-urls-and-end-to-end-backend-workflow) | Download URLs and end-to-end backend workflow | Backend | M | PR-08, PR-09 | [x] |
-| [PR-11](#pr-11--frontend-foundations-and-create-revision-ui) | Frontend foundations and Create Revision UI | Web | M | PR-07 | [ ] |
+| [PR-11](#pr-11--frontend-foundations-and-create-revision-ui) | Frontend foundations and Create Revision UI | Web | M | PR-07 | [x] |
 | [PR-12](#pr-12--revision-documents-workspace-read-side) | Revision documents workspace (read side) | Web | M | PR-10, PR-11 | [ ] |
 | [PR-13](#pr-13--multi-file-upload-ui) | Multi-file upload UI | Web | M | PR-08, PR-12 | [ ] |
 | [PR-14](#pr-14--document-actions-ui) | Document actions UI | Web | M | PR-09, PR-12 | [ ] |
@@ -622,6 +622,13 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - lineage text renders; existing Phase 1 UI tests unchanged and passing
 - `lib/documents.ts` client functions: URL construction, error parsing (`detail.code`), type label helpers
 
+**Implementation notes (as landed).**
+- `request` and `parseError` moved from `lib/projects.ts` into `lib/api.ts` and are shared with `lib/documents.ts`. `projects.ts` still exports the `ApiError` type. `parseError` now also reads FastAPI's 422 shape (an array of `{msg}`, joined with `; `) and keeps the `existing_revision_document_id` and `existing_status` fields of a `document_already_in_revision` conflict. `apiErrorOf(err)` returns `{ status, code, detail, error }` so components do not cast.
+- `Revision` has required `based_on_revision_id` and `based_on_identifier` (the API always returns them) and an optional `inherited_document_count` that is set only on the create response. The Phase 1 test fixtures gained the two required fields; no assertion changed.
+- Create Revision request rule: a control the user has not touched sends nothing, so the server's defaults apply (ACTIVE base, carry forward on). Choosing a base sends `based_on_revision_id` (a UUID, or an explicit `null` for None, which also sends `carry_forward_documents: false`), even if the user re-selects the ACTIVE revision. Unchecking carry forward sends `false`. Changing the base resets carry forward to its default for that base.
+- "Based on" is a native `<select>` (there is no select primitive in `components/ui`). The success message reports the carried-forward count. Lineage is shown by the shared `components/revision-lineage.tsx` in the revision list (plain text) and in the revision page header (linked to the base revision).
+- `lib/documents.ts` holds the types, the 16 type labels (`UNKNOWN` is "Unclassified"), `formatFileSize`, and the list, get, patch, remove, restore, reuse and download-url clients. `updateDocument` and `reuseDocument` send only the keys the caller passes, so omitted means unchanged and `null` clears a text field. `uploadDocument` (PR-13) and `canMutate` (PR-12) are not part of this PR.
+
 **Acceptance.** `npm run lint`, `npm test`, `npx tsc --noEmit`, `npm run build` pass; manual check against a running stack: create Revision 1 from Revision 0 shows inherited count (documents appear in the workspace after PR-12).
 
 **Size.** M.
@@ -838,6 +845,7 @@ What a user of the running app sees while Phase 2 is only partly merged:
 | PR-08 | Documents can be uploaded only through the API (Swagger at `/docs`). Rebuild the API image (`Pillow`, `python-multipart`; `boto3` arrived in PR-05). `S3_PUBLIC_ENDPOINT_URL` is already set in `.env.example` and compose (PR-05). |
 | PR-09 | Documents can now be edited (`PATCH`), removed, restored and reused in another revision, still only through the API (Swagger at `/docs`). No new dependencies or migrations; rebuild the API image to pick up the code. |
 | PR-10 | Documents can be downloaded through `GET …/documents/{rdid}/download-url`, still only through the API (Swagger at `/docs`). The URL host is `S3_PUBLIC_ENDPOINT_URL`, so set it to `http://localhost:9000` under Docker Compose for the link to work from a browser. No new dependencies or migrations; rebuild the API image. |
+| PR-11 | Web UI only: the Add Revision form gains Based on and Carry forward, and revisions show lineage. No backend, migration or dependency change; rebuild the web image to pick it up. |
 | PR-11 | Create Revision UI changed; the revision page still shows the placeholder. |
 | PR-12 | Revision page becomes the documents workspace (read-only until PR-13/14). |
 

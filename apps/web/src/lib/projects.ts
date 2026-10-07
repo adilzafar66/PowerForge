@@ -1,4 +1,4 @@
-import { apiBaseUrl, apiBaseUrlServer } from "@/lib/health";
+import { request, type ApiError } from "@/lib/api";
 
 export type ProjectStatus = "ACTIVE" | "PAUSED" | "CANCELLED" | "ARCHIVED";
 export type RevisionStatus = "DRAFT" | "ACTIVE" | "SUPERSEDED";
@@ -30,6 +30,10 @@ export type Revision = {
   created_at: string;
   updated_at: string;
   created_by: string | null;
+  based_on_revision_id: string | null;
+  based_on_identifier: string | null;
+  /** Documents inherited at creation. Present only on the create response. */
+  inherited_document_count?: number | null;
 };
 
 export type ProjectCreateInput = {
@@ -51,64 +55,20 @@ export type ProjectUpdateInput = {
   engineer_names?: string[];
 };
 
+/**
+ * Omitted keys are left out of the request body so the server applies its defaults
+ * (ACTIVE revision as base, carry forward on). `based_on_revision_id: null` means
+ * "no base" explicitly, which is different from omitting it.
+ */
 export type RevisionCreateInput = {
   identifier: string;
   description?: string | null;
   activate?: boolean;
+  based_on_revision_id?: string | null;
+  carry_forward_documents?: boolean;
 };
 
-export type ApiError = {
-  detail: string;
-  code?: string;
-};
-
-function resolveBase(server = false): string {
-  return server ? apiBaseUrlServer() : apiBaseUrl();
-}
-
-async function parseError(response: Response): Promise<ApiError> {
-  try {
-    const body = (await response.json()) as {
-      detail?: string | { detail?: string; code?: string };
-    };
-    if (typeof body.detail === "string") {
-      return { detail: body.detail };
-    }
-    if (body.detail && typeof body.detail === "object") {
-      return {
-        detail: body.detail.detail ?? response.statusText,
-        code: body.detail.code,
-      };
-    }
-    return { detail: response.statusText || "Request failed" };
-  } catch {
-    return { detail: response.statusText || "Request failed" };
-  }
-}
-
-async function request<T>(
-  path: string,
-  init?: RequestInit,
-  options?: { server?: boolean },
-): Promise<T> {
-  const base = resolveBase(options?.server);
-  const response = await fetch(`${base}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    const error = await parseError(response);
-    throw Object.assign(new Error(error.detail), { apiError: error, status: response.status });
-  }
-  if (response.status === 204) {
-    return undefined as T;
-  }
-  return (await response.json()) as T;
-}
+export type { ApiError };
 
 export async function listProjects(params?: {
   search?: string;

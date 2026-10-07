@@ -3,6 +3,7 @@ import { ArrowLeft, FileText } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { AppShell } from "@/components/app-shell";
+import { RevisionLineage } from "@/components/revision-lineage";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Card } from "@/components/ui/card";
@@ -46,6 +47,13 @@ export default async function RevisionPlaceholderPage({
                 {revision.description || revision.identifier}
               </h1>
               <p className="mt-1 text-[14px] font-medium text-slate-500">{project.project_name}</p>
+              {revision.based_on_revision_id ? (
+                <RevisionLineage
+                  basedOnIdentifier={revision.based_on_identifier}
+                  href={`/projects/${project.id}/revisions/${revision.based_on_revision_id}`}
+                  className="mt-1 block text-[13px]"
+                />
+              ) : null}
             </div>
             <Link
               href={`/projects/${project.id}`}

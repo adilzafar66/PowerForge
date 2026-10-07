@@ -13,9 +13,10 @@ import { ChipList } from "@/components/ui/chip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DropdownMenu, type DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/field";
-import { Input, Textarea } from "@/components/ui/input";
+import { Input, Textarea, fieldClassName } from "@/components/ui/input";
 import { MetaRow } from "@/components/ui/meta-row";
 import { Mono } from "@/components/ui/mono";
+import { RevisionLineage } from "@/components/revision-lineage";
 import { SectionHeader } from "@/components/ui/section-header";
 import {
   activateRevision,
@@ -27,6 +28,7 @@ import {
   type Project,
   type ProjectStatus,
   type Revision,
+  type RevisionCreateInput,
 } from "@/lib/projects";
 import { REVISION_STATUS_STYLES } from "@/lib/status-styles";
 
@@ -115,10 +117,43 @@ export function ProjectDetail({
     description: "",
     activate: false,
   });
+  // undefined means the user has not chosen, so the server's defaults apply and the key is omitted.
+  const [baseChoice, setBaseChoice] = useState<string | undefined>(undefined);
+  const [carryChoice, setCarryChoice] = useState<boolean | undefined>(undefined);
 
   const archived = project.status === "ARCHIVED";
   const readOnly = archived || project.status === "CANCELLED";
   const activeRevision = revisions.find((item) => item.status === "ACTIVE") ?? null;
+  // "" stands for "None (start fresh)".
+  const selectedBaseId = baseChoice ?? activeRevision?.id ?? "";
+  const selectedBase = revisions.find((item) => item.id === selectedBaseId) ?? null;
+  const carryForward = selectedBase ? (carryChoice ?? true) : false;
+  const baseIsNotActive = selectedBase !== null && selectedBase.id !== activeRevision?.id;
+
+  function resetRevisionForm() {
+    setNewRevision({ identifier: "", description: "", activate: false });
+    setBaseChoice(undefined);
+    setCarryChoice(undefined);
+  }
+
+  function revisionCreateInput(): RevisionCreateInput {
+    const input: RevisionCreateInput = {
+      identifier: newRevision.identifier.trim(),
+      description: emptyToNull(newRevision.description),
+      activate: newRevision.activate,
+    };
+    if (baseChoice !== undefined) {
+      input.based_on_revision_id = baseChoice === "" ? null : baseChoice;
+    }
+    if (selectedBase === null) {
+      if (baseChoice !== undefined) {
+        input.carry_forward_documents = false;
+      }
+    } else if (carryChoice !== undefined) {
+      input.carry_forward_documents = carryChoice;
+    }
+    return input;
+  }
 
   function canActivate(revision: Revision): boolean {
     if (readOnly || revision.status !== "DRAFT") {
@@ -180,11 +215,7 @@ export function ProjectDetail({
     setError(null);
     setMessage(null);
     try {
-      const revision = await createRevision(project.id, {
-        identifier: newRevision.identifier.trim(),
-        description: emptyToNull(newRevision.description),
-        activate: newRevision.activate,
-      });
+      const revision = await createRevision(project.id, revisionCreateInput());
       setRevisions((current) => {
         const next = current.map((item) =>
           revision.status === "ACTIVE" && item.status === "ACTIVE"
@@ -199,8 +230,15 @@ export function ProjectDetail({
           active_revision_identifier: revision.identifier,
         }));
       }
-      setMessage(`Revision ${revision.identifier} created.`);
-      setNewRevision({ identifier: "", description: "", activate: false });
+      const inherited = revision.inherited_document_count ?? 0;
+      setMessage(
+        inherited > 0
+          ? `Revision ${revision.identifier} created. ${inherited} ${
+              inherited === 1 ? "document" : "documents"
+            } carried forward.`
+          : `Revision ${revision.identifier} created.`,
+      );
+      resetRevisionForm();
       setShowAddRevision(false);
       router.refresh();
     } catch (err) {
@@ -460,6 +498,41 @@ export function ProjectDetail({
                     />
                   </Field>
                 </div>
+                <Field id="base-revision" label="Based on">
+                  <select
+                    id="base-revision"
+                    className={fieldClassName}
+                    value={selectedBaseId}
+                    onChange={(event) => {
+                      setBaseChoice(event.target.value);
+                      setCarryChoice(undefined);
+                    }}
+                  >
+                    <option value="">None (start fresh)</option>
+                    {revisions.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {`Revision ${item.identifier} (${REVISION_STATUS_STYLES[item.status].label})`}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                {baseIsNotActive ? (
+                  <p className="text-[12px] text-slate-500">
+                    Based on a revision other than the active one.
+                  </p>
+                ) : null}
+                <label className="flex items-center gap-2 text-[13px] text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={carryForward}
+                    disabled={selectedBase === null}
+                    onChange={(event) => setCarryChoice(event.target.checked)}
+                    className="rounded border-slate-300"
+                  />
+                  {selectedBase
+                    ? `Carry forward documents from Revision ${selectedBase.identifier}`
+                    : "Carry forward documents"}
+                </label>
                 <label className="flex items-center gap-2 text-[13px] text-slate-700">
                   <input
                     type="checkbox"
@@ -479,7 +552,10 @@ export function ProjectDetail({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowAddRevision(false)}
+                    onClick={() => {
+                      resetRevisionForm();
+                      setShowAddRevision(false);
+                    }}
                   >
                     Cancel
                   </Button>
@@ -545,6 +621,10 @@ export function ProjectDetail({
                         >
                           {revision.description || revision.identifier}
                         </Link>
+                        <RevisionLineage
+                          basedOnIdentifier={revision.based_on_identifier}
+                          className="mt-0.5 block"
+                        />
                       </td>
                       <td className="px-4 py-3">
                         <Badge status={revision.status} kind="revision" />
