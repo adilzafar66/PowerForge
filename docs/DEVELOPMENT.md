@@ -148,7 +148,7 @@ RUN_INTEGRATION=1 pytest
 docker exec powerforge-postgres-1 psql -U powerforge -d postgres -c "DROP DATABASE powerforge_test;"
 ```
 
-Most Phase 2 tests use the in-memory `ObjectStorage` fake (the `object_storage` fixture in `tests/conftest.py`), so they need no MinIO. The real-storage cases in `tests/test_storage.py` are marked `integration` and additionally need MinIO (`docker compose up minio minio-init -d`). They create a scratch bucket (`powerforge-test-<hex>`) and remove it at the end of the session. If MinIO is unreachable they skip locally, but fail when the `CI` environment variable is set so CI cannot skip them silently.
+Most Phase 2 tests use the in-memory `ObjectStorage` fake (the `object_storage` fixture in `tests/conftest.py`), so they need no MinIO. The real-storage cases in `tests/test_storage.py` and the signed-download case in `tests/test_documents_download_api.py` (which uploads through the API and fetches the bytes through the returned URL) are marked `integration` and additionally need MinIO (`docker compose up minio minio-init -d`). They create a scratch bucket (`powerforge-test-<hex>`) and remove it at the end of the session. If MinIO is unreachable they skip locally, but fail when the `CI` environment variable is set so CI cannot skip them silently.
 
 ## CI
 

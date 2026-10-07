@@ -90,7 +90,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-07](#pr-07--revision-lineage-and-document-inheritance) | Revision lineage and document inheritance | Backend | L | PR-03, PR-04 | [x] |
 | [PR-08](#pr-08--document-upload-list-and-get) | Document upload, list, and get | Backend | L | PR-04, PR-05, PR-06, PR-07 | [x] |
 | [PR-09](#pr-09--metadata-remove-restore-and-reuse) | Metadata, remove, restore, and reuse | Backend | M | PR-08 | [x] |
-| [PR-10](#pr-10--download-urls-and-end-to-end-backend-workflow) | Download URLs and end-to-end backend workflow | Backend | M | PR-08, PR-09 | [ ] |
+| [PR-10](#pr-10--download-urls-and-end-to-end-backend-workflow) | Download URLs and end-to-end backend workflow | Backend | M | PR-08, PR-09 | [x] |
 | [PR-11](#pr-11--frontend-foundations-and-create-revision-ui) | Frontend foundations and Create Revision UI | Web | M | PR-07 | [ ] |
 | [PR-12](#pr-12--revision-documents-workspace-read-side) | Revision documents workspace (read side) | Web | M | PR-10, PR-11 | [ ] |
 | [PR-13](#pr-13--multi-file-upload-ui) | Multi-file upload UI | Web | M | PR-08, PR-12 | [ ] |
@@ -561,6 +561,41 @@ If work is parallelized: PR-02, PR-03, PR-05 are independent; PR-11 can start as
 - **End-to-end workflow test (§34):** create project P-100 → Revision 0 (no base, empty) → upload three PDFs → activate → create Revision 1 with defaults (3 inherited, same `Document` ids, zero storage copies) → upload `SLD_RevB.pdf` → remove inherited `SLD_RevA.pdf` → activate Revision 1 → Revision 0 superseded and read-only (upload/edit/remove/restore → 409; list/download OK); Revision 0's rows unchanged throughout
 - Run the complete spec §30 checklist against the suite and record any gap in the PR description.
 
+**Implementation notes (as landed).**
+- `GET …/documents/{rdid}/download-url?disposition=attachment|inline` returns `{url, expires_at, filename}`. `disposition` is the storage layer's `DispositionType` literal, so anything else is a 422 before anything is signed. The response carries `Cache-Control: no-store`.
+- It is a pure read: no locks, no writes, no mutability check, so it works for INCLUDED and REMOVED rows in every revision and project status. A test captures the SQL and asserts there is no `INSERT`/`UPDATE`/`DELETE` and no `FOR SHARE`/`FOR UPDATE`.
+- Error order is project/revision 404, then association 404. The `Document` is reached only through the association join, which also enforces `Document.project_id == RevisionDocument.project_id`. The storage key is never in any response except inside the signed URL itself.
+- A signing failure is 502 `storage_download_failed` (new `StorageDownloadFailed`), with only the error class logged. No object-exists check is made when issuing a URL (signing is local; a missing object shows up as a storage 404 on the URL).
+- The backend does not block `inline` for TIFF; hiding it is a UI rule (PR-12).
+- The log event `document download url issued` carries ids, `disposition` and `expires_seconds` only. The URL, filename and storage key are never logged (the JSON formatter also redacts any extra key containing `url`).
+- Tests: `tests/test_documents_download_api.py` (includes a real-MinIO case that fetches the bytes through the signed URL, checks the signed headers and the `S3_PUBLIC_ENDPOINT_URL` host, and confirms an unsigned or tampered request gets 403) and `tests/test_phase2_workflow.py` (spec §34, step by step). The `s3_scratch_storage` fixture moved from `tests/test_storage.py` to `tests/conftest.py` so both suites share it.
+- One gap found while mapping §30 and closed here: list ownership (`test_list_enforces_ownership`).
+
+**Spec §30 coverage map (backend).** Every item has a named test; no open gaps.
+
+| §30 item | Tests |
+| --- | --- |
+| Valid PDF/PNG/JPEG/TIFF accepted; mime from content; browser type ignored | `test_documents_api.py::test_valid_upload_stores_object_and_records`, `test_file_validation.py::test_valid_files_are_accepted_with_mime_derived_from_content`, `::test_browser_content_type_is_not_an_input`, `test_documents_download_api.py::test_the_browser_content_type_is_not_used_for_the_signed_content_type` |
+| Unsupported extension, renamed executable, fake or mismatched content, empty file | `test_file_validation.py::test_unsupported_extension_is_rejected_before_the_body_is_read`, `::test_invalid_or_mismatched_content_is_rejected`, `::test_empty_file_is_rejected`, `test_documents_api.py::test_rejected_files_leave_nothing_behind` |
+| Oversize (413) enforced while streaming; pixel cap | `test_documents_api.py::test_oversize_file_is_rejected_while_streaming`, `::test_file_at_the_limit_is_accepted`, `::test_oversize_content_length_is_rejected_before_the_body_is_read`, `::test_image_over_the_pixel_cap_is_rejected`, `test_file_validation.py::test_oversize_upload_stops_reading_early`, `::test_pixel_cap_is_enforced_from_the_header_without_decoding` |
+| Filename sanitization | `test_document_domain.py::test_sanitize_*`, `test_file_validation.py::test_filename_is_sanitized_and_never_part_of_a_storage_key` |
+| SHA-256, metadata, stable storage key, UPLOADED/INCLUDED row | `test_documents_api.py::test_valid_upload_stores_object_and_records`, `test_file_validation.py::test_hash_size_and_rewind_over_multiple_chunks`, `test_document_domain.py::test_build_storage_key_exact_format` |
+| Duplicates flagged, allowed, new Document, REMOVED included | `test_documents_api.py::test_duplicate_content_is_flagged_but_never_rejected_or_merged`, `::test_duplicate_is_detected_across_revisions_and_removed_documents`, `::test_identical_content_in_another_project_is_not_a_duplicate` |
+| Ownership and cross-project on every route | upload and get: `test_documents_api.py::test_ownership_failures_are_404_and_touch_no_storage`, `::test_get_returns_one_document_and_enforces_ownership`; list: `::test_list_enforces_ownership`; patch, remove, restore, reuse: the ownership and cross-project cases in `test_documents_mutations_api.py`; download: `test_documents_download_api.py::test_the_association_must_belong_to_the_given_revision`, `::test_another_projects_ids_never_yield_a_url`, `::test_unknown_ids_are_not_found_with_the_right_codes` |
+| Cross-project reuse rejected; composite FKs reject direct inserts | `test_documents_mutations_api.py` (cross-project reuse and `fk_revision_documents_document`), `test_phase2_constraints.py::TestRevisionLineage`, `::TestRevisionDocuments::test_cross_project_*` |
+| Lineage and inheritance matrix, snapshot, atomicity, activate with carry-forward | `test_revision_lineage_api.py` (all), `test_phase2_workflow.py` |
+| Mutability matrix, PAUSED allowed, re-check under lock | `test_documents_api.py::test_draft_active_and_paused_accept_uploads`, `::test_superseded_revision_is_read_only`, `::test_cancelled_and_archived_projects_reject_uploads`, `::test_status_flipped_during_the_object_write_is_caught_under_lock`, the mutability matrix and flip tests in `test_documents_mutations_api.py`, `test_revision_documents.py::test_assert_documents_mutable_matrix` |
+| Remove, restore, idempotence, edit of REMOVED, reuse conflicts | `test_documents_mutations_api.py` |
+| Metadata editable; unknown or immutable fields 422 | `test_documents_mutations_api.py` (metadata cases) |
+| Storage failure, DB failure after put, cleanup failure, put never overwrites | `test_documents_api.py::test_storage_failure_is_502_without_leaking_sdk_text`, `::test_database_failure_after_the_write_removes_the_object`, `::test_failed_cleanup_is_logged_and_does_not_mask_the_original_error`, `test_storage.py::TestContract::test_put_to_existing_key_is_refused_and_original_preserved`, `::TestS3Specific::test_conditional_put_header_is_enforced_by_the_server` |
+| Download: URL with expiry, filename, disposition | `test_documents_download_api.py` (URL, disposition, expiry tests and the MinIO case) |
+| Download: REMOVED and superseded allowed; wrong revision or project rejected | `test_documents_download_api.py::test_a_removed_association_can_still_be_downloaded`, `::test_history_is_downloadable_in_every_revision_and_project_state`, the scoping tests, `test_phase2_workflow.py` |
+| URLs not logged | `test_documents_download_api.py::test_the_log_records_the_event_but_never_the_url_filename_or_key`, `test_logging.py` (redaction) |
+| Error mapping: non-identifier IntegrityErrors; each §23 constraint | `test_integrity_error_mapping.py` (all), `test_revision_lineage_api.py::test_lineage_constraint_violations_map_to_invalid_base_revision`, `test_documents_mutations_api.py` (unique-constraint backstop and unrelated constraint to 500) |
+| Migration: fresh, from 0003 with data, downgrade | `test_migration_0004.py` |
+| Real MinIO: put/get/exists/delete and presigned retrieval | `test_storage.py` (contract run against S3, `TestS3Specific`), `test_documents_download_api.py::test_the_signed_url_serves_the_bytes_from_real_object_storage` |
+| Phase 1 tests continue to pass | `test_projects_api.py`, `test_project_domain.py`, `test_domain.py`, `test_health.py` and the rest of the suite |
+
 **Acceptance.** Backend feature-complete per spec §§5–24; OpenAPI exposes all routes with response models; every item in spec §30 (backend) maps to a named test.
 
 **Size.** M.
@@ -802,6 +837,7 @@ What a user of the running app sees while Phase 2 is only partly merged:
 | PR-07 | Creating a revision **without** sending `based_on_revision_id` now defaults to the ACTIVE revision as base and carries forward its (currently empty) document set. Visible change: revisions record lineage, and revision responses gain `based_on_revision_id`, `based_on_identifier` and (on create only) `inherited_document_count`. Old UI keeps working. No new dependencies; rebuild the API image to pick up the code. |
 | PR-08 | Documents can be uploaded only through the API (Swagger at `/docs`). Rebuild the API image (`Pillow`, `python-multipart`; `boto3` arrived in PR-05). `S3_PUBLIC_ENDPOINT_URL` is already set in `.env.example` and compose (PR-05). |
 | PR-09 | Documents can now be edited (`PATCH`), removed, restored and reused in another revision, still only through the API (Swagger at `/docs`). No new dependencies or migrations; rebuild the API image to pick up the code. |
+| PR-10 | Documents can be downloaded through `GET …/documents/{rdid}/download-url`, still only through the API (Swagger at `/docs`). The URL host is `S3_PUBLIC_ENDPOINT_URL`, so set it to `http://localhost:9000` under Docker Compose for the link to work from a browser. No new dependencies or migrations; rebuild the API image. |
 | PR-11 | Create Revision UI changed; the revision page still shows the placeholder. |
 | PR-12 | Revision page becomes the documents workspace (read-only until PR-13/14). |
 

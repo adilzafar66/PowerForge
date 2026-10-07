@@ -89,6 +89,10 @@ class StorageUploadFailed(ProjectError):
     code = "storage_upload_failed"
 
 
+class StorageDownloadFailed(ProjectError):
+    code = "storage_download_failed"
+
+
 class DocumentAlreadyInRevision(ProjectError):
     """The target revision already holds an association for this Document.
 

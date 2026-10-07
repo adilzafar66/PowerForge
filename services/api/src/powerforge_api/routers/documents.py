@@ -19,6 +19,7 @@ from powerforge_api.schemas.documents import (
     MAX_DOCUMENT_NUMBER_LENGTH,
     MAX_NOTES_LENGTH,
     DocumentStatusFilter,
+    DownloadUrlResponse,
     ReuseDocumentRequest,
     RevisionDocumentListResponse,
     RevisionDocumentResponse,
@@ -26,7 +27,7 @@ from powerforge_api.schemas.documents import (
     UploadResponse,
 )
 from powerforge_api.services.document_service import DocumentService, UploadMetadata
-from powerforge_api.storage.base import ObjectStorage
+from powerforge_api.storage.base import DispositionType, ObjectStorage
 from powerforge_api.storage.factory import get_object_storage
 from powerforge_document_model import DocumentClassification, DocumentOrigin
 from powerforge_shared.config import Settings, get_settings
@@ -173,6 +174,35 @@ def get_document(
         return service.get_document(project_id, revision_id, revision_document_id)
     except ProjectError as exc:
         raise http_for(exc) from exc
+
+
+@router.get(
+    "/{revision_document_id}/download-url",
+    response_model=DownloadUrlResponse,
+    summary="Get a short-lived signed URL for the original file",
+)
+def download_url(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    response: Response,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+    disposition: Annotated[
+        DispositionType,
+        Query(description="attachment (default) downloads; inline lets the browser display it"),
+    ] = "attachment",
+) -> DownloadUrlResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        result = service.create_download_url(
+            project_id, revision_id, revision_document_id, disposition
+        )
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+    response.headers["Cache-Control"] = "no-store"
+    return result
 
 
 @router.post(

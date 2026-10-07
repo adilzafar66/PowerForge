@@ -600,6 +600,22 @@ def test_get_returns_one_document_and_enforces_ownership(ctx: dict[str, Any]) ->
         assert (response.status_code, code(response)) == (404, error)
 
 
+def test_list_enforces_ownership(ctx: dict[str, Any]) -> None:
+    pid, rid = ctx["project_id"], ctx["revision_id"]
+    upload(pid, rid)
+    other_project = make_project()
+    foreign_revision = make_revision(other_project, "0").json()["id"]
+
+    assert client.get(docs_url(pid, rid)).status_code == 200
+    for response, error in [
+        (client.get(docs_url(other_project, rid)), "revision_project_mismatch"),
+        (client.get(docs_url(pid, foreign_revision)), "revision_project_mismatch"),
+        (client.get(docs_url(pid, uuid.uuid4())), "revision_not_found"),
+        (client.get(docs_url(uuid.uuid4(), rid)), "project_not_found"),
+    ]:
+        assert (response.status_code, code(response)) == (404, error)
+
+
 def test_reads_work_in_archived_projects(ctx: dict[str, Any]) -> None:
     created = upload(ctx["project_id"], ctx["revision_id"]).json()
     client.post(f"/api/projects/{ctx['project_id']}/archive")

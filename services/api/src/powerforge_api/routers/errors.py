@@ -25,6 +25,7 @@ from powerforge_api.exceptions import (
     RevisionNotFound,
     RevisionProjectMismatch,
     RevisionReadOnly,
+    StorageDownloadFailed,
     StorageUploadFailed,
     UnexpectedIntegrityError,
     UnsupportedDocumentType,
@@ -65,7 +66,7 @@ def http_for(exc: ProjectError) -> HTTPException:
         status_code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
     elif isinstance(exc, InvalidRevisionIdentifier | InvalidBaseRevision | InvalidFileContent):
         status_code = _UNPROCESSABLE
-    elif isinstance(exc, StorageUploadFailed):
+    elif isinstance(exc, StorageUploadFailed | StorageDownloadFailed):
         status_code = status.HTTP_502_BAD_GATEWAY
     elif isinstance(exc, UnexpectedIntegrityError):
         status_code = status.HTTP_500_INTERNAL_SERVER_ERROR

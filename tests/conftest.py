@@ -49,6 +49,49 @@ def use_storage() -> Iterator[Callable[[InMemoryObjectStorage], InMemoryObjectSt
     app.dependency_overrides.pop(get_object_storage, None)
 
 
+@pytest.fixture(scope="session")
+def s3_scratch_storage() -> Iterator[Any]:
+    """A real S3ObjectStorage on a throwaway bucket (integration; needs MinIO).
+
+    When MinIO is unreachable this skips locally and fails under CI, so a broken CI
+    service cannot hide behind a silent skip.
+    """
+    import uuid
+
+    from powerforge_api.storage import StorageError
+    from powerforge_api.storage.s3 import S3ObjectStorage
+    from powerforge_shared.config import get_settings
+
+    if os.environ.get("RUN_INTEGRATION") != "1":
+        pytest.skip("Set RUN_INTEGRATION=1 to run live storage tests.")
+    settings = get_settings()
+    storage = S3ObjectStorage(
+        endpoint_url=settings.s3_endpoint_url,
+        public_endpoint_url=settings.s3_public_endpoint(),
+        access_key=settings.s3_access_key,
+        secret_key=settings.s3_secret_key,
+        bucket=f"powerforge-test-{uuid.uuid4().hex[:10]}",
+        region=settings.s3_region,
+    )
+    try:
+        storage.ensure_bucket()
+    except StorageError as exc:
+        message = f"Object storage is not reachable at {settings.s3_endpoint_url}"
+        if os.environ.get("CI"):
+            pytest.fail(message, pytrace=False)
+        pytest.skip(message)
+        raise AssertionError from exc
+    try:
+        yield storage
+    finally:
+        client = storage._client
+        paginator = client.get_paginator("list_objects_v2")
+        for page in paginator.paginate(Bucket=storage.bucket):
+            for item in page.get("Contents", []):
+                client.delete_object(Bucket=storage.bucket, Key=item["Key"])
+        client.delete_bucket(Bucket=storage.bucket)
+
+
 @pytest.fixture
 def ctx(require_db: None, use_storage: Any) -> dict[str, Any]:
     """A fresh project with ACTIVE revision "0" and a clean in-memory storage."""

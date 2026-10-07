@@ -91,7 +91,7 @@ If the storage upload fails, no database rows are created. If the database step 
 
 **Revisions.** New revisions normally inherit the base revision's `INCLUDED` documents as `INHERITED` associations to the same `Document`; no files are copied. Documents can be removed from and restored to a revision, their metadata edited, and an existing project document reused in another revision (implemented in PR-09: `PATCH …/documents/{id}`, `POST …/documents/{id}/remove`, `…/restore` and `POST …/documents/reuse`). Removing never deletes the file or the `Document`. Superseded revisions' packages are read-only.
 
-**Download.** `GET …/revisions/{rid}/documents/{rdid}/download-url` returns a short-lived presigned URL (default 15 minutes) with the original filename and stored content type. There is no unscoped document route.
+**Download.** `GET …/revisions/{rid}/documents/{rdid}/download-url` returns `{url, expires_at, filename}`: a short-lived presigned URL (default 15 minutes, `S3_SIGNED_URL_EXPIRES_SECONDS`) that sets the sanitized original filename and the stored content type. `?disposition=attachment|inline` (default `attachment`; anything else is a 422). It works for INCLUDED and REMOVED documents in every revision and project status, takes no locks, and the response is `Cache-Control: no-store`. A wrong revision or project is a 404; a signing failure is a 502 `storage_download_failed`. The URL, filename and storage key are never logged, and the API never proxies file bytes. There is no unscoped document route.
 
 **Classification.** Manual only: the engineer sets the document type on the `RevisionDocument`. No folders, OCR, page generation, thumbnails, or AI are part of this phase.
 

@@ -7,9 +7,7 @@ skip locally and fail under CI, so a broken CI service cannot hide behind a sile
 from __future__ import annotations
 
 import io
-import os
 import uuid
-from collections.abc import Iterator
 
 import httpx
 import pytest
@@ -30,38 +28,6 @@ PDF = b"%PDF-1.7\nbody"
 
 def new_key(extension: str = ".pdf") -> str:
     return f"projects/{uuid.uuid4()}/documents/{uuid.uuid4()}/original{extension}"
-
-
-@pytest.fixture(scope="session")
-def s3_scratch_storage() -> Iterator[S3ObjectStorage]:
-    if os.environ.get("RUN_INTEGRATION") != "1":
-        pytest.skip("Set RUN_INTEGRATION=1 to run live storage tests.")
-    settings = get_settings()
-    storage = S3ObjectStorage(
-        endpoint_url=settings.s3_endpoint_url,
-        public_endpoint_url=settings.s3_public_endpoint(),
-        access_key=settings.s3_access_key,
-        secret_key=settings.s3_secret_key,
-        bucket=f"powerforge-test-{uuid.uuid4().hex[:10]}",
-        region=settings.s3_region,
-    )
-    try:
-        storage.ensure_bucket()
-    except StorageError as exc:
-        message = f"Object storage is not reachable at {settings.s3_endpoint_url}"
-        if os.environ.get("CI"):
-            pytest.fail(message, pytrace=False)
-        pytest.skip(message)
-        raise AssertionError from exc
-    try:
-        yield storage
-    finally:
-        client = storage._client
-        paginator = client.get_paginator("list_objects_v2")
-        for page in paginator.paginate(Bucket=storage.bucket):
-            for item in page.get("Contents", []):
-                client.delete_object(Bucket=storage.bucket, Key=item["Key"])
-        client.delete_bucket(Bucket=storage.bucket)
 
 
 @pytest.fixture(params=["memory", pytest.param("s3", marks=pytest.mark.integration)])

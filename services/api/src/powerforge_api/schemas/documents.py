@@ -101,6 +101,14 @@ class ReuseDocumentRequest(_MetadataFields):
     source_revision_document_id: UUID
 
 
+class DownloadUrlResponse(BaseModel):
+    """A short-lived signed URL; the bytes are served by object storage, not the API."""
+
+    url: str
+    expires_at: datetime
+    filename: str
+
+
 class UploadResponse(RevisionDocumentResponse):
     duplicate_detected: bool = False
     duplicate_document_ids: list[UUID] = Field(default_factory=list)

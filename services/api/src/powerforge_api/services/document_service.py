@@ -1,4 +1,4 @@
-"""Upload, list and get for revision documents.
+"""Upload, list, get, edit, remove, restore, reuse and download links for revision documents.
 
 Locking follows decision D11: a mutation holds the project row FOR SHARE, then the
 revision row FOR UPDATE, then re-checks mutability. It never upgrades its project
@@ -12,7 +12,7 @@ import logging
 import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, BinaryIO
 
 from sqlalchemy import Select, and_, or_, select
@@ -28,12 +28,14 @@ from powerforge_api.exceptions import (
     RevisionDocumentNotFound,
     RevisionNotFound,
     RevisionProjectMismatch,
+    StorageDownloadFailed,
     StorageUploadFailed,
 )
 from powerforge_api.models import Document, Project, ProjectRevision, RevisionDocument
 from powerforge_api.schemas.documents import (
     DocumentStatusFilter,
     DocumentSummary,
+    DownloadUrlResponse,
     ReuseDocumentRequest,
     RevisionDocumentResponse,
     RevisionDocumentUpdate,
@@ -46,7 +48,7 @@ from powerforge_api.services.revision_documents import (
     lock_project_shared,
     lock_revision,
 )
-from powerforge_api.storage.base import ObjectStorage
+from powerforge_api.storage.base import DispositionType, ObjectStorage
 from powerforge_document_model import (
     DocumentClassification,
     DocumentOrigin,
@@ -195,6 +197,60 @@ class DocumentService:
     ) -> RevisionDocumentResponse:
         self._load_context(project_id, revision_id)
         return self._load_response(project_id, revision_id, revision_document_id)
+
+    def create_download_url(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+        disposition: DispositionType = "attachment",
+    ) -> DownloadUrlResponse:
+        """Sign a download URL for one association. A read: no locks, any status allowed."""
+        self._load_context(project_id, revision_id)
+        row = self.session.execute(
+            self._view_statement(project_id, revision_id).where(
+                RevisionDocument.id == revision_document_id
+            )
+        ).one_or_none()
+        if row is None:
+            raise RevisionDocumentNotFound(f"Document {revision_document_id} not found")
+        _, document, _ = row
+        key, filename, mime_type = (
+            document.storage_key,
+            document.original_filename,
+            document.mime_type,
+        )
+        document_id = document.id
+        expires_seconds = self.settings.s3_signed_url_expires_seconds
+        expires_at = datetime.now(UTC) + timedelta(seconds=expires_seconds)
+        try:
+            url = self.storage.create_download_url(
+                key, filename, mime_type, disposition, expires_seconds
+            )
+        except Exception as exc:
+            logger.error(
+                "download url signing failed",
+                extra={
+                    "project_id": project_id,
+                    "revision_id": revision_id,
+                    "document_id": document_id,
+                    "error_class": type(exc).__name__,
+                },
+            )
+            # The SDK message can carry endpoints or request details; never forward it.
+            raise StorageDownloadFailed("Could not create a download link") from None
+        logger.info(
+            "document download url issued",
+            extra={
+                "project_id": project_id,
+                "revision_id": revision_id,
+                "document_id": document_id,
+                "revision_document_id": revision_document_id,
+                "disposition": disposition,
+                "expires_seconds": expires_seconds,
+            },
+        )
+        return DownloadUrlResponse(url=url, expires_at=expires_at, filename=filename)
 
     def _load_context(
         self,
