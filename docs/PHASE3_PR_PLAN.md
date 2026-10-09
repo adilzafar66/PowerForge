@@ -83,7 +83,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 
 | PR | Title | Area | Size | Depends on | Status |
 | --- | --- | --- | --- | --- | --- |
-| [PR-01](#pr-01--specification-adr-and-documentation) | Specification, ADR-005, docs, this plan | Docs | S | — | [ ] written, not landed |
+| [PR-01](#pr-01--specification-adr-and-documentation) | Specification, ADR-005, docs, this plan | Docs | S | — | [x] landed in `2efaaca` |
 | [PR-02](#pr-02--processing-domain-vocabulary) | Processing domain vocabulary | Domain | S | PR-01 | [ ] |
 | [PR-03](#pr-03--shared-processing-library-extract) | Shared library extract (models + storage) | Backend | L | PR-01 | [ ] |
 | [PR-04](#pr-04--migration-0005-and-processing-models) | Migration `0005` and processing models | DB | M | PR-02, PR-03 | [ ] |
@@ -132,6 +132,8 @@ If work is parallelized: PR-03 (extract) and PR-05 (renderer) can proceed after 
 ## 4. PR details
 
 ### PR-01 — Specification, ADR, and documentation
+
+**Status.** Done. Spec, ADR-005 (Proposed), Phase 3 documentation, and this plan are on `main` (`2efaaca`). Committed directly to `main` rather than `phase3/pr-01-specification-and-docs`.
 
 **Goal.** Land the written design before code: spec, ADR-005 (Proposed), Phase 3 doc updates, [PHASE3_PLAN.md](PHASE3_PLAN.md), and this plan. (§1, §33, §35 steps 1–2)
 
