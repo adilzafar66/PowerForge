@@ -85,7 +85,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | --- | --- | --- | --- | --- | --- |
 | [PR-01](#pr-01--specification-adr-and-documentation) | Specification, ADR-005, docs, this plan | Docs | S | — | [x] landed in `2efaaca` |
 | [PR-02](#pr-02--processing-domain-vocabulary) | Processing domain vocabulary | Domain | S | PR-01 | [x] landed in `bc9d9f4` |
-| [PR-03](#pr-03--shared-processing-library-extract) | Shared library extract (models + storage) | Backend | L | PR-01 | [ ] |
+| [PR-03](#pr-03--shared-processing-library-extract) | Shared library extract (models + storage) | Backend | L | PR-01 | [x] landed in `ebfd2da` |
 | [PR-04](#pr-04--migration-0005-and-processing-models) | Migration `0005` and processing models | DB | M | PR-02, PR-03 | [ ] |
 | [PR-05](#pr-05--page-rendering-and-artifact-production) | Page rendering and artifact production | Backend | L | PR-02 | [ ] |
 | [PR-06](#pr-06--processing-service-and-run-lifecycle) | Processing service and run lifecycle | Backend | L | PR-04, PR-05 | [ ] |
@@ -190,6 +190,8 @@ If work is parallelized: PR-03 (extract) and PR-05 (renderer) can proceed after 
 ---
 
 ### PR-03 — Shared processing library extract
+
+**Status.** Done. `ObjectStorage` and the existing SQLAlchemy models landed in `packages/document-processing` (`ebfd2da`). One `Document` mapping. The worker still only heartbeats. ADR-005 remains Proposed.
 
 **Goal.** Move `ObjectStorage` and the SQLAlchemy models both processes will load into `packages/document-processing` (`powerforge_document_processing`). The API keeps working through imports. There is one mapping of `documents`. The worker still only heartbeats. (§23, §30, ADR-005 #13)
 
