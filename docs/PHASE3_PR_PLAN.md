@@ -87,7 +87,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-02](#pr-02--processing-domain-vocabulary) | Processing domain vocabulary | Domain | S | PR-01 | [x] landed in `bc9d9f4` |
 | [PR-03](#pr-03--shared-processing-library-extract) | Shared library extract (models + storage) | Backend | L | PR-01 | [x] landed in `ebfd2da` |
 | [PR-04](#pr-04--migration-0005-and-processing-models) | Migration `0005` and processing models | DB | M | PR-02, PR-03 | [x] landed in `69891d6` |
-| [PR-05](#pr-05--page-rendering-and-artifact-production) | Page rendering and artifact production | Backend | L | PR-02 | [ ] |
+| [PR-05](#pr-05--page-rendering-and-artifact-production) | Page rendering and artifact production | Backend | L | PR-02 | [x] landed in `7352a3f` |
 | [PR-06](#pr-06--processing-service-and-run-lifecycle) | Processing service and run lifecycle | Backend | L | PR-04, PR-05 | [ ] |
 | [PR-07](#pr-07--worker-queue-enqueue-and-backfill) | Worker, queue, enqueue, and backfill | Backend/Infra | M | PR-06 | [ ] |
 | [PR-08](#pr-08--processing-and-page-apis) | Processing and page APIs | Backend | M | PR-06 | [ ] |
@@ -262,6 +262,8 @@ If work is parallelized: PR-03 (extract) and PR-05 (renderer) can proceed after 
 ---
 
 ### PR-05 — Page rendering and artifact production
+
+**Status.** Done. `render_pages` landed in `7352a3f`. It returns upright pages and artifact bytes and writes nothing. Thumbnails are WebP. ADR-005 remains Proposed.
 
 **Goal.** Turn original bytes into logical pages and artifact bytes. PDF, PNG, JPEG, and TIFF share one pipeline. No database writes. (§5, §11–§15, §21, §28)
 
