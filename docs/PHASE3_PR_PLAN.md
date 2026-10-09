@@ -88,7 +88,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-03](#pr-03--shared-processing-library-extract) | Shared library extract (models + storage) | Backend | L | PR-01 | [x] landed in `ebfd2da` |
 | [PR-04](#pr-04--migration-0005-and-processing-models) | Migration `0005` and processing models | DB | M | PR-02, PR-03 | [x] landed in `69891d6` |
 | [PR-05](#pr-05--page-rendering-and-artifact-production) | Page rendering and artifact production | Backend | L | PR-02 | [x] landed in `7352a3f` |
-| [PR-06](#pr-06--processing-service-and-run-lifecycle) | Processing service and run lifecycle | Backend | L | PR-04, PR-05 | [ ] |
+| [PR-06](#pr-06--processing-service-and-run-lifecycle) | Processing service and run lifecycle | Backend | L | PR-04, PR-05 | [x] landed in `1defedd` |
 | [PR-07](#pr-07--worker-queue-enqueue-and-backfill) | Worker, queue, enqueue, and backfill | Backend/Infra | M | PR-06 | [ ] |
 | [PR-08](#pr-08--processing-and-page-apis) | Processing and page APIs | Backend | M | PR-06 | [ ] |
 | [PR-09](#pr-09--processing-status-and-page-viewer-ui) | Processing status and page viewer UI | Web | M | PR-08 | [ ] |
@@ -304,6 +304,8 @@ If work is parallelized: PR-03 (extract) and PR-05 (renderer) can proceed after 
 ---
 
 ### PR-06 — Processing service and run lifecycle
+
+**Status.** Done. `ProcessingService` landed in `1defedd`. It can ensure, retry, and claim a run. Upload still does not call it. ADR-005 remains Proposed.
 
 **Goal.** Orchestrate one attempt: `ensure`, `retry`, `claim`, persist pages and artifacts, complete or fail. Enqueue is a port. (§3, §6, §16–§21, §27, §30)
 
