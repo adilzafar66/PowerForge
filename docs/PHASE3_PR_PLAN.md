@@ -84,7 +84,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | PR | Title | Area | Size | Depends on | Status |
 | --- | --- | --- | --- | --- | --- |
 | [PR-01](#pr-01--specification-adr-and-documentation) | Specification, ADR-005, docs, this plan | Docs | S | — | [x] landed in `2efaaca` |
-| [PR-02](#pr-02--processing-domain-vocabulary) | Processing domain vocabulary | Domain | S | PR-01 | [ ] |
+| [PR-02](#pr-02--processing-domain-vocabulary) | Processing domain vocabulary | Domain | S | PR-01 | [x] landed in `bc9d9f4` |
 | [PR-03](#pr-03--shared-processing-library-extract) | Shared library extract (models + storage) | Backend | L | PR-01 | [ ] |
 | [PR-04](#pr-04--migration-0005-and-processing-models) | Migration `0005` and processing models | DB | M | PR-02, PR-03 | [ ] |
 | [PR-05](#pr-05--page-rendering-and-artifact-production) | Page rendering and artifact production | Backend | L | PR-02 | [ ] |
@@ -156,6 +156,8 @@ If work is parallelized: PR-03 (extract) and PR-05 (renderer) can proceed after 
 ---
 
 ### PR-02 — Processing domain vocabulary
+
+**Status.** Done. Processing enums, the default profile hash, artifact keys, and `NormalizedBox` landed in `bc9d9f4`. Package dependencies stay empty. ADR-005 remains Proposed.
 
 **Goal.** Add everything Phase 3 needs that is pure and dependency-free to `packages/document-model`. (§4, §6–§8, §10, §12, §21, §22, §30)
 
