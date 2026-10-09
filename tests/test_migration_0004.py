@@ -159,7 +159,7 @@ def _seed_phase1_rows(engine: Engine) -> tuple[uuid.UUID, list[uuid.UUID]]:
 
 @pytest.mark.integration
 def test_fresh_upgrade_reaches_0004_with_expected_schema(scratch_url: URL) -> None:
-    _alembic(scratch_url, "upgrade", "head")
+    _alembic(scratch_url, "upgrade", "0004_documents_and_lineage")
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == "0004_documents_and_lineage"
@@ -197,7 +197,7 @@ def test_upgrade_from_0003_preserves_existing_rows(scratch_url: URL) -> None:
         assert not (PHASE2_TABLES & set(inspect(engine).get_table_names()))
         project_id, revision_ids = _seed_phase1_rows(engine)
 
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", "0004_documents_and_lineage")
 
         assert _version(engine) == "0004_documents_and_lineage"
         with engine.connect() as connection:
@@ -221,7 +221,7 @@ def test_downgrade_to_0003_and_reupgrade(scratch_url: URL) -> None:
     engine = create_engine(scratch_url)
     try:
         project_id, revision_ids = _seed_phase1_rows(engine)
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", "0004_documents_and_lineage")
 
         _alembic(scratch_url, "downgrade", "0003_status_before_archive")
 
@@ -243,7 +243,7 @@ def test_downgrade_to_0003_and_reupgrade(scratch_url: URL) -> None:
             )
         assert sorted(surviving) == sorted(revision_ids)
 
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", "0004_documents_and_lineage")
         assert _version(engine) == "0004_documents_and_lineage"
         assert _existing_enum_types(engine) == PHASE2_ENUMS
     finally:

@@ -24,7 +24,7 @@ Decisions: [ADR-003](../decisions/ADR-003-project-revision-model.md)
 Delivered:
 
 - `packages/project` (`powerforge_project`) — status enums and transition helper
-- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`
+- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0005_document_processing`, which adds unused `document_pages`, `document_processing_runs`, and `page_artifacts`
 - REST API under `/api/projects` and nested revisions (create/list/get/patch + pause/resume/cancel/archive/unarchive + activate)
 - Web UI: `/` project list, `/projects/new`, `/projects/[id]`, revision placeholder, `/status` stack health
 - Backend and frontend tests covering lifecycle, uniqueness, and concurrent activate
@@ -107,7 +107,7 @@ Phase 2 was delivered as 16 pull requests (PR-00 to PR-15), tracked with scope, 
 
 ## Next — Phase 3: Document processing
 
-**Status:** Specified (2026-10-08). Not implemented. No pages, artifacts, processing runs, or worker tasks exist in the code.
+**Status:** Specified (2026-10-08). Not implemented. Migration `0005` adds unused page, run, and artifact tables. No processing behavior or worker tasks exist yet.
 
 Specification: `cursor/phase3_specs.txt`  
 Plan: [PHASE3_PLAN.md](PHASE3_PLAN.md)  

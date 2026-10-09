@@ -1,9 +1,13 @@
-"""SQLAlchemy ORM models for projects, revisions, and revision-scoped documents."""
+"""SQLAlchemy ORM models for projects, revisions, documents, and processing.
+
+The processing tables are mapped here and unused by the running app.
+"""
 
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     BigInteger,
@@ -12,6 +16,8 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Index,
+    Integer,
+    Numeric,
     Text,
     UniqueConstraint,
     func,
@@ -23,7 +29,10 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from powerforge_document_model import (
     DocumentClassification,
     DocumentOrigin,
+    PageArtifactType,
+    ProcessingRunStatus,
     RevisionDocumentStatus,
+    SourceUnit,
 )
 from powerforge_project import ProjectStatus, RevisionStatus
 
@@ -54,6 +63,24 @@ document_origin_enum = ENUM(
 revision_document_status_enum = ENUM(
     RevisionDocumentStatus,
     name="revision_document_status",
+    create_type=False,
+    values_callable=lambda enum: [member.value for member in enum],
+)
+processing_run_status_enum = ENUM(
+    ProcessingRunStatus,
+    name="processing_run_status",
+    create_type=False,
+    values_callable=lambda enum: [member.value for member in enum],
+)
+page_artifact_type_enum = ENUM(
+    PageArtifactType,
+    name="page_artifact_type",
+    create_type=False,
+    values_callable=lambda enum: [member.value for member in enum],
+)
+source_unit_enum = ENUM(
+    SourceUnit,
+    name="source_unit",
     create_type=False,
     values_callable=lambda enum: [member.value for member in enum],
 )
@@ -301,4 +328,158 @@ class RevisionDocument(Base):
             "and_(RevisionDocument.project_id == ProjectRevision.project_id, "
             "RevisionDocument.revision_id == ProjectRevision.id)"
         ),
+    )
+
+
+class DocumentPage(Base):
+    """Stable logical page of a Document. Not tied to a processing run."""
+
+    __tablename__ = "document_pages"
+    __table_args__ = (
+        UniqueConstraint(
+            "document_id",
+            "page_number",
+            name="uq_document_pages_document_id_page_number",
+        ),
+        CheckConstraint("page_number >= 1", name="ck_document_pages_page_number_positive"),
+        CheckConstraint(
+            "rotation_degrees IN (0, 90, 180, 270)",
+            name="ck_document_pages_rotation_degrees",
+        ),
+        Index("ix_document_pages_document_id", "document_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("documents.id", name="fk_document_pages_document_id"),
+        nullable=False,
+    )
+    page_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_width: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    source_height: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    source_unit: Mapped[SourceUnit] = mapped_column(source_unit_enum, nullable=False)
+    rotation_degrees: Mapped[int] = mapped_column(Integer, nullable=False)
+    native_text_char_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
+class DocumentProcessingRun(Base):
+    """One attempt to process a document under a processor version and profile hash."""
+
+    __tablename__ = "document_processing_runs"
+    __table_args__ = (
+        Index("ix_document_processing_runs_document_id", "document_id"),
+        Index(
+            "ix_document_processing_runs_target",
+            "document_id",
+            "processor_version",
+            "profile_hash",
+        ),
+        Index(
+            "uq_document_processing_runs_one_live",
+            "document_id",
+            "processor_version",
+            "profile_hash",
+            unique=True,
+            postgresql_where=text("status IN ('PENDING', 'RUNNING', 'COMPLETED')"),
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("documents.id", name="fk_document_processing_runs_document_id"),
+        nullable=False,
+    )
+    processor_version: Mapped[str] = mapped_column(Text, nullable=False)
+    profile_version: Mapped[str] = mapped_column(Text, nullable=False)
+    profile_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[ProcessingRunStatus] = mapped_column(
+        processing_run_status_enum,
+        nullable=False,
+        server_default=text("'PENDING'::processing_run_status"),
+    )
+    pages_total: Mapped[int | None] = mapped_column(Integer)
+    pages_processed: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    attempt_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("1"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(Text)
+    error_message: Mapped[str | None] = mapped_column(Text)
+
+
+class PageArtifact(Base):
+    """Derived file for one page of one processing attempt."""
+
+    __tablename__ = "page_artifacts"
+    __table_args__ = (
+        UniqueConstraint("storage_key", name="uq_page_artifacts_storage_key"),
+        UniqueConstraint(
+            "processing_run_id",
+            "document_page_id",
+            "artifact_type",
+            name="uq_page_artifacts_run_page_type",
+        ),
+        Index("ix_page_artifacts_document_page_id", "document_page_id"),
+        Index("ix_page_artifacts_processing_run_id", "processing_run_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    document_page_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("document_pages.id", name="fk_page_artifacts_document_page_id"),
+        nullable=False,
+    )
+    processing_run_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("document_processing_runs.id", name="fk_page_artifacts_processing_run_id"),
+        nullable=False,
+    )
+    artifact_type: Mapped[PageArtifactType] = mapped_column(page_artifact_type_enum, nullable=False)
+    storage_key: Mapped[str] = mapped_column(Text, nullable=False)
+    mime_type: Mapped[str] = mapped_column(Text, nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    sha256: Mapped[str] = mapped_column(Text, nullable=False)
+    width_px: Mapped[int | None] = mapped_column(Integer)
+    height_px: Mapped[int | None] = mapped_column(Integer)
+    effective_dpi: Mapped[Decimal | None] = mapped_column(Numeric)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
     )

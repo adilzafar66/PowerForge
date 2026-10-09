@@ -75,7 +75,7 @@ packages/validation           Empty RuleRegistry
 packages/provenance           EvidenceRef (Pydantic contract, no tables)
 packages/ai                   LLMProvider / VisionProvider / OCRProvider Protocols; no vendor SDKs
 packages/ai/prompts           README only; no production prompts
-database/                     Alembic; `0001_enable_extensions` (pgcrypto), `0002_projects_and_revisions`, `0003_status_before_archive`, `0004_documents_and_lineage`
+database/                     Alembic; `0001_enable_extensions` (pgcrypto), `0002_projects_and_revisions`, `0003_status_before_archive`, `0004_documents_and_lineage`, `0005_document_processing` (unused processing tables)
 .github/workflows/ci.yml      Ruff, Pytest + Postgres/Redis services, Next lint/test/build
 docker-compose.yml            postgres, redis, minio, minio-init, api, web, three workers
 ```

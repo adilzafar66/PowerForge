@@ -11,9 +11,20 @@ from sqlalchemy.orm import configure_mappers
 from powerforge_document_model import (
     DocumentClassification,
     DocumentOrigin,
+    PageArtifactType,
+    ProcessingRunStatus,
     RevisionDocumentStatus,
+    SourceUnit,
 )
-from powerforge_document_processing.models import Base, Document, ProjectRevision, RevisionDocument
+from powerforge_document_processing.models import (
+    Base,
+    Document,
+    DocumentPage,
+    DocumentProcessingRun,
+    PageArtifact,
+    ProjectRevision,
+    RevisionDocument,
+)
 
 EXPECTED_PROJECT_REVISION_CONSTRAINTS = {
     "uq_project_revisions_project_id_id",
@@ -64,7 +75,13 @@ def test_mapper_configuration_emits_no_sqlalchemy_warnings() -> None:
 
 
 def test_new_tables_registered() -> None:
-    assert {"documents", "revision_documents"} <= set(Base.metadata.tables)
+    assert {
+        "documents",
+        "revision_documents",
+        "document_pages",
+        "document_processing_runs",
+        "page_artifacts",
+    } <= set(Base.metadata.tables)
 
 
 def test_enum_labels_match_python_enums() -> None:
@@ -77,6 +94,19 @@ def test_enum_labels_match_python_enums() -> None:
     assert document_type.name == "document_classification"
     assert origin.name == "document_origin"
     assert status.name == "revision_document_status"
+
+
+def test_processing_enum_labels_match_python_enums() -> None:
+    status = DocumentProcessingRun.__table__.c.status.type
+    unit = DocumentPage.__table__.c.source_unit.type
+    artifact_type = PageArtifact.__table__.c.artifact_type.type
+    assert list(status.enums) == [member.value for member in ProcessingRunStatus]
+    assert list(unit.enums) == [member.value for member in SourceUnit]
+    assert list(artifact_type.enums) == [member.value for member in PageArtifactType]
+    assert status.name == "processing_run_status"
+    assert unit.name == "source_unit"
+    assert artifact_type.name == "page_artifact_type"
+    assert DocumentProcessingRun.__table__.c.error_code.nullable is True
 
 
 def test_project_revision_lineage_constraints() -> None:
@@ -107,7 +137,14 @@ def test_no_table_can_hold_file_content() -> None:
 
 
 def test_no_cascading_deletes() -> None:
-    for table in (ProjectRevision.__table__, Document.__table__, RevisionDocument.__table__):
+    for table in (
+        ProjectRevision.__table__,
+        Document.__table__,
+        RevisionDocument.__table__,
+        DocumentPage.__table__,
+        DocumentProcessingRun.__table__,
+        PageArtifact.__table__,
+    ):
         for constraint in table.constraints:
             if isinstance(constraint, ForeignKeyConstraint):
                 assert constraint.ondelete is None, constraint.name
