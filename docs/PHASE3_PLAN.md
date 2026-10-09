@@ -14,7 +14,7 @@ Phase 2 is the base. `Document`, `RevisionDocument`, and the project models live
 
 `packages/document-model` has no third-party dependencies. It owns classification, origin, status, file-validation rules, and `build_storage_key`. Page contracts are not there yet.
 
-The revision document list (`RevisionDocumentResponse`) has no processing fields. Downloads already succeed for `REMOVED` associations and for superseded revisions. Alembic head is `0005_document_processing`. The page, run, and artifact tables are unused by the running app. Pillow is used by the API's `FileInspector`, which sets `Image.MAX_IMAGE_PIXELS = None` in that process and checks dimensions from the header. A truncated JPEG or TIFF can pass upload. Phase 3 is where those files fail or render.
+The revision document list (`RevisionDocumentResponse`) has no processing fields. Downloads already succeed for `REMOVED` associations and for superseded revisions. Alembic head is `0005_document_processing`. The page, run, and artifact tables are unused by the running app. `render_pages` can turn PDF, PNG, JPEG, and TIFF bytes into analysis images and thumbnails, and nothing calls it yet. Pillow is used by the API's `FileInspector`, which sets `Image.MAX_IMAGE_PIXELS = None` in that process and checks dimensions from the header. A truncated JPEG or TIFF can pass upload. Phase 3 is where those files fail or render.
 
 `cursor/phase3_specs.txt` is the implementation spec. It is not yet part of a commit.
 

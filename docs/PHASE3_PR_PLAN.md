@@ -579,7 +579,7 @@ Settle these in the PR named; record the outcome in that PR's description and, i
 | ID | Decision | Needed by | Proposed default |
 | --- | --- | --- | --- |
 | D1 | Where does the Celery publish helper live so the API can enqueue without importing `document_worker`? | PR-07 | A small `enqueue` module next to the processing service that uses Celery `send_task` by name. `packages/document-model` and the renderer stay Celery-free. |
-| D2 | Thumbnail format if the slim worker image cannot write WebP without extra system libraries. | PR-05 | Prefer WebP. If write support is missing in CI/Compose, use JPEG or PNG, keep the artifact type `THUMBNAIL`, document the extension in the key helper, and record the deviation. |
+| D2 | Thumbnail format if the slim worker image cannot write WebP without extra system libraries. | PR-05 | Settled: Pillow can write WebP (`PIL.features.check("webp")`). Thumbnails are WebP and the artifact key stays `thumbnail.webp`. |
 | D3 | HTTP response when pages or artifact URLs are requested before the current run is `COMPLETED`. | PR-08 | **409** with a dedicated code (`processing_not_complete`) rather than an empty list, so the UI cannot mistake "no pages yet" for "zero-page document". Status remains 200. |
 | D4 | Backfill entry point. | PR-07 | Console script `powerforge-backfill-processing` with `--limit`. Not a FastAPI route. Not invoked from lifespan. |
 | D5 | Do upload responses include the new processing summary? | PR-08 | Yes, same shape as list/detail, so the UI can show Pending without a second fetch after upload. |

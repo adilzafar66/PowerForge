@@ -1,5 +1,5 @@
-"""Shared storage and ORM models loaded by the API and, later, the document worker.
+"""Shared storage, ORM models, and page rendering.
 
 The processing service is not in this package yet. This package must not import
-FastAPI, Celery, Pillow, or PyMuPDF.
+FastAPI or Celery. Only ``rendering.py`` may import Pillow or PyMuPDF.
 """
