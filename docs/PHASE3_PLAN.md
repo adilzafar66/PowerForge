@@ -1,0 +1,91 @@
+# Phase 3 implementation plan
+
+Document processing and stable page representation. Specification: [`cursor/phase3_specs.txt`](../cursor/phase3_specs.txt). Decisions: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Proposed).
+
+**Status:** inspection and baseline recorded on 2026-10-08. No Phase 3 application code yet. Do not mark the phase complete from this plan.
+
+Delivery is a sequence of pull requests: [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md). Implement only the current PR from that document.
+
+## What exists today
+
+Phase 2 is the base. `Document` and `RevisionDocument` are in `powerforge_api.models`. Storage is `powerforge_api.storage` (`ObjectStorage.put` refuses to overwrite). Upload commits the document in `DocumentService.upload` and does not enqueue anything. The API process does not depend on Celery.
+
+`services/document-worker` registers a heartbeat task only. Its image installs `powerforge-shared` and the worker package: no SQLAlchemy, boto3, Pillow, PyMuPDF, or `document-model`. In Compose it receives `DATABASE_URL` and no `S3_*` variables, so storage settings inside that container fall back to `localhost:9000`. The extraction and validation workers are the same shape and listen on the default `celery` queue, as does document-worker. A task published to that queue can be consumed by any of them ([PHASE0_HANDOFF.md](PHASE0_HANDOFF.md)).
+
+`packages/document-model` has no third-party dependencies. It owns classification, origin, status, file-validation rules, and `build_storage_key`. Page contracts are not there yet.
+
+The revision document list (`RevisionDocumentResponse`) has no processing fields. Downloads already succeed for `REMOVED` associations and for superseded revisions. Alembic head is `0004_documents_and_lineage`. Pillow is used by the API's `FileInspector`, which sets `Image.MAX_IMAGE_PIXELS = None` in that process and checks dimensions from the header. A truncated JPEG or TIFF can pass upload. Phase 3 is where those files fail or render.
+
+`cursor/phase3_specs.txt` is the implementation spec. It is not yet part of a commit.
+
+## Baseline (2026-10-08)
+
+Recorded before any Phase 3 code, on the Phase 2 tree plus the untracked spec. Integration tests used a throwaway database `powerforge_phase3_baseline`, migrated from empty to `0004`, then dropped. MinIO was the Compose container already running.
+
+| Check | Result |
+| --- | --- |
+| `ruff check .` | Passed |
+| `pytest` (integration skipped) | 200 passed, 246 skipped |
+| `RUN_INTEGRATION=1 pytest` on `powerforge_phase3_baseline` with MinIO up | 446 passed |
+| `npm run lint` (`apps/web`) | No warnings or errors |
+| `npx tsc --noEmit` (`apps/web`) | No errors |
+| `npm test` (`apps/web`) | 172 passed (11 files) |
+
+`npm run build` was not run. Phase 2's completion check included it; run it again when the web UI changes.
+
+## Module plan
+
+No Phase 3 code belongs in the request handlers or in the Celery task body beyond a call into the service.
+
+| Piece | Where | Role |
+| --- | --- | --- |
+| Enums, failure codes, processing profile, profile hash, artifact key builder | `packages/document-model` | Pure. No SQLAlchemy, Celery, FastAPI, boto3, Pillow, or PyMuPDF |
+| `ObjectStorage` and the existing SQLAlchemy models, including `Document` | New shared library `packages/document-processing` (`powerforge_document_processing`) | One mapping of `documents`. The API imports these; it does not keep a second `Document` class. Project and revision models move with `Document` because they share one registry |
+| Processing service and PDF/image rendering | Same library | `ensure`, `retry`, `claim`, page reconciliation, artifact writes. PyMuPDF and Pillow are dependencies here |
+| Celery task and queue adapter | `services/document-worker` | Task calls the service. Dedicated queue `document_processing`. Only this worker consumes it |
+| HTTP routes and enqueue after upload | `services/api` | Depends on the shared library and on the worker's queue adapter. Does not import rendering into the upload transaction |
+| Revision documents workspace | `apps/web` | Processing column from the list payload, retry, page viewer for a completed run |
+
+The worker image installs the shared library, `document-model`, PyMuPDF, Pillow, the database driver, and boto3. Compose gives that service the same `DATABASE_URL` and `S3_*` values as the API, including `S3_ENDPOINT_URL=http://minio:9000` and `S3_PUBLIC_ENDPOINT_URL=http://localhost:9000`.
+
+`ensure` and `retry` take a small enqueue port. The Celery adapter lives in the worker package so the processing library does not depend on Celery. A failed enqueue leaves the `PENDING` row and the `Document` in place and logs the failure.
+
+## Behavior to implement
+
+Follow the spec. The decisions that are easy to implement wrong are repeated here.
+
+**Pages.** PDF page, whole PNG or JPEG, and TIFF frame map to `DocumentPage` numbers starting at 1. `source_width` and `source_height` are the upright page. `rotation_degrees` is the rotation that was applied.
+
+**Profile.** `processor_version = "1"`, `profile_version = "engineering-default-v1"`. Hash a canonical serialization of target DPI 200, max long edge 8000, max total pixels 50_000_000, thumbnail long edge 800, analysis format PNG, thumbnail format WebP when Pillow can write it, and orientation normalization. Scale a decodable page down to the cap and record effective DPI for a PDF. Set Pillow's bomb ceiling to `MAX_IMAGE_PIXELS` (the Phase 2 upload cap, 600_000_000), not Pillow's library default. Undecodable input fails the run. Do not sharpen, deskew, threshold, or crop.
+
+**Runs.** One attempt per row. Partial unique index on `(document_id, processor_version, profile_hash)` where status is `PENDING`, `RUNNING`, or `COMPLETED`. `attempt_count` is 1, 2, 3… at insert. Claim moves `PENDING` to `RUNNING` and does not change `attempt_count`. Duplicate delivery that loses the claim writes nothing.
+
+**ensure.** No run: create attempt 1 and enqueue. Unclaimed `PENDING`: enqueue again, same row. `RUNNING` or `COMPLETED`: return it, do not enqueue. Latest `FAILED` and no live run: return it, do not enqueue. Status reads do not call `ensure`.
+
+**retry.** Only when the current run is `FAILED`. Insert a new `PENDING` run, enqueue it, leave the failed attempt's rows and objects alone. Two concurrent retries produce one new run. Do not retry `PENDING`, `RUNNING`, or `COMPLETED`.
+
+**Completed means complete.** Pages and artifact URLs are returned only for the `COMPLETED` run. The list and detail payloads include the current run's status, attempt, progress, and concise error. No run yet is "Not started" in the UI. The page viewer opens only for Ready. No history of older failures.
+
+**Access.** Any `RevisionDocument` association is enough, including `REMOVED` and including a superseded revision. Retry is allowed there because it is not a revision mutation. A mismatched project, revision, association, or page is a 404.
+
+**Text.** Store `NATIVE_TEXT` only when the extracted string is non-empty after stripping. Otherwise `native_text_char_count = 0` and no text object. No OCR.
+
+**Storage keys.** `projects/{project_id}/documents/{document_id}/processing/{run_id}/pages/{page:04d}/analysis.png`, `thumbnail.webp`, and `native.txt` when text exists. Private. Presign like Phase 2 downloads.
+
+**Backfill.** A bounded command calls `ensure` for documents with no run and for an unclaimed `PENDING` run. It does not retry `FAILED` and it is not invoked from API startup.
+
+**Originals.** No processing path deletes or rewrites the Phase 2 object.
+
+## Order
+
+Follow [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md). One-engineer sequence: PR-01 (docs) → PR-02 (domain) → PR-03 (extract library) → PR-04 (migration) → PR-05 (renderer) → PR-06 (service) → PR-07 (worker/enqueue/backfill) → PR-08 (APIs) → PR-09 (UI) → PR-10 (close the phase).
+
+PR-05 can proceed in parallel with PR-03/PR-04 after PR-02. PR-07 and PR-08 can proceed in parallel after PR-06.
+
+## Out of scope
+
+OCR, Tesseract, cloud OCR, LLMs, vision models, automatic classification, table extraction, equipment, symbols, SLDs, topology, embeddings, evidence rows, the engineering model, reconciliation, electrical calculations, and ETAP/SKM/EasyPower. Also out of scope: a failed-attempt browser, artifact garbage collection, password entry for encrypted PDFs, and region re-rendering.
+
+## Definition of done
+
+The spec's section 36. In particular: Phase 0–2 tests still pass, inherited documents share one page set and one completed run, retry creates a new run, pages are hidden until `COMPLETED`, and no OCR code is added.

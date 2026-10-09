@@ -1,0 +1,1520 @@
+POWERFORGE — PHASE 3 IMPLEMENTATION
+DOCUMENT PROCESSING AND STABLE PAGE REPRESENTATION
+
+You are implementing Phase 3 of PowerForge.
+
+Phase 0 established the repository and application architecture.
+Phase 1 implemented project and revision management.
+Phase 2 implemented immutable document storage, RevisionDocument associations,
+revision inheritance, MinIO/S3-compatible storage, document metadata, and the
+revision document UI.
+
+Phase 3 must build the processing layer that converts immutable uploaded
+documents into stable logical pages and reusable derived artifacts.
+
+DO NOT implement OCR, AI, document classification, equipment extraction,
+topology, or the engineering model in this phase.
+
+======================================================================
+1. INSPECT THE EXISTING REPOSITORY FIRST
+======================================================================
+
+Before changing code:
+
+1. Read:
+   - README.md
+   - docs/PROJECT_STATUS.md
+   - docs/ARCHITECTURE.md
+   - docs/DOCUMENT_PIPELINE.md
+   - docs/PROVENANCE.md
+   - Phase 2 specification
+   - all ADRs, especially the Phase 2 document/revision ADR
+
+2. Inspect:
+   - Document and RevisionDocument models
+   - object-storage abstraction and S3/MinIO implementation
+   - DocumentService
+   - RevisionService
+   - document APIs
+   - document worker / Celery configuration
+   - database migration conventions
+   - frontend revision-document UI
+   - test conventions
+
+3. Run the existing backend/frontend tests before implementation and record
+   baseline results.
+
+4. Preserve existing Phase 0–2 behavior.
+
+5. Produce a short implementation plan before editing code.
+
+The current repository is authoritative. Adapt this specification to existing
+code conventions without changing the architectural decisions below.
+
+======================================================================
+2. PHASE 3 GOAL
+======================================================================
+
+Phase 3 turns each immutable Document into a stable, machine-consumable page
+representation.
+
+Conceptually:
+
+    RevisionDocument
+          │
+          ▼
+       Document                  immutable original
+          │
+          ▼
+     DocumentPage                stable logical page identity
+          │
+          ▼
+     PageArtifact                derived processing output
+
+Processing metadata is tracked separately:
+
+       Document
+          │
+          └── DocumentProcessingRun
+
+At the end of Phase 3, PowerForge must be able to process:
+
+    PDF
+    PNG
+    JPEG / JPG
+    TIFF / TIF
+
+and expose:
+
+    - logical pages
+    - page dimensions/orientation
+    - analysis-quality page render
+    - thumbnail
+    - native PDF text where available
+    - processing state/progress
+    - retry behavior
+    - signed access to derived artifacts
+
+No semantic interpretation is performed yet.
+
+======================================================================
+3. CRITICAL ARCHITECTURAL RULE
+======================================================================
+
+PROCESSING BELONGS TO Document, NOT RevisionDocument.
+
+A Document represents immutable bytes.
+
+If the same Document is referenced by:
+
+    Revision 0
+    Revision 1
+    Revision 2
+
+through three RevisionDocument rows, the original bytes must normally be
+processed only once.
+
+Correct:
+
+    RevisionDocument ─┐
+    RevisionDocument ─┼──► Document
+    RevisionDocument ─┘        │
+                               ▼
+                         DocumentPages
+                               │
+                               ▼
+                         PageArtifacts
+
+Incorrect:
+
+    Revision 0 → independent pages
+    Revision 1 → duplicate pages
+    Revision 2 → duplicate pages
+
+Revision inheritance must reuse existing processing automatically.
+
+======================================================================
+4. DOCUMENTPAGE — STABLE PAGE IDENTITY
+======================================================================
+
+Create a DocumentPage entity representing a logical page/frame in the immutable
+source Document.
+
+DocumentPage must belong directly to Document.
+
+Suggested fields:
+
+    id
+        UUID primary key
+
+    document_id
+        UUID FK → documents.id
+        NOT NULL
+
+    page_number
+        positive integer
+        1-based
+
+    source_width
+        numeric / float
+        NOT NULL
+
+    source_height
+        numeric / float
+        NOT NULL
+
+    source_unit
+        enum or constrained value:
+            POINTS
+            PIXELS
+
+    rotation_degrees
+        integer
+        one of 0, 90, 180, 270
+
+    native_text_char_count
+        integer
+        default 0
+
+    created_at
+        timestamp
+
+Constraint:
+
+    UNIQUE(document_id, page_number)
+
+DocumentPage identity MUST NOT depend on:
+
+    processing run
+    render DPI
+    image dimensions
+    AI provider
+    revision
+
+Reason:
+
+Future evidence will reference stable source locations such as:
+
+    Document
+        ↓
+    DocumentPage 17
+        ↓
+    normalized bounding box
+
+Re-rendering a page later must not change its logical identity.
+
+source_width and source_height are the upright logical page after rotation
+normalization: the page as displayed. They are not the unrotated PDF media box
+when the source rotation is 90 or 270. A 90 or 270 degree rotation swaps the
+stored width and height relative to that unrotated source.
+
+rotation_degrees is the source rotation that was applied to produce the
+upright page. PDF pages use POINTS. PNG, JPEG, and TIFF frames use PIXELS.
+
+The analysis image is this same upright page. Later normalized coordinates
+(section 10) refer to it, not to rendered pixels and not to the unrotated
+media box.
+
+======================================================================
+5. SOURCE PAGE SEMANTICS
+======================================================================
+
+PDF:
+
+    one PDF page = one DocumentPage
+
+PNG / JPEG:
+
+    entire image = DocumentPage 1
+
+TIFF:
+
+    each TIFF frame = one DocumentPage
+
+Example:
+
+    multipage.tiff
+        frame 1 → page 1
+        frame 2 → page 2
+        frame 3 → page 3
+
+Page numbering is always 1-based in the PowerForge domain/API.
+
+======================================================================
+6. DOCUMENTPROCESSINGRUN
+======================================================================
+
+Create DocumentProcessingRun to track processing of a Document under a specific
+processing pipeline/profile.
+
+Suggested fields:
+
+    id
+        UUID
+
+    document_id
+        UUID FK → documents.id
+
+    processor_version
+        string
+
+    profile_version
+        string
+
+    profile_hash
+        string
+
+    status
+        enum:
+            PENDING
+            RUNNING
+            COMPLETED
+            FAILED
+
+    pages_total
+        nullable integer
+
+    pages_processed
+        integer default 0
+
+    attempt_count
+        integer
+        set once when the run is inserted
+        1 for the first attempt, then 2, 3, ...
+        never incremented later, including when the worker claims the run
+
+    created_at
+    started_at
+    completed_at
+    failed_at
+
+    error_code
+        nullable string / enum
+
+    error_message
+        nullable text
+
+A processing target is:
+
+    document_id
+    + processor_version
+    + profile_hash
+
+A DocumentProcessingRun is one attempt at that target, not a row that is
+reset and reused. Retry inserts a new run. Previous attempts stay as they
+finished.
+
+    Document + profile
+        ├── Run 1  FAILED
+        ├── Run 2  FAILED
+        └── Run 3  COMPLETED
+
+Each run has its own id, so its artifacts live under a different storage
+prefix. put() never has to overwrite a key from an earlier attempt.
+
+For one processing target there is at most one run whose status is PENDING,
+RUNNING, or COMPLETED. Many FAILED runs are allowed. Enforce that with a
+partial unique index on (document_id, processor_version, profile_hash)
+WHERE status IN ('PENDING', 'RUNNING', 'COMPLETED'), plus a transactional
+insert. Two concurrent retries must not create two active runs.
+
+The current run for a target is that single non-failed run when one exists.
+When every attempt failed, the current run is the latest FAILED run. APIs
+and the document list report the current run only. Phase 3 does not offer a
+view of older attempts.
+
+======================================================================
+7. PROCESSING VERSIONING
+======================================================================
+
+Processing WILL change over time.
+
+Record explicit versions from Phase 3 onward.
+
+Example:
+
+    processor_version = "1"
+    profile_version   = "engineering-default-v1"
+
+The processing profile must have a deterministic serialized representation and
+hash.
+
+The profile should include parameters that materially affect derived outputs,
+for example:
+
+    target PDF render DPI
+    maximum long edge
+    maximum total pixels
+    thumbnail dimensions
+    analysis image format
+    orientation behavior
+
+If these materially change, processing must be distinguishable from the
+previous output.
+
+Do not rely only on whatever version of PyMuPDF or Pillow happens to be
+installed.
+
+======================================================================
+8. PAGEARTIFACT
+======================================================================
+
+Create PageArtifact for files derived from a DocumentPage.
+
+Suggested fields:
+
+    id
+        UUID
+
+    document_page_id
+        UUID FK → document_pages.id
+
+    processing_run_id
+        UUID FK → document_processing_runs.id
+
+    artifact_type
+        enum:
+            ANALYSIS_IMAGE
+            THUMBNAIL
+            NATIVE_TEXT
+
+    storage_key
+        text
+        unique
+
+    mime_type
+        text
+
+    size_bytes
+        bigint
+
+    sha256
+        text
+
+    width_px
+        nullable integer
+
+    height_px
+        nullable integer
+
+    effective_dpi
+        nullable numeric
+
+    created_at
+        timestamp
+
+Constraint:
+
+    UNIQUE(processing_run_id, document_page_id, artifact_type)
+
+PageArtifact is DERIVED DATA.
+
+It is not the immutable source evidence.
+
+======================================================================
+9. EVIDENCE / PROVENANCE MODEL
+======================================================================
+
+Preserve the distinction:
+
+    Original Document
+        = primary immutable source artifact
+
+    DocumentPage
+        = stable logical location within that source
+
+    PageArtifact
+        = derived convenience representation
+
+Future provenance should conceptually be:
+
+    Engineering attribute / extraction
+            │
+            ▼
+       DocumentPage
+            │
+       normalized bbox
+            │
+            ▼
+         Document
+            │
+            ▼
+     immutable original
+
+Do not make future evidence depend directly on a particular analysis PNG.
+
+Document this distinction in docs/PROVENANCE.md.
+
+======================================================================
+10. PAGE COORDINATE CONVENTION
+======================================================================
+
+Define the future canonical page coordinate convention now.
+
+Do NOT implement evidence bounding boxes yet.
+
+Document the convention:
+
+    origin:
+        top-left
+
+    coordinates:
+        normalized relative to the logical page
+
+    range:
+        x      0.0 → 1.0
+        y      0.0 → 1.0
+        width  0.0 → 1.0
+        height 0.0 → 1.0
+
+Example:
+
+    {
+        "x": 0.312,
+        "y": 0.164,
+        "width": 0.121,
+        "height": 0.043
+    }
+
+This must remain independent of rendered pixel resolution.
+
+The logical page is the upright page in section 4, after rotation
+normalization, with a top-left origin. Do not define these coordinates on the
+unrotated PDF media box.
+
+======================================================================
+11. ANALYSIS IMAGE
+======================================================================
+
+Each logical page must have one ANALYSIS_IMAGE for the processing run.
+
+Use a lossless format appropriate for drawings, preferably PNG unless existing
+repository dependencies strongly justify another lossless representation.
+
+For PDFs:
+
+    render the complete page.
+
+For input images:
+
+    normalize orientation/color representation and produce the canonical
+    analysis representation.
+
+Do NOT alter engineering information through aggressive enhancement.
+
+Allowed normalization includes:
+
+    EXIF orientation handling
+    page rotation normalization
+    predictable color mode
+    alpha handling
+    safe format conversion
+    bounded resolution
+
+Do NOT automatically apply:
+
+    OCR thresholding
+    sharpening
+    deskew
+    denoising
+    contrast enhancement
+    cropping
+    line removal
+    background removal
+
+Those may later become separate derived preprocessing profiles.
+
+======================================================================
+12. LARGE DRAWING RESOURCE LIMITS
+======================================================================
+
+Engineering drawings may be extremely large.
+
+Do NOT blindly render every PDF page at a fixed high DPI.
+
+Define a configurable processing profile with sensible defaults.
+
+Suggested initial profile:
+
+    target_dpi:
+        200
+
+    max_long_edge_px:
+        8000
+
+    max_total_pixels:
+        50_000_000
+
+    thumbnail_long_edge_px:
+        800
+
+A PDF page or a decodable image whose analysis image would exceed
+max_long_edge_px or max_total_pixels is scaled down proportionally. Do not
+fail a run merely because the full-resolution render would be large.
+
+Record:
+
+    actual output width and height
+    effective DPI for a PDF page after that scale-down
+
+For an image, effective_dpi is the source DPI multiplied by the scale factor
+when the source DPI is known, and null otherwise. Output pixel dimensions are
+always stored.
+
+Input that cannot be decoded fails the run. That includes a corrupt file and
+a decompression bomb. Pillow's decompression-bomb ceiling for this phase is
+the configured input ceiling (MAX_IMAGE_PIXELS, the Phase 2 upload cap), not
+Pillow's library default. A file Phase 2 accepted must still open. A file
+beyond that ceiling, or one whose decoded size exceeds the ceiling, fails
+with RESOURCE_LIMIT_EXCEEDED.
+
+Processing must never create an unbounded image.
+
+Later phases may perform targeted high-resolution region rendering from the
+original PDF. Do NOT implement region rendering now.
+
+======================================================================
+13. THUMBNAILS
+======================================================================
+
+Generate one THUMBNAIL per logical page.
+
+Purpose:
+
+    page grid
+    browser preview
+    fast navigation
+
+Use a web-efficient format such as WebP if already supported cleanly by the
+stack.
+
+Thumbnail generation must derive from the canonical processed page, not replace
+it.
+
+======================================================================
+14. NATIVE PDF TEXT
+======================================================================
+
+Extract existing PDF text where available.
+
+This is NOT OCR.
+
+For each PDF page:
+
+    extract native text
+    compute native_text_char_count
+    store non-empty extracted text as NATIVE_TEXT artifact
+
+For a page with no native text, including a scanned PDF page and every PNG,
+JPEG, and TIFF page:
+
+    processing still succeeds
+    native_text_char_count = 0
+    do not store a NATIVE_TEXT artifact
+
+Whitespace-only extraction is empty. Do not store an empty text object.
+
+Do NOT run OCR to populate missing text.
+
+Do NOT infer whether native text is "correct" or semantically useful yet.
+
+======================================================================
+15. PROCESSING LIBRARIES
+======================================================================
+
+Prefer mature Python libraries consistent with the existing backend.
+
+Recommended:
+
+    PyMuPDF
+        PDF opening, metadata, page rendering, native text extraction
+
+    Pillow
+        PNG/JPEG/TIFF decoding, frame handling, normalization, thumbnails
+
+Do not introduce external command-line utilities unless clearly necessary.
+
+File processing must not shell out using user-provided filenames.
+
+======================================================================
+16. ASYNCHRONOUS PROCESSING
+======================================================================
+
+Document processing must run in the existing document worker / Celery
+infrastructure.
+
+Do NOT process PDF pages inside the upload HTTP request.
+
+Publish document-processing tasks to a dedicated Celery queue that only
+document-worker consumes. The extraction and validation workers share the
+default queue today and will take a task they do not implement. A stolen
+task leaves the run PENDING and unclaimed.
+
+After successful Phase 2 document creation:
+
+    Document committed
+        ↓
+    ensure processing run exists
+        ↓
+    queue document-processing task on the dedicated queue
+        ↓
+    HTTP request finishes independently
+        ↓
+    document-worker performs processing
+
+If task enqueue fails:
+
+    keep the PENDING run
+    the Document remains valid
+    log the queue failure
+
+Do not invalidate the original upload. Do not mark the run FAILED solely
+because the broker rejected the message. A later ensure or the backfill
+command enqueues an unclaimed PENDING run again. The explicit retry route
+is only for FAILED.
+
+======================================================================
+17. ENSURE-PROCESSING SERVICE
+======================================================================
+
+Implement a clear service operation equivalent to:
+
+    ensure_document_processing(document_id)
+
+Behavior:
+
+Evaluate the current run for the processing target in this order:
+
+If the current run is COMPLETED:
+
+    return it
+    do not reprocess
+    do not enqueue
+
+If the current run is RUNNING:
+
+    return it
+    do not enqueue
+
+If the current run is PENDING and no worker has claimed it:
+
+    return it
+    enqueue the processing task again
+    do not create a second run
+
+If the current run is FAILED:
+
+    return that latest failed run
+    do not enqueue
+    do not create a second run
+    explicit retry is the only way to start another attempt
+
+If no run exists:
+
+    create one PENDING run with attempt_count = 1
+    enqueue it
+    return it
+
+Read endpoints must not call ensure. Polling status must not publish tasks.
+
+Repeated ensures while a run is still PENDING may publish more than one
+task. That is safe: the claim in section 19 succeeds for only one worker.
+The extra deliveries must not write pages or artifacts.
+
+This operation must be concurrency-safe. Two simultaneous ensures for the
+same target must not create two runs.
+
+======================================================================
+18. RETRY SEMANTICS
+======================================================================
+
+Retry applies only when the current run for the target is FAILED. It does
+not reuse that run and it does not delete that run's rows or objects.
+
+Insert a new PENDING run for the same processing target:
+
+    attempt_count = (number of existing runs for the target) + 1
+    pages_processed = 0
+    enqueue the new run on the dedicated queue
+    leave every previous FAILED run unchanged, including its error fields,
+    progress counters, page_artifacts rows, and stored objects
+
+The new run gets a new id and therefore a new artifact prefix. put() writes
+only those new keys. It does not overwrite the failed attempt.
+
+Do not delete DocumentPage rows. The new attempt reconciles the same logical
+pages and attaches new PageArtifact rows to them. Page identity survives
+retry.
+
+Do not retry when the current run is PENDING, RUNNING, or COMPLETED, and do
+not retry when no run exists. A second concurrent retry loses the partial
+unique index in section 6; return the PENDING run that won, and do not
+insert another.
+
+A materially different processing configuration is a new processing target,
+not a retry of the old one.
+
+Phase 3 does not garbage-collect derived objects left by failed attempts.
+That is the same class of debt as orphaned originals from Phase 2. Do not
+build a screen for browsing those old attempts.
+
+======================================================================
+19. WORKER PROCESSING FLOW
+======================================================================
+
+The worker should perform approximately:
+
+    Load processing run
+        ↓
+    atomically claim it
+        ↓
+    status = RUNNING
+    attempt_count stays at the value set when the run was inserted
+        ↓
+    fetch immutable Document from object storage
+        ↓
+    fully decode/open source
+        ↓
+    discover logical pages
+        ↓
+    create/reconcile DocumentPage rows
+        ↓
+    for each page:
+        render/normalize analysis image
+        generate thumbnail
+        extract native PDF text where applicable
+        write artifacts to object storage
+        persist artifact metadata
+        increment pages_processed
+        ↓
+    validate full page set
+        ↓
+    status = COMPLETED
+
+Only one worker may successfully claim the same processing run at a time.
+Claim is an atomic transition from PENDING to RUNNING. A duplicate delivery
+that finds the run already RUNNING or beyond must return without writing and
+without changing attempt_count.
+
+A new attempt reconciles existing DocumentPage rows and writes artifacts
+only under its own run id. It does not modify the previous attempt's
+artifacts and it does not delete the original Document.
+
+======================================================================
+20. COMPLETION GUARANTEE
+======================================================================
+
+A processing run may be marked COMPLETED only when the full expected page set
+and all required artifacts were produced successfully.
+
+If a 100-page document fails on page 72:
+
+    run status = FAILED
+
+Do NOT expose the partial result as successfully processed.
+
+The pages API and artifact URL API return a result only when the compatible
+run is COMPLETED. While a run is PENDING, RUNNING, or FAILED, those routes
+do not return page metadata or artifact URLs. Progress for a RUNNING run
+comes from the processing-status payload (pages_processed and pages_total),
+not from the pages list.
+
+Downstream phases must be able to assume:
+
+    COMPLETED = complete internally consistent processing result
+
+A failed attempt keeps its derived objects and page_artifacts rows. They are
+not a successful result: the pages and artifact URL routes look only at the
+COMPLETED run. Retry does not remove them (section 18). Do not delete the
+original Document, and do not mark a partial run COMPLETED in order to hide
+it.
+
+Do not damage or delete the original Document.
+
+======================================================================
+21. FAILURE CODES
+======================================================================
+
+Represent common processing failures cleanly.
+
+At minimum distinguish cases equivalent to:
+
+    CORRUPT_PDF
+    PASSWORD_PROTECTED_PDF
+    IMAGE_DECODE_FAILED
+    UNSUPPORTED_SOURCE
+    PAGE_RENDER_FAILED
+    STORAGE_READ_FAILED
+    STORAGE_WRITE_FAILED
+    RESOURCE_LIMIT_EXCEEDED
+    PROCESSING_TIMEOUT
+    UNKNOWN_PROCESSING_ERROR
+
+Do not expose raw stack traces through the API/UI.
+
+Detailed internal exceptions may be logged.
+
+Store a concise human-readable error_message for operational review.
+
+======================================================================
+22. OBJECT STORAGE LAYOUT
+======================================================================
+
+Continue Phase 2's machine-oriented object-key design.
+
+Derived artifacts should use stable machine IDs, not filenames,
+classifications, revisions, or equipment names.
+
+A structure equivalent to this is appropriate:
+
+    projects/{project_id}/documents/{document_id}/original.pdf
+
+    projects/{project_id}/documents/{document_id}/processing/
+        {processing_run_id}/
+            pages/
+                0001/
+                    analysis.png
+                    thumbnail.webp
+                    native.txt
+
+                0002/
+                    analysis.png
+                    thumbnail.webp
+                    native.txt
+
+Follow existing storage abstraction conventions.
+
+Each attempt is a different processing_run_id, so each attempt has its own
+prefix. put() never overwrites. Retry must write only under the new run's
+prefix and must not delete the previous attempt's objects.
+
+Derived artifacts must remain private.
+
+Do not create user-facing storage folders.
+
+======================================================================
+23. STORAGE ABSTRACTION
+======================================================================
+
+Do not bypass the Phase 2 ObjectStorage abstraction from processing code.
+
+The worker must not import the FastAPI application to reach that abstraction.
+ObjectStorage, its in-memory and S3 implementations, and the processing
+service live in a library that both services/api and services/document-worker
+depend on. That library also owns the SQLAlchemy mappings the worker loads,
+including Document, so there is one mapping of the documents table. Do not
+add a second Document class in the worker.
+
+packages/document-model keeps the pure vocabulary: processing and artifact
+enums, failure codes, the processing profile, its hash, and artifact key
+construction. It must not depend on SQLAlchemy, Celery, FastAPI, boto3,
+Pillow, or PyMuPDF.
+
+PyMuPDF and Pillow belong to the processing implementation the worker runs.
+The Celery task lives in document-worker and calls the processing service.
+It does not contain the processing implementation inline.
+
+The document-worker image installs that shared library, document-model,
+PyMuPDF, Pillow, the database driver, and boto3. Its Compose environment
+gets DATABASE_URL and the same S3_* settings as the API, with
+S3_ENDPOINT_URL aimed at MinIO on the Compose network and
+S3_PUBLIC_ENDPOINT_URL aimed at the browser-reachable endpoint used for
+signed URLs.
+
+API, worker, and domain code must not become tightly coupled to MinIO.
+
+Signed URLs for derived artifacts should use the same security pattern as
+Phase 2 originals.
+
+======================================================================
+24. EXISTING DOCUMENTS
+======================================================================
+
+Phase 3 must work for Documents uploaded before Phase 3 is deployed.
+
+Do NOT require re-upload.
+
+Provide a safe backfill mechanism such as a CLI/application command that:
+
+    finds Documents with no compatible run, and Documents whose compatible
+    run is still PENDING and unclaimed
+    calls ensure_document_processing() for each, which creates a run or
+    re-enqueues the unclaimed PENDING run
+
+Do not reprocess RUNNING or COMPLETED runs. Do not retry FAILED runs from
+backfill. FAILED stays on the explicit retry route.
+
+It should support bounded/batched operation.
+
+Do NOT enqueue the entire database automatically every time the API starts.
+
+======================================================================
+25. API
+======================================================================
+
+Keep APIs revision-scoped where this is useful for access-control validation,
+even though processing belongs to Document.
+
+An association is enough. INCLUDED and REMOVED both may read processing
+status, pages, and artifact URLs, including when the revision is SUPERSEDED
+or the project is ARCHIVED or CANCELLED. That matches Phase 2 download.
+Retry is allowed through any of those associations. Processing is not a
+revision mutation, so revision read-only rules do not block it.
+
+The existing revision-document list and detail responses include a processing
+summary for the current run of each row: status, attempt_count,
+pages_processed, pages_total, error_code, and a concise error_message. The
+current run is defined in section 6. A document with no run yet reports that
+absence. Do not include older failed attempts in this summary.
+The documents table must be able to render its processing column from this
+list. Do not require one status request per row.
+
+Add routes equivalent to:
+
+PROCESSING STATUS
+
+    GET
+    /api/projects/{project_id}/revisions/{revision_id}/documents/
+        {revision_document_id}/processing
+
+Return at minimum:
+
+    processing status
+    progress
+    page count when known
+    attempt count
+    failure information when failed
+    processor/profile information where useful
+
+RETRY
+
+    POST
+    /api/projects/{project_id}/revisions/{revision_id}/documents/
+        {revision_document_id}/processing/retry
+
+This route creates a new PENDING run only when the current run is FAILED
+(section 18). PENDING is re-queued by ensure and by backfill, not by this
+route. COMPLETED and RUNNING are rejected. The response is the new run.
+
+PAGES
+
+    GET
+    /api/projects/{project_id}/revisions/{revision_id}/documents/
+        {revision_document_id}/pages
+
+Return stable DocumentPage metadata and artifact information only when the
+compatible run is COMPLETED. Otherwise do not return pages or artifact URLs.
+The client uses the processing-status payload for progress.
+
+PAGE DETAIL
+
+    GET
+    .../pages/{page_id}
+
+ARTIFACT URL
+
+    GET
+    .../pages/{page_id}/artifacts/{artifact_type}/url
+
+Return a short-lived signed URL. This route also succeeds only when the
+compatible run is COMPLETED.
+
+Exact route organization may follow established repository conventions.
+
+All routes must verify:
+
+    project
+    revision
+    RevisionDocument
+    DocumentPage
+
+belong to the expected chain.
+
+Cross-project access must be rejected.
+
+======================================================================
+26. FRONTEND
+======================================================================
+
+Extend the existing revision document experience rather than creating an
+unrelated UI.
+
+Document rows should show processing state from the list payload, for example:
+
+    File                    Type              Processing
+    ----------------------------------------------------------
+    SLD.pdf                 Single Line       Ready
+    Transformer.pdf         Transformer       Processing 4/12
+    FaultData.pdf           Fault Data        Ready
+    Scan.pdf                Unknown           Failed
+    Legacy.pdf              Unknown           Not started
+
+Use clear states:
+
+    Not started    no processing run yet
+    Pending        PENDING
+    Processing     RUNNING, with pages_processed/pages_total when known
+    Ready          COMPLETED
+    Failed         FAILED
+
+Do not issue one processing request per row to fill this column.
+
+For FAILED processing:
+
+    show the current run's concise error
+    provide Retry when allowed
+
+Retry starts a new attempt. The row then follows that new run. Do not add a
+history of older failed attempts.
+
+Open the page viewer only for Ready. Pending, Processing, Failed, and Not
+started do not show partial pages.
+
+Page viewer should support:
+
+    page thumbnail grid/list
+    page selection
+    analysis image preview
+    page number
+    source dimensions
+    rendered dimensions
+    native-text availability
+
+Do NOT implement:
+
+    annotation
+    bounding-box drawing
+    OCR review
+    equipment tagging
+    AI classification
+    a history of failed processing attempts
+
+The page viewer is for inspection only.
+
+======================================================================
+27. PROCESSING AND REVISION MUTABILITY
+======================================================================
+
+Document processing is a property of immutable Document bytes.
+
+Therefore processing may continue, be retried, or be viewed even if a
+revision becomes SUPERSEDED, and even if the RevisionDocument in that
+revision is REMOVED. The Document may also belong to other revisions.
+
+Do not treat processing or retry as a revision mutation. Revision read-only
+rules do not apply to them.
+
+Access through a revision-scoped API must still validate that a
+RevisionDocument associates that Document with that revision. INCLUDED and
+REMOVED both qualify. A page must belong to that Document.
+
+======================================================================
+28. SECURITY AND RESOURCE SAFETY
+======================================================================
+
+Treat uploaded files as untrusted input.
+
+At minimum:
+
+    enforce page-count/resource limits
+    scale a decodable page down to the profile pixel cap
+    fail a decompression bomb and any input that cannot be decoded
+    enable Pillow decompression-bomb protection at the Phase 2 input ceiling
+    bound temporary disk use
+    clean temporary files reliably
+    set reasonable worker time limits, and record PROCESSING_TIMEOUT when
+    a limit aborts the task
+    safely handle malformed PDFs/images
+    publish processing tasks only to the document-worker queue
+    do not execute embedded content
+    do not invoke shell commands based on filenames
+    do not expose storage credentials
+    keep all artifacts private
+
+Password-protected PDFs should fail cleanly in Phase 3.
+
+Do not add password-entry workflows.
+
+======================================================================
+29. DATABASE MIGRATION
+======================================================================
+
+Create new Alembic migration(s).
+
+Do not modify old applied migrations.
+
+Add:
+
+    document_pages
+    document_processing_runs
+    page_artifacts
+
+Add required:
+
+    FKs
+    uniqueness constraints
+    indexes
+    enums
+
+Indexes should support common lookups such as:
+
+    pages by document
+    processing runs by document and by processing target
+    artifacts by page/run
+
+Include the partial unique index in section 6 so only one PENDING, RUNNING,
+or COMPLETED run can exist per processing target.
+
+Avoid unnecessary indexing.
+
+======================================================================
+30. DOMAIN / SERVICE BOUNDARIES
+======================================================================
+
+Preserve repository architecture.
+
+packages/document-model holds pure concepts only: enums, failure codes, the
+processing profile, its deterministic hash, and artifact storage-key
+construction.
+
+Do not put any of the following inside packages/document-model or any other
+pure domain package:
+
+    FastAPI
+    SQLAlchemy
+    Celery
+    MinIO/S3 SDK calls
+    Pillow
+    PyMuPDF
+
+The processing service, ObjectStorage and its implementations, and the
+SQLAlchemy models the worker must load live in a shared library imported by
+both services/api and services/document-worker. The worker must not import
+the FastAPI application. Details are in section 23.
+
+The Celery task lives in the worker and calls that service. It must not
+contain the processing implementation inline.
+
+======================================================================
+31. TESTING — REQUIRED
+======================================================================
+
+Phase 3 is not complete without automated tests.
+
+At minimum cover:
+
+PDF
+
+- single-page PDF
+- multipage PDF
+- correct page count
+- page ordering
+- native PDF text extraction
+- scanned/image-only PDF succeeds with zero native text and no NATIVE_TEXT
+  artifact
+- rotated page stores the upright displayed width and height, and records
+  rotation_degrees as the source rotation that was applied
+- corrupt PDF fails cleanly
+- password-protected PDF fails cleanly
+
+IMAGES
+
+- PNG produces one DocumentPage
+- JPEG produces one DocumentPage
+- EXIF orientation handled correctly
+- single-page TIFF
+- multipage TIFF creates multiple pages
+- malformed image fails cleanly
+
+ARTIFACTS
+
+- analysis image created
+- thumbnail created
+- native-text artifact created only when extracted text is non-empty
+- whitespace-only PDF text does not create a NATIVE_TEXT artifact
+- artifact metadata/hashes persisted
+- artifacts private
+- signed URL access works
+
+RESOURCE CONTROL
+
+- a decodable page larger than the profile cap is scaled down and records
+  effective DPI (PDF) or output dimensions (image)
+- decompression-bomb style input, and input that cannot be decoded, fails
+  the run
+- large PDF rendering is bounded by profile limits
+- a file within the Phase 2 upload ceiling still opens under Pillow's bomb
+  guard
+
+PROCESSING STATE
+
+- PENDING → RUNNING → COMPLETED
+- failure results in FAILED
+- partial processing never becomes COMPLETED
+- pages and artifact URLs are withheld until COMPLETED
+- progress is visible from the processing-status payload while RUNNING
+- retry of a FAILED current run inserts a new PENDING run and leaves the
+  failed run, its counters, and its artifacts unchanged
+- the new run has its own storage prefix and attempt_count one higher than
+  the previous attempt
+- attempt_count is set at insert and does not change when the worker claims
+- a second claim of the same run does not write artifacts
+- two simultaneous retries leave only one new PENDING run
+- the new run starts at pages_processed 0
+- an unclaimed PENDING run is enqueued again by ensure
+- a lost enqueue leaves the Document valid and the run PENDING
+- backfill re-enqueues an unclaimed PENDING run and does not retry FAILED
+- the document list and detail payloads include the processing summary
+
+IDEMPOTENCY / CONCURRENCY
+
+- repeated ensure-processing returns the same compatible run
+- ensure of a RUNNING or COMPLETED run does not enqueue
+- two simultaneous ensure requests do not create duplicate logical runs
+- duplicate Celery delivery does not duplicate pages/artifacts
+- document-processing tasks are published to the queue only document-worker
+  consumes
+
+REVISION REUSE
+
+Given:
+
+    Revision 0 → Document A
+    Revision 1 → inherited Document A
+    Revision 2 → inherited Document A
+
+verify there is:
+
+    one Document
+    multiple RevisionDocuments
+    one stable DocumentPage set
+    one compatible completed processing result
+
+ACCESS CONTROL BOUNDARIES
+
+- cross-project page access rejected
+- page must belong to expected Document
+- RevisionDocument association required for revision-scoped access
+- REMOVED associations, and associations on a SUPERSEDED revision, can read
+  processing status and, once COMPLETED, pages and artifact URLs
+- those same associations can retry a FAILED run
+
+FAILURE SAFETY
+
+- storage read failure fails processing cleanly
+- artifact storage failure does not damage original
+- original Phase 2 object remains unchanged after any processing failure
+
+REGRESSION
+
+- Phase 1 and Phase 2 tests continue to pass
+
+======================================================================
+32. WHAT MUST NOT BE IMPLEMENTED
+======================================================================
+
+Explicitly out of scope:
+
+    OCR
+    Tesseract
+    cloud OCR services
+    LLM calls
+    vision-model calls
+    automatic document classification
+    table extraction
+    equipment extraction
+    symbol detection
+    SLD interpretation
+    entity resolution
+    topology inference
+    embeddings
+    vector databases
+    RAG
+    evidence candidates
+    engineering-model entities
+    conflict reconciliation
+    ETAP/SKM/EasyPower integration
+    power-system calculations
+    report generation
+
+Native PDF text extraction is permitted because it reads an existing text
+layer; it is not OCR.
+
+======================================================================
+33. DOCUMENTATION
+======================================================================
+
+Update at minimum:
+
+    docs/PROJECT_STATUS.md
+    docs/ARCHITECTURE.md
+    docs/DOCUMENT_PIPELINE.md
+    docs/PROVENANCE.md
+
+Create:
+
+    cursor/phase3_specs.txt
+
+and an ADR equivalent to:
+
+    ADR-005-document-processing-and-page-identity.md
+
+The ADR should record:
+
+1. Processing belongs to Document, not RevisionDocument.
+2. DocumentPage is stable and independent of processing resolution/version.
+3. Page numbers are 1-based.
+4. PDF pages / image files / TIFF frames map to logical pages as specified.
+5. Original Documents remain primary evidence.
+6. PageArtifacts are derived data.
+7. Processing is asynchronous.
+8. Processing is version/profile aware.
+9. Compatible processing is idempotent and reused across revisions.
+10. Native PDF text extraction is Phase 3; OCR is deferred.
+11. Normalized top-left coordinates on the upright logical page are the
+    future provenance convention.
+12. A decodable page that would exceed the profile pixel cap is scaled down.
+    Input that cannot be decoded, including a decompression bomb, fails.
+13. source_width and source_height are the upright displayed page.
+    rotation_degrees is the source rotation that was applied.
+14. A DocumentProcessingRun is one attempt. Retry inserts a new run under
+    the same processing target and keeps the failed attempt's rows and
+    objects. attempt_count is set at insert and is not changed on claim.
+    At most one PENDING, RUNNING, or COMPLETED run exists per target.
+15. ensure and backfill re-enqueue an unclaimed PENDING run. They do not
+    create a run when the current run is FAILED. Retry is only for FAILED.
+16. Pages and artifact URLs are exposed only for a COMPLETED run.
+17. The revision-document list carries processing status.
+18. REMOVED and superseded associations may read and retry processing.
+19. The API and document-worker share the ObjectStorage port and the
+    processing service. The worker does not import the FastAPI application.
+    Processing tasks use a dedicated queue.
+20. A page with no native text stores native_text_char_count = 0 and no
+    NATIVE_TEXT artifact.
+
+======================================================================
+34. PROJECT STATUS
+======================================================================
+
+When implementation and verification are complete, update:
+
+    Phase 0 — Complete
+    Phase 1 — Complete
+    Phase 2 — Complete
+    Phase 3 — Complete
+
+Next phase should remain separate from this implementation.
+
+Do not mark Phase 3 complete unless required tests/checks were actually run.
+
+Document intentional deviations and technical debt in PROJECT_STATUS.md.
+
+======================================================================
+35. IMPLEMENTATION ORDER
+======================================================================
+
+Use approximately this sequence:
+
+1. Inspect repository and run baseline tests
+2. Write implementation plan
+3. Define processing/page domain concepts and configuration in
+   packages/document-model
+4. Extract the shared library (ObjectStorage, processing service, models
+   the worker loads) and point the API and document-worker at it
+5. Add database migration/models
+6. Implement processing profile/version identity
+7. Implement PDF processing
+8. Implement PNG/JPEG/TIFF processing
+9. Implement derived artifact storage
+10. Implement processing service/idempotency, including PENDING re-enqueue
+11. Implement the Celery task on the dedicated queue, and retry as a new run
+12. Integrate automatic processing enqueue after new uploads
+13. Add existing-document backfill command
+14. Add processing/page APIs, including the list-payload summary
+15. Extend frontend with status and page viewer
+16. Add concurrency/failure/integration tests
+17. Run complete test/lint/type/build suite
+18. Update documentation and ADR
+19. Review final diff for scope creep
+
+Do not begin OCR or AI work.
+
+======================================================================
+36. DEFINITION OF DONE
+======================================================================
+
+Phase 3 is complete when:
+
+- existing Phase 0–2 functionality still passes
+- PDFs/images process asynchronously
+- PDFs become stable logical pages
+- PNG/JPEG become one logical page
+- multipage TIFF becomes multiple logical pages
+- DocumentPage belongs to Document
+- inherited/reused Documents reuse existing pages and processing
+- analysis images are generated
+- thumbnails are generated
+- native PDF text is extracted where present, and omitted when empty
+- no OCR is performed
+- processing is version/profile aware
+- processing is concurrency-safe and idempotent
+- an unclaimed PENDING run is re-enqueued by ensure and by backfill
+- retry inserts a new run and preserves the failed attempt's artifacts
+- attempt_count is fixed when the run is created
+- only one PENDING, RUNNING, or COMPLETED run exists per processing target
+- a decodable oversized page is scaled down to the profile cap
+- undecodable input and decompression bombs fail the run
+- page source dimensions are the upright displayed page
+- failures never alter the immutable original
+- pages and artifact URLs are withheld until the run is COMPLETED
+- the document list carries processing status
+- REMOVED and superseded associations can read and retry processing
+- the API and document-worker share ObjectStorage and the processing service
+- processing tasks use a queue only document-worker consumes
+- failed runs can be retried
+- derived artifacts remain private
+- signed artifact URLs work
+- existing Phase 2 Documents can be backfilled without re-upload
+- frontend shows processing state, including Not started
+- the page viewer opens only for a completed run
+- normalized future page-coordinate convention is documented
+- tests pass
+- lint/type/build checks pass
+- ADR/docs/status are updated
+- Phase 4 functionality has not been implemented
+
+======================================================================
+37. FINAL HANDOFF
+======================================================================
+
+After implementation provide:
+
+A. Database/schema changes
+
+B. New processing/domain/service/worker modules
+
+C. Processing profile and versioning design
+
+D. Exact PDF/image/TIFF behavior
+
+E. Artifact types and storage layout
+
+F. Processing state/retry/idempotency behavior
+
+G. API changes
+
+H. Frontend changes
+
+I. Backfill strategy
+
+J. Tests/checks actually executed and their results
+
+K. Deviations from this specification
+
+L. Technical debt discovered or introduced
+
+M. Confirmation that OCR/AI functionality was not implemented
+
+N. Suggested commit message
+
+Do not claim any test/check passed unless it was actually executed.

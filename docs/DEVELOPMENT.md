@@ -16,6 +16,8 @@ API: `http://localhost:8000/api/projects` (see OpenAPI at `/docs`).
 
 Phase 2 (complete; see [PROJECT_STATUS.md](PROJECT_STATUS.md)) added document management. The revision workspace route above is the revision documents page, and the API has `.../revisions/{revisionId}/documents` routes (list the routes in OpenAPI at `/docs`). See [Phase 2 configuration](#phase-2-configuration-document-storage).
 
+Phase 3 is specified and not implemented. Workers still only heartbeat. The pull-request plan is [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md); do not expect page routes or a processing queue until those PRs land.
+
 ## Prerequisites
 
 - Python 3.12

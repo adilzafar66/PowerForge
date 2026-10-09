@@ -95,6 +95,7 @@ Output includes `candidate_entity`, `match_probability`, `matching_evidence`, an
 
 ## Out of scope until named phases
 
+- Phase 3: document processing renders pages and reads native PDF text. It does not call `OCRProvider` or any classifier
 - Phase 4: classification
 - Phase 6: structured document extraction
 - Phase 7: entity resolution

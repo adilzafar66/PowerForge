@@ -3,8 +3,8 @@
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
 **Current implemented phase:** 2 (document management)  
-**In progress:** none  
-**Next:** 3 (document processing) — not started
+**In progress:** Phase 3 is specified, not implemented  
+**Next:** implement Phase 3 (document processing) per [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md)
 
 ## Phase 0 — Architecture and repository setup
 
@@ -107,14 +107,36 @@ Phase 2 was delivered as 16 pull requests (PR-00 to PR-15), tracked with scope, 
 
 ## Next — Phase 3: Document processing
 
-Not started; nothing for it was implemented in Phase 2. Conceptually: PDF/image preprocessing, PDF page generation, page rendering, image normalization, OCR-ready artifacts, and page metadata, built on top of the immutable `Document` produced in Phase 2 and run by `services/document-worker`.
+**Status:** Specified (2026-10-08). Not implemented. No pages, artifacts, processing runs, or worker tasks exist in the code.
+
+Specification: `cursor/phase3_specs.txt`  
+Plan: [PHASE3_PLAN.md](PHASE3_PLAN.md)  
+Delivery: [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md) (PR-01 … PR-10; none landed)  
+Decisions: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Proposed)
+
+Phase 3 will turn each immutable `Document` into stable `DocumentPage` rows and derived artifacts (analysis image, thumbnail, native PDF text when the page has a text layer), asynchronously in `document-worker`. Processing belongs to `Document`, so inherited revisions share one result. A processing run is one attempt; retry inserts a new run and keeps the failed attempt. OCR, classification, and the engineering model are not part of this phase.
+
+### Baseline before implementation (2026-10-08)
+
+Phase 2 tree at `2c75e44`, plus the untracked Phase 3 spec. Integration tests used a throwaway database (`powerforge_phase3_baseline`, created, migrated to `0004`, then dropped) so the dev database was not polluted. MinIO was already running.
+
+| Check | Result |
+| --- | --- |
+| `ruff check .` | Passed |
+| `pytest` (integration skipped) | 200 passed, 246 skipped |
+| `RUN_INTEGRATION=1 pytest` on the throwaway database with MinIO running | 446 passed |
+| `npm run lint` (`apps/web`) | No warnings or errors |
+| `npx tsc --noEmit` (`apps/web`) | No errors |
+| `npm test` (`apps/web`) | 172 passed (11 files) |
+
+`npm run build` was not run. Run it when the web UI changes.
 
 ## Later phases
 
 | Phase | Work | Status |
 | --- | --- | --- |
 | 2 | Document management | Complete (2026-10-06) |
-| 3 | Document processing | Not started |
+| 3 | Document processing | Specified (2026-10-08); not implemented |
 | 4 | Document classification | Not started |
 | 5 | Engineering model persistence | Not started |
 | 6–13 | Extraction through export | Not started |

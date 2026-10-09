@@ -78,7 +78,7 @@ These boundaries are mandatory. Do not place logic in an unrelated module.
 | --- | --- | --- |
 | Project | Projects, metadata, revisions, lifecycle | AI, OCR, calculations, document parsing |
 | Document | Upload, immutable `Document` artifacts, revision-scoped `RevisionDocument` associations and metadata, classification, storage refs; pages (Phase 3) | Engineering model, electrical calculations |
-| Document processing | PDF parse, page render, OCR, text/image/layout/table extraction | Mutating the verified model |
+| Document processing | PDF parse, page render, native text, and derived artifacts in Phase 3; OCR and layout/table extraction later | Mutating the verified model; OCR in Phase 3 |
 | AI extraction | Equipment, attributes, SLD, topology candidates, relationships | Direct writes to the verified model |
 | Entity resolution | Duplicate detection, match probability, merge candidates | Silent merges of low-confidence matches |
 | Engineering model | Equipment, attributes, connections, topology, model snapshot on a project revision, state | AI provider SDKs; project/revision tables |
@@ -98,7 +98,8 @@ Package and service mapping:
 - `services/validation-worker` — deterministic validation jobs
 - `packages/project` — project/revision enums and domain schemas
 - `packages/engineering-model` — canonical model types and contracts
-- `packages/document-model` — document vocabulary: classification, origin and status enums, pure file-validation rules, storage-key builder (no SQLAlchemy, FastAPI, S3 SDK, or Pillow); page contracts arrive in Phase 3
+- `packages/document-model` — document vocabulary: classification, origin and status enums, pure file-validation rules, storage-key builder (no SQLAlchemy, FastAPI, S3 SDK, or Pillow). Phase 3 adds processing enums, the profile, and artifact key construction here, still with no Pillow or PyMuPDF. Those contracts are specified, not implemented
+- `packages/document-processing` — planned shared library for `ObjectStorage`, the SQLAlchemy models both processes load, and the processing service (Phase 3; not created yet)
 - `packages/extraction` — candidate extraction contracts
 - `packages/topology` — graph contracts
 - `packages/validation` — deterministic rule contracts
@@ -117,7 +118,7 @@ Workers and the API may depend on domain packages. Domain packages must not depe
 | Persistence | PostgreSQL, SQLAlchemy 2, Alembic | Hybrid relational + JSONB; queryable, not a document dump |
 | Object storage | S3-compatible (MinIO locally), accessed through an `ObjectStorage` abstraction (boto3 implementation) | Presigned URLs; originals never overwritten; stable machine-oriented keys (Phase 2) |
 | Jobs | Redis + Celery | Document processing and extraction are never synchronous HTTP |
-| Document processing | PyMuPDF, pdfplumber, OpenCV, OCR abstraction | Introduced in Phase 3; not implemented in Phase 0 |
+| Document processing | PyMuPDF and Pillow | Phase 3, specified in `cursor/phase3_specs.txt`, not implemented. pdfplumber, OpenCV, and OCR stay later |
 | AI | `LLMProvider`, `VisionProvider`, `OCRProvider` | Swappable; prompt-versioned; never trusted raw |
 
 See [ADR-002](../decisions/ADR-002-phase-0-technology-stack.md) for why these Phase 0 choices were made.
@@ -133,6 +134,7 @@ See [ADR-002](../decisions/ADR-002-phase-0-technology-stack.md) for why these Ph
 /packages/project
 /packages/engineering-model
 /packages/document-model
+/packages/document-processing   (Phase 3; not created yet)
 /packages/extraction
 /packages/topology
 /packages/validation
@@ -255,7 +257,25 @@ The web app (`apps/web`) shows the revision page as the documents workspace: fil
 
 ### Not in Phase 2
 
-OCR, AI or auto-classification, document pages and rendering, thumbnails, equipment and engineering-model entities, ETAP/SKM/EasyPower. Phase 3 (document processing) builds on `Document`.
+OCR, AI or auto-classification, document pages and rendering, thumbnails, equipment and engineering-model entities, ETAP/SKM/EasyPower. Phase 3 builds on `Document` and is specified separately below. It is not implemented.
+
+## Phase 3
+
+Phase 3 is document processing: stable logical pages and derived artifacts for an immutable `Document`. Specification: `cursor/phase3_specs.txt`. Decision record: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Proposed). Plan: [PHASE3_PLAN.md](PHASE3_PLAN.md). Delivery: [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md). Status: specified, not implemented. Nothing in this section is in the database or the worker yet.
+
+Processing hangs off `Document`. Revisions that share a file share one page set and one completed result. A PDF page, a PNG or JPEG, and a TIFF frame each become one `DocumentPage` (page numbers start at 1). `source_width` and `source_height` are the upright page after rotation normalization. `rotation_degrees` records the source rotation that was applied.
+
+A `DocumentProcessingRun` is one attempt at a processing target (`document_id`, `processor_version`, `profile_hash`). Many failed attempts may exist. Only one `PENDING`, `RUNNING`, or `COMPLETED` run may exist for that target. Retry inserts a new run and leaves the failed attempt's rows and objects in place. `ensure_document_processing` creates the first run and re-enqueues an unclaimed `PENDING` run. It does not retry failure. Work runs in `document-worker` on a dedicated Celery queue, after the upload commits. A run is `COMPLETED` only when every page has its required artifacts. Pages and artifact URLs are exposed only then.
+
+Artifacts are an analysis PNG, a thumbnail, and native PDF text when the page has a non-empty text layer. They are derived data, not the original evidence. Keys live under `processing/{run_id}/` and `put` never overwrites. There is no OCR.
+
+The API and the worker will share `packages/document-processing` for storage, the models, and the processing service. The worker will not import the FastAPI application. `packages/document-model` keeps the pure profile and key helpers.
+
+The revision documents workspace will show Not started, Pending, Processing, Ready, and Failed from the list payload, and will open an inspection-only page viewer for a completed run.
+
+### Not in Phase 3
+
+OCR, automatic classification, layout or table extraction, evidence rows, equipment, and the engineering model.
 
 ## Related documents
 
@@ -272,3 +292,6 @@ OCR, AI or auto-classification, document pages and rendering, thumbnails, equipm
 - [PHASE0_HANDOFF.md](PHASE0_HANDOFF.md) — Phase 0 implementation context and environment notes
 - [ADR-003](../decisions/ADR-003-project-revision-model.md) — project/revision model (Phase 1, accepted)
 - [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md) — document storage and revision inheritance (Phase 2, accepted)
+- [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) — document processing and page identity (Phase 3, proposed)
+- [PHASE3_PLAN.md](PHASE3_PLAN.md) — Phase 3 conceptual plan
+- [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md) — Phase 3 pull-request delivery plan (not started)

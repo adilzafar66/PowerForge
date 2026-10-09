@@ -29,7 +29,7 @@ Phase 2 defines, and implements, what evidence will point at. See [ADR-004](../d
 
 - Evidence references `document_id`. Where the revision context matters (for example "what did the engineer have in Revision 2 when this value was verified"), also record the `revision_document_id`.
 - Inheritance is a **snapshot at revision-creation time**; an ACTIVE revision's package stays editable, so its document set can change after a model was built from it. Anything derived from documents must record the `Document` identity it used rather than assuming the revision's package is fixed.
-- Document pages, OCR text, and other normalized artifacts (Phase 3) attach to `Document`, not `RevisionDocument`.
+- Document pages, analysis images, thumbnails, and native PDF text (Phase 3, specified, not implemented) attach to `Document`, not `RevisionDocument`. OCR text is a later artifact. A processing run's outputs are derived data. They are not a second copy of the evidence.
 
 ## Evidence
 
@@ -81,3 +81,13 @@ The document viewer uses page images and bounding boxes to highlight the region 
 Phase 0 defines evidence contracts in `packages/provenance`. Persistence of evidence rows begins when extraction writes candidates (Phase 6) and when the engineering model stores verified attributes (Phase 5+).
 
 Phase 2 does not create evidence. It creates the immutable `Document` and revision-scoped `RevisionDocument` records that evidence will reference.
+
+## Page identity (Phase 3)
+
+Specified in `cursor/phase3_specs.txt` and [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md). Not implemented. No evidence rows are created in Phase 3.
+
+- **`DocumentPage` is the stable location inside a `Document`.** Page numbers start at 1. A PDF page, a whole PNG or JPEG, and a TIFF frame each become one page. The page does not change when a later run renders it at a different resolution.
+- **Width and height are the upright page** after rotation normalization, in PDF points or image pixels. `rotation_degrees` is the source rotation that was applied (`0`, `90`, `180`, or `270`).
+- **Coordinates, when a later phase stores them, are normalized on that upright page.** Origin is the top left. `x`, `y`, `width`, and `height` each run from 0.0 to 1.0. They are not pixels of an analysis PNG and not the unrotated PDF media box.
+- **`PageArtifact` is derived.** An analysis image, a thumbnail, or native PDF text helps a viewer and a later extractor. Provenance cites the `DocumentPage`. It must not treat one PNG as the source of truth. Native text is not OCR. A page with no text layer has a zero character count and no text artifact.
+- **Several processing attempts may exist.** The completed attempt is the one later phases may assume is complete. Failed attempts are not evidence and are not exposed as pages.

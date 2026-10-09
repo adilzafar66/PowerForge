@@ -6,7 +6,9 @@ Read this before changing code. This file is the continuation context for a new 
 
 Living phase status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
-**Phase 2 (document management):** implemented; specified in `cursor/phase2_specs.txt`, decided in [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md) (Accepted), and recorded in [PROJECT_STATUS.md](PROJECT_STATUS.md). Do not start Phase 3 as a side effect of other work.
+**Phase 2 (document management):** implemented; specified in `cursor/phase2_specs.txt`, decided in [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md) (Accepted), and recorded in [PROJECT_STATUS.md](PROJECT_STATUS.md).
+
+**Phase 3 (document processing):** specified in `cursor/phase3_specs.txt`, decided in [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Proposed), planned in [PHASE3_PLAN.md](PHASE3_PLAN.md), and delivered as PR-01 … PR-10 in [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md). Not implemented. Do not start it as a side effect of other work, and do not implement OCR as part of it.
 
 ## Agent instructions
 
@@ -14,7 +16,7 @@ Living phase status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
 2. Read the relevant domain docs for the work you were asked to do.
 3. Inspect existing code. Do not invent a second layout.
 4. Stay inside the requested phase. Do not implement OCR, AI extraction, SLD recognition, ETAP/SKM/EasyPower, electrical calculations, or report generation.
-5. Follow the phase process in `cursor/specification.txt` §36 when implementing a named phase. For Phase 1 details see `cursor/phase1_specs.txt` (complete); for Phase 2 see `cursor/phase2_specs.txt`.
+5. Follow the phase process in `cursor/specification.txt` §36 when implementing a named phase. For Phase 1 details see `cursor/phase1_specs.txt` (complete); for Phase 2 see `cursor/phase2_specs.txt` (complete); for Phase 3 see `cursor/phase3_specs.txt` (specified, not implemented).
 6. After architectural changes: explain, list affected modules, update docs (including [PROJECT_STATUS.md](PROJECT_STATUS.md)), add an ADR if the decision is significant.
 
 Product specification (source of truth for product scope): `cursor/specification.txt`.
@@ -256,4 +258,4 @@ Browser MCP was not available; the status page was checked via the rendered HTML
 
 ## Suggested first message to a new agent
 
-> Read `docs/PROJECT_STATUS.md`, `docs/PHASE0_HANDOFF.md`, and `docs/ARCHITECTURE.md`. Phase 0, Phase 1 and Phase 2 are done. Compose may already be running. Confirm `/ready` is ok. Do not start Phase 3 unless I ask.
+> Read `docs/PROJECT_STATUS.md`, `docs/PHASE0_HANDOFF.md`, and `docs/ARCHITECTURE.md`. Phase 0, Phase 1 and Phase 2 are done. Phase 3 is specified in `cursor/phase3_specs.txt` and [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md). Deliver it only through [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md), one PR at a time. Compose may already be running. Confirm `/ready` is ok.
