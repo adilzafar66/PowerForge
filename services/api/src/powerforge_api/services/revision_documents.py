@@ -12,14 +12,14 @@ from sqlalchemy import insert, literal, select
 from sqlalchemy.orm import Session
 
 from powerforge_api.exceptions import ArchivedProject, CancelledProject, RevisionReadOnly
-from powerforge_api.models import (
+from powerforge_document_model import DocumentOrigin, RevisionDocumentStatus
+from powerforge_document_processing.models import (
     Project,
     ProjectRevision,
     RevisionDocument,
     document_origin_enum,
     revision_document_status_enum,
 )
-from powerforge_document_model import DocumentOrigin, RevisionDocumentStatus
 from powerforge_project import ProjectStatus, RevisionStatus
 
 

@@ -8,7 +8,7 @@ Delivery is a sequence of pull requests: [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md).
 
 ## What exists today
 
-Phase 2 is the base. `Document` and `RevisionDocument` are in `powerforge_api.models`. Storage is `powerforge_api.storage` (`ObjectStorage.put` refuses to overwrite). Upload commits the document in `DocumentService.upload` and does not enqueue anything. The API process does not depend on Celery.
+Phase 2 is the base. `Document`, `RevisionDocument`, and the project models live in `powerforge_document_processing.models`, and storage is `powerforge_document_processing.storage` (`ObjectStorage.put` refuses to overwrite). The API imports that one mapping. Upload commits the document in `DocumentService.upload` and does not enqueue anything. The API process does not depend on Celery. The document worker still only heartbeats and does not import the shared package.
 
 `services/document-worker` registers a heartbeat task only. Its image installs `powerforge-shared` and the worker package: no SQLAlchemy, boto3, Pillow, PyMuPDF, or `document-model`. In Compose it receives `DATABASE_URL` and no `S3_*` variables, so storage settings inside that container fall back to `localhost:9000`. The extraction and validation workers are the same shape and listen on the default `celery` queue, as does document-worker. A task published to that queue can be consumed by any of them ([PHASE0_HANDOFF.md](PHASE0_HANDOFF.md)).
 

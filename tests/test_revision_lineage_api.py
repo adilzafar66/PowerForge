@@ -19,14 +19,14 @@ from sqlalchemy.exc import IntegrityError
 
 from powerforge_api.db import get_engine, get_session_factory
 from powerforge_api.main import app
-from powerforge_api.models import Document, ProjectRevision, RevisionDocument
 from powerforge_api.services import revision_service
-from powerforge_api.storage import InMemoryObjectStorage
 from powerforge_document_model import (
     DocumentClassification,
     DocumentOrigin,
     RevisionDocumentStatus,
 )
+from powerforge_document_processing.models import Document, ProjectRevision, RevisionDocument
+from powerforge_document_processing.storage import InMemoryObjectStorage
 
 client = TestClient(app)
 

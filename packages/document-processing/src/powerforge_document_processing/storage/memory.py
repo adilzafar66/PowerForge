@@ -7,14 +7,14 @@ from io import BytesIO
 from typing import BinaryIO
 from urllib.parse import quote, urlencode
 
-from powerforge_api.storage.base import (
+from powerforge_document_processing.storage.base import (
     DispositionType,
     ObjectAlreadyExists,
     ObjectNotFound,
     ReadableStream,
     StorageError,
 )
-from powerforge_api.storage.disposition import build_content_disposition
+from powerforge_document_processing.storage.disposition import build_content_disposition
 
 OPERATIONS = ("ensure_bucket", "put", "get", "exists", "delete", "create_download_url")
 

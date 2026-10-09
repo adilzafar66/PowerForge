@@ -8,8 +8,8 @@ from urllib.parse import parse_qs, urlsplit
 
 import pytest
 
-from powerforge_api.storage import StorageError
-from powerforge_api.storage.s3 import S3ObjectStorage
+from powerforge_document_processing.storage import StorageError
+from powerforge_document_processing.storage.s3 import S3ObjectStorage
 
 SECRET = "super-secret-key-value"
 KEY = "projects/p/documents/d/original.pdf"

@@ -1,0 +1,19 @@
+[project]
+name = "powerforge-document-processing"
+version = "0.1.0"
+description = "Shared object storage and SQLAlchemy models for the API and document worker."
+requires-python = ">=3.12"
+dependencies = [
+    "sqlalchemy>=2.0.35",
+    "boto3>=1.36",
+    "powerforge-shared",
+    "powerforge-project",
+    "powerforge-document-model",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

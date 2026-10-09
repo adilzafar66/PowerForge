@@ -20,13 +20,13 @@ from powerforge_api.exceptions import (
     RevisionNotFound,
     RevisionProjectMismatch,
 )
-from powerforge_api.models import Project, ProjectRevision
 from powerforge_api.schemas.projects import RevisionCreate, RevisionUpdate
 from powerforge_api.services.revision_documents import (
     assert_project_modifiable,
     copy_included_associations,
     lock_revision,
 )
+from powerforge_document_processing.models import Project, ProjectRevision
 from powerforge_project import RevisionStatus
 
 logger = logging.getLogger(__name__)

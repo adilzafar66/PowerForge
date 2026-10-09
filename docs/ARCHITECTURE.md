@@ -99,7 +99,7 @@ Package and service mapping:
 - `packages/project` — project/revision enums and domain schemas
 - `packages/engineering-model` — canonical model types and contracts
 - `packages/document-model` — document vocabulary: classification, origin and status enums, pure file-validation rules, storage-key builder (no SQLAlchemy, FastAPI, S3 SDK, or Pillow). Phase 3 adds processing enums, the profile, and artifact key construction here, still with no Pillow or PyMuPDF. Those contracts are specified, not implemented
-- `packages/document-processing` — planned shared library for `ObjectStorage`, the SQLAlchemy models both processes load, and the processing service (Phase 3; not created yet)
+- `packages/document-processing` — shared `ObjectStorage` and the SQLAlchemy models the API loads (`Project`, `ProjectRevision`, `Document`, `RevisionDocument`). The processing service is not in this package yet. The document worker does not import it yet
 - `packages/extraction` — candidate extraction contracts
 - `packages/topology` — graph contracts
 - `packages/validation` — deterministic rule contracts
@@ -134,7 +134,7 @@ See [ADR-002](../decisions/ADR-002-phase-0-technology-stack.md) for why these Ph
 /packages/project
 /packages/engineering-model
 /packages/document-model
-/packages/document-processing   (Phase 3; not created yet)
+/packages/document-processing   (storage and ORM models; processing service not added yet)
 /packages/extraction
 /packages/topology
 /packages/validation

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from powerforge_api.storage.base import ObjectStorage
-from powerforge_api.storage.s3 import S3ObjectStorage
+from powerforge_document_processing.storage.base import ObjectStorage
+from powerforge_document_processing.storage.s3 import S3ObjectStorage
 from powerforge_shared.config import Settings, get_settings
 
 

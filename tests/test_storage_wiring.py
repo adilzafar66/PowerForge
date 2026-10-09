@@ -12,13 +12,13 @@ from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
 from powerforge_api import main
-from powerforge_api.storage import InMemoryObjectStorage, ObjectStorage
-from powerforge_api.storage.factory import (
+from powerforge_document_processing.storage import InMemoryObjectStorage, ObjectStorage
+from powerforge_document_processing.storage.factory import (
     build_s3_storage,
     get_cached_s3_storage,
     get_object_storage,
 )
-from powerforge_api.storage.s3 import S3ObjectStorage
+from powerforge_document_processing.storage.s3 import S3ObjectStorage
 from powerforge_shared.config import Settings
 
 API_SOURCE = Path(__file__).resolve().parents[1] / "services" / "api" / "src" / "powerforge_api"
@@ -111,17 +111,40 @@ def test_factory_maps_settings_to_storage() -> None:
     assert url.startswith("http://localhost:9000/custom/k")
 
 
+PROCESSING_SOURCE = (
+    Path(__file__).resolve().parents[1]
+    / "packages"
+    / "document-processing"
+    / "src"
+    / "powerforge_document_processing"
+)
+
+
+def _boto_imports(path: Path) -> list[str]:
+    names: list[str] = []
+    for node in ast.walk(ast.parse(path.read_text())):
+        if isinstance(node, ast.Import):
+            names.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            names.append(node.module)
+    return [name for name in names if name.split(".")[0] in {"boto3", "botocore"}]
+
+
 def test_only_the_s3_module_imports_boto3() -> None:
-    offenders: list[str] = []
-    for path in API_SOURCE.rglob("*.py"):
-        if path == API_SOURCE / "storage" / "s3.py":
-            continue
-        for node in ast.walk(ast.parse(path.read_text())):
-            names: list[str] = []
-            if isinstance(node, ast.Import):
-                names = [alias.name for alias in node.names]
-            elif isinstance(node, ast.ImportFrom) and node.module:
-                names = [node.module]
-            if any(name.split(".")[0] in {"boto3", "botocore"} for name in names):
-                offenders.append(str(path.relative_to(API_SOURCE)))
+    allowed = PROCESSING_SOURCE / "storage" / "s3.py"
+    offenders = [
+        str(path.relative_to(PROCESSING_SOURCE))
+        for path in PROCESSING_SOURCE.rglob("*.py")
+        if path != allowed and _boto_imports(path)
+    ]
+    assert offenders == []
+    assert _boto_imports(allowed)
+
+
+def test_api_does_not_import_boto3() -> None:
+    offenders = [
+        str(path.relative_to(API_SOURCE))
+        for path in API_SOURCE.rglob("*.py")
+        if _boto_imports(path)
+    ]
     assert offenders == []

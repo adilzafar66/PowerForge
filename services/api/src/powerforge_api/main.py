@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from powerforge_api.routers.documents import router as documents_router
 from powerforge_api.routers.health import router as health_router
 from powerforge_api.routers.projects import router as projects_router
-from powerforge_api.storage.factory import get_object_storage
+from powerforge_document_processing.storage.factory import get_object_storage
 from powerforge_shared.config import get_settings
 from powerforge_shared.logging import configure_logging
 

@@ -10,7 +10,6 @@ from sqlalchemy.orm import Session
 
 from powerforge_api.db import get_session
 from powerforge_api.exceptions import ProjectError
-from powerforge_api.models import Project, ProjectRevision
 from powerforge_api.routers.errors import http_for as _http_for
 from powerforge_api.schemas.projects import (
     ProjectCreate,
@@ -24,6 +23,7 @@ from powerforge_api.schemas.projects import (
 )
 from powerforge_api.services.project_service import ProjectService
 from powerforge_api.services.revision_service import RevisionService
+from powerforge_document_processing.models import Project, ProjectRevision
 from powerforge_project import ProjectStatus
 
 router = APIRouter(tags=["projects"])

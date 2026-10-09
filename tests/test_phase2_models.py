@@ -8,12 +8,12 @@ from sqlalchemy import CheckConstraint, ForeignKeyConstraint, Index, LargeBinary
 from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm import configure_mappers
 
-from powerforge_api.models import Base, Document, ProjectRevision, RevisionDocument
 from powerforge_document_model import (
     DocumentClassification,
     DocumentOrigin,
     RevisionDocumentStatus,
 )
+from powerforge_document_processing.models import Base, Document, ProjectRevision, RevisionDocument
 
 EXPECTED_PROJECT_REVISION_CONSTRAINTS = {
     "uq_project_revisions_project_id_id",

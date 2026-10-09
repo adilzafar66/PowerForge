@@ -1,4 +1,4 @@
-from powerforge_api.storage.base import (
+from powerforge_document_processing.storage.base import (
     DispositionType,
     ObjectAlreadyExists,
     ObjectNotFound,
@@ -6,7 +6,7 @@ from powerforge_api.storage.base import (
     ReadableStream,
     StorageError,
 )
-from powerforge_api.storage.memory import InMemoryObjectStorage
+from powerforge_document_processing.storage.memory import InMemoryObjectStorage
 
 __all__ = [
     "DispositionType",

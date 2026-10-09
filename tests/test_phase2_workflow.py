@@ -11,7 +11,7 @@ from typing import Any
 
 from documents_support import client, code, docs_url, documents_of, make_revision, upload
 from file_factory import PDF
-from powerforge_api.storage import InMemoryObjectStorage
+from powerforge_document_processing.storage import InMemoryObjectStorage
 
 SLD_A = "SLD_RevA.pdf"
 SLD_B = "SLD_RevB.pdf"

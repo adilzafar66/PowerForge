@@ -45,9 +45,9 @@ from powerforge_api.routers.documents import MULTIPART_OVERHEAD_BYTES
 from powerforge_api.services import document_service
 from powerforge_api.services.document_service import _like_pattern
 from powerforge_api.services.revision_documents import lock_project_shared
-from powerforge_api.storage import InMemoryObjectStorage
-from powerforge_api.storage.base import StorageError
 from powerforge_document_model import RevisionDocumentStatus
+from powerforge_document_processing.storage import InMemoryObjectStorage
+from powerforge_document_processing.storage.base import StorageError
 from powerforge_shared.config import Settings, get_settings
 
 

@@ -14,9 +14,9 @@ from powerforge_api.exceptions import (
     InvalidStatusTransition,
     ProjectNotFound,
 )
-from powerforge_api.models import Project, ProjectRevision
 from powerforge_api.schemas.projects import ProjectCreate, ProjectUpdate
 from powerforge_api.services.revision_documents import assert_project_modifiable
+from powerforge_document_processing.models import Project, ProjectRevision
 from powerforge_project import ProjectStatus, RevisionStatus, can_transition
 
 

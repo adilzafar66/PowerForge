@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import quote
 
-from powerforge_api.storage.base import DispositionType
+from powerforge_document_processing.storage.base import DispositionType
 
 _ALLOWED_DISPOSITIONS = ("attachment", "inline")
 _FALLBACK_FILENAME = "download"

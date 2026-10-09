@@ -1,6 +1,6 @@
 import pytest
 
-from powerforge_api.storage.disposition import build_content_disposition
+from powerforge_document_processing.storage.disposition import build_content_disposition
 
 
 def test_plain_ascii_filename() -> None:

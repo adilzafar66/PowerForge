@@ -34,10 +34,10 @@ from documents_support import (
 from file_factory import PDF, png_bytes
 from powerforge_api.db import get_engine, get_session_factory
 from powerforge_api.main import app
-from powerforge_api.models import RevisionDocument
 from powerforge_api.services.document_service import DocumentService
 from powerforge_api.services.revision_documents import lock_project_shared
 from powerforge_document_model import RevisionDocumentStatus
+from powerforge_document_processing.models import RevisionDocument
 
 Op = Callable[[str, str, str, str], Any]
 
@@ -580,7 +580,7 @@ def test_reuse_from_a_superseded_revision_is_allowed(ctx: dict[str, Any]) -> Non
 def test_mutability_matrix(
     require_db: None, use_storage: Any, name: str, state: str, error: str | None
 ) -> None:
-    from powerforge_api.storage import InMemoryObjectStorage
+    from powerforge_document_processing.storage import InMemoryObjectStorage
 
     use_storage(InMemoryObjectStorage())
     pid, target, assoc, source = matrix_scenario(state)
@@ -617,7 +617,7 @@ def test_status_flipped_after_the_early_load_is_caught_under_lock(
     flip: str,
     error: str,
 ) -> None:
-    from powerforge_api.storage import InMemoryObjectStorage
+    from powerforge_document_processing.storage import InMemoryObjectStorage
 
     use_storage(InMemoryObjectStorage())
     pid, target, assoc, source = matrix_scenario("DRAFT")
@@ -642,7 +642,7 @@ def test_status_flipped_after_the_early_load_is_caught_under_lock(
 def test_every_mutation_locks_project_for_share_then_revision_for_update(
     require_db: None, use_storage: Any, name: str
 ) -> None:
-    from powerforge_api.storage import InMemoryObjectStorage
+    from powerforge_document_processing.storage import InMemoryObjectStorage
 
     use_storage(InMemoryObjectStorage())
     pid, target, assoc, source = matrix_scenario("DRAFT")

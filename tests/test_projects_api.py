@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from powerforge_api.db import get_engine, get_session_factory
 from powerforge_api.main import app
-from powerforge_api.models import ProjectRevision
+from powerforge_document_processing.models import ProjectRevision
 from powerforge_project import RevisionStatus
 
 client = TestClient(app)

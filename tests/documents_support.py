@@ -14,9 +14,9 @@ from sqlalchemy import event, func, select, text
 from file_factory import PDF
 from powerforge_api.db import get_engine, get_session_factory
 from powerforge_api.main import app
-from powerforge_api.models import Document, RevisionDocument
-from powerforge_api.storage import InMemoryObjectStorage
 from powerforge_document_model import DocumentOrigin, RevisionDocumentStatus
+from powerforge_document_processing.models import Document, RevisionDocument
+from powerforge_document_processing.storage import InMemoryObjectStorage
 
 client = TestClient(app)
 

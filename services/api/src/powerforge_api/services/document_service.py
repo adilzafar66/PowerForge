@@ -31,7 +31,6 @@ from powerforge_api.exceptions import (
     StorageDownloadFailed,
     StorageUploadFailed,
 )
-from powerforge_api.models import Document, Project, ProjectRevision, RevisionDocument
 from powerforge_api.schemas.documents import (
     DocumentStatusFilter,
     DocumentSummary,
@@ -48,13 +47,19 @@ from powerforge_api.services.revision_documents import (
     lock_project_shared,
     lock_revision,
 )
-from powerforge_api.storage.base import DispositionType, ObjectStorage
 from powerforge_document_model import (
     DocumentClassification,
     DocumentOrigin,
     RevisionDocumentStatus,
     build_storage_key,
 )
+from powerforge_document_processing.models import (
+    Document,
+    Project,
+    ProjectRevision,
+    RevisionDocument,
+)
+from powerforge_document_processing.storage.base import DispositionType, ObjectStorage
 from powerforge_shared.config import Settings
 
 logger = logging.getLogger(__name__)

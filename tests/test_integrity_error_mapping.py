@@ -21,8 +21,8 @@ from powerforge_api.exceptions import (
     UnexpectedIntegrityError,
 )
 from powerforge_api.main import app
-from powerforge_api.models import Project, ProjectRevision
 from powerforge_api.services.revision_service import RevisionService
+from powerforge_document_processing.models import Project, ProjectRevision
 from powerforge_project import RevisionStatus
 
 client = TestClient(app)

@@ -17,6 +17,7 @@ dependencies = [
     "python-multipart>=0.0.18",
     "powerforge-project",
     "powerforge-document-model",
+    "powerforge-document-processing",
 ]
 
 [build-system]

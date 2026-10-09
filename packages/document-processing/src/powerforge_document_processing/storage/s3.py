@@ -1,6 +1,6 @@
 """boto3-backed ObjectStorage for MinIO and other S3-compatible services.
 
-This is the only module in the API that imports boto3.
+This is the only module in this package that imports boto3.
 """
 
 from __future__ import annotations
@@ -13,14 +13,14 @@ from botocore.client import BaseClient
 from botocore.config import Config
 from botocore.exceptions import BotoCoreError, ClientError
 
-from powerforge_api.storage.base import (
+from powerforge_document_processing.storage.base import (
     DispositionType,
     ObjectAlreadyExists,
     ObjectNotFound,
     ReadableStream,
     StorageError,
 )
-from powerforge_api.storage.disposition import build_content_disposition
+from powerforge_document_processing.storage.disposition import build_content_disposition
 
 logger = logging.getLogger(__name__)
 

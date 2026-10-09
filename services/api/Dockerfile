@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir --upgrade pip \
         -e /app/packages/project \
         -e /app/packages/engineering-model \
         -e /app/packages/document-model \
+        -e /app/packages/document-processing \
         -e /app/packages/extraction \
         -e /app/packages/topology \
         -e /app/packages/validation \

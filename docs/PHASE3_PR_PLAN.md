@@ -580,7 +580,7 @@ Settle these in the PR named; record the outcome in that PR's description and, i
 | D4 | Backfill entry point. | PR-07 | Console script `powerforge-backfill-processing` with `--limit`. Not a FastAPI route. Not invoked from lifespan. |
 | D5 | Do upload responses include the new processing summary? | PR-08 | Yes, same shape as list/detail, so the UI can show Pending without a second fetch after upload. |
 | D6 | Worker concurrency. | PR-07 | Keep Compose `--concurrency=1` for Phase 3. Claim is already atomic; raising concurrency is a later tuning change. |
-| D7 | Exact shared-package import name after the extract. | PR-03 | `powerforge_document_processing` in `packages/document-processing`, as in [PHASE3_PLAN.md](PHASE3_PLAN.md). |
+| D7 | Exact shared-package import name after the extract. | PR-03 | Settled: `powerforge_document_processing` in `packages/document-processing`. |
 
 ---
 

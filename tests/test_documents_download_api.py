@@ -28,7 +28,7 @@ from documents_support import (
 )
 from file_factory import PDF, png_bytes
 from powerforge_api.main import app
-from powerforge_api.storage import InMemoryObjectStorage, StorageError
+from powerforge_document_processing.storage import InMemoryObjectStorage, StorageError
 from powerforge_shared.config import Settings, get_settings
 
 SECRET_NAME = "TOP-SECRET-plan.pdf"

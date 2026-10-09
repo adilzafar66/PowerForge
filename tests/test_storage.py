@@ -13,14 +13,14 @@ import httpx
 import pytest
 from botocore.exceptions import ClientError
 
-from powerforge_api.storage import (
+from powerforge_document_processing.storage import (
     InMemoryObjectStorage,
     ObjectAlreadyExists,
     ObjectNotFound,
     ObjectStorage,
     StorageError,
 )
-from powerforge_api.storage.s3 import S3ObjectStorage
+from powerforge_document_processing.storage.s3 import S3ObjectStorage
 from powerforge_shared.config import get_settings
 
 PDF = b"%PDF-1.7\nbody"

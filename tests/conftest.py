@@ -4,14 +4,14 @@ from typing import Any
 
 import pytest
 
-from powerforge_api.storage import InMemoryObjectStorage
+from powerforge_document_processing.storage import InMemoryObjectStorage
 
 
 @pytest.fixture
 def object_storage() -> Iterator[InMemoryObjectStorage]:
     """Install an in-memory ObjectStorage as the API's storage dependency."""
     from powerforge_api.main import app
-    from powerforge_api.storage.factory import get_object_storage
+    from powerforge_document_processing.storage.factory import get_object_storage
 
     storage = InMemoryObjectStorage()
     app.dependency_overrides[get_object_storage] = lambda: storage
@@ -39,7 +39,7 @@ def require_db() -> None:
 def use_storage() -> Iterator[Callable[[InMemoryObjectStorage], InMemoryObjectStorage]]:
     """Install an in-memory storage as the API's storage dependency; callable repeatedly."""
     from powerforge_api.main import app
-    from powerforge_api.storage.factory import get_object_storage
+    from powerforge_document_processing.storage.factory import get_object_storage
 
     def install(storage: InMemoryObjectStorage) -> InMemoryObjectStorage:
         app.dependency_overrides[get_object_storage] = lambda: storage
@@ -58,8 +58,8 @@ def s3_scratch_storage() -> Iterator[Any]:
     """
     import uuid
 
-    from powerforge_api.storage import StorageError
-    from powerforge_api.storage.s3 import S3ObjectStorage
+    from powerforge_document_processing.storage import StorageError
+    from powerforge_document_processing.storage.s3 import S3ObjectStorage
     from powerforge_shared.config import get_settings
 
     if os.environ.get("RUN_INTEGRATION") != "1":

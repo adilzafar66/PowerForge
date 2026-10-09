@@ -27,9 +27,9 @@ from powerforge_api.schemas.documents import (
     UploadResponse,
 )
 from powerforge_api.services.document_service import DocumentService, UploadMetadata
-from powerforge_api.storage.base import DispositionType, ObjectStorage
-from powerforge_api.storage.factory import get_object_storage
 from powerforge_document_model import DocumentClassification, DocumentOrigin
+from powerforge_document_processing.storage.base import DispositionType, ObjectStorage
+from powerforge_document_processing.storage.factory import get_object_storage
 from powerforge_shared.config import Settings, get_settings
 
 # Room for multipart boundaries and the text fields on top of the file itself.
