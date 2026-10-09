@@ -11,3 +11,7 @@ class InvalidFilename(DocumentValidationError):
 
 class UnsupportedExtension(DocumentValidationError):
     """File extension is not in the allow-list."""
+
+
+class InvalidArtifactKey(DocumentValidationError):
+    """Page number or artifact type cannot form a storage key."""

@@ -28,7 +28,9 @@ from powerforge_document_model import (
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1] / "packages" / "document-model"
 SRC_ROOT = PACKAGE_ROOT / "src" / "powerforge_document_model"
-FORBIDDEN_IMPORTS = frozenset({"sqlalchemy", "fastapi", "boto3", "PIL", "pydantic", "starlette"})
+FORBIDDEN_IMPORTS = frozenset(
+    {"sqlalchemy", "fastapi", "boto3", "PIL", "pydantic", "starlette", "fitz", "cv2"}
+)
 
 CLASSIFICATION_VALUES = (
     "SINGLE_LINE_DIAGRAM",
