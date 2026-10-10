@@ -28,6 +28,10 @@ from powerforge_api.schemas.documents import (
 )
 from powerforge_api.services.document_service import DocumentService, UploadMetadata
 from powerforge_document_model import DocumentClassification, DocumentOrigin
+from powerforge_document_processing.enqueue import (
+    CeleryProcessingEnqueue,
+    get_processing_enqueue,
+)
 from powerforge_document_processing.storage.base import DispositionType, ObjectStorage
 from powerforge_document_processing.storage.factory import get_object_storage
 from powerforge_shared.config import Settings, get_settings
@@ -38,6 +42,7 @@ MULTIPART_OVERHEAD_BYTES = 256 * 1024
 SessionDep = Annotated[Session, Depends(get_session)]
 StorageDep = Annotated[ObjectStorage, Depends(get_object_storage)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+EnqueueDep = Annotated[CeleryProcessingEnqueue, Depends(get_processing_enqueue)]
 
 
 class UploadSizeGuardRoute(APIRoute):
@@ -89,6 +94,7 @@ def upload_document(
     session: SessionDep,
     storage: StorageDep,
     settings: SettingsDep,
+    enqueue: EnqueueDep,
     document_type: Annotated[DocumentClassification, Form()] = DocumentClassification.UNKNOWN,
     document_number: Annotated[str | None, Form(max_length=MAX_DOCUMENT_NUMBER_LENGTH)] = None,
     description: Annotated[str | None, Form(max_length=MAX_DESCRIPTION_LENGTH)] = None,
@@ -100,7 +106,7 @@ def upload_document(
         description=_blank_to_none(description),
         notes=_blank_to_none(notes),
     )
-    service = DocumentService(session, storage, settings)
+    service = DocumentService(session, storage, settings, enqueue)
     try:
         return service.upload(project_id, revision_id, file.file, file.filename or "", metadata)
     except ProjectError as exc:

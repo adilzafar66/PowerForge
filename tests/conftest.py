@@ -37,16 +37,26 @@ def require_db() -> None:
 
 @pytest.fixture
 def use_storage() -> Iterator[Callable[[InMemoryObjectStorage], InMemoryObjectStorage]]:
-    """Install an in-memory storage as the API's storage dependency; callable repeatedly."""
+    """Install in-memory storage and a no-op processing enqueue for API tests."""
     from powerforge_api.main import app
+    from powerforge_document_processing.enqueue import get_processing_enqueue
     from powerforge_document_processing.storage.factory import get_object_storage
+
+    class _NoopEnqueue:
+        def enqueue_document_processing(self, run_id: object) -> None:
+            return None
+
+    app.dependency_overrides[get_processing_enqueue] = lambda: _NoopEnqueue()
 
     def install(storage: InMemoryObjectStorage) -> InMemoryObjectStorage:
         app.dependency_overrides[get_object_storage] = lambda: storage
         return storage
 
-    yield install
-    app.dependency_overrides.pop(get_object_storage, None)
+    try:
+        yield install
+    finally:
+        app.dependency_overrides.pop(get_object_storage, None)
+        app.dependency_overrides.pop(get_processing_enqueue, None)
 
 
 @pytest.fixture(scope="session")

@@ -203,16 +203,6 @@ def _lock_waits(engine: Engine) -> int:
         ).scalar_one()
 
 
-def test_api_source_does_not_mention_ensure() -> None:
-    root = REPO_ROOT / "services" / "api"
-    offenders = [
-        path
-        for path in root.rglob("*.py")
-        if "ensure_document_processing" in path.read_text(encoding="utf-8")
-    ]
-    assert offenders == []
-
-
 def test_pdf_run_completes_with_pages_and_artifacts(session: Session) -> None:
     storage = InMemoryObjectStorage()
     payload = _pdf(["Hello"])

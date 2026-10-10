@@ -162,7 +162,9 @@ class ProcessingService:
             self._fail(run_id, ProcessingErrorCode.STORAGE_READ_FAILED, _READ_FAILED)
         except _IncompleteProcessing:
             self._fail(run_id, ProcessingErrorCode.UNKNOWN_PROCESSING_ERROR, _INCOMPLETE)
-        except Exception:
+        except Exception as exc:
+            if exc.__class__.__name__ == "SoftTimeLimitExceeded":
+                raise
             logger.exception(
                 "processing run failed unexpectedly",
                 extra={"run_id": str(run_id)},

@@ -16,7 +16,7 @@ API: `http://localhost:8000/api/projects` (see OpenAPI at `/docs`).
 
 Phase 2 (complete; see [PROJECT_STATUS.md](PROJECT_STATUS.md)) added document management. The revision workspace route above is the revision documents page, and the API has `.../revisions/{revisionId}/documents` routes (list the routes in OpenAPI at `/docs`). See [Phase 2 configuration](#phase-2-configuration-document-storage).
 
-Phase 3 is specified and not implemented. Workers still only heartbeat. The pull-request plan is [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md); do not expect page routes or a processing queue until those PRs land.
+Phase 3 processing runs on `document-worker`. New uploads enqueue a run; documents already stored wait for backfill. Page routes and the processing column are still later pull requests ([PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md)).
 
 ## Prerequisites
 
@@ -126,13 +126,19 @@ npm install
 npm run dev
 ```
 
-Workers (optional, need Redis):
+Document worker (needs Redis, Postgres, and the same `S3_*` values as the API). It listens only on `document_processing` and stays at one process:
 
 ```bash
-celery -A document_worker.celery_app worker --loglevel=info
+celery -A document_worker.celery_app worker --loglevel=info -Q document_processing --concurrency=1
 ```
 
 (from `services/document-worker` with `PYTHONPATH` including that service’s `src`).
+
+Backfill does not run when the API starts. It enqueues documents that have no compatible run, and documents whose current run is still unclaimed `PENDING`. It does not retry `FAILED`. `--limit` is required:
+
+```bash
+powerforge-backfill-processing --limit 100
+```
 
 ## Tests
 

@@ -59,6 +59,10 @@ from powerforge_document_processing.models import (
     ProjectRevision,
     RevisionDocument,
 )
+from powerforge_document_processing.processing import (
+    DocumentProcessingEnqueue,
+    ProcessingService,
+)
 from powerforge_document_processing.storage.base import DispositionType, ObjectStorage
 from powerforge_shared.config import Settings
 
@@ -88,10 +92,17 @@ class _MutationResult:
 
 
 class DocumentService:
-    def __init__(self, session: Session, storage: ObjectStorage, settings: Settings) -> None:
+    def __init__(
+        self,
+        session: Session,
+        storage: ObjectStorage,
+        settings: Settings,
+        enqueue: DocumentProcessingEnqueue | None = None,
+    ) -> None:
         self.session = session
         self.storage = storage
         self.settings = settings
+        self._enqueue = enqueue
 
     def upload(
         self,
@@ -154,11 +165,29 @@ class DocumentService:
                     "duplicate_count": len(duplicate_ids),
                 },
             )
-        return UploadResponse(
+        response_body = UploadResponse(
             **response.model_dump(),
             duplicate_detected=bool(duplicate_ids),
             duplicate_document_ids=duplicate_ids,
         )
+        self._ensure_processing(document_id)
+        return response_body
+
+    def _ensure_processing(self, document_id: uuid.UUID) -> None:
+        """Start processing after the document row is committed. Never fails the upload."""
+        if self._enqueue is None:
+            return
+        try:
+            ProcessingService(
+                self.session,
+                self.storage,
+                self._enqueue,
+            ).ensure_document_processing(document_id)
+        except Exception:
+            logger.exception(
+                "document processing ensure failed",
+                extra={"document_id": document_id},
+            )
 
     def list_documents(
         self,

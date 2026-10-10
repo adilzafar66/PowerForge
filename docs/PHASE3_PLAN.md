@@ -2,19 +2,19 @@
 
 Document processing and stable page representation. Specification: [`cursor/phase3_specs.txt`](../cursor/phase3_specs.txt). Decisions: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Proposed).
 
-**Status:** the processing service can ensure, retry, and claim a run. Upload still does not call it. Do not mark the phase complete from this plan.
+**Status:** upload calls `ensure` after the document commit, and `document-worker` consumes the `document_processing` queue. Existing documents wait for `powerforge-backfill-processing`. Do not mark the phase complete from this plan.
 
 Delivery is a sequence of pull requests: [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md). Implement only the current PR from that document.
 
 ## What exists today
 
-Phase 2 is the base. `Document`, `RevisionDocument`, and the project models live in `powerforge_document_processing.models`, and storage is `powerforge_document_processing.storage` (`ObjectStorage.put` refuses to overwrite). The API imports that one mapping. Upload commits the document in `DocumentService.upload` and does not enqueue anything. The API process does not depend on Celery. The document worker still only heartbeats and does not import the shared package.
+Phase 2 is the base. `Document`, `RevisionDocument`, and the project models live in `powerforge_document_processing.models`, and storage is `powerforge_document_processing.storage` (`ObjectStorage.put` refuses to overwrite). The API imports that one mapping. Upload commits the document in `DocumentService.upload`, then calls `ensure`. The publish helper is `powerforge_document_processing.enqueue`; the API does not import `document_worker`.
 
-`services/document-worker` registers a heartbeat task only. Its image installs `powerforge-shared` and the worker package: no SQLAlchemy, boto3, Pillow, PyMuPDF, or `document-model`. In Compose it receives `DATABASE_URL` and no `S3_*` variables, so storage settings inside that container fall back to `localhost:9000`. The extraction and validation workers are the same shape and listen on the default `celery` queue, as does document-worker. A task published to that queue can be consumed by any of them ([PHASE0_HANDOFF.md](PHASE0_HANDOFF.md)).
+`document-worker` registers the heartbeat and `document_processing.process_run`. Its image installs the shared processing library, and Compose gives it the API's `DATABASE_URL` and `S3_*` values. It listens only on `document_processing`. Extraction and validation workers stay on the default `celery` queue and do not register the processing task ([PHASE0_HANDOFF.md](PHASE0_HANDOFF.md)).
 
 `packages/document-model` has no third-party dependencies. It owns classification, origin, status, file-validation rules, and `build_storage_key`. Page contracts are not there yet.
 
-The revision document list (`RevisionDocumentResponse`) has no processing fields. Downloads already succeed for `REMOVED` associations and for superseded revisions. Alembic head is `0005_document_processing`. The page, run, and artifact tables are unused by the running app. `render_pages` turns PDF, PNG, JPEG, and TIFF bytes into analysis images and thumbnails. `ProcessingService` calls it while claiming a run. The service can ensure a run, retry a failed run, and claim a pending run. Upload still does not call it. Pillow is used by the API's `FileInspector`, which sets `Image.MAX_IMAGE_PIXELS = None` in that process and checks dimensions from the header. A truncated JPEG or TIFF can pass upload. Phase 3 is where those files fail or render.
+The revision document list (`RevisionDocumentResponse`) has no processing fields. Downloads already succeed for `REMOVED` associations and for superseded revisions. Alembic head is `0005_document_processing`. `render_pages` turns PDF, PNG, JPEG, and TIFF bytes into analysis images and thumbnails. `ProcessingService` calls it while claiming a run. The service can ensure a run, retry a failed run, and claim a pending run. Upload calls `ensure` after commit. Documents already in the database stay unprocessed until `powerforge-backfill-processing`. Pillow is used by the API's `FileInspector`, which sets `Image.MAX_IMAGE_PIXELS = None` in that process and checks dimensions from the header. A truncated JPEG or TIFF can pass upload. Phase 3 is where those files fail or render.
 
 `cursor/phase3_specs.txt` is the implementation spec. It is not yet part of a commit.
 
@@ -42,13 +42,13 @@ No Phase 3 code belongs in the request handlers or in the Celery task body beyon
 | Enums, failure codes, processing profile, profile hash, artifact key builder | `packages/document-model` | Pure. No SQLAlchemy, Celery, FastAPI, boto3, Pillow, or PyMuPDF |
 | `ObjectStorage` and the existing SQLAlchemy models, including `Document` | New shared library `packages/document-processing` (`powerforge_document_processing`) | One mapping of `documents`. The API imports these; it does not keep a second `Document` class. Project and revision models move with `Document` because they share one registry |
 | Processing service and PDF/image rendering | Same library | `ensure`, `retry`, `claim`, page reconciliation, artifact writes. PyMuPDF and Pillow are dependencies here |
-| Celery task and queue adapter | `services/document-worker` | Task calls the service. Dedicated queue `document_processing`. Only this worker consumes it |
-| HTTP routes and enqueue after upload | `services/api` | Depends on the shared library and on the worker's queue adapter. Does not import rendering into the upload transaction |
+| Celery task | `services/document-worker` | Task calls the service. Dedicated queue `document_processing`. Only this worker consumes it |
+| HTTP routes and enqueue after upload | `services/api` | Depends on the shared library. Does not import rendering into the upload transaction |
 | Revision documents workspace | `apps/web` | Processing column from the list payload, retry, page viewer for a completed run |
 
 The worker image installs the shared library, `document-model`, PyMuPDF, Pillow, the database driver, and boto3. Compose gives that service the same `DATABASE_URL` and `S3_*` values as the API, including `S3_ENDPOINT_URL=http://minio:9000` and `S3_PUBLIC_ENDPOINT_URL=http://localhost:9000`.
 
-`ensure` and `retry` take a small enqueue port. The Celery adapter lives in the worker package so the processing library does not depend on Celery. A failed enqueue leaves the `PENDING` row and the `Document` in place and logs the failure.
+`ensure` and `retry` take a small enqueue port. `CeleryProcessingEnqueue` lives next to the processing service and publishes with `send_task`. Only `enqueue.py` imports Celery. A failed enqueue leaves the `PENDING` row and the `Document` in place and logs the failure.
 
 ## Behavior to implement
 

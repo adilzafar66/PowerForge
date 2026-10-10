@@ -1,13 +1,14 @@
 [project]
 name = "powerforge-document-processing"
 version = "0.1.0"
-description = "Shared object storage and SQLAlchemy models for the API and document worker."
+description = "Shared object storage, models, rendering, and document processing for the API and document worker."
 requires-python = ">=3.12"
 dependencies = [
     "sqlalchemy>=2.0.35",
     "boto3>=1.36",
     "Pillow>=11.0",
     "pymupdf>=1.24",
+    "celery[redis]>=5.4",
     "powerforge-shared",
     "powerforge-project",
     "powerforge-document-model",
@@ -16,6 +17,9 @@ dependencies = [
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+[project.scripts]
+powerforge-backfill-processing = "powerforge_document_processing.backfill:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

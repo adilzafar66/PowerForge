@@ -36,7 +36,12 @@ def _imported_roots(path: Path) -> set[str]:
 def test_package_does_not_import_fastapi_celery_or_ocr() -> None:
     for path in SRC_ROOT.rglob("*.py"):
         roots = _imported_roots(path)
-        assert not (roots & FORBIDDEN_IMPORTS), f"{path.name} imports {roots & FORBIDDEN_IMPORTS}"
+        forbidden = FORBIDDEN_IMPORTS
+        if path.name == "enqueue.py":
+            forbidden = FORBIDDEN_IMPORTS - {"celery"}
+        else:
+            assert "celery" not in roots, f"{path.name} imports celery"
+        assert not (roots & forbidden), f"{path.name} imports {roots & forbidden}"
         if path.name != "rendering.py":
             assert not (roots & RENDERER_ONLY_IMPORTS), f"{path.name} imports a renderer"
 
