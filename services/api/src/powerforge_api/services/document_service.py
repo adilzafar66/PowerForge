@@ -23,6 +23,9 @@ from powerforge_api.exceptions import (
     CrossProjectDocumentAccess,
     DocumentAlreadyInRevision,
     DocumentRemoved,
+    PageNotFound,
+    ProcessingNotComplete,
+    ProcessingNotRetryableError,
     ProjectError,
     ProjectNotFound,
     RevisionDocumentNotFound,
@@ -32,9 +35,13 @@ from powerforge_api.exceptions import (
     StorageUploadFailed,
 )
 from powerforge_api.schemas.documents import (
+    DocumentPageResponse,
     DocumentStatusFilter,
     DocumentSummary,
     DownloadUrlResponse,
+    PageArtifactInfo,
+    ProcessingStatusResponse,
+    ProcessingSummary,
     ReuseDocumentRequest,
     RevisionDocumentResponse,
     RevisionDocumentUpdate,
@@ -50,17 +57,23 @@ from powerforge_api.services.revision_documents import (
 from powerforge_document_model import (
     DocumentClassification,
     DocumentOrigin,
+    PageArtifactType,
+    ProcessingRunStatus,
     RevisionDocumentStatus,
     build_storage_key,
 )
 from powerforge_document_processing.models import (
     Document,
+    DocumentPage,
+    DocumentProcessingRun,
+    PageArtifact,
     Project,
     ProjectRevision,
     RevisionDocument,
 )
 from powerforge_document_processing.processing import (
     DocumentProcessingEnqueue,
+    ProcessingNotRetryable,
     ProcessingService,
 )
 from powerforge_document_processing.storage.base import DispositionType, ObjectStorage
@@ -69,6 +82,18 @@ from powerforge_shared.config import Settings
 logger = logging.getLogger(__name__)
 
 _LIKE_ESCAPE = "\\"
+_ARTIFACT_FILENAMES = {
+    PageArtifactType.ANALYSIS_IMAGE: "analysis.png",
+    PageArtifactType.THUMBNAIL: "thumbnail.webp",
+    PageArtifactType.NATIVE_TEXT: "native.txt",
+}
+
+
+class _ReadOnlyEnqueue:
+    """Stand-in so a read can construct ProcessingService without publishing a task."""
+
+    def enqueue_document_processing(self, run_id: uuid.UUID) -> None:
+        return None
 
 
 @dataclass(frozen=True)
@@ -143,6 +168,8 @@ class DocumentService:
                 raise
 
         # The upload is committed from here on; nothing below may remove the object.
+        # Ensure runs before the response is built so a new upload already shows PENDING.
+        self._ensure_processing(document_id)
         response = self._load_response(project_id, revision_id, revision_document_id)
         logger.info(
             "document uploaded",
@@ -165,13 +192,11 @@ class DocumentService:
                     "duplicate_count": len(duplicate_ids),
                 },
             )
-        response_body = UploadResponse(
+        return UploadResponse(
             **response.model_dump(),
             duplicate_detected=bool(duplicate_ids),
             duplicate_document_ids=duplicate_ids,
         )
-        self._ensure_processing(document_id)
-        return response_body
 
     def _ensure_processing(self, document_id: uuid.UUID) -> None:
         """Start processing after the document row is committed. Never fails the upload."""
@@ -221,7 +246,7 @@ class DocumentService:
             Document.original_filename,
             RevisionDocument.id,
         )
-        return [_to_response(*row) for row in self.session.execute(stmt).all()]
+        return self._with_processing(list(self.session.execute(stmt).all()))
 
     def get_document(
         self,
@@ -231,6 +256,102 @@ class DocumentService:
     ) -> RevisionDocumentResponse:
         self._load_context(project_id, revision_id)
         return self._load_response(project_id, revision_id, revision_document_id)
+
+    def get_processing(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+    ) -> ProcessingStatusResponse:
+        """The current run for this association. No run is a 200 with a null summary."""
+        _, document = self._require_association(project_id, revision_id, revision_document_id)
+        return _status_response(self._processing().current_run(document.id))
+
+    def retry_processing(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+    ) -> ProcessingStatusResponse:
+        """Start a new attempt after a failed run. Not a revision mutation."""
+        _, document = self._require_association(project_id, revision_id, revision_document_id)
+        try:
+            run = self._processing().retry_failed_processing(document.id)
+        except ProcessingNotRetryable as exc:
+            raise ProcessingNotRetryableError("Processing cannot be retried") from exc
+        return _status_response(run)
+
+    def list_pages(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+    ) -> list[DocumentPageResponse]:
+        _, document = self._require_association(project_id, revision_id, revision_document_id)
+        run = self._require_completed(document.id)
+        return self._pages_for(document.id, run.id)
+
+    def get_page(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+        page_id: uuid.UUID,
+    ) -> DocumentPageResponse:
+        _, document = self._require_association(project_id, revision_id, revision_document_id)
+        run = self._require_completed(document.id)
+        page = self._require_page(document.id, page_id)
+        artifacts = self._artifacts_for(run.id, [page.id])
+        return _page_response(page, artifacts.get(page.id, []))
+
+    def create_artifact_url(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+        page_id: uuid.UUID,
+        artifact_type: str,
+    ) -> DownloadUrlResponse:
+        """Sign one artifact of the current completed run. No storage key in the body."""
+        _, document = self._require_association(project_id, revision_id, revision_document_id)
+        run = self._require_completed(document.id)
+        page = self._require_page(document.id, page_id)
+        parsed = _parse_artifact_type(artifact_type)
+        artifact = self.session.scalar(
+            select(PageArtifact).where(
+                PageArtifact.processing_run_id == run.id,
+                PageArtifact.document_page_id == page.id,
+                PageArtifact.artifact_type == parsed,
+            )
+        )
+        if artifact is None:
+            raise PageNotFound("Artifact not found")
+        filename = _ARTIFACT_FILENAMES[parsed]
+        disposition: DispositionType = (
+            "attachment" if parsed == PageArtifactType.NATIVE_TEXT else "inline"
+        )
+        expires_seconds = self.settings.s3_signed_url_expires_seconds
+        expires_at = datetime.now(UTC) + timedelta(seconds=expires_seconds)
+        try:
+            url = self.storage.create_download_url(
+                artifact.storage_key,
+                filename,
+                artifact.mime_type,
+                disposition,
+                expires_seconds,
+            )
+        except Exception as exc:
+            logger.error(
+                "artifact url signing failed",
+                extra={
+                    "project_id": project_id,
+                    "document_id": document.id,
+                    "page_id": page_id,
+                    "error_class": type(exc).__name__,
+                },
+            )
+            raise StorageDownloadFailed("Could not create a download link") from None
+        return DownloadUrlResponse(url=url, expires_at=expires_at, filename=filename)
 
     def create_download_url(
         self,
@@ -684,7 +805,74 @@ class DocumentService:
         ).one_or_none()
         if row is None:
             raise RevisionDocumentNotFound(f"Document {revision_document_id} not found")
-        return _to_response(*row)
+        return self._with_processing([row])[0]
+
+    def _with_processing(self, rows: list[Any]) -> list[RevisionDocumentResponse]:
+        runs = self._processing().current_runs([row[1].id for row in rows])
+        return [_to_response(*row, runs.get(row[1].id)) for row in rows]
+
+    def _processing(self) -> ProcessingService:
+        enqueue = self._enqueue if self._enqueue is not None else _ReadOnlyEnqueue()
+        return ProcessingService(self.session, self.storage, enqueue)
+
+    def _require_association(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+    ) -> tuple[RevisionDocument, Document]:
+        """Load the association without the mutation lock. Removed rows are included."""
+        self._load_context(project_id, revision_id)
+        row = self.session.execute(
+            self._view_statement(project_id, revision_id).where(
+                RevisionDocument.id == revision_document_id
+            )
+        ).one_or_none()
+        if row is None:
+            raise RevisionDocumentNotFound(f"Document {revision_document_id} not found")
+        association, document, _identifier = row
+        return association, document
+
+    def _require_completed(self, document_id: uuid.UUID) -> DocumentProcessingRun:
+        run = self._processing().current_run(document_id)
+        if run is None or run.status != ProcessingRunStatus.COMPLETED:
+            raise ProcessingNotComplete("Processing is not complete")
+        return run
+
+    def _require_page(self, document_id: uuid.UUID, page_id: uuid.UUID) -> DocumentPage:
+        page = self.session.get(DocumentPage, page_id)
+        if page is None or page.document_id != document_id:
+            raise PageNotFound("Page not found")
+        return page
+
+    def _pages_for(self, document_id: uuid.UUID, run_id: uuid.UUID) -> list[DocumentPageResponse]:
+        pages = list(
+            self.session.scalars(
+                select(DocumentPage)
+                .where(DocumentPage.document_id == document_id)
+                .order_by(DocumentPage.page_number, DocumentPage.id)
+            ).all()
+        )
+        artifacts = self._artifacts_for(run_id, [page.id for page in pages])
+        return [_page_response(page, artifacts.get(page.id, [])) for page in pages]
+
+    def _artifacts_for(
+        self,
+        run_id: uuid.UUID,
+        page_ids: list[uuid.UUID],
+    ) -> dict[uuid.UUID, list[PageArtifact]]:
+        if not page_ids:
+            return {}
+        rows = self.session.scalars(
+            select(PageArtifact).where(
+                PageArtifact.processing_run_id == run_id,
+                PageArtifact.document_page_id.in_(page_ids),
+            )
+        ).all()
+        grouped: dict[uuid.UUID, list[PageArtifact]] = {}
+        for artifact in rows:
+            grouped.setdefault(artifact.document_page_id, []).append(artifact)
+        return grouped
 
 
 def _like_pattern(term: str) -> str:
@@ -701,6 +889,7 @@ def _to_response(
     association: RevisionDocument,
     document: Document,
     inherited_identifier: str | None,
+    run: DocumentProcessingRun | None = None,
 ) -> RevisionDocumentResponse:
     return RevisionDocumentResponse(
         id=association.id,
@@ -716,4 +905,58 @@ def _to_response(
         notes=association.notes,
         added_at=association.added_at,
         removed_at=association.removed_at,
+        processing=_summary(run),
     )
+
+
+def _summary(run: DocumentProcessingRun | None) -> ProcessingSummary | None:
+    if run is None:
+        return None
+    return ProcessingSummary(
+        status=run.status,
+        attempt_count=run.attempt_count,
+        pages_processed=run.pages_processed,
+        pages_total=run.pages_total,
+        error_code=run.error_code,
+        error_message=run.error_message,
+    )
+
+
+def _status_response(run: DocumentProcessingRun | None) -> ProcessingStatusResponse:
+    if run is None:
+        return ProcessingStatusResponse()
+    return ProcessingStatusResponse(
+        processing=_summary(run),
+        processor_version=run.processor_version,
+        profile_version=run.profile_version,
+        profile_hash=run.profile_hash,
+    )
+
+
+def _page_response(page: DocumentPage, artifacts: list[PageArtifact]) -> DocumentPageResponse:
+    ordered = sorted(artifacts, key=lambda artifact: artifact.artifact_type.value)
+    return DocumentPageResponse(
+        id=page.id,
+        page_number=page.page_number,
+        source_width=page.source_width,
+        source_height=page.source_height,
+        source_unit=page.source_unit,
+        rotation_degrees=page.rotation_degrees,
+        native_text_char_count=page.native_text_char_count,
+        artifacts=[
+            PageArtifactInfo(
+                artifact_type=artifact.artifact_type,
+                mime_type=artifact.mime_type,
+                width_px=artifact.width_px,
+                height_px=artifact.height_px,
+            )
+            for artifact in ordered
+        ],
+    )
+
+
+def _parse_artifact_type(value: str) -> PageArtifactType:
+    try:
+        return PageArtifactType(value)
+    except ValueError as exc:
+        raise PageNotFound("Artifact not found") from exc

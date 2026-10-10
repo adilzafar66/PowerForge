@@ -18,8 +18,11 @@ from powerforge_api.schemas.documents import (
     MAX_DESCRIPTION_LENGTH,
     MAX_DOCUMENT_NUMBER_LENGTH,
     MAX_NOTES_LENGTH,
+    DocumentPageListResponse,
+    DocumentPageResponse,
     DocumentStatusFilter,
     DownloadUrlResponse,
+    ProcessingStatusResponse,
     ReuseDocumentRequest,
     RevisionDocumentListResponse,
     RevisionDocumentResponse,
@@ -291,3 +294,117 @@ def restore_document(
         return service.restore(project_id, revision_id, revision_document_id)
     except ProjectError as exc:
         raise http_for(exc) from exc
+
+
+@router.get(
+    "/{revision_document_id}/processing",
+    response_model=ProcessingStatusResponse,
+    summary="Get the current processing run for a document",
+)
+def get_processing(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> ProcessingStatusResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        return service.get_processing(project_id, revision_id, revision_document_id)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+
+
+@router.post(
+    "/{revision_document_id}/processing/retry",
+    response_model=ProcessingStatusResponse,
+    summary="Retry a failed processing run",
+)
+def retry_processing(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+    enqueue: EnqueueDep,
+) -> ProcessingStatusResponse:
+    service = DocumentService(session, storage, settings, enqueue)
+    try:
+        return service.retry_processing(project_id, revision_id, revision_document_id)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+
+
+@router.get(
+    "/{revision_document_id}/pages",
+    response_model=DocumentPageListResponse,
+    summary="List pages of a completed processing run",
+)
+def list_pages(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> DocumentPageListResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        items = service.list_pages(project_id, revision_id, revision_document_id)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+    return DocumentPageListResponse(items=items)
+
+
+@router.get(
+    "/{revision_document_id}/pages/{page_id}",
+    response_model=DocumentPageResponse,
+    summary="Get one page of a completed processing run",
+)
+def get_page(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    page_id: UUID,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> DocumentPageResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        return service.get_page(project_id, revision_id, revision_document_id, page_id)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+
+
+@router.get(
+    "/{revision_document_id}/pages/{page_id}/artifacts/{artifact_type}/url",
+    response_model=DownloadUrlResponse,
+    summary="Get a short-lived signed URL for a page artifact",
+)
+def artifact_url(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    page_id: UUID,
+    artifact_type: str,
+    response: Response,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> DownloadUrlResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        result = service.create_artifact_url(
+            project_id,
+            revision_id,
+            revision_document_id,
+            page_id,
+            artifact_type,
+        )
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+    response.headers["Cache-Control"] = "no-store"
+    return result

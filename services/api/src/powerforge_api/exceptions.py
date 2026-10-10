@@ -117,6 +117,18 @@ class DocumentRemoved(ProjectError):
     code = "document_removed"
 
 
+class ProcessingNotComplete(ProjectError):
+    code = "processing_not_complete"
+
+
+class ProcessingNotRetryableError(ProjectError):
+    code = "processing_not_retryable"
+
+
+class PageNotFound(ProjectError):
+    code = "page_not_found"
+
+
 class UnexpectedIntegrityError(ProjectError):
     code = "unexpected_integrity_error"
 

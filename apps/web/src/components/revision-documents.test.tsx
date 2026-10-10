@@ -23,6 +23,9 @@ vi.mock("@/lib/documents", async (importOriginal) => ({
   removeDocument: vi.fn(),
   restoreDocument: vi.fn(),
   updateDocument: vi.fn(),
+  retryProcessing: vi.fn(),
+  listPages: vi.fn(),
+  getPageArtifactUrl: vi.fn(),
 }));
 
 vi.mock("@/lib/projects", async (importOriginal) => ({
@@ -34,11 +37,15 @@ import { RevisionDocuments } from "@/components/revision-documents";
 import { listRevisions } from "@/lib/projects";
 import {
   getDownloadUrl,
+  getPageArtifactUrl,
   listDocuments,
+  listPages,
   removeDocument,
   restoreDocument,
+  retryProcessing,
   updateDocument,
   uploadDocument,
+  type ProcessingSummary,
   type RevisionDocument,
 } from "@/lib/documents";
 
@@ -69,6 +76,7 @@ function makeRow(overrides: Partial<RevisionDocument> & { name?: string; mime?: 
     notes: null,
     added_at: "2026-10-01T10:00:00Z",
     removed_at: null,
+    processing: null,
     ...rest,
   } as RevisionDocument;
 }
@@ -575,5 +583,145 @@ describe("RevisionDocuments row actions", () => {
 
     await user.click(await screen.findByRole("button", { name: "Add from another revision" }));
     expect(await screen.findByText("This project has no other revisions.")).toBeInTheDocument();
+  });
+});
+
+function summary(
+  overrides: Partial<ProcessingSummary> & Pick<ProcessingSummary, "status">,
+): ProcessingSummary {
+  return {
+    attempt_count: 1,
+    pages_processed: 0,
+    pages_total: null,
+    error_code: null,
+    error_message: null,
+    ...overrides,
+  };
+}
+
+describe("processing column and page viewer", () => {
+  const retry = vi.mocked(retryProcessing);
+  const pages = vi.mocked(listPages);
+  const artifactUrl = vi.mocked(getPageArtifactUrl);
+
+  it("renders each state from the list and does not call processing routes", async () => {
+    list.mockResolvedValue([
+      makeRow({ name: "none.pdf" }),
+      makeRow({ name: "wait.pdf", processing: summary({ status: "PENDING" }) }),
+      makeRow({
+        name: "run.pdf",
+        processing: summary({ status: "RUNNING", pages_processed: 1, pages_total: 4 }),
+      }),
+      makeRow({
+        name: "done.pdf",
+        processing: summary({ status: "COMPLETED", pages_processed: 4, pages_total: 4 }),
+      }),
+      makeRow({
+        name: "bad.pdf",
+        processing: summary({ status: "FAILED", error_message: "Could not read the file" }),
+      }),
+    ]);
+    renderWorkspace(true);
+
+    expect(await screen.findByText("Not started")).toBeInTheDocument();
+    expect(screen.getByText("Pending")).toBeInTheDocument();
+    expect(screen.getByText("Processing 1/4")).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    expect(screen.getByText("Failed")).toBeInTheDocument();
+    expect(screen.getByText("Could not read the file")).toBeInTheDocument();
+    expect(pages).not.toHaveBeenCalled();
+    expect(retry).not.toHaveBeenCalled();
+    expect(artifactUrl).not.toHaveBeenCalled();
+  });
+
+  it("retries only a failed row, including on a read-only revision", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([
+      makeRow({ name: "wait.pdf", processing: summary({ status: "PENDING" }) }),
+      makeRow({
+        name: "bad.pdf",
+        processing: summary({ status: "FAILED", error_message: "Corrupt" }),
+      }),
+    ]);
+    retry.mockResolvedValue({
+      processing: summary({ status: "PENDING", attempt_count: 2 }),
+      processor_version: "1",
+      profile_version: "engineering-default-v1",
+      profile_hash: "abc",
+    });
+    renderWorkspace(false);
+
+    expect(screen.queryByRole("button", { name: "Upload Documents" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add from another revision" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "View pages" })).toBeNull();
+    const retryButton = await screen.findByRole("button", { name: "Retry processing" });
+    expect(screen.getAllByRole("button", { name: "Retry processing" })).toHaveLength(1);
+    await user.click(retryButton);
+
+    expect(retry).toHaveBeenCalledWith(P, R, "rd-bad.pdf");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Retry processing" })).toBeNull(),
+    );
+    expect(screen.queryByText("Corrupt")).toBeNull();
+  });
+
+  it("opens the viewer only for a ready document and loads the analysis image", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([
+      makeRow({ name: "done.pdf", processing: summary({ status: "COMPLETED" }) }),
+      makeRow({
+        name: "bad.pdf",
+        processing: summary({ status: "FAILED", error_message: "Corrupt" }),
+      }),
+    ]);
+    pages.mockResolvedValue([
+      {
+        id: "page-1",
+        page_number: 1,
+        source_width: "612",
+        source_height: "792",
+        source_unit: "POINTS",
+        rotation_degrees: 0,
+        native_text_char_count: 12,
+        artifacts: [
+          {
+            artifact_type: "ANALYSIS_IMAGE",
+            mime_type: "image/png",
+            width_px: 1000,
+            height_px: 1400,
+          },
+          {
+            artifact_type: "THUMBNAIL",
+            mime_type: "image/webp",
+            width_px: 400,
+            height_px: 560,
+          },
+        ],
+      },
+    ]);
+    artifactUrl.mockImplementation(async (_project, _revision, _document, pageId, type) => ({
+      url: `https://files.example/${type}/${pageId}`,
+      expires_at: "2026-10-10T00:00:00Z",
+      filename: type === "ANALYSIS_IMAGE" ? "analysis.png" : "thumbnail.webp",
+    }));
+    renderWorkspace(false);
+
+    expect(screen.queryByRole("button", { name: "Upload Documents" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add from another revision" })).toBeNull();
+    const view = await screen.findByRole("button", { name: "View pages" });
+    expect(screen.getAllByRole("button", { name: "View pages" })).toHaveLength(1);
+    await user.click(view);
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("612 × 792 pt")).toBeInTheDocument();
+    expect(screen.getByText("1000 × 1400 px")).toBeInTheDocument();
+    expect(screen.getByText("Native text")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(artifactUrl).toHaveBeenCalledWith(P, R, "rd-done.pdf", "page-1", "ANALYSIS_IMAGE"),
+    );
+    expect(screen.getByRole("img", { name: "Page 1 analysis" })).toHaveAttribute(
+      "src",
+      "https://files.example/ANALYSIS_IMAGE/page-1",
+    );
   });
 });

@@ -3,13 +3,21 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from enum import StrEnum
 from typing import Any, Self
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from powerforge_document_model import DocumentClassification, DocumentOrigin, RevisionDocumentStatus
+from powerforge_document_model import (
+    DocumentClassification,
+    DocumentOrigin,
+    PageArtifactType,
+    ProcessingRunStatus,
+    RevisionDocumentStatus,
+    SourceUnit,
+)
 
 MAX_DOCUMENT_NUMBER_LENGTH = 128
 MAX_DESCRIPTION_LENGTH = 2000
@@ -37,6 +45,50 @@ class DocumentSummary(BaseModel):
     uploaded_at: datetime
 
 
+class ProcessingSummary(BaseModel):
+    """The current processing run only. Older failed attempts are not included."""
+
+    status: ProcessingRunStatus
+    attempt_count: int
+    pages_processed: int
+    pages_total: int | None = None
+    error_code: str | None = None
+    error_message: str | None = None
+
+
+class ProcessingStatusResponse(BaseModel):
+    """Current-run summary plus the profile identity of that run."""
+
+    processing: ProcessingSummary | None = None
+    processor_version: str | None = None
+    profile_version: str | None = None
+    profile_hash: str | None = None
+
+
+class PageArtifactInfo(BaseModel):
+    """A derived artifact stored for the current completed run. No storage key."""
+
+    artifact_type: PageArtifactType
+    mime_type: str
+    width_px: int | None = None
+    height_px: int | None = None
+
+
+class DocumentPageResponse(BaseModel):
+    id: UUID
+    page_number: int
+    source_width: Decimal
+    source_height: Decimal
+    source_unit: SourceUnit
+    rotation_degrees: int
+    native_text_char_count: int
+    artifacts: list[PageArtifactInfo]
+
+
+class DocumentPageListResponse(BaseModel):
+    items: list[DocumentPageResponse]
+
+
 class RevisionDocumentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -53,6 +105,7 @@ class RevisionDocumentResponse(BaseModel):
     notes: str | None = None
     added_at: datetime
     removed_at: datetime | None = None
+    processing: ProcessingSummary | None = None
 
 
 class RevisionDocumentListResponse(BaseModel):

@@ -586,9 +586,9 @@ Settle these in the PR named; record the outcome in that PR's description and, i
 | --- | --- | --- | --- |
 | D1 | Where does the Celery publish helper live so the API can enqueue without importing `document_worker`? | PR-07 | Settled: `powerforge_document_processing.enqueue.CeleryProcessingEnqueue` uses Celery `send_task` by name. `packages/document-model`, `rendering.py`, and `processing.py` stay Celery-free. |
 | D2 | Thumbnail format if the slim worker image cannot write WebP without extra system libraries. | PR-05 | Settled: Pillow can write WebP (`PIL.features.check("webp")`). Thumbnails are WebP and the artifact key stays `thumbnail.webp`. |
-| D3 | HTTP response when pages or artifact URLs are requested before the current run is `COMPLETED`. | PR-08 | **409** with a dedicated code (`processing_not_complete`) rather than an empty list, so the UI cannot mistake "no pages yet" for "zero-page document". Status remains 200. |
+| D3 | HTTP response when pages or artifact URLs are requested before the current run is `COMPLETED`. | PR-08 | Settled: **409** `processing_not_complete` rather than an empty list. `GET /processing` stays 200, including when there is no run. |
 | D4 | Backfill entry point. | PR-07 | Settled: console script `powerforge-backfill-processing --limit N`. Not a FastAPI route. Not invoked from lifespan. |
-| D5 | Do upload responses include the new processing summary? | PR-08 | Yes, same shape as list/detail, so the UI can show Pending without a second fetch after upload. |
+| D5 | Do upload responses include the new processing summary? | PR-08 | Settled: upload uses `RevisionDocumentResponse`, so the body includes the processing summary. A new upload is `PENDING`. If `ensure` fails, the upload is still returned and `processing` is null. |
 | D6 | Worker concurrency. | PR-07 | Settled: Compose `--concurrency=1` for Phase 3. Claim is already atomic; raising concurrency is a later tuning change. |
 | D7 | Exact shared-package import name after the extract. | PR-03 | Settled: `powerforge_document_processing` in `packages/document-processing`. |
 

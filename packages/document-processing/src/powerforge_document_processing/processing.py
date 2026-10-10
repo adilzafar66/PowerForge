@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from collections.abc import Collection
 from datetime import UTC, datetime
 from decimal import Decimal
 from io import BytesIO
@@ -113,6 +114,28 @@ class ProcessingService:
             )
             .limit(1)
         )
+
+    def current_runs(
+        self,
+        document_ids: Collection[UUID],
+    ) -> dict[UUID, DocumentProcessingRun | None]:
+        """Return ``current_run`` for each id. This read does not enqueue."""
+        ids = list(document_ids)
+        if not ids:
+            return {}
+        rows = self.session.scalars(
+            select(DocumentProcessingRun).where(
+                DocumentProcessingRun.document_id.in_(ids),
+                DocumentProcessingRun.processor_version == self.profile.processor_version,
+                DocumentProcessingRun.profile_hash == self.profile.profile_hash,
+            )
+        ).all()
+        chosen: dict[UUID, DocumentProcessingRun] = {}
+        for run in rows:
+            current = chosen.get(run.document_id)
+            if current is None or _prefer_current_run(run, current):
+                chosen[run.document_id] = run
+        return {document_id: chosen.get(document_id) for document_id in ids}
 
     def ensure_document_processing(self, document_id: UUID) -> DocumentProcessingRun:
         """Return the current run, creating and enqueueing the first one when absent.
@@ -481,6 +504,23 @@ class ProcessingService:
                 "status": status.value,
             },
         )
+
+
+def _prefer_current_run(
+    candidate: DocumentProcessingRun,
+    incumbent: DocumentProcessingRun,
+) -> bool:
+    """True when ``candidate`` is the current run instead of ``incumbent``."""
+    candidate_live = candidate.status in _LIVE_STATUSES
+    incumbent_live = incumbent.status in _LIVE_STATUSES
+    if candidate_live != incumbent_live:
+        return candidate_live
+    if candidate_live:
+        return False
+    return (candidate.attempt_count, candidate.created_at) > (
+        incumbent.attempt_count,
+        incumbent.created_at,
+    )
 
 
 def _constraint_name(exc: BaseException) -> str | None:

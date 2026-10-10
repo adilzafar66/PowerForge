@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { DocumentEditor } from "@/components/document-editor";
 import { DocumentRowActions } from "@/components/document-row-actions";
 import { DocumentUpload } from "@/components/document-upload";
+import { PageViewer } from "@/components/page-viewer";
 import { ReuseDocumentDialog } from "@/components/reuse-document-dialog";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -25,9 +26,11 @@ import {
   originLabel,
   removeDocument,
   restoreDocument,
+  retryProcessing,
   type DocumentOrigin,
   type DocumentStatusFilter,
   type DocumentType,
+  type ProcessingSummary,
   type RevisionDocument,
 } from "@/lib/documents";
 import { formatDateShort } from "@/lib/projects";
@@ -93,6 +96,8 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
   const [message, setMessage] = useState<Message | null>(null);
   const [editing, setEditing] = useState<RevisionDocument | null>(null);
   const [removing, setRemoving] = useState<RevisionDocument | null>(null);
+  const [viewing, setViewing] = useState<RevisionDocument | null>(null);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
   const [reuseOpen, setReuseOpen] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   const latestRequest = useRef(0);
@@ -206,6 +211,24 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     },
     [projectId, revisionId, reloadList, handleMutationError],
   );
+
+  async function retryRow(row: RevisionDocument) {
+    setRetryingId(row.id);
+    try {
+      const result = await retryProcessing(projectId, revisionId, row.id);
+      setItems((current) =>
+        current
+          ? current.map((item) =>
+              item.id === row.id ? { ...item, processing: result.processing } : item,
+            )
+          : current,
+      );
+    } catch (err) {
+      setMessage({ tone: "error", text: apiErrorOf(err).detail });
+    } finally {
+      setRetryingId(null);
+    }
+  }
 
   async function confirmRemove(row: RevisionDocument) {
     setRemoving(null);
@@ -388,6 +411,16 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
         />
       ) : null}
 
+      {viewing ? (
+        <PageViewer
+          projectId={projectId}
+          revisionId={revisionId}
+          revisionDocumentId={viewing.id}
+          filename={viewing.document.original_filename}
+          onClose={() => setViewing(null)}
+        />
+      ) : null}
+
       {editing ? (
         <DocumentEditor
           key={editing.id}
@@ -409,6 +442,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
               <th className={TH}>Type</th>
               <th className={TH}>Origin</th>
               <th className={TH}>Status</th>
+              <th className={TH}>Processing</th>
               <th className={cn(TH, "hidden lg:table-cell")}>Added</th>
               <th className={cn(TH, "text-right")}>
                 <span className="sr-only">Actions</span>
@@ -419,14 +453,14 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
             {items === null && loading ? (
               [0, 1, 2].map((row) => (
                 <tr key={row} data-testid="document-skeleton" className="border-t border-slate-100">
-                  <td colSpan={6} className="px-5 py-4">
+                  <td colSpan={7} className="px-5 py-4">
                     <div className="h-4 w-1/2 animate-pulse rounded bg-slate-100" />
                   </td>
                 </tr>
               ))
             ) : error ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <div className="flex flex-col items-center gap-2 py-14">
                     <p role="alert" className="text-[13.5px] text-red-600">
                       {error}
@@ -444,7 +478,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
               </tr>
             ) : items && items.length === 0 ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <div className="flex flex-col items-center gap-2 py-16">
                     <p className="text-[13.5px] font-medium text-slate-400">
                       {filtersActive
@@ -472,10 +506,13 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
                   projectId={projectId}
                   revisionId={revisionId}
                   canMutate={canMutate}
+                  retrying={retryingId === row.id}
                   onStateChanged={refreshAfterChange}
                   onEdit={setEditing}
                   onRemove={setRemoving}
                   onRestore={restoreRow}
+                  onRetry={retryRow}
+                  onView={setViewing}
                 />
               ))
             )}
@@ -492,20 +529,26 @@ function DocumentRow({
   projectId,
   revisionId,
   canMutate,
+  retrying,
   onStateChanged,
   onEdit,
   onRemove,
   onRestore,
+  onRetry,
+  onView,
 }: {
   row: RevisionDocument;
   first: boolean;
   projectId: string;
   revisionId: string;
   canMutate: boolean;
+  retrying: boolean;
   onStateChanged: (message: string) => void;
   onEdit: (row: RevisionDocument) => void;
   onRemove: (row: RevisionDocument) => void;
   onRestore: (row: RevisionDocument) => Promise<void>;
+  onRetry: (row: RevisionDocument) => void;
+  onView: (row: RevisionDocument) => void;
 }) {
   const removed = row.status === "REMOVED";
   return (
@@ -569,6 +612,14 @@ function DocumentRow({
           {removed ? "Removed" : "Included"}
         </span>
       </td>
+      <td className="px-4 py-3.5">
+        <ProcessingCell
+          processing={row.processing}
+          retrying={retrying}
+          onRetry={() => onRetry(row)}
+          onView={() => onView(row)}
+        />
+      </td>
       <td className="hidden px-4 py-3.5 text-[12.5px] text-slate-400 lg:table-cell">
         {formatDateShort(row.added_at)}
       </td>
@@ -585,5 +636,54 @@ function DocumentRow({
         />
       </td>
     </tr>
+  );
+}
+
+function ProcessingCell({
+  processing,
+  retrying,
+  onRetry,
+  onView,
+}: {
+  processing: ProcessingSummary | null | undefined;
+  retrying: boolean;
+  onRetry: () => void;
+  onView: () => void;
+}) {
+  if (!processing) {
+    return <span className="text-[13px] text-slate-400">Not started</span>;
+  }
+  if (processing.status === "PENDING") {
+    return <span className="text-[13px] font-medium text-slate-600">Pending</span>;
+  }
+  if (processing.status === "RUNNING") {
+    const progress =
+      processing.pages_total != null
+        ? ` ${processing.pages_processed}/${processing.pages_total}`
+        : "";
+    return (
+      <span className="text-[13px] font-medium text-slate-700">Processing{progress}</span>
+    );
+  }
+  if (processing.status === "COMPLETED") {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <span className="text-[13px] font-medium text-emerald-700">Ready</span>
+        <Button type="button" variant="secondary" size="sm" onClick={onView}>
+          View pages
+        </Button>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col items-start gap-1">
+      <span className="text-[13px] font-medium text-red-600">Failed</span>
+      {processing.error_message ? (
+        <p className="max-w-56 text-[12px] text-slate-500">{processing.error_message}</p>
+      ) : null}
+      <Button type="button" variant="secondary" size="sm" onClick={onRetry} disabled={retrying}>
+        Retry processing
+      </Button>
+    </div>
   );
 }

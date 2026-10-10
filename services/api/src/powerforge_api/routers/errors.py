@@ -17,6 +17,9 @@ from powerforge_api.exceptions import (
     InvalidFileContent,
     InvalidRevisionIdentifier,
     InvalidStatusTransition,
+    PageNotFound,
+    ProcessingNotComplete,
+    ProcessingNotRetryableError,
     ProjectError,
     ProjectNotFound,
     ProjectNotModifiable,
@@ -43,7 +46,8 @@ def http_for(exc: ProjectError) -> HTTPException:
         | RevisionNotFound
         | RevisionProjectMismatch
         | RevisionDocumentNotFound
-        | CrossProjectDocumentAccess,
+        | CrossProjectDocumentAccess
+        | PageNotFound,
     ):
         status_code = status.HTTP_404_NOT_FOUND
     elif isinstance(
@@ -57,7 +61,9 @@ def http_for(exc: ProjectError) -> HTTPException:
         | RevisionNotActivatable
         | RevisionReadOnly
         | DocumentAlreadyInRevision
-        | DocumentRemoved,
+        | DocumentRemoved
+        | ProcessingNotComplete
+        | ProcessingNotRetryableError,
     ):
         status_code = status.HTTP_409_CONFLICT
     elif isinstance(exc, FileTooLarge):

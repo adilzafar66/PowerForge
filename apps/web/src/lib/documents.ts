@@ -51,6 +51,46 @@ export type RevisionDocument = {
   notes: string | null;
   added_at: string;
   removed_at: string | null;
+  /** Current processing run, or null when this document has never been processed. */
+  processing: ProcessingSummary | null;
+};
+
+export type ProcessingRunStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
+
+export type ProcessingSummary = {
+  status: ProcessingRunStatus;
+  attempt_count: number;
+  pages_processed: number;
+  pages_total: number | null;
+  error_code: string | null;
+  error_message: string | null;
+};
+
+export type ProcessingStatusResponse = {
+  processing: ProcessingSummary | null;
+  processor_version: string | null;
+  profile_version: string | null;
+  profile_hash: string | null;
+};
+
+export type PageArtifactType = "ANALYSIS_IMAGE" | "THUMBNAIL" | "NATIVE_TEXT";
+
+export type PageArtifactInfo = {
+  artifact_type: PageArtifactType;
+  mime_type: string;
+  width_px: number | null;
+  height_px: number | null;
+};
+
+export type DocumentPage = {
+  id: string;
+  page_number: number;
+  source_width: string;
+  source_height: string;
+  source_unit: "POINTS" | "PIXELS";
+  rotation_degrees: number;
+  native_text_char_count: number;
+  artifacts: PageArtifactInfo[];
 };
 
 export type UploadResult = RevisionDocument & {
@@ -265,6 +305,40 @@ export async function getDownloadUrl(
 ): Promise<DownloadUrl> {
   return request<DownloadUrl>(
     `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/download-url?disposition=${disposition}`,
+  );
+}
+
+export async function retryProcessing(
+  projectId: string,
+  revisionId: string,
+  revisionDocumentId: string,
+): Promise<ProcessingStatusResponse> {
+  return request<ProcessingStatusResponse>(
+    `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/processing/retry`,
+    { method: "POST" },
+  );
+}
+
+export async function listPages(
+  projectId: string,
+  revisionId: string,
+  revisionDocumentId: string,
+): Promise<DocumentPage[]> {
+  const body = await request<{ items: DocumentPage[] }>(
+    `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/pages`,
+  );
+  return body.items;
+}
+
+export async function getPageArtifactUrl(
+  projectId: string,
+  revisionId: string,
+  revisionDocumentId: string,
+  pageId: string,
+  artifactType: PageArtifactType,
+): Promise<DownloadUrl> {
+  return request<DownloadUrl>(
+    `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/pages/${pageId}/artifacts/${artifactType}/url`,
   );
 }
 
