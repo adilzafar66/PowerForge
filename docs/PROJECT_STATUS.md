@@ -4,7 +4,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 **Current implemented phase:** 3 (document processing)  
 **In progress:** none  
-**Next:** Phase 4 (document classification), specified in PR-01, not implemented
+**Next:** Phase 4 (document classification), specified in PR-01 (`3063120`), not implemented
 
 ## Phase 0 — Architecture and repository setup
 
@@ -146,7 +146,7 @@ Phase 2 tree at `2c75e44`, plus the untracked Phase 3 spec. Integration tests us
 **Status:** Specified (2026-10-11). Not implemented.
 
 Specification: `cursor/phase4_specs.txt`  
-Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 is this specification landing; PR-02 onward are not started)  
+Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 landed in `3063120`; PR-02 onward are not started)  
 Decisions: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed 2026-10-11)
 
 Phase 4 will classify an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. Nothing in this phase is in the running application yet: no `MIXED_DOCUMENT` value, no classification tables, no worker queue, no provider calls, and no classification UI.

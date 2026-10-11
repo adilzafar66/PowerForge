@@ -83,7 +83,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 
 | PR | Title | Area | Size | Depends on | Status |
 | --- | --- | --- | --- | --- | --- |
-| [PR-01](#pr-01--specification-adr-and-documentation) | Specification, ADR-006, docs, this plan | Docs | S | — | [ ] |
+| [PR-01](#pr-01--specification-adr-and-documentation) | Specification, ADR-006, docs, this plan | Docs | S | — | [x] landed in `3063120` |
 | [PR-02](#pr-02--classification-contracts-profile-and-prompts) | Classification contracts, profile, and prompts | Domain | M | PR-01 | [ ] |
 | [PR-03](#pr-03--migration-0006-and-classification-models) | Migration `0006` and classification models | DB | M | PR-02 | [ ] |
 | [PR-04](#pr-04--classification-service-and-fake-provider) | Classification service and fake provider | Backend | L | PR-02, PR-03 | [ ] |
@@ -130,7 +130,7 @@ If work is parallelized: PR-05 (worker), PR-06 (API), and PR-08 (eval) can proce
 
 ### PR-01 — Specification, ADR, and documentation
 
-**Status.** Written on `phase4/pr-01-specification-and-docs`. The tracker checkbox above stays open until this PR merges.
+**Status.** Done. Spec, ADR-006 (Proposed), Phase 4 documentation, and this plan are on `main` (`3063120`).
 
 **Goal.** Land the written design before code: the Phase 4 spec (already in the tree), ADR-006 (Proposed), Phase 4 doc updates, and this plan. (§1, §64, §68 steps 1–2 and 4)
 
