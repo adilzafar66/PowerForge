@@ -92,7 +92,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-07](#pr-07--worker-queue-enqueue-and-backfill) | Worker, queue, enqueue, and backfill | Backend/Infra | M | PR-06 | [x] landed in `987e4c2` |
 | [PR-08](#pr-08--processing-and-page-apis) | Processing and page APIs | Backend | M | PR-06 | [x] landed in `3d9ff4b` |
 | [PR-09](#pr-09--processing-status-and-page-viewer-ui) | Processing status and page viewer UI | Web | M | PR-08 | [x] landed in `3d9ff4b` |
-| [PR-10](#pr-10--hardening-verification-and-phase-3-completion) | Hardening, verification, and Phase 3 completion | All | M | all | [ ] |
+| [PR-10](#pr-10--hardening-verification-and-phase-3-completion) | Hardening, verification, and Phase 3 completion | All | M | all | [x] landed in `f98a25c` |
 
 PR-07 and PR-08 are independent of each other after PR-06. PR-09 needs PR-08 (the list payload). PR-07 can merge in parallel with PR-08.
 
