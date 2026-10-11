@@ -4,7 +4,8 @@ Revision ID: 0005_document_processing
 Revises: 0004_documents_and_lineage
 
 Downgrade drops the three Phase 3 tables and their enum types. Documents from
-Phase 2 are kept. Nothing in the running app writes these tables yet.
+Phase 2 are kept. The API and document-worker write these tables when a
+document is processed.
 """
 
 from collections.abc import Sequence

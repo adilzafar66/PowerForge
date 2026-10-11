@@ -24,7 +24,7 @@ Decisions: [ADR-003](../decisions/ADR-003-project-revision-model.md)
 Delivered:
 
 - `packages/project` (`powerforge_project`) — status enums and transition helper
-- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0005_document_processing`, which adds unused `document_pages`, `document_processing_runs`, and `page_artifacts`
+- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0005_document_processing`, which adds `document_pages`, `document_processing_runs`, and `page_artifacts`
 - REST API under `/api/projects` and nested revisions (create/list/get/patch + pause/resume/cancel/archive/unarchive + activate)
 - Web UI: `/` project list, `/projects/new`, `/projects/[id]`, revision placeholder, `/status` stack health
 - Backend and frontend tests covering lifecycle, uniqueness, and concurrent activate

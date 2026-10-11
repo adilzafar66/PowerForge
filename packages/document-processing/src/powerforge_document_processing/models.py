@@ -1,6 +1,7 @@
 """SQLAlchemy ORM models for projects, revisions, documents, and processing.
 
-The processing tables are mapped here and unused by the running app.
+The API and document-worker both load these mappings. The worker does not
+import FastAPI.
 """
 
 from __future__ import annotations
