@@ -3,7 +3,7 @@
 How Phase 3 (document processing and stable page representation) is delivered: a sequence of small, reviewable pull requests. Work through them in order. Each one is a self-contained unit that leaves `main` green.
 
 - Specification: [`cursor/phase3_specs.txt`](../cursor/phase3_specs.txt). Section references below (`§18`) point at it.
-- Decisions: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Proposed until PR-10)
+- Decisions: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Accepted)
 - Conceptual plan: [PHASE3_PLAN.md](PHASE3_PLAN.md)
 - Phase status: [PROJECT_STATUS.md](PROJECT_STATUS.md)
 
@@ -484,6 +484,72 @@ If work is parallelized: PR-03 (extract) and PR-05 (renderer) can proceed after 
 **Acceptance.** Every bullet in spec §36 is demonstrably true; CI green; ADR accepted; no OCR code in the tree.
 
 **Size.** M (verification and docs).
+
+**Status.** Verification recorded 2026-10-10 on branch `phase3/pr-10-close-out`. The tracker checkbox above stays open until the follow-up commit that records this verification. ADR-005 is Accepted. A click-through of the revision documents page in a browser was not performed. GitHub Actions was not observed; the existing workflow runs on push to `main`, and this work was not pushed.
+
+### Named tests (§31 and §36)
+
+No passing test was rewritten. Two gaps had no named test and now do: artifact hash, size, mime type, and dimensions in `tests/test_processing_service.py::test_pdf_run_completes_with_pages_and_artifacts`, and backfill after a `0004` upgrade in `tests/test_migration_0005.py::test_backfill_after_upgrade_from_0004_creates_one_run_per_document`.
+
+| Requirement | Named test or recorded check |
+| --- | --- |
+| PDF count, order, text, scanned, whitespace, rotation, corrupt, password | `tests/test_page_rendering.py`: `test_single_page_pdf_extracts_text`, `test_multipage_pdf_keeps_order`, `test_image_only_pdf_has_no_text`, `test_whitespace_only_pdf_text_is_empty`, `test_rotated_pdf_stores_upright_points`, `test_corrupt_pdf_fails_with_named_code`, `test_password_protected_pdf_fails_without_the_library_text`. Service: `test_pdf_run_completes_with_pages_and_artifacts`, `test_corrupt_original_fails_with_renderer_code` |
+| PNG, JPEG, EXIF, TIFF, malformed image | `test_png_and_jpeg_are_one_page`, `test_exif_orientation_6_is_transposed`, `test_single_and_multipage_tiff`, `test_malformed_image_fails` |
+| Analysis image, thumbnail, native-text rules, hashes, private object, signed URL | `test_every_successful_page_has_analysis_and_thumbnail`; hash, size, mime, and dimensions in `test_pdf_run_completes_with_pages_and_artifacts`; `tests/test_pages_api.py::test_signed_artifact_url_serves_bytes_and_leaves_the_original_download` |
+| Scale-down, pixel ceiling, Phase 2 upload cap | `test_oversized_pdf_and_image_are_scaled_down`, `test_pixel_ceiling_rejects_a_small_png_and_the_phase2_cap_accepts_it` |
+| Run transitions, partial failure, pages withheld, list summary, retry, claim, enqueue failure, backfill | `test_pdf_run_completes_with_pages_and_artifacts`; `test_second_page_write_failure_keeps_first_page`; `test_pages_and_urls_wait_until_the_run_is_completed`; `test_upload_list_and_detail_carry_the_current_run_only`; `test_retry_inserts_a_new_run_and_keeps_the_failed_attempt`; `test_claim_does_not_change_attempt_count_and_second_claim_writes_nothing`; `test_concurrent_retry_leaves_one_pending`; `test_ensure_enqueues_pending_and_skips_running_completed_and_failed`; `test_ensure_of_failed_does_not_enqueue`; `test_enqueue_failure_leaves_pending_run_and_document`; `test_raising_enqueue_leaves_the_upload_and_a_pending_run`; `test_backfill_is_bounded_and_leaves_finished_runs` |
+| Concurrent ensure, duplicate delivery, dedicated queue | `test_concurrent_ensure_leaves_one_run`; `test_task_completes_a_pdf_and_a_second_delivery_writes_nothing`; `test_enqueue_publishes_to_the_document_processing_queue`; `test_processing_task_is_only_registered_on_the_document_worker`; `test_compose_binds_only_the_document_worker_to_its_queue`. Compose logs, recorded below, confirm the other workers did not take the task |
+| One document, many revisions, one page set | `test_three_revisions_share_one_completed_run`; `test_upload_enqueues_one_run_per_new_document`. Compose inheritance, recorded below |
+| Cross-project, REMOVED, superseded, archived | `test_a_foreign_page_or_project_is_not_found`; `test_removed_superseded_and_archived_can_read_completed_pages`; `test_removed_and_superseded_and_archived_can_read_and_retry` |
+| Storage failure leaves the original | `test_storage_read_failure_keeps_the_original`; `test_second_page_write_failure_keeps_first_page` |
+| Frontend status, retry, viewer | `apps/web/src/components/revision-documents.test.tsx`: "renders each state from the list and does not call processing routes", "retries only a failed row, including on a read-only revision", "opens the viewer only for a ready document and loads the analysis image" |
+| Fresh `0005`, upgrade from `0004`, downgrade, backfill of leftover documents | `test_fresh_upgrade_reaches_0005_with_expected_schema`, `test_upgrade_from_0004_preserves_existing_documents`, `test_downgrade_to_0004_and_reupgrade`, `test_backfill_after_upgrade_from_0004_creates_one_run_per_document` |
+| No OCR import | `test_package_does_not_import_ocr_and_api_does_not_call_the_renderer`; `tests/test_document_processing_package.py::test_package_does_not_import_fastapi_celery_or_ocr` |
+| Phase 0–2 still passes | The full pytest and web suites below |
+
+### Spec §37
+
+**A. Database.** Migration `0005_document_processing` (`down_revision` `0004_documents_and_lineage`) adds `document_pages`, `document_processing_runs`, and `page_artifacts`. A page belongs to `Document` with identity `(document_id, page_number)`. A run is one attempt at `(document_id, processor_version, profile_hash)`. A partial unique index allows one `PENDING`, `RUNNING`, or `COMPLETED` run per target.
+
+**B. Modules.** `packages/document-model` holds the profile, enums, and artifact keys, with no Pillow or PyMuPDF. `packages/document-processing` holds `ObjectStorage`, the SQLAlchemy models, `rendering.py`, `ProcessingService`, and `enqueue.py` (the only module there that imports Celery). `services/document-worker` calls `claim_and_process` for task `document_processing.process_run`. `powerforge-backfill-processing` is the backfill command. The API routes live in `services/api`.
+
+**C. Profile.** `processor_version` `1`, `profile_version` `engineering-default-v1`. Material fields hashed into `profile_hash`: target 200 DPI, max long edge 8000 px, max 50,000,000 pixels, thumbnail long edge 800 px, analysis PNG, thumbnail WebP, orientation normalized. Library versions are not part of the hash.
+
+**D. PDF, image, and TIFF.** A PDF page, a PNG, a JPEG, and a TIFF frame each become one logical page, in order. Stored size is the upright page: PDF units are points, image units are pixels, and `rotation_degrees` is the source rotation that was applied. Native text is stored only when it is non-empty after stripping. An image page and an image-only PDF store `native_text_char_count = 0` and no text artifact. A decodable page over the pixel cap is scaled down. Corrupt PDFs, password-protected PDFs, and undecodable images fail the run with a named code. There is no password prompt.
+
+**E. Artifacts.** `ANALYSIS_IMAGE` (`analysis.png`), `THUMBNAIL` (`thumbnail.webp`), and `NATIVE_TEXT` (`native.txt`). Key shape: `projects/{project}/documents/{document}/processing/{run}/pages/{page:04d}/{filename}`. `put` does not overwrite. Objects stay private. Each row stores sha256, size, mime type, and pixel dimensions when the artifact is an image.
+
+**F. State.** Upload commits the document, then `ensure` inserts the first `PENDING` run and enqueues it. `ensure` re-enqueues an unclaimed `PENDING` run. It returns `RUNNING`, `COMPLETED`, and `FAILED` as they are and does not start a new attempt. Claim is one update of that run id from `PENDING` to `RUNNING`. `attempt_count` is set at insert. `COMPLETED` requires every page's analysis image and thumbnail, and a `NATIVE_TEXT` artifact exactly when the text is non-empty. A failed page write leaves the earlier pages and never marks the run complete. `POST /processing/retry` inserts the next attempt and leaves the failed attempt's rows and objects. A second delivery of the same run writes nothing.
+
+**G. API.** Under `/api/projects/{project_id}/revisions/{revision_id}/documents/{revision_document_id}`: `GET /processing` (200 while a run is in progress), `POST /processing/retry`, `GET /pages`, `GET /pages/{page_id}`, and `GET /pages/{page_id}/artifacts/{artifact_type}/url` with `Cache-Control: no-store`. Pages and artifact URLs before `COMPLETED` are **409** `processing_not_complete`. List, detail, and upload include the current-run summary. `REMOVED`, superseded, and archived associations can read and can retry. Retry of a run that is not `FAILED` is **409** `processing_not_retryable`.
+
+**H. Frontend.** The revision documents table has a Processing column driven by the list payload: Not started, Pending, Processing, Ready, Failed. Retry is shown for Failed, including when Phase 2 mutations are read-only. Ready opens an inspection-only viewer dialog (`apps/web/src/components/page-viewer.tsx`) that loads the analysis image. There is no failed-attempt history and no annotation.
+
+**I. Backfill.** `powerforge-backfill-processing --limit N` calls `ensure`. It covers a document with no compatible run and re-enqueues an unclaimed `PENDING` run. It does not retry `FAILED` and does not run on API startup. The scratch-database test upgrades a `0004` database that already has documents, then backfills: the first call inserts one `PENDING` run per document, and the second call does not insert another. That check does not use the Compose `powerforge` database.
+
+**J. Checks that ran.**
+
+- `docker compose down -v && docker compose up --build -d` from the repo root. Exit 0, about 99 seconds. Volumes `powerforge_postgres_data` and `powerforge_minio_data` were recreated.
+- `GET /ready` returned 200 `{"status":"ok","service":"powerforge-api","version":"0.1.0","database":"ok","redis":"ok"}`.
+- `SELECT version_num FROM alembic_version` on the new Compose database returned `0005_document_processing`.
+- Walk-through against that stack (not saved in the repo): project `162b8e67-33c6-4619-97ce-8cdff75da1d9`, revision 0 `678650ee-d4f5-44cc-b364-1b9a1b8e1bfb`. Uploaded `sheet.pdf` (association `8370af0b-e460-4224-a3bf-ff55e06cbfc4`, document `dedb3a32-8116-4798-bf9c-36d174beba6e`) and `photo.png` (association `24a521c1-3c18-4ad3-baf1-0bb4be2fee8b`, document `5baae793-1941-4fd7-bacc-50c42a4bd9d4`). Both uploads returned `PENDING` and both reached `COMPLETED` with `pages_processed` 1. The PDF page had `native_text_char_count` greater than 0. The pages JSON did not contain `storage_key`. The analysis URL named `analysis.png`, sent `Cache-Control: no-store`, and the signed GET returned 200 PNG bytes. An unsigned GET of the same object path on `http://localhost:9000` returned 403. The original download URL returned the uploaded PDF bytes. Signed path: `/powerforge/projects/162b8e67-33c6-4619-97ce-8cdff75da1d9/documents/dedb3a32-8116-4798-bf9c-36d174beba6e/processing/0ba54e48-d79b-47cb-8e4d-427d21aee68e/pages/0001/analysis.png`.
+- The PDF run was set to `FAILED` in SQL (`error_code` `CORRUPT_PDF`, `error_message` `forced for close-out`). `GET /processing` showed that failure. `POST /processing/retry` returned `PENDING` with `attempt_count` 2, then the new run reached `COMPLETED` with `pages_processed` 1. The failed attempt still had its three artifact rows. The PNG document stayed one `COMPLETED` attempt, one page, and two artifacts.
+- Revision 1 `581efa2d-36a2-45b6-b388-8d8c92677b1c` was created with activation, which carries documents forward. Its list had two `INHERITED` items, both `COMPLETED`. `documents` count stayed 2. Each document still had one page row.
+- Compose logs: `document-worker` concurrency 1, queue `document_processing`, tasks `document_processing.process_run` and `document_worker.heartbeat`, three tasks received and succeeded. `extraction-worker` and `validation-worker` listen on `celery` only, register only their heartbeats, and their logs contain no `process_run`.
+- The revision documents page at `localhost:3000` was not opened. No browser was available. The HTTP checks above cover the list summary, pages, and analysis-image URL the viewer calls.
+- `.venv/bin/ruff check .` — all checks passed.
+- `.venv/bin/pytest -q` — 236 passed, 288 skipped.
+- Throwaway database `powerforge_pr10` created in the Compose Postgres, migrated with `alembic -c database/alembic.ini upgrade head` to `0005_document_processing`, then `DATABASE_URL=postgresql+psycopg://powerforge:powerforge@localhost:5432/powerforge_pr10 RUN_INTEGRATION=1 .venv/bin/pytest -q` — 524 passed. `powerforge_pr10` was dropped afterward. The only remaining `powerforge*` database is the Compose `powerforge` database. Scratch databases created inside the suite were already gone.
+- Earlier, the two new tests alone: `RUN_INTEGRATION=1 .venv/bin/pytest -q tests/test_migration_0005.py::test_backfill_after_upgrade_from_0004_creates_one_run_per_document tests/test_processing_service.py::test_pdf_run_completes_with_pages_and_artifacts` — 2 passed. `ruff check` on those two files passed.
+- In `apps/web`: `npm run lint` — no warnings or errors. `npm test` — 175 passed (11 files). `npx tsc --noEmit` — no errors. `npm run build` — compiled successfully.
+
+**K. Deviations.** Pages and artifact URLs before completion are **409** `processing_not_complete` (settled D3). Thumbnails are WebP (settled D2). The product spec names OCR inside this phase; this implementation does not run it. Failed-attempt objects are left in storage. Upload validation stays header-only for PDFs and structural for images.
+
+**L. Debt.** Failed-attempt objects are not collected. There is no failed-attempt history UI. Encrypted PDFs fail with no password entry. There is no Playwright suite. Phase 2's debt list in `PROJECT_STATUS.md` is unchanged. Phase 4 is not started.
+
+**M. No OCR or AI in this diff.** `git diff 2c75e44` (the Phase 2 tree) adds PyMuPDF and Pillow only in `rendering.py` and its tests, and Celery only in `enqueue.py` and the document worker. `packages/ai`, `packages/extraction`, `packages/topology`, `packages/validation`, `packages/provenance`, and `packages/engineering-model` have no file changes. The new tests name `pytesseract`, `tesseract`, `easyocr`, `paddleocr`, and `cv2` only as imports the processing package must not have. The diff adds no OCR engine, no LLM or vision client call, no classification job, no table extraction, no evidence row, no equipment extraction, and no ETAP, SKM, or EasyPower integration.
+
+**N. Suggested commit message.** `Close Phase 3 after the requirements audit, clean-stack walk-through, and documentation corrections.` Leave the PR-10 checkbox open in that commit. A following commit records the tracker line, matching PR-01 … PR-09.
 
 ---
 

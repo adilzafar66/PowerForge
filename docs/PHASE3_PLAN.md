@@ -1,8 +1,8 @@
 # Phase 3 implementation plan
 
-Document processing and stable page representation. Specification: [`cursor/phase3_specs.txt`](../cursor/phase3_specs.txt). Decisions: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Proposed).
+Document processing and stable page representation. Specification: [`cursor/phase3_specs.txt`](../cursor/phase3_specs.txt). Decisions: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Accepted).
 
-**Status:** the document list carries the current processing summary, and the revision documents workspace shows that status, retry, and an inspection-only page viewer. Upload calls `ensure` after the document commit, and `document-worker` consumes the `document_processing` queue. Existing documents wait for `powerforge-backfill-processing`. Do not mark the phase complete from this plan.
+**Status:** Complete (2026-10-10). The document list carries the current processing summary, and the revision documents workspace shows that status, retry, and an inspection-only page viewer. Upload calls `ensure` after the document commit, and `document-worker` consumes the `document_processing` queue. Existing documents wait for `powerforge-backfill-processing`. Phase 4 is not started.
 
 Delivery is a sequence of pull requests: [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md). Implement only the current PR from that document.
 
@@ -12,11 +12,11 @@ Phase 2 is the base. `Document`, `RevisionDocument`, and the project models live
 
 `document-worker` registers the heartbeat and `document_processing.process_run`. Its image installs the shared processing library, and Compose gives it the API's `DATABASE_URL` and `S3_*` values. It listens only on `document_processing`. Extraction and validation workers stay on the default `celery` queue and do not register the processing task ([PHASE0_HANDOFF.md](PHASE0_HANDOFF.md)).
 
-`packages/document-model` has no third-party dependencies. It owns classification, origin, status, file-validation rules, and `build_storage_key`. Page contracts are not there yet.
+`packages/document-model` has no third-party dependencies. It owns classification, origin, status, file-validation rules, `build_storage_key`, the processing profile, and artifact keys.
 
 The revision document list, detail, and upload responses carry the current processing summary. The workspace shows status, retry, and the page viewer for a completed run. Downloads already succeed for `REMOVED` associations and for superseded revisions. Alembic head is `0005_document_processing`. `render_pages` turns PDF, PNG, JPEG, and TIFF bytes into analysis images and thumbnails. `ProcessingService` calls it while claiming a run. The service can ensure a run, retry a failed run, and claim a pending run. Upload calls `ensure` after commit. Documents already in the database stay unprocessed until `powerforge-backfill-processing`. Pillow is used by the API's `FileInspector`, which sets `Image.MAX_IMAGE_PIXELS = None` in that process and checks dimensions from the header. A truncated JPEG or TIFF can pass upload. Phase 3 is where those files fail or render.
 
-`cursor/phase3_specs.txt` is the implementation spec. It is not yet part of a commit.
+`cursor/phase3_specs.txt` is the implementation spec.
 
 ## Baseline (2026-10-08)
 

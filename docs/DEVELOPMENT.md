@@ -16,7 +16,7 @@ API: `http://localhost:8000/api/projects` (see OpenAPI at `/docs`).
 
 Phase 2 (complete; see [PROJECT_STATUS.md](PROJECT_STATUS.md)) added document management. The revision workspace route above is the revision documents page, and the API has `.../revisions/{revisionId}/documents` routes (list the routes in OpenAPI at `/docs`). See [Phase 2 configuration](#phase-2-configuration-document-storage).
 
-Phase 3 processing runs on `document-worker`. New uploads enqueue a run; documents already stored wait for backfill. Page routes and the processing column are still later pull requests ([PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md)).
+Phase 3 processing runs on `document-worker`. New uploads enqueue a run; documents already stored wait for `powerforge-backfill-processing --limit N`. The revision documents workspace shows processing status, retry, and the page viewer ([PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md)).
 
 ## Prerequisites
 

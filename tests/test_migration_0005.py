@@ -205,6 +205,58 @@ def test_upgrade_from_0004_preserves_existing_documents(scratch_url: URL) -> Non
 
 
 @pytest.mark.integration
+def test_backfill_after_upgrade_from_0004_creates_one_run_per_document(scratch_url: URL) -> None:
+    """Documents that predate processing get one run, and a second pass adds none."""
+    from sqlalchemy.orm import sessionmaker
+
+    from powerforge_document_processing.backfill import backfill_documents
+    from powerforge_document_processing.storage.memory import InMemoryObjectStorage
+
+    class _Enqueue:
+        def __init__(self) -> None:
+            self.calls: list[uuid.UUID] = []
+
+        def enqueue_document_processing(self, run_id: uuid.UUID) -> None:
+            self.calls.append(run_id)
+
+    _alembic(scratch_url, "upgrade", PREVIOUS)
+    engine = create_engine(scratch_url)
+    try:
+        first, _key = _seed_document(engine)
+        second, _other = _seed_document(engine)
+        _alembic(scratch_url, "upgrade", "head")
+        factory = sessionmaker(bind=engine, expire_on_commit=False)
+        storage = InMemoryObjectStorage()
+        enqueue = _Enqueue()
+        with factory() as session:
+            assert backfill_documents(session, storage, enqueue, limit=10) == 2
+            counts = dict(
+                session.execute(
+                    text(
+                        "SELECT document_id, count(*) FROM document_processing_runs "
+                        "GROUP BY document_id"
+                    )
+                ).all()
+            )
+        assert counts == {first: 1, second: 1}
+        assert len(enqueue.calls) == 2
+
+        with factory() as session:
+            assert backfill_documents(session, storage, enqueue, limit=10) == 2
+            again = dict(
+                session.execute(
+                    text(
+                        "SELECT document_id, count(*) FROM document_processing_runs "
+                        "GROUP BY document_id"
+                    )
+                ).all()
+            )
+        assert again == {first: 1, second: 1}
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.integration
 def test_downgrade_to_0004_and_reupgrade(scratch_url: URL) -> None:
     _alembic(scratch_url, "upgrade", PREVIOUS)
     engine = create_engine(scratch_url)

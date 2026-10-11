@@ -2,9 +2,9 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** 2 (document management)  
-**In progress:** Phase 3 is specified, not implemented  
-**Next:** implement Phase 3 (document processing) per [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md)
+**Current implemented phase:** 3 (document processing)  
+**In progress:** none  
+**Next:** Phase 4 (document classification), not started
 
 ## Phase 0 — Architecture and repository setup
 
@@ -105,16 +105,26 @@ Phase 2 was delivered as 16 pull requests (PR-00 to PR-15), tracked with scope, 
 - No browser end-to-end automation (Playwright or similar)
 - Deviations from the spec text are listed at the end of `cursor/phase2_specs.txt`
 
-## Next — Phase 3: Document processing
+## Phase 3 — Document processing
 
-**Status:** Specified (2026-10-08). Not implemented. Migration `0005` adds unused page, run, and artifact tables. No processing behavior or worker tasks exist yet.
+**Status:** Complete (2026-10-10).
 
 Specification: `cursor/phase3_specs.txt`  
 Plan: [PHASE3_PLAN.md](PHASE3_PLAN.md)  
-Delivery: [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md) (PR-01 … PR-10; none landed)  
-Decisions: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Proposed)
+Delivery: [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md) (PR-01 … PR-09 landed; PR-10 is this close-out)  
+Decisions: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Accepted 2026-10-10)
 
-Phase 3 will turn each immutable `Document` into stable `DocumentPage` rows and derived artifacts (analysis image, thumbnail, native PDF text when the page has a text layer), asynchronously in `document-worker`. Processing belongs to `Document`, so inherited revisions share one result. A processing run is one attempt; retry inserts a new run and keeps the failed attempt. OCR, classification, and the engineering model are not part of this phase.
+Phase 3 turns each immutable `Document` into stable `DocumentPage` rows and derived artifacts (analysis image, thumbnail, native PDF text when the page has a text layer), asynchronously in `document-worker`. Processing belongs to `Document`, so inherited revisions share one result. A processing run is one attempt; retry inserts a new run and keeps the failed attempt. OCR, classification, and the engineering model are not part of this phase.
+
+### Intentional deviations and technical debt
+
+Phase 2's debt list above still applies. Phase 3 adds:
+
+- Failed-attempt objects are left in storage. There is no garbage collection.
+- There is no UI or API for browsing older failed attempts.
+- Encrypted PDFs fail the run. There is no password entry.
+- Upload validation stays header-only for PDFs and structural for images. Decode failures surface as a failed processing run.
+- There is no Playwright suite. The page viewer is covered by vitest and by the HTTP walk-through recorded in the PR-10 notes. A click-through of the viewer in a real browser was not performed.
 
 ### Baseline before implementation (2026-10-08)
 
@@ -136,12 +146,12 @@ Phase 2 tree at `2c75e44`, plus the untracked Phase 3 spec. Integration tests us
 | Phase | Work | Status |
 | --- | --- | --- |
 | 2 | Document management | Complete (2026-10-06) |
-| 3 | Document processing | Specified (2026-10-08); not implemented |
+| 3 | Document processing | Complete (2026-10-10) |
 | 4 | Document classification | Not started |
 | 5 | Engineering model persistence | Not started |
 | 6–13 | Extraction through export | Not started |
 
-Authentication, a users table, and project-level access control are required by the product spec and are **not** part of Phase 0, Phase 1, or Phase 2. `created_by` (and Phase 2's `uploaded_by`/`added_by`/`removed_by`) remain nullable until then.
+Authentication, a users table, and project-level access control are required by the product spec and are **not** part of Phase 0, Phase 1, Phase 2, or Phase 3. `created_by` (and Phase 2's `uploaded_by`/`added_by`/`removed_by`) remain nullable until then.
 
 ETAP / SKM / EasyPower integration is not part of these phases.
 

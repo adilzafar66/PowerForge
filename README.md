@@ -2,12 +2,12 @@
 
 Engineering data extraction platform. Electrical engineers upload project documents; PowerForge extracts structured electrical information, reconciles it across sources, and produces a centralized, traceable engineering model. The engineer remains the final authority.
 
-**Current implemented phase:** Phase 2 — Document Management (specified in [cursor/phase2_specs.txt](cursor/phase2_specs.txt), delivered via [docs/PHASE2_PR_PLAN.md](docs/PHASE2_PR_PLAN.md))  
-**Next:** Phase 3 — Document Processing (specified in [cursor/phase3_specs.txt](cursor/phase3_specs.txt) and [ADR-005](decisions/ADR-005-document-processing-and-page-identity.md); delivered via [docs/PHASE3_PR_PLAN.md](docs/PHASE3_PR_PLAN.md); implementation not started)
+**Current implemented phase:** Phase 3 — Document Processing (specified in [cursor/phase3_specs.txt](cursor/phase3_specs.txt), decided in [ADR-005](decisions/ADR-005-document-processing-and-page-identity.md), delivered via [docs/PHASE3_PR_PLAN.md](docs/PHASE3_PR_PLAN.md))  
+**Next:** Phase 4 — Document classification (not started)
 
 Phase status lives in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Do not treat this README or chat history as the source of truth.
 
-Engineers can create projects and revisions, upload PDF and image documents to a revision (stored unchanged in S3-compatible storage, MinIO locally), classify and edit them, remove and restore them per revision, reuse a document from another revision, and have new revisions inherit the previous revision's documents without copying files; see [ADR-004](decisions/ADR-004-document-storage-and-revision-inheritance.md). The stack does not yet read, render, or extract the documents, call AI models, or integrate ETAP/SKM/EasyPower. Phase 3 will add page rendering and native PDF text only; it will not add OCR. Phase 0 setup notes remain in [docs/PHASE0_HANDOFF.md](docs/PHASE0_HANDOFF.md).
+Engineers can create projects and revisions, upload PDF and image documents to a revision (stored unchanged in S3-compatible storage, MinIO locally), classify and edit them, remove and restore them per revision, reuse a document from another revision, and have new revisions inherit the previous revision's documents without copying files; see [ADR-004](decisions/ADR-004-document-storage-and-revision-inheritance.md). Phase 3 renders each immutable document into stable pages, an analysis image, a thumbnail, and native PDF text when the page already has a text layer. It does not run OCR, call AI models, or integrate ETAP/SKM/EasyPower. Phase 0 setup notes remain in [docs/PHASE0_HANDOFF.md](docs/PHASE0_HANDOFF.md).
 
 When you run Compose, uploads go from the browser to the API, so `CORS_ORIGINS` must include the origin you open the web app from, and signed download links use `S3_PUBLIC_ENDPOINT_URL` (`http://localhost:9000`); see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#phase-2-configuration-document-storage).
 
@@ -46,7 +46,7 @@ Decisions: [decisions/](decisions/).
 ```
 apps/web                  Next.js UI
 services/api              FastAPI
-services/document-worker  Celery (heartbeat in Phase 0)
+services/document-worker  Celery (`document_processing` queue)
 services/extraction-worker
 services/validation-worker
 packages/*                Domain packages (no AI vendor SDKs in the engineering model)

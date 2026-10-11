@@ -247,7 +247,12 @@ def test_pdf_run_completes_with_pages_and_artifacts(session: Session) -> None:
     assert analysis.startswith(b"\x89PNG")
     assert thumbnail.startswith(b"RIFF") and thumbnail[8:12] == b"WEBP"
     assert b"Hello" in native
-    assert str(run.id) in by_type[PageArtifactType.ANALYSIS_IMAGE].storage_key
+    image = by_type[PageArtifactType.ANALYSIS_IMAGE]
+    assert image.sha256 == hashlib.sha256(analysis).hexdigest()
+    assert image.size_bytes == len(analysis)
+    assert image.mime_type == "image/png"
+    assert image.width_px is not None and image.height_px is not None
+    assert str(run.id) in image.storage_key
     assert storage.objects[document.storage_key].data == payload
     assert storage.calls_for("delete") == []
 

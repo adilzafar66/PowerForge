@@ -2,7 +2,7 @@
 
 Document processing is asynchronous. The UI must not wait synchronously for OCR, layout analysis, or extraction.
 
-Phase 0 establishes job infrastructure (Celery + Redis) and storage configuration. Phase 2 adds synchronous upload, validation, immutable storage, and revision-scoped document management (see [Phase 2 scope](#phase-2-scope)). Phase 3, specified and not implemented, adds asynchronous page rendering and native PDF text (see [Phase 3 scope](#phase-3-scope)). OCR, AI classification, and extraction remain later phases.
+Phase 0 establishes job infrastructure (Celery + Redis) and storage configuration. Phase 2 adds synchronous upload, validation, immutable storage, and revision-scoped document management (see [Phase 2 scope](#phase-2-scope)). Phase 3 adds asynchronous page rendering and native PDF text (see [Phase 3 scope](#phase-3-scope)). OCR, AI classification, and extraction remain later phases.
 
 ## Pipeline
 
@@ -31,7 +31,7 @@ Every stage records:
 
 Jobs must support retries, failure state, error logging, cancellation where practical, and idempotency.
 
-Typical API shape for Phase 3 (specified, not implemented):
+Phase 3 API:
 
 ```
 GET  /api/projects/{pid}/revisions/{rid}/documents/{rdid}/processing
@@ -54,7 +54,7 @@ The Phase 3 UI shows Pending, Processing, Ready, and Failed for that run. OCR, l
 - Immutable `Document` artifacts and file metadata
 - Revision-scoped `RevisionDocument` associations (type, number, description, notes, origin, status)
 - Document classification (manual in Phase 2; AI-assisted in Phase 4)
-- Page management (Phase 3, specified, not implemented)
+- Page management (Phase 3)
 - Object storage references
 
 A "new version" of a document is a new `Document`, never an overwrite. Which version a revision uses is expressed by which `Document` its `RevisionDocument` associations point at.
@@ -127,7 +127,7 @@ Automatic classification is Phase 4. It will include confidence; below a configu
 
 ## Phase 3 scope
 
-Specification: `cursor/phase3_specs.txt`. Decisions: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Proposed). Plan: [PHASE3_PLAN.md](PHASE3_PLAN.md). Delivery: [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md). Not implemented.
+Specification: `cursor/phase3_specs.txt`. Decisions: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Accepted). Plan: [PHASE3_PLAN.md](PHASE3_PLAN.md). Delivery: [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md). Complete (2026-10-10).
 
 Phase 3 starts after upload. It does not run inside the upload request.
 
@@ -150,7 +150,7 @@ Routes stay revision-scoped. `REMOVED` associations and superseded revisions may
 
 ## Processing tools
 
-Phase 3 (specified, not implemented):
+Phase 3:
 
 - PyMuPDF for PDF open, page render, and native text extraction
 - Pillow for PNG, JPEG, and TIFF decode, orientation, and thumbnails
@@ -167,11 +167,11 @@ Do not couple later OCR code to a single vendor. Do not add that code in Phase 3
 
 | Service | Phase introduced | Responsibility |
 | --- | --- | --- |
-| `document-worker` | 3 | Parse, render, native text, artifacts. Heartbeat only until Phase 3 is implemented. OCR and classification jobs are later |
+| `document-worker` | 3 | Parse, render, native text, artifacts, on the `document_processing` queue. OCR and classification jobs are later |
 | `extraction-worker` | 6–8 | Structured extraction jobs |
 | `validation-worker` | 10 | Deterministic validation jobs |
 
-Phase 0 workers start, connect to Redis, and expose a heartbeat task. They do not process documents. Processing tasks will use a dedicated queue so the other workers cannot take them. Today all three workers share the default queue.
+Phase 0 workers start, connect to Redis, and expose a heartbeat task. `document-worker` also consumes `document_processing`. Extraction and validation workers stay on the default `celery` queue and do not register the processing task.
 
 ## Artifacts
 

@@ -2,11 +2,18 @@
 
 ## Status
 
-Proposed (2026-10-08). Specified, not implemented. Specification: `cursor/phase3_specs.txt`. Plan: [PHASE3_PLAN.md](../docs/PHASE3_PLAN.md). Delivery: [PHASE3_PR_PLAN.md](../docs/PHASE3_PR_PLAN.md).
+Accepted (2026-10-10). Specification: `cursor/phase3_specs.txt`. Plan: [PHASE3_PLAN.md](../docs/PHASE3_PLAN.md). Delivery: [PHASE3_PR_PLAN.md](../docs/PHASE3_PR_PLAN.md).
 
 ## Date
 
-2026-10-08
+2026-10-08 (proposed). Accepted 2026-10-10.
+
+## Amendments
+
+Accepted without changing the decisions below.
+
+- D1–D7 in [PHASE3_PR_PLAN.md](../docs/PHASE3_PR_PLAN.md) are settled: the Celery publisher is `powerforge_document_processing.enqueue`, thumbnails are WebP, pages before completion are **409** `processing_not_complete`, backfill is `powerforge-backfill-processing --limit N`, upload responses include the processing summary, worker concurrency stays 1, and the package name is `powerforge_document_processing`.
+- The document-worker image and Compose environment now include the database driver, S3 settings, PyMuPDF, and Pillow. That worker listens only on `document_processing`.
 
 ## Context
 
