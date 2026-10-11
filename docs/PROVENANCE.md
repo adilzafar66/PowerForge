@@ -91,3 +91,13 @@ Specified in `cursor/phase3_specs.txt` and [ADR-005](../decisions/ADR-005-docume
 - **Coordinates, when a later phase stores them, are normalized on that upright page.** Origin is the top left. `x`, `y`, `width`, and `height` each run from 0.0 to 1.0. They are not pixels of an analysis PNG and not the unrotated PDF media box.
 - **`PageArtifact` is derived.** An analysis image, a thumbnail, or native PDF text helps a viewer and a later extractor. Provenance cites the `DocumentPage`. It must not treat one PNG as the source of truth. Native text is not OCR. A page with no text layer has a zero character count and no text artifact.
 - **Several processing attempts may exist.** The completed attempt is the one later phases may assume is complete. Failed attempts are not evidence and are not exposed as pages.
+
+## Classification provenance (Phase 4)
+
+Specified in `cursor/phase4_specs.txt` and [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed). Not implemented. No evidence rows are created in Phase 4.
+
+- **Machine classification attaches to `Document`.** A classification run cites one completed processing run. Revisions that share the file share that result.
+- **The confirmed type stays on `RevisionDocument`.** `document_type` is what the engineer accepted or typed. `accepted_classification_prediction_id`, when set, records which document-level prediction that type was accepted from.
+- **Inheritance and reuse copy that id** together with the type, number, description, and notes. A reuse that supplies its own type clears the id.
+- **Submitting a type clears the id**, even when the submitted value equals the stored type. That keeps a manual choice from looking like an AI accept.
+- **A failed classification is not the suggestion.** Its predictions may remain stored. They are not evidence and they cannot be accepted.

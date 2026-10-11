@@ -120,10 +120,11 @@ Initial classes:
 - `STUDY_DOCUMENT`
 - `OTHER` (added in Phase 2)
 - `UNKNOWN` (default)
+- `MIXED_DOCUMENT` (specified for Phase 4; not in the live enum until that phase is implemented)
 
 In Phase 2 the class is a manual choice stored on the `RevisionDocument` (revision-scoped, so the same file can be classified differently in different revisions) and has no confidence value.
 
-Automatic classification is Phase 4. It will include confidence; below a configurable threshold the document is marked for review. The enum lives in the document-model package (`DocumentClassification`) so all phases share one vocabulary.
+Automatic classification is specified in Phase 4 and is not implemented. The model returns a numeric score. PowerForge derives `HIGH`, `MEDIUM`, and `LOW` from it. A score below the high threshold routes the document to page classification. It does not write `RevisionDocument.document_type` and it does not mark the document for automatic review. Only an explicit accept changes the confirmed type. The enum lives in the document-model package (`DocumentClassification`) so all phases share one vocabulary.
 
 ## Phase 3 scope
 
@@ -148,6 +149,27 @@ A decodable page larger than the profile cap (200 DPI target, 8000 px long edge,
 
 Routes stay revision-scoped. `REMOVED` associations and superseded revisions may read processing and may retry, because this is not a revision edit.
 
+## Phase 4 scope
+
+Specification: `cursor/phase4_specs.txt`. Decisions: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed). Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md). Specified (2026-10-11). Not implemented.
+
+Phase 4 starts after a Phase 3 processing run is `COMPLETED`. It does not run inside the upload request, and it does not run on a pending, running, or failed processing run.
+
+```
+Completed Phase 3 run (current processor version and profile)
+  → bounded filename, native text, and sampled thumbnails
+  → document classification
+  → page classification only when mixed, unknown, or below the high threshold
+  → suggestion visible
+  → engineer accepts, or keeps / chooses the confirmed type
+```
+
+The classification target is the current completed processing run for the active profile. Pages are `1` through that run's `pages_total`. The suggestion is the latest completed classification. The newest attempt is reported separately, so a failed reclassify does not hide the previous suggestion.
+
+Accept sets `document_type` and `accepted_classification_prediction_id`. A manual type submission clears that id, even when the type value does not change. Creating a revision and reusing a document both copy the id with the other revision metadata.
+
+Existing processed documents will be backfilled by a bounded command, `powerforge-backfill-classification --limit N` (the name is the proposed default and is not built). The command will not run on API startup and will not retry a failed classification.
+
 ## Processing tools
 
 Phase 3:
@@ -167,11 +189,11 @@ Do not couple later OCR code to a single vendor. Do not add that code in Phase 3
 
 | Service | Phase introduced | Responsibility |
 | --- | --- | --- |
-| `document-worker` | 3 | Parse, render, native text, artifacts, on the `document_processing` queue. OCR and classification jobs are later |
-| `extraction-worker` | 6–8 | Structured extraction jobs |
+| `document-worker` | 3 | Parse, render, native text, artifacts, on the `document_processing` queue. After Phase 4 is implemented it may enqueue classification when a run completes. It does not call the provider |
+| `extraction-worker` | 4, then 6–8 | Phase 4 classification on the `document_classification` queue (specified, not implemented; the worker is still heartbeat-only). Later: structured extraction jobs |
 | `validation-worker` | 10 | Deterministic validation jobs |
 
-Phase 0 workers start, connect to Redis, and expose a heartbeat task. `document-worker` also consumes `document_processing`. Extraction and validation workers stay on the default `celery` queue and do not register the processing task.
+Phase 0 workers start, connect to Redis, and expose a heartbeat task. `document-worker` also consumes `document_processing`. Extraction and validation workers stay on the default `celery` queue and do not register the processing task. The `document_classification` queue does not exist yet.
 
 ## Artifacts
 

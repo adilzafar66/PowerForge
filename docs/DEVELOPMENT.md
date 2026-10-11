@@ -18,6 +18,19 @@ Phase 2 (complete; see [PROJECT_STATUS.md](PROJECT_STATUS.md)) added document ma
 
 Phase 3 processing runs on `document-worker`. New uploads enqueue a run; documents already stored wait for `powerforge-backfill-processing --limit N`. The revision documents workspace shows processing status, retry, and the page viewer ([PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md)).
 
+Phase 4 classification is specified and not implemented ([PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md)). The settings below are the planned knobs. They are not read by the application, and they are not in `.env.example` or `docker-compose.yml`.
+
+## Phase 4 configuration (specified)
+
+Classification stays off until a later PR adds the settings and the worker. Do not put `OPENAI_API_KEY` in Compose, `.env.example`, or source control. The API and `document-worker` must start without that key. Only `extraction-worker` will require it, and only when classification is enabled and the provider is OpenAI.
+
+| Variable | Planned default | Purpose |
+| --- | --- | --- |
+| `AI_CLASSIFICATION_ENABLED` | `false` | When false, uploads and Phase 3 processing behave as they do today, and explicit classification routes will fail cleanly |
+| `AI_PROVIDER` | `fake` | `fake` runs the full workflow without a network call. `openai` is the real adapter |
+
+`AI_CLASSIFICATION_TIMEOUT_SECONDS` will bound one provider call (`PROVIDER_TIMEOUT`). `AI_CLASSIFICATION_TASK_SOFT_TIME_LIMIT_SECONDS` and `AI_CLASSIFICATION_TASK_HARD_TIME_LIMIT_SECONDS` will bound the whole Celery task (`CLASSIFICATION_TASK_TIMEOUT`). The numeric defaults are still an open decision in the PR plan. None of these variables exist on `Settings` yet.
+
 ## Prerequisites
 
 - Python 3.12

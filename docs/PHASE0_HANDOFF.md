@@ -10,18 +10,22 @@ Living phase status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 **Phase 3 (document processing):** implemented; specified in `cursor/phase3_specs.txt`, decided in [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Accepted), and recorded in [PROJECT_STATUS.md](PROJECT_STATUS.md). Do not add OCR to it.
 
+**Phase 4 (AI document classification):** specified, not implemented. Spec: `cursor/phase4_specs.txt`. Decision: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed). Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md). Do not add classification jobs, provider calls, or the engineering model as a side effect.
+
 ## Agent instructions
 
 1. Read [ARCHITECTURE.md](ARCHITECTURE.md).
 2. Read the relevant domain docs for the work you were asked to do.
 3. Inspect existing code. Do not invent a second layout.
 4. Stay inside the requested phase. Do not implement OCR, AI extraction, SLD recognition, ETAP/SKM/EasyPower, electrical calculations, or report generation.
-5. Follow the phase process in `cursor/specification.txt` §36 when implementing a named phase. For Phase 1 details see `cursor/phase1_specs.txt` (complete); for Phase 2 see `cursor/phase2_specs.txt` (complete); for Phase 3 see `cursor/phase3_specs.txt` (complete). Phase 4 is not started.
+5. Follow the phase process in `cursor/specification.txt` §36 when implementing a named phase. For Phase 1 details see `cursor/phase1_specs.txt` (complete); for Phase 2 see `cursor/phase2_specs.txt` (complete); for Phase 3 see `cursor/phase3_specs.txt` (complete). Phase 4 is specified in `cursor/phase4_specs.txt` and is not started. Implement only the current PR in [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md).
 6. After architectural changes: explain, list affected modules, update docs (including [PROJECT_STATUS.md](PROJECT_STATUS.md)), add an ADR if the decision is significant.
 
 Product specification (source of truth for product scope): `cursor/specification.txt`.
 Phase 1 implementation spec: `cursor/phase1_specs.txt` (implemented).  
-Phase 2 implementation spec: `cursor/phase2_specs.txt` (implemented).
+Phase 2 implementation spec: `cursor/phase2_specs.txt` (implemented).  
+Phase 3 implementation spec: `cursor/phase3_specs.txt` (implemented).  
+Phase 4 implementation spec: `cursor/phase4_specs.txt` (specified, not implemented).
 
 ## Product (one paragraph)
 
@@ -258,4 +262,4 @@ Browser MCP was not available; the status page was checked via the rendered HTML
 
 ## Suggested first message to a new agent
 
-> Read `docs/PROJECT_STATUS.md`, `docs/PHASE0_HANDOFF.md`, and `docs/ARCHITECTURE.md`. Phase 0 through Phase 3 are done. Phase 4 (document classification) is not started. Do not add OCR, classification jobs, or the engineering model as a side effect. Compose may already be running. Confirm `/ready` is ok.
+> Read `docs/PROJECT_STATUS.md`, `docs/PHASE0_HANDOFF.md`, and `docs/ARCHITECTURE.md`. Phase 0 through Phase 3 are done. Phase 4 (document classification) is specified in `cursor/phase4_specs.txt` and [ADR-006](../decisions/ADR-006-ai-document-classification.md) and is not implemented. Do not add OCR, classification jobs, or the engineering model as a side effect. Compose may already be running. Confirm `/ready` is ok.

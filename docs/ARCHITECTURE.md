@@ -166,7 +166,7 @@ The backend is not a monolith. Each worker is a separate process with a narrow j
 
 Uploaded documents are confidential engineering information. The platform requires authentication, authorization, project-level access control, authorized object-storage access (signed URLs), encryption in transit, encryption at rest where supported, and audit logging. Object storage is never exposed without authorization.
 
-Auth is not implemented in Phase 0, Phase 1, Phase 2, or Phase 3. Phase 2 still issues object access only through backend-authorized presigned URLs, so project-level authorization can be added at the API later without changing storage. The API is bound to localhost in local development. Do not add a fake users table or fake auth in Phase 1. `created_by` on projects and revisions is a nullable UUID with no foreign key until a users table exists. Project-level access control arrives with authentication, not merely because project rows exist. See [ADR-003](../decisions/ADR-003-project-revision-model.md).
+Auth is not implemented in Phase 0, Phase 1, Phase 2, Phase 3, or Phase 4. Phase 2 still issues object access only through backend-authorized presigned URLs, so project-level authorization can be added at the API later without changing storage. The API is bound to localhost in local development. Do not add a fake users table or fake auth in Phase 1. `created_by` on projects and revisions is a nullable UUID with no foreign key until a users table exists. Project-level access control arrives with authentication, not merely because project rows exist. See [ADR-003](../decisions/ADR-003-project-revision-model.md).
 
 ## Phase 0 scope
 
@@ -277,6 +277,20 @@ The revision documents workspace shows Not started, Pending, Processing, Ready, 
 
 OCR, automatic classification, layout or table extraction, evidence rows, equipment, and the engineering model.
 
+## Phase 4
+
+Phase 4 is AI-assisted document classification. Specification: `cursor/phase4_specs.txt`. Decision record: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed). Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md). Status: specified, not implemented.
+
+Classification will belong to the immutable `Document`, so a file inherited or reused across revisions is classified once for a given processing run and classifier identity. `RevisionDocument.document_type` stays the engineer-confirmed type. An AI result is a suggestion. Nothing in this phase writes that column unless the engineer accepts the suggestion.
+
+A run requires the current completed Phase 3 processing run. It classifies the document first. Page classification runs only when the document is mixed, unknown, or below the high confidence threshold. Page predictions are routing suggestions, not a reviewed page type. `MIXED_DOCUMENT` is a document class, not a page class.
+
+The provider contract is vendor-neutral. The first real adapter is OpenAI (`gpt-6-luna`, Responses API, `store=false`). Tests and local development use a fake provider. Work will run on `extraction-worker` and a dedicated `document_classification` queue, and only when classification is enabled. Usage telemetry stores token counts and latency. It does not store prompts, document text, or a dollar cost.
+
+### Not in Phase 4
+
+OCR, equipment or table extraction, single-line topology, embeddings, automatic acceptance, page-level approval, and the engineering model.
+
 ## Related documents
 
 - [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md)
@@ -293,5 +307,7 @@ OCR, automatic classification, layout or table extraction, evidence rows, equipm
 - [ADR-003](../decisions/ADR-003-project-revision-model.md) — project/revision model (Phase 1, accepted)
 - [ADR-004](../decisions/ADR-004-document-storage-and-revision-inheritance.md) — document storage and revision inheritance (Phase 2, accepted)
 - [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) — document processing and page identity (Phase 3, accepted)
+- [ADR-006](../decisions/ADR-006-ai-document-classification.md) — AI document classification (Phase 4, proposed, not implemented)
 - [PHASE3_PLAN.md](PHASE3_PLAN.md) — Phase 3 conceptual plan
 - [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md) — Phase 3 pull-request delivery plan
+- [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) — Phase 4 pull-request delivery plan

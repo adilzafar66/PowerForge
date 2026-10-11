@@ -4,7 +4,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 **Current implemented phase:** 3 (document processing)  
 **In progress:** none  
-**Next:** Phase 4 (document classification), not started
+**Next:** Phase 4 (document classification), specified in PR-01, not implemented
 
 ## Phase 0 — Architecture and repository setup
 
@@ -141,17 +141,50 @@ Phase 2 tree at `2c75e44`, plus the untracked Phase 3 spec. Integration tests us
 
 `npm run build` was not run. Run it when the web UI changes.
 
+## Phase 4 — AI document classification
+
+**Status:** Specified (2026-10-11). Not implemented.
+
+Specification: `cursor/phase4_specs.txt`  
+Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 is this specification landing; PR-02 onward are not started)  
+Decisions: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed 2026-10-11)
+
+Phase 4 will classify an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. Nothing in this phase is in the running application yet: no `MIXED_DOCUMENT` value, no classification tables, no worker queue, no provider calls, and no classification UI.
+
+### Not implemented yet
+
+- `MIXED_DOCUMENT` and the classification schema
+- Fake and OpenAI providers, prompts, and the classification worker
+- Accept, retry, reclassify, and the suggestion/attempt API
+- Revision-workspace classification UI
+- Evaluation harness
+
+### Baseline before implementation (2026-10-11)
+
+Phase 3 tree on `main`, plus the untracked Phase 4 spec and this delivery plan, before any Phase 4 code. Integration tests used a throwaway database (`powerforge_phase4_baseline`, created, migrated from empty to `0005_document_processing`, then dropped) so the dev database was not polluted. Postgres, Redis, and MinIO were started from the existing Compose containers for the run and were not a clean `docker compose up`.
+
+| Check | Result |
+| --- | --- |
+| `ruff check .` | Passed |
+| `pytest` (integration skipped) | 241 passed, 290 skipped |
+| `RUN_INTEGRATION=1 pytest` on `powerforge_phase4_baseline` at `0005_document_processing`, with MinIO running | 531 passed |
+| `npm run lint` (`apps/web`) | No warnings or errors |
+| `npm test` (`apps/web`) | 175 passed (11 files) |
+| `npx tsc --noEmit` (`apps/web`) | No errors |
+
+`npm run build` was not run. There is no web UI change in PR-01. Run it when the classification workspace changes.
+
 ## Later phases
 
 | Phase | Work | Status |
 | --- | --- | --- |
 | 2 | Document management | Complete (2026-10-06) |
 | 3 | Document processing | Complete (2026-10-10) |
-| 4 | Document classification | Not started |
+| 4 | Document classification | Specified (2026-10-11), not started |
 | 5 | Engineering model persistence | Not started |
 | 6–13 | Extraction through export | Not started |
 
-Authentication, a users table, and project-level access control are required by the product spec and are **not** part of Phase 0, Phase 1, Phase 2, or Phase 3. `created_by` (and Phase 2's `uploaded_by`/`added_by`/`removed_by`) remain nullable until then.
+Authentication, a users table, and project-level access control are required by the product spec and are **not** part of Phase 0, Phase 1, Phase 2, Phase 3, or Phase 4. `created_by` (and Phase 2's `uploaded_by`/`added_by`/`removed_by`) remain nullable until then.
 
 ETAP / SKM / EasyPower integration is not part of these phases.
 

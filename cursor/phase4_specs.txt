@@ -372,6 +372,31 @@ processing output.
 
 Only consume artifacts belonging to a fully COMPLETED Phase 3 run.
 
+The run to classify is the current run for the active processing target:
+
+    (document_id, processor_version, profile_hash)
+
+as Phase 3 already selects it, and only when that run is COMPLETED.
+
+A document may also have older COMPLETED runs for a previous processor version
+or profile hash. Leave those unclassified while a newer current run exists.
+If the current run is not COMPLETED, do not classify.
+
+The page set for that run is the DocumentPage rows of that document with
+page_number from 1 through that run's pages_total. That is the same set Phase 3
+requires before it marks the processing run COMPLETED.
+
+Leave DocumentPage rows with a higher page_number out of classification. Those
+rows can remain after a later processing profile produced a shorter page list.
+
+Native text comes from that run's NATIVE_TEXT PageArtifact. Thumbnail bytes
+come from that run's THUMBNAIL PageArtifact. DocumentPage.native_text_char_count
+is updated in place and can reflect a different run, so it is not the text
+source.
+
+A page in this set with no THUMBNAIL artifact on the referenced run fails the
+classification run as ARTIFACT_UNAVAILABLE.
+
 This creates reproducibility:
 
     classifier output
@@ -490,6 +515,18 @@ For one classifier identity:
 - multiple historical COMPLETED runs are allowed when explicit reclassification
   is requested
 
+Enforce the live-run rule with a partial unique index on the classifier
+identity hash:
+
+    WHERE status IN ('PENDING', 'RUNNING')
+
+COMPLETED and FAILED stay out of that index. This is deliberately different
+from Phase 3's uq_document_processing_runs_one_live, which treats COMPLETED as
+the single live row. Copying that index would reject an explicit reclassify.
+
+A different classifier identity, such as a new prompt or model version, may
+have its own PENDING or RUNNING run while an older identity is still in flight.
+
 ensure_document_classification(...):
 
 If compatible COMPLETED exists:
@@ -510,14 +547,30 @@ If only FAILED runs exist:
 
 Explicit retry:
 
+    Allowed only when the target run is FAILED and it is the newest run for
+    that classifier identity.
+
     FAILED Run 1
         ↓
     create PENDING Run 2
         retry_of_run_id = Run 1
 
+    If a PENDING or RUNNING run already exists for that identity, insert
+    nothing. Return 409 classification_in_progress and the in-flight run id.
+
+    If a newer run of any status already exists for that identity, insert
+    nothing. Return 409 classification_not_retryable.
+
 Explicit reclassification:
 
+    uses the current configured classifier identity
     may create a new PENDING run even when a compatible COMPLETED run exists
+
+    If that identity already has a PENDING or RUNNING run, insert nothing.
+    Return 409 classification_in_progress and the in-flight run id.
+
+ensure and backfill still return an in-flight run, re-enqueue only an
+unclaimed PENDING run, and do not retry FAILED runs.
 
 Do not overwrite or mutate historical predictions.
 
@@ -540,6 +593,11 @@ A duplicate task seeing:
     FAILED
 
 must not independently perform another provider call for that same run.
+
+When the task hits its soft time limit, mark the run FAILED with
+CLASSIFICATION_TASK_TIMEOUT and commit that status before the process exits.
+Section 36 defines that code. A redelivered task then sees FAILED and must not
+continue the provider calls.
 
 ======================================================================
 13. CLASSIFICATION PREDICTION
@@ -665,7 +723,17 @@ A manually selected document type must:
     update document_type
     clear accepted_classification_prediction_id
 
-Even if the manually selected type happens to equal the AI prediction.
+Presence of document_type on the metadata request is the manual selection.
+Clear the prediction id even when:
+
+    the submitted type equals the stored document_type
+    the submitted type equals the AI prediction
+
+Skipping unchanged document_number, description, and notes stays as it is.
+A patch that omits document_type leaves accepted_classification_prediction_id
+unchanged.
+
+Accept is the only operation that sets accepted_classification_prediction_id.
 
 This avoids falsely claiming AI acceptance provenance.
 
@@ -702,8 +770,7 @@ because those semantics cannot be expressed by a simple FK.
 17. REVISION INHERITANCE
 ======================================================================
 
-When RevisionDocument metadata is carried forward to a new project revision,
-also carry forward:
+Both existing metadata copy paths carry:
 
     accepted_classification_prediction_id
 
@@ -714,9 +781,19 @@ along with:
     description
     notes
 
+The paths are:
+
+    creating a project revision that carries included associations forward
+    reusing a document into another revision of the same project
+
 because the new association references the same immutable Document.
 
-The new revision remains free to change or manually override its classification.
+On reuse, a document_type override is a manual selection: write that type and
+set accepted_classification_prediction_id to null. With no type override, copy
+the source association's accepted_classification_prediction_id.
+
+The new revision or association remains free to change or manually override
+its classification.
 
 Previous revisions remain unchanged.
 
@@ -886,6 +963,10 @@ Default image source:
 
     THUMBNAIL
 
+Phase 3 stores thumbnails as image/webp. image/png is only the fallback
+recorded on an individual artifact. Send that artifact's stored bytes and
+mime_type. Do not transcode in Phase 4, and do not assume JPEG.
+
 Default OpenAI image detail:
 
     low
@@ -1043,6 +1124,11 @@ The profile must be stored/versioned independently of provider-specific code.
 
 Document-level classification must not send every page of a large document.
 
+Page count and sampling use the classification page set from section 9.
+Native text for a sampled page is that processing run's NATIVE_TEXT artifact,
+truncated to max_text_chars_per_page. A missing NATIVE_TEXT artifact means the
+page has no native text.
+
 For visual sampling:
 
 If page_count <= document_image_sample_count:
@@ -1111,7 +1197,10 @@ The classifier should identify the document from its own evidence.
 
 When page classification is required:
 
-Classify every DocumentPage in the completed Phase 3 page set.
+Classify every page in the classification page set from section 9.
+
+A page in that set with no THUMBNAIL artifact on the referenced processing run
+fails the run as ARTIFACT_UNAVAILABLE.
 
 Process pages in deterministic bounded batches.
 
@@ -1231,12 +1320,15 @@ and:
 
     AI_CLASSIFICATION_ENABLED == true
 
-enqueue classification for that Document/processing run.
+enqueue classification for that Document and for the processing run that just
+completed. That run is the current completed run from section 9.
 
 Do NOT couple the Phase 3 document-processing package directly to OpenAI.
 
-The orchestration boundary may send a classification task/event after successful
-processing.
+The document-worker enqueues classification only after the COMPLETED status is
+committed. Its processing enqueue port stays a no-op during claim. Classification
+enqueue publishes by task name through a port. That port does not import the
+OpenAI SDK or extraction-worker modules.
 
 If classification enqueue fails:
 
@@ -1288,11 +1380,27 @@ Add configuration equivalent to:
     AI_CLASSIFICATION_IMAGE_DETAIL=low
 
     AI_CLASSIFICATION_TIMEOUT_SECONDS
+        per provider invocation, whether the provider is OpenAI or fake
+
+    AI_CLASSIFICATION_TASK_SOFT_TIME_LIMIT_SECONDS
+        soft time limit for the whole Celery task
+
+    AI_CLASSIFICATION_TASK_HARD_TIME_LIMIT_SECONDS
+        hard ceiling for the whole Celery task
 
     OPENAI_API_KEY
 
+The soft task limit must be lower than the hard task limit by enough margin
+that the worker can mark the run FAILED and commit that status before the
+process is killed.
+
 Provider credentials belong ONLY in the service that actually calls the
 provider.
+
+OPENAI_API_KEY is optional on the shared settings object. The API,
+document-worker, and validation-worker load that object and must start when
+the key is absent. Only the extraction worker refuses to start when
+AI_PROVIDER=openai, AI_CLASSIFICATION_ENABLED=true, and the key is missing.
 
 If AI_PROVIDER=fake:
     OPENAI_API_KEY is not required.
@@ -1316,7 +1424,7 @@ provider API key.
 Do not commit keys.
 
 ======================================================================
-36. OPENAI FAILURE HANDLING
+36. CLASSIFICATION FAILURE HANDLING
 ======================================================================
 
 Represent clean classification errors equivalent to:
@@ -1326,21 +1434,50 @@ Represent clean classification errors equivalent to:
     PROVIDER_RATE_LIMITED
     PROVIDER_UNAVAILABLE
     PROVIDER_TIMEOUT
+    CLASSIFICATION_TASK_TIMEOUT
     PROVIDER_REFUSAL
     INVALID_PROVIDER_RESPONSE
     CLASSIFICATION_INPUT_ERROR
     ARTIFACT_UNAVAILABLE
     UNKNOWN_CLASSIFICATION_ERROR
 
+Keep these two timeouts distinct:
+
+    One provider invocation exceeded AI_CLASSIFICATION_TIMEOUT_SECONDS
+        → PROVIDER_TIMEOUT
+
+    The Celery task exceeded AI_CLASSIFICATION_TASK_SOFT_TIME_LIMIT_SECONDS
+        → CLASSIFICATION_TASK_TIMEOUT
+
+PROVIDER_TIMEOUT means one call did not answer in time. That call may be the
+document classification or one page batch.
+
+CLASSIFICATION_TASK_TIMEOUT means the whole task exhausted the worker
+allowance. The run may already contain many successful provider calls, for
+example dozens of page batches of a long mixed document. On
+SoftTimeLimitExceeded, mark that run FAILED with CLASSIFICATION_TASK_TIMEOUT.
+Do not record that failure as PROVIDER_TIMEOUT. The two codes suggest different
+remediation, and later operations need to tell them apart.
+
 Do not expose provider stack traces or raw responses to the browser.
 
-Use bounded transient retries for provider rate-limit/5xx/network failures.
+Use bounded transient retries for provider rate-limit, 5xx, network failures,
+and PROVIDER_TIMEOUT.
 
 Do not retry indefinitely.
 
 A persistent failure ends the run as FAILED.
 
+CLASSIFICATION_TASK_TIMEOUT is not a transient per-call retry. It ends the run.
 Explicit user retry creates a new run.
+
+A failed page-classification call still fails the whole run. Retry starts a
+new run and repeats that work. Phase 4 does not resume a failed run at the
+next page batch.
+
+There is no stale-RUNNING sweeper in Phase 4. A worker killed without the soft
+time limit can leave a run RUNNING. ensure returns that run. Backfill does not
+adopt RUNNING rows and does not retry them.
 
 ======================================================================
 37. LIGHTWEIGHT AI USAGE TELEMETRY
@@ -1498,15 +1635,29 @@ GET CURRENT CLASSIFICATION
 Return:
 
     enabled/disabled state
-    current run status
-    stage
-    progress
-    current document prediction if COMPLETED
-    confidence band/score
-    alternatives
-    rationale
-    whether current RevisionDocument accepted that prediction
-    page-classification availability
+
+    suggestion
+        the latest COMPLETED run for the referenced processing run, or null
+        predicted type
+        confidence band and score
+        alternatives
+        rationale
+        requires_page_classification
+        accepted
+            true only when accepted_classification_prediction_id equals
+            this prediction's id
+
+    attempt
+        the newest run of any status, or null when no run exists
+        status
+        stage
+        pages_total
+        pages_classified
+        error_code when that attempt FAILED
+
+A newer PENDING, RUNNING, or FAILED attempt does not hide the suggestion from
+an older COMPLETED run. Predictions on the FAILED attempt stay unusable and
+cannot be accepted.
 
 CLASSIFICATION HISTORY
 
@@ -1521,20 +1672,25 @@ RECLASSIFY
     .../classification/reclassify
 
 Creates a new PENDING run even if a compatible COMPLETED result exists.
+If the current identity already has a PENDING or RUNNING run, insert nothing
+and return 409 classification_in_progress with that run's id.
 
 RETRY FAILED
 
     POST
     .../classification/runs/{run_id}/retry
 
-Only FAILED runs are retryable.
+Retry follows section 11. The target run must be FAILED and the newest run
+for its classifier identity. Otherwise return 409 classification_in_progress
+or classification_not_retryable, as specified there.
 
 PAGE PREDICTIONS
 
     GET
     .../classification/pages
 
-Return page predictions from the current COMPLETED run.
+Return page predictions from the suggestion's COMPLETED run. Do not return
+page predictions from a FAILED attempt as the current page classification.
 
 Exact paths may follow established repository style.
 
@@ -1552,15 +1708,28 @@ Conceptually:
 
     classification:
         enabled
-        status
-        predicted_type
-        confidence_band
-        accepted
-        requires_page_classification
-        pages_total
-        pages_classified
+        suggestion:
+            predicted_type
+            confidence_band
+            accepted
+            requires_page_classification
+        attempt:
+            status
+            stage
+            pages_total
+            pages_classified
+            error_code
 
-Keep detailed rationale/history/page predictions in dedicated endpoints.
+suggestion is the latest COMPLETED run for the current processing run, or null.
+accepted is true only when accepted_classification_prediction_id equals that
+prediction's id. Equal type strings are not acceptance.
+
+attempt is the newest run of any status. A failed or in-flight reclassify
+leaves suggestion populated and reports the new attempt beside it.
+
+Keep rationale, score, alternatives, history, and page predictions on the
+dedicated classification routes. The detail route uses the same suggestion /
+attempt split as this summary.
 
 Avoid N+1 API behavior.
 
@@ -1570,13 +1739,9 @@ Avoid N+1 API behavior.
 
 The existing manual document-type edit remains valid.
 
-Update it so that manually changing:
-
-    RevisionDocument.document_type
-
-always clears:
-
-    accepted_classification_prediction_id.
+Follow section 15. Submitting document_type clears
+accepted_classification_prediction_id even when the submitted value equals the
+stored type. A metadata update that omits document_type does not clear it.
 
 Manual classification must work:
 
@@ -1629,7 +1794,13 @@ Do not delete Run 1.
 
 Do not modify its predictions.
 
-The current AI suggestion is normally the latest compatible COMPLETED run.
+The displayed suggestion is the latest COMPLETED classification run for the
+document's current processing run, including a run produced by an older prompt
+or model.
+
+"Compatible" is the ensure/backfill rule: reuse a COMPLETED run when its
+classifier identity matches the current configuration. A newer FAILED or
+in-flight run does not replace the displayed suggestion.
 
 Previously accepted RevisionDocument classifications remain unchanged until an
 engineer explicitly accepts another prediction or edits manually.
@@ -1645,9 +1816,11 @@ reprocessing.
 
 Provide a bounded CLI/application command that:
 
-    finds Documents with a suitable COMPLETED Phase 3 processing run
+    finds Documents whose current processing run is COMPLETED, using the
+    active processing target from section 9
 
-    identifies those without a compatible current classification
+    identifies those with no COMPLETED classification for the current
+    classifier identity on that processing run
 
     ensures/queues classification
 
@@ -1695,7 +1868,7 @@ Conceptually:
     VendorPackage.pdf    Unknown              Mixed Document
     Photo.jpg            Nameplate Photo      Nameplate Photo
 
-Show classification state such as:
+Show the suggestion and the latest attempt separately. Attempt state includes:
 
     Not classified
     Pending
@@ -1703,6 +1876,11 @@ Show classification state such as:
     Ready
     Failed
     AI disabled
+
+A failed or in-flight reclassify keeps the previous suggestion on screen and
+shows the new attempt beside it. The checkmark means that suggestion was
+accepted, which is prediction-id equality. Matching labels alone are not
+acceptance.
 
 For a ready suggestion show:
 
@@ -1782,14 +1960,22 @@ Do not add page-level approval controls in Phase 4.
 50. FRONTEND — FAILURE / RECLASSIFY
 ======================================================================
 
-FAILED run:
+A FAILED attempt shows:
 
     Classification failed
-    <concise error>
+    <concise error, including the error code>
 
     [ Retry ]
 
-COMPLETED run:
+When that failure is a reclassify and an older COMPLETED suggestion exists,
+show the suggestion and the failure together. Retry applies to the failed
+attempt. Reclassify stays available once the current identity has no PENDING
+or RUNNING run.
+
+PROVIDER_TIMEOUT and CLASSIFICATION_TASK_TIMEOUT must stay distinguishable in
+that error. One is a single provider call. The other is the whole Celery task.
+
+COMPLETED suggestion:
 
     [ Reclassify ]
 
@@ -1917,6 +2103,10 @@ INPUT ASSEMBLY
 - deterministic text sampling
 - native-text character caps enforced
 - missing native text handled
+- native text is read from the referenced run's NATIVE_TEXT artifact
+- sampled pages are the current completed run's page set, 1..pages_total
+- DocumentPage rows beyond that pages_total are not sent
+- thumbnail input uses the artifact's stored mime type
 - manual RevisionDocument.document_type is NOT supplied as classifier truth
 - private artifacts are read through ObjectStorage
 - no original PDF is sent to the provider
@@ -1932,8 +2122,15 @@ RUN LIFECYCLE
 - compatible running run reused
 - unclaimed PENDING run can be re-enqueued
 - FAILED run is not automatically retried
+- backfill classifies only the current COMPLETED processing run
 - explicit retry creates NEW run
 - explicit reclassify creates NEW run
+- reclassify while PENDING or RUNNING returns classification_in_progress
+- retry of a FAILED run that is not the newest for its identity is rejected
+- a different classifier identity may run while another identity is in flight
+- a provider-call timeout is PROVIDER_TIMEOUT
+- a Celery soft time limit is CLASSIFICATION_TASK_TIMEOUT
+- those two timeout codes stay distinct
 - failed/history rows remain unchanged
 
 REVISION REUSE
@@ -1975,7 +2172,11 @@ HUMAN ACCEPTANCE
 - page prediction cannot be accepted as document type
 - prediction from FAILED run cannot be accepted
 - manual classification clears accepted prediction id
+- submitting the same document_type still clears accepted prediction id
+- a metadata patch that omits document_type keeps accepted prediction id
 - revision inheritance copies accepted prediction id
+- reuse without a type override copies accepted prediction id
+- reuse with a document_type override clears accepted prediction id
 - superseded/archived mutation restrictions preserved
 
 DISABLED MODE
@@ -2013,18 +2214,25 @@ REGRESSION
 56. CLASSIFICATION ERROR VISIBILITY
 ======================================================================
 
-Only COMPLETED runs may supply the current usable AI prediction.
+Only COMPLETED runs may supply the displayed suggestion.
+
+The newest attempt is reported separately:
 
 RUNNING/PENDING:
-    expose status/progress only
+    expose status and progress
+    leave any older COMPLETED suggestion visible
 
 FAILED:
-    expose concise failure and retry availability
+    expose the concise failure, its error code, and retry availability
+    leave any older COMPLETED suggestion visible
 
 Historical predictions from FAILED attempts:
     may remain persisted
-    are not the current suggestion
+    are not the displayed suggestion
     cannot be accepted
+
+PROVIDER_TIMEOUT and CLASSIFICATION_TASK_TIMEOUT remain distinct in that
+failure payload.
 
 This is analogous to Phase 3's rule that partial processing is not treated as
 usable completed processing.
@@ -2138,6 +2346,10 @@ Add appropriate:
     composite FKs where justified
     indexes
     partial unique indexes
+        one live classification run per classifier identity
+        WHERE status IN ('PENDING', 'RUNNING')
+        COMPLETED is not part of that predicate
+
     checks
     enums
 
@@ -2283,6 +2495,11 @@ The ADR must record at least:
 16. Lightweight AI usage telemetry is persisted. Monetary cost accounting is deferred.
 17. Live-model evaluation is separate from normal CI.
 18. No extraction/engineering-model work is part of Phase 4.
+19. Revision inheritance and document reuse both carry acceptance provenance.
+    A submitted document type clears it, even when the type value is unchanged.
+20. PROVIDER_TIMEOUT is one provider call exceeding its timeout.
+    CLASSIFICATION_TASK_TIMEOUT is the Celery task exceeding its soft time
+    limit. The two codes stay distinct.
 
 ======================================================================
 65. EVALUATION BASELINE
@@ -2456,8 +2673,15 @@ Phase 4 is complete only when:
 - confidence bands are derived deterministically
 - AI suggestions do not auto-change document_type
 - engineer can accept document prediction
-- manual classification clears accepted-AI provenance
+- manual classification clears accepted-AI provenance, including when the
+  submitted type equals the stored type
 - accepted classification provenance carries through revision inheritance
+  and through document reuse
+- classification uses the current completed processing run and that run's
+  page set
+- a failed or in-flight reclassify does not hide the latest completed
+  suggestion
+- PROVIDER_TIMEOUT and CLASSIFICATION_TASK_TIMEOUT are distinct
 - mixed/uncertain documents receive page-level classification
 - page predictions cannot be MIXED_DOCUMENT
 - page predictions are not authoritative human-reviewed values

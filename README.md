@@ -3,7 +3,7 @@
 Engineering data extraction platform. Electrical engineers upload project documents; PowerForge extracts structured electrical information, reconciles it across sources, and produces a centralized, traceable engineering model. The engineer remains the final authority.
 
 **Current implemented phase:** Phase 3 — Document Processing (specified in [cursor/phase3_specs.txt](cursor/phase3_specs.txt), decided in [ADR-005](decisions/ADR-005-document-processing-and-page-identity.md), delivered via [docs/PHASE3_PR_PLAN.md](docs/PHASE3_PR_PLAN.md))  
-**Next:** Phase 4 — Document classification (not started)
+**Next:** Phase 4 — Document classification (specified, not implemented; [cursor/phase4_specs.txt](cursor/phase4_specs.txt), [ADR-006](decisions/ADR-006-ai-document-classification.md) Proposed, [docs/PHASE4_PR_PLAN.md](docs/PHASE4_PR_PLAN.md))
 
 Phase status lives in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Do not treat this README or chat history as the source of truth.
 
