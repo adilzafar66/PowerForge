@@ -275,6 +275,65 @@ def test_corrupt_original_fails_with_renderer_code(session: Session) -> None:
     assert storage.calls_for("delete") == []
 
 
+class RecordFirstPage(InMemoryObjectStorage):
+    """Record the run counters when the first analysis image is stored."""
+
+    def __init__(self, bound: Session) -> None:
+        super().__init__()
+        self.bound = bound
+        self.pages_total: int | None = None
+        self.pages_processed: int | None = None
+
+    def put(self, key: str, fileobj, size: int, content_type: str) -> None:
+        if key.endswith("/pages/0001/analysis.png") and self.pages_total is None:
+            run_id = uuid.UUID(key.split("/processing/")[1].split("/")[0])
+            run = self.bound.get(DocumentProcessingRun, run_id)
+            assert run is not None
+            self.pages_total = run.pages_total
+            self.pages_processed = run.pages_processed
+        super().put(key, fileobj, size, content_type)
+
+
+def test_pages_total_is_committed_before_the_first_page_is_stored(session: Session) -> None:
+    storage = RecordFirstPage(session)
+    document = _seed(session, storage, _pdf(["one", "two"]))
+    service, _enqueue = _service(session, storage)
+    run = service.ensure_document_processing(document.id)
+    service.claim_and_process(run.id)
+
+    completed = session.get(DocumentProcessingRun, run.id)
+    assert completed is not None
+    assert completed.status == ProcessingRunStatus.COMPLETED
+    assert storage.pages_total == 2
+    assert storage.pages_processed == 0
+    assert completed.pages_total == 2
+    assert completed.pages_processed == 2
+
+
+def test_page_ceiling_stores_nothing(session: Session) -> None:
+    storage = InMemoryObjectStorage()
+    payload = _pdf(["one", "two", "three"])
+    document = _seed(session, storage, payload)
+    service, _enqueue = _service(session, storage)
+    service.max_processing_pages = 2
+    run = service.ensure_document_processing(document.id)
+    service.claim_and_process(run.id)
+
+    failed = session.get(DocumentProcessingRun, run.id)
+    assert failed is not None
+    assert failed.status == ProcessingRunStatus.FAILED
+    assert failed.error_code == ProcessingErrorCode.RESOURCE_LIMIT_EXCEEDED
+    assert failed.pages_processed == 0
+    assert failed.pages_total is None
+    assert "Traceback" not in (failed.error_message or "")
+    assert _artifacts(session, failed.id) == []
+    pages = session.scalars(
+        select(DocumentPage).where(DocumentPage.document_id == document.id)
+    ).all()
+    assert list(pages) == []
+    assert storage.objects[document.storage_key].data == payload
+
+
 def test_second_page_write_failure_keeps_first_page(session: Session) -> None:
     storage = FailSecondPage()
     payload = _pdf(["one", "two"])

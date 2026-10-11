@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import tempfile
 from dataclasses import replace
 from io import BytesIO
 from pathlib import Path
@@ -17,7 +18,11 @@ from powerforge_document_model import (
     ProcessingProfile,
     SourceUnit,
 )
-from powerforge_document_processing.rendering import RenderedPage, RenderingFailed, render_pages
+from powerforge_document_processing.rendering import (
+    RenderedPage,
+    RenderingFailed,
+    open_rendered_pages,
+)
 
 MAX_IMAGE_PIXELS = 600_000_000
 API_ROOT = Path(__file__).resolve().parents[1] / "services" / "api" / "src" / "powerforge_api"
@@ -79,8 +84,21 @@ def _render(
     data: bytes,
     extension: str,
     profile: ProcessingProfile = DEFAULT_PROFILE,
+    *,
+    max_image_pixels: int = MAX_IMAGE_PIXELS,
+    max_pages: int = 1000,
 ) -> list[RenderedPage]:
-    return render_pages(data, extension, profile, MAX_IMAGE_PIXELS)
+    with tempfile.NamedTemporaryFile(suffix=extension) as handle:
+        handle.write(data)
+        handle.flush()
+        with open_rendered_pages(
+            handle.name,
+            extension,
+            profile,
+            max_image_pixels,
+            max_pages,
+        ) as source:
+            return list(source)
 
 
 def _expect_failure(data: bytes, extension: str, code: ProcessingErrorCode) -> None:
@@ -171,6 +189,28 @@ def test_malformed_image_fails() -> None:
     _expect_failure(b"not an image", ".png", ProcessingErrorCode.IMAGE_DECODE_FAILED)
 
 
+def test_webp_profile_fails_when_webp_is_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "powerforge_document_processing.rendering.features.check",
+        lambda _feature: False,
+    )
+    with pytest.raises(RenderingFailed) as caught:
+        _render(_pdf([("hello", 0)]), ".pdf")
+    assert caught.value.code is ProcessingErrorCode.PAGE_RENDER_FAILED
+    assert str(caught.value) == "WebP thumbnails are not available"
+    assert "Traceback" not in str(caught.value)
+
+    png_profile = replace(DEFAULT_PROFILE, thumbnail_format="png")
+    page = _render(_pdf([("hello", 0)]), ".pdf", png_profile)
+    assert page[0].thumbnail.startswith(b"\x89PNG")
+
+
+def test_png_profile_writes_png() -> None:
+    profile = replace(DEFAULT_PROFILE, thumbnail_format="png")
+    page = _render(_pdf([("hello", 0)]), ".pdf", profile)[0]
+    assert page.thumbnail.startswith(b"\x89PNG")
+
+
 def test_every_successful_page_has_analysis_and_thumbnail() -> None:
     pages = _render(_pdf([("one", 0), ("two", 0)]), ".pdf")
     for page in pages:
@@ -198,10 +238,27 @@ def test_oversized_pdf_and_image_are_scaled_down() -> None:
 def test_pixel_ceiling_rejects_a_small_png_and_the_phase2_cap_accepts_it() -> None:
     data = _save_image(Image.new("RGB", (20, 20), (1, 2, 3)), "PNG")
     with pytest.raises(RenderingFailed) as caught:
-        render_pages(data, ".png", DEFAULT_PROFILE, max_image_pixels=100)
+        _render(data, ".png", max_image_pixels=100)
     assert caught.value.code is ProcessingErrorCode.RESOURCE_LIMIT_EXCEEDED
-    page = render_pages(data, ".png", DEFAULT_PROFILE, MAX_IMAGE_PIXELS)[0]
+    page = _render(data, ".png")[0]
     assert (page.width_px, page.height_px) == (20, 20)
+
+
+def test_pdf_over_the_page_ceiling_yields_nothing() -> None:
+    data = _pdf([("a", 0), ("b", 0), ("c", 0)])
+    with pytest.raises(RenderingFailed) as caught:
+        _render(data, ".pdf", max_pages=2)
+    assert caught.value.code is ProcessingErrorCode.RESOURCE_LIMIT_EXCEEDED
+    assert "Traceback" not in str(caught.value)
+
+
+def test_tiff_over_the_page_ceiling_yields_nothing() -> None:
+    frames = [Image.new("RGB", (8, 8), color) for color in ((1, 0, 0), (0, 1, 0), (0, 0, 1))]
+    data = _save_image(frames[0], "TIFF", save_all=True, append_images=frames[1:])
+    with pytest.raises(RenderingFailed) as caught:
+        _render(data, ".tiff", max_pages=2)
+    assert caught.value.code is ProcessingErrorCode.RESOURCE_LIMIT_EXCEEDED
+    assert "Traceback" not in str(caught.value)
 
 
 def test_package_does_not_import_ocr_and_api_does_not_call_the_renderer() -> None:

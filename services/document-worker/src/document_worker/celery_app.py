@@ -75,7 +75,14 @@ def execute_processing_run(run_id: UUID, session: Session, storage: ObjectStorag
     """Claim and process one run. A second call writes nothing."""
     from powerforge_document_processing.processing import ProcessingService
 
-    service = ProcessingService(session, storage, _NoopEnqueue())
+    settings = get_settings()
+    service = ProcessingService(
+        session,
+        storage,
+        _NoopEnqueue(),
+        max_image_pixels=settings.max_image_pixels,
+        max_processing_pages=settings.max_processing_pages,
+    )
     try:
         service.claim_and_process(run_id)
     except Exception as exc:

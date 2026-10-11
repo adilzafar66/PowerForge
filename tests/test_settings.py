@@ -9,6 +9,7 @@ PHASE2_ENV_VARS = (
     "S3_SIGNED_URL_EXPIRES_SECONDS",
     "MAX_UPLOAD_BYTES",
     "MAX_IMAGE_PIXELS",
+    "MAX_PROCESSING_PAGES",
 )
 
 
@@ -47,6 +48,7 @@ def test_phase2_defaults(clean_env: pytest.MonkeyPatch) -> None:
     assert settings.s3_signed_url_expires_seconds == 900
     assert settings.max_upload_bytes == 262_144_000
     assert settings.max_image_pixels == 600_000_000
+    assert settings.max_processing_pages == 1000
 
 
 def test_public_endpoint_falls_back_to_internal(clean_env: pytest.MonkeyPatch) -> None:
@@ -72,10 +74,12 @@ def test_phase2_env_overrides(clean_env: pytest.MonkeyPatch) -> None:
     clean_env.setenv("S3_SIGNED_URL_EXPIRES_SECONDS", "60")
     clean_env.setenv("MAX_UPLOAD_BYTES", "1024")
     clean_env.setenv("MAX_IMAGE_PIXELS", "1000000")
+    clean_env.setenv("MAX_PROCESSING_PAGES", "25")
     settings = fresh_settings()
     assert settings.s3_signed_url_expires_seconds == 60
     assert settings.max_upload_bytes == 1024
     assert settings.max_image_pixels == 1_000_000
+    assert settings.max_processing_pages == 25
 
 
 @pytest.mark.parametrize(
@@ -85,6 +89,7 @@ def test_phase2_env_overrides(clean_env: pytest.MonkeyPatch) -> None:
         ("s3_signed_url_expires_seconds", 604_801),
         ("max_upload_bytes", 0),
         ("max_image_pixels", -1),
+        ("max_processing_pages", 0),
     ],
 )
 def test_phase2_bounds_rejected(field: str, value: int) -> None:

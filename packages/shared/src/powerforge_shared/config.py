@@ -36,6 +36,7 @@ class Settings(BaseSettings):
 
     max_upload_bytes: int = Field(default=262_144_000, gt=0)
     max_image_pixels: int = Field(default=600_000_000, gt=0)
+    max_processing_pages: int = Field(default=1000, gt=0)
 
     cors_origins: str = Field(
         default="http://localhost:3000",

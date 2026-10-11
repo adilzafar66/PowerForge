@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import tempfile
 from collections.abc import Collection
 from datetime import UTC, datetime
 from decimal import Decimal
 from io import BytesIO
+from pathlib import Path
 from typing import Protocol
 from uuid import UUID
 
@@ -33,7 +35,11 @@ from powerforge_document_processing.models import (
     DocumentProcessingRun,
     PageArtifact,
 )
-from powerforge_document_processing.rendering import RenderedPage, RenderingFailed, render_pages
+from powerforge_document_processing.rendering import (
+    RenderedPage,
+    RenderingFailed,
+    open_rendered_pages,
+)
 from powerforge_document_processing.storage.base import ObjectStorage, StorageError
 
 logger = logging.getLogger(__name__)
@@ -44,6 +50,7 @@ _LIVE_STATUSES = (
     ProcessingRunStatus.RUNNING,
     ProcessingRunStatus.COMPLETED,
 )
+_SPOOL_CHUNK = 1024 * 1024
 _READ_FAILED = "Could not read the original file"
 _WRITE_FAILED = "Could not store a derived artifact"
 _INCOMPLETE = "Processing did not finish every page"
@@ -91,12 +98,14 @@ class ProcessingService:
         *,
         profile: ProcessingProfile = DEFAULT_PROFILE,
         max_image_pixels: int = 600_000_000,
+        max_processing_pages: int = 1000,
     ) -> None:
         self.session = session
         self.storage = storage
         self._enqueue = enqueue
         self.profile = profile
         self.max_image_pixels = max_image_pixels
+        self.max_processing_pages = max_processing_pages
 
     def current_run(self, document_id: UUID) -> DocumentProcessingRun | None:
         """Return the live run for this target, else the latest failed run, else none."""
@@ -291,41 +300,56 @@ class ProcessingService:
     def _process(self, run_id: UUID) -> None:
         run = self._load_run(run_id)
         document = self._load_document(run.document_id)
-        data = self._read_original(document)
-        rendered_pages = render_pages(
-            data,
-            document.file_extension,
-            self.profile,
-            self.max_image_pixels,
-        )
-        run.pages_total = len(rendered_pages)
-        self._commit()
-        stored: list[tuple[RenderedPage, UUID]] = []
-        for rendered in rendered_pages:
-            run = self._load_run(run_id)
-            document = self._load_document(run.document_id)
-            page = self._reconcile_page(document, rendered)
-            self._store_artifacts(document, run, page, rendered)
-            page_id = page.id
-            self._commit()
-            run = self._load_run(run_id)
-            run.pages_processed += 1
-            self._commit()
-            stored.append((rendered, page_id))
-        run = self._load_run(run_id)
-        self._require_complete(run, stored)
-        run.status = ProcessingRunStatus.COMPLETED
-        run.completed_at = datetime.now(UTC)
-        document_id = run.document_id
-        self._commit()
-        self._log(run_id, document_id, ProcessingRunStatus.COMPLETED)
-
-    def _read_original(self, document: Document) -> bytes:
-        stream = self.storage.get(document.storage_key)
+        path = self._spool_original(document)
         try:
-            return stream.read()
+            with open_rendered_pages(
+                path,
+                document.file_extension,
+                self.profile,
+                self.max_image_pixels,
+                self.max_processing_pages,
+            ) as source:
+                run = self._load_run(run_id)
+                run.pages_total = source.page_count
+                self._commit()
+                for rendered in source:
+                    run = self._load_run(run_id)
+                    document = self._load_document(run.document_id)
+                    page = self._reconcile_page(document, rendered)
+                    self._store_artifacts(document, run, page, rendered)
+                    self._commit()
+                    run = self._load_run(run_id)
+                    run.pages_processed += 1
+                    self._commit()
+                    del rendered
+                run = self._load_run(run_id)
+                self._require_complete(run)
+                run.status = ProcessingRunStatus.COMPLETED
+                run.completed_at = datetime.now(UTC)
+                document_id = run.document_id
+                self._commit()
+                self._log(run_id, document_id, ProcessingRunStatus.COMPLETED)
+        finally:
+            path.unlink(missing_ok=True)
+
+    def _spool_original(self, document: Document) -> Path:
+        """Copy the original to a temp file and close the storage stream."""
+        stream = self.storage.get(document.storage_key)
+        handle = tempfile.NamedTemporaryFile(delete=False)
+        path = Path(handle.name)
+        try:
+            while True:
+                chunk = stream.read(_SPOOL_CHUNK)
+                if not chunk:
+                    break
+                handle.write(chunk)
+            return path
+        except Exception:
+            path.unlink(missing_ok=True)
+            raise
         finally:
             stream.close()
+            handle.close()
 
     def _reconcile_page(self, document: Document, rendered: RenderedPage) -> DocumentPage:
         page = self.session.scalar(
@@ -437,25 +461,35 @@ class ProcessingService:
             )
         )
 
-    def _require_complete(
-        self,
-        run: DocumentProcessingRun,
-        stored: list[tuple[RenderedPage, UUID]],
-    ) -> None:
+    def _require_complete(self, run: DocumentProcessingRun) -> None:
+        if run.pages_total is None or run.pages_total < 1:
+            raise _IncompleteProcessing
+        pages = list(
+            self.session.scalars(
+                select(DocumentPage)
+                .where(
+                    DocumentPage.document_id == run.document_id,
+                    DocumentPage.page_number <= run.pages_total,
+                )
+                .order_by(DocumentPage.page_number)
+            ).all()
+        )
+        if [page.page_number for page in pages] != list(range(1, run.pages_total + 1)):
+            raise _IncompleteProcessing
         rows = self.session.scalars(
             select(PageArtifact).where(PageArtifact.processing_run_id == run.id)
         ).all()
         by_page: dict[UUID, set[PageArtifactType]] = {}
         for row in rows:
             by_page.setdefault(row.document_page_id, set()).add(row.artifact_type)
-        for rendered, page_id in stored:
-            types = by_page.get(page_id, set())
+        for page in pages:
+            types = by_page.get(page.id, set())
             if (
                 PageArtifactType.ANALYSIS_IMAGE not in types
                 or PageArtifactType.THUMBNAIL not in types
             ):
                 raise _IncompleteProcessing
-            has_text = rendered.native_text is not None
+            has_text = page.native_text_char_count > 0
             if has_text != (PageArtifactType.NATIVE_TEXT in types):
                 raise _IncompleteProcessing
 

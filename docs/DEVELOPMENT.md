@@ -32,7 +32,7 @@ Copy `.env.example` to `.env` in the repository root. The API and workers read `
 
 ## Phase 2 configuration (document storage)
 
-These settings were introduced by Phase 2 and are read through `powerforge_shared.config.Settings`. Existing `S3_*` names are unchanged. They are already listed in `.env.example` and set for the `api` service in `docker-compose.yml`, and they have defaults for local use. `S3_SIGNED_URL_EXPIRES_SECONDS` must be between 1 and 604800; `MAX_UPLOAD_BYTES` and `MAX_IMAGE_PIXELS` must be positive. A blank `S3_PUBLIC_ENDPOINT_URL` counts as unset.
+These settings were introduced by Phase 2 and are read through `powerforge_shared.config.Settings`. Existing `S3_*` names are unchanged. They are already listed in `.env.example` and set for the `api` service in `docker-compose.yml`, and they have defaults for local use. `S3_SIGNED_URL_EXPIRES_SECONDS` must be between 1 and 604800; `MAX_UPLOAD_BYTES`, `MAX_IMAGE_PIXELS`, and `MAX_PROCESSING_PAGES` must be positive. A blank `S3_PUBLIC_ENDPOINT_URL` counts as unset.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -42,7 +42,8 @@ These settings were introduced by Phase 2 and are read through `powerforge_share
 | `S3_BUCKET`, `S3_REGION` | `powerforge`, `us-east-1` | Bucket and region |
 | `S3_SIGNED_URL_EXPIRES_SECONDS` | `900` | Download URL lifetime |
 | `MAX_UPLOAD_BYTES` | `262144000` (250 MB) | Per-file upload limit, enforced while streaming |
-| `MAX_IMAGE_PIXELS` | `600000000` | Image dimension cap checked from the header before decode |
+| `MAX_IMAGE_PIXELS` | `600000000` | Image dimension cap checked from the header before decode. The document worker uses the same value when it renders |
+| `MAX_PROCESSING_PAGES` | `1000` | Page ceiling. The document worker rejects a PDF or TIFF over this count before it renders the first page. It is not part of the processing profile hash |
 | `CORS_ORIGINS` | `http://localhost:3000` (`.env.example` and Compose also allow `http://127.0.0.1:3000`) | Comma-separated origins allowed to call the API from the browser. Uploads and edits go straight from the browser to the API, so it must include the origin you open the web app from |
 | `NEXT_PUBLIC_MAX_UPLOAD_BYTES` (web) | `262144000` | Optional. Size hint the upload UI uses to reject oversized files early; set it to the same value as `MAX_UPLOAD_BYTES` if you change that. The API remains authoritative |
 

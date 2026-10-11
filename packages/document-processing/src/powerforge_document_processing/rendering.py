@@ -1,14 +1,16 @@
-"""Turn original bytes into upright pages and artifact bytes.
+"""Turn an original file into upright pages and artifact bytes, one page at a time.
 
-This module does not touch the database or object storage. Nothing in the API
-calls it yet.
+This module does not touch the database or object storage.
 """
 
 from __future__ import annotations
 
 import math
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from io import BytesIO
+from pathlib import Path
 
 import fitz
 from PIL import Image, ImageOps, UnidentifiedImageError, features
@@ -25,6 +27,7 @@ _POINTS_PER_INCH = 72
 _EXIF_ORIENTATION = 274
 _QUARTER_TURNS = {3: 180, 6: 270, 8: 90}
 _WHITE = (255, 255, 255)
+_PAGE_LIMIT = "Document exceeds the page limit"
 
 
 class RenderingFailed(Exception):
@@ -53,24 +56,57 @@ class RenderedPage:
     effective_dpi: float | None
 
 
-def render_pages(
-    data: bytes,
+class RenderedSource:
+    """An open file whose page count is known before the first page is rendered."""
+
+    def __init__(self, page_count: int, iterate: Callable[[], Iterator[RenderedPage]]) -> None:
+        self.page_count = page_count
+        self._iterate = iterate
+
+    def __iter__(self) -> Iterator[RenderedPage]:
+        return self._iterate()
+
+
+@contextmanager
+def open_rendered_pages(
+    path: str | Path,
     extension: str,
     profile: ProcessingProfile,
     max_image_pixels: int,
-) -> list[RenderedPage]:
-    """Render every logical page of a PDF, PNG, JPEG, or TIFF."""
+    max_pages: int,
+) -> Iterator[RenderedSource]:
+    """Open a PDF, PNG, JPEG, or TIFF and yield one page at a time.
+
+    ``page_count`` is available before iteration. A file over ``max_pages`` raises
+    ``RenderingFailed`` before the first page is rendered. The thumbnail bytes match
+    ``profile.thumbnail_format``; a WebP profile fails if this Pillow build cannot write WebP.
+    """
+    _thumbnail_format(profile)
     file_format = format_for_extension(extension)
     if file_format is FileFormat.PDF:
-        return _render_pdf(data, profile)
+        with _open_pdf(path, profile, max_pages) as source:
+            yield source
+        return
     if file_format in {FileFormat.PNG, FileFormat.JPEG, FileFormat.TIFF}:
-        return _render_image(data, profile, max_image_pixels)
+        with _open_image(path, profile, max_image_pixels, max_pages) as source:
+            yield source
+        return
     raise RenderingFailed(ProcessingErrorCode.UNSUPPORTED_SOURCE, "Unsupported source type")
 
 
-def _render_pdf(data: bytes, profile: ProcessingProfile) -> list[RenderedPage]:
+def _reject_page_count(page_count: int, max_pages: int) -> None:
+    if page_count > max_pages:
+        raise RenderingFailed(ProcessingErrorCode.RESOURCE_LIMIT_EXCEEDED, _PAGE_LIMIT)
+
+
+@contextmanager
+def _open_pdf(
+    path: str | Path,
+    profile: ProcessingProfile,
+    max_pages: int,
+) -> Iterator[RenderedSource]:
     try:
-        document = fitz.open(stream=data, filetype="pdf")
+        document = fitz.open(path)
     except Exception:
         raise RenderingFailed(ProcessingErrorCode.CORRUPT_PDF, "PDF could not be opened") from None
     try:
@@ -81,10 +117,14 @@ def _render_pdf(data: bytes, profile: ProcessingProfile) -> list[RenderedPage]:
             )
         if document.page_count < 1:
             raise RenderingFailed(ProcessingErrorCode.CORRUPT_PDF, "PDF has no pages")
-        return [
-            _render_pdf_page(document[index], index + 1, profile)
-            for index in range(document.page_count)
-        ]
+        _reject_page_count(document.page_count, max_pages)
+        page_count = document.page_count
+
+        def iterate() -> Iterator[RenderedPage]:
+            for index in range(page_count):
+                yield _render_pdf_page(document[index], index + 1, profile)
+
+        yield RenderedSource(page_count, iterate)
     finally:
         document.close()
 
@@ -111,11 +151,15 @@ def _render_pdf_page(page: fitz.Page, page_number: int, profile: ProcessingProfi
         profile.max_total_pixels,
     )
     zoom = profile.target_dpi / _POINTS_PER_INCH * scale
+    pixmap = None
     try:
         pixmap = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
         analysis = pixmap.tobytes("png")
     except Exception:
         raise _page_failed() from None
+    finally:
+        # Drop the uncompressed raster before the PNG bytes are returned.
+        del pixmap
     text = page.get_text("text").strip()
     native_text = text or None
     image = Image.open(BytesIO(analysis))
@@ -140,21 +184,20 @@ def _render_pdf_page(page: fitz.Page, page_number: int, profile: ProcessingProfi
     )
 
 
-def _render_image(
-    data: bytes,
+@contextmanager
+def _open_image(
+    path: str | Path,
     profile: ProcessingProfile,
     max_image_pixels: int,
-) -> list[RenderedPage]:
+    max_pages: int,
+) -> Iterator[RenderedSource]:
     previous_ceiling = Image.MAX_IMAGE_PIXELS
     Image.MAX_IMAGE_PIXELS = max_image_pixels
+    image: Image.Image | None = None
     try:
         try:
-            with Image.open(BytesIO(data)) as image:
-                frame_count = image.n_frames if getattr(image, "format", None) == "TIFF" else 1
-                return [
-                    _render_image_frame(image, index, frame_count, profile, max_image_pixels)
-                    for index in range(frame_count)
-                ]
+            image = Image.open(path)
+            frame_count = image.n_frames if getattr(image, "format", None) == "TIFF" else 1
         except RenderingFailed:
             raise
         except Image.DecompressionBombError:
@@ -167,7 +210,35 @@ def _render_image(
                 ProcessingErrorCode.IMAGE_DECODE_FAILED,
                 "Image could not be decoded",
             ) from None
+        if frame_count < 1:
+            raise RenderingFailed(
+                ProcessingErrorCode.IMAGE_DECODE_FAILED,
+                "Image could not be decoded",
+            )
+        _reject_page_count(frame_count, max_pages)
+
+        def iterate() -> Iterator[RenderedPage]:
+            assert image is not None
+            for index in range(frame_count):
+                try:
+                    yield _render_image_frame(image, index, frame_count, profile, max_image_pixels)
+                except RenderingFailed:
+                    raise
+                except Image.DecompressionBombError:
+                    raise RenderingFailed(
+                        ProcessingErrorCode.RESOURCE_LIMIT_EXCEEDED,
+                        "Image exceeds the pixel ceiling",
+                    ) from None
+                except (UnidentifiedImageError, OSError, SyntaxError, ValueError):
+                    raise RenderingFailed(
+                        ProcessingErrorCode.IMAGE_DECODE_FAILED,
+                        "Image could not be decoded",
+                    ) from None
+
+        yield RenderedSource(frame_count, iterate)
     finally:
+        if image is not None:
+            image.close()
         Image.MAX_IMAGE_PIXELS = previous_ceiling
 
 
@@ -181,45 +252,59 @@ def _render_image_frame(
     if frame_count > 1:
         image.seek(index)
     image.load()
-    frame = image.copy()
-    if frame.width * frame.height > max_image_pixels:
-        raise RenderingFailed(
-            ProcessingErrorCode.RESOURCE_LIMIT_EXCEEDED,
-            "Image exceeds the pixel ceiling",
+    working = image.copy()
+    try:
+        if working.width * working.height > max_image_pixels:
+            raise RenderingFailed(
+                ProcessingErrorCode.RESOURCE_LIMIT_EXCEEDED,
+                "Image exceeds the pixel ceiling",
+            )
+        rotation = 0
+        if profile.normalize_orientation:
+            rotation = _quarter_turn(working)
+            transposed = ImageOps.exif_transpose(working) or working
+            if transposed is not working:
+                working.close()
+                working = transposed
+        converted = _to_rgb(working)
+        if converted is not working:
+            working.close()
+            working = converted
+        source_width, source_height = working.size
+        source_dpi = _source_dpi(working)
+        scale = _downscale(
+            source_width,
+            source_height,
+            profile.max_long_edge_px,
+            profile.max_total_pixels,
         )
-    rotation = 0
-    if profile.normalize_orientation:
-        rotation = _quarter_turn(frame)
-        frame = ImageOps.exif_transpose(frame) or frame
-    upright = _to_rgb(frame)
-    source_width, source_height = upright.size
-    source_dpi = _source_dpi(upright)
-    scale = _downscale(
-        source_width,
-        source_height,
-        profile.max_long_edge_px,
-        profile.max_total_pixels,
-    )
-    if scale < 1:
-        upright = upright.resize(
-            (max(1, math.floor(source_width * scale)), max(1, math.floor(source_height * scale))),
-            Image.Resampling.LANCZOS,
+        if scale < 1:
+            resized = working.resize(
+                (
+                    max(1, math.floor(source_width * scale)),
+                    max(1, math.floor(source_height * scale)),
+                ),
+                Image.Resampling.LANCZOS,
+            )
+            working.close()
+            working = resized
+        width_px, height_px = working.size
+        return RenderedPage(
+            page_number=index + 1,
+            source_width=float(source_width),
+            source_height=float(source_height),
+            source_unit=SourceUnit.PIXELS,
+            rotation_degrees=rotation,
+            native_text_char_count=0,
+            native_text=None,
+            analysis_png=_png_bytes(working),
+            thumbnail=_thumbnail_bytes(working, profile),
+            width_px=width_px,
+            height_px=height_px,
+            effective_dpi=None if source_dpi is None else source_dpi * scale,
         )
-    width_px, height_px = upright.size
-    return RenderedPage(
-        page_number=index + 1,
-        source_width=float(source_width),
-        source_height=float(source_height),
-        source_unit=SourceUnit.PIXELS,
-        rotation_degrees=rotation,
-        native_text_char_count=0,
-        native_text=None,
-        analysis_png=_png_bytes(upright),
-        thumbnail=_thumbnail_bytes(upright, profile),
-        width_px=width_px,
-        height_px=height_px,
-        effective_dpi=None if source_dpi is None else source_dpi * scale,
-    )
+    finally:
+        working.close()
 
 
 def _quarter_turn(image: Image.Image) -> int:
@@ -276,9 +361,20 @@ def _thumbnail_bytes(image: Image.Image, profile: ProcessingProfile) -> bytes:
 
 
 def _thumbnail_format(profile: ProcessingProfile) -> str:
-    if profile.thumbnail_format == "webp" and features.check("webp"):
+    """Return the Pillow format named by the profile. Never substitute another."""
+    if profile.thumbnail_format == "webp":
+        if not features.check("webp"):
+            raise RenderingFailed(
+                ProcessingErrorCode.PAGE_RENDER_FAILED,
+                "WebP thumbnails are not available",
+            )
         return "WEBP"
-    return "PNG"
+    if profile.thumbnail_format == "png":
+        return "PNG"
+    raise RenderingFailed(
+        ProcessingErrorCode.PAGE_RENDER_FAILED,
+        "Thumbnail format is not supported",
+    )
 
 
 def _downscale(width: float, height: float, max_long_edge: int, max_total_pixels: int) -> float:
