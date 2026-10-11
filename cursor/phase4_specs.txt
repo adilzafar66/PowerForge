@@ -95,7 +95,7 @@ After Phase 4:
 - existing processed Documents can be backfilled
 - reclassification creates new classification history rather than replacing
   previous results
-- AI usage/cost telemetry is captured
+- AI usage telemetry is captured
 - an evaluation harness exists to measure actual classifier quality
 
 ======================================================================
@@ -752,7 +752,67 @@ Provider-neutral response structures should contain:
 Do not expose OpenAI Response objects outside the OpenAI adapter.
 
 ======================================================================
-19. INITIAL PROVIDER: OPENAI
+19. FAKE PROVIDER / DEVELOPMENT MODE
+======================================================================
+
+Phase 4 must support two provider modes:
+
+    AI_PROVIDER=fake
+    AI_PROVIDER=openai
+
+Implement a deterministic:
+
+    FakeClassificationProvider
+
+It must implement the SAME provider-neutral ClassificationProvider contract
+used by the real OpenAI adapter.
+
+Fake mode is a first-class development and testing mode.
+
+When:
+
+    AI_CLASSIFICATION_ENABLED=true
+    AI_PROVIDER=fake
+
+PowerForge must support the complete Phase 4 workflow without:
+
+    OPENAI_API_KEY
+    external network requests
+    paid AI tokens
+
+The fake provider must support deterministic scenarios sufficient to exercise:
+
+    high-confidence single-type classification
+    MIXED_DOCUMENT classification
+    conditional page classification
+    UNKNOWN / low-confidence classification
+    provider failure
+    retry
+    reclassification
+    human acceptance
+    manual override
+
+Do not put fake-provider special cases in:
+
+    API routes
+    frontend code
+    classification business logic
+
+Only provider selection/wiring should differ.
+
+Normal automated tests and CI must use the fake provider or a mocked provider
+boundary.
+
+Real OpenAI inference is opt-in and must never occur accidentally during:
+
+    normal application startup
+    migrations
+    pytest
+    frontend tests
+    CI
+
+======================================================================
+20. INITIAL PROVIDER: OPENAI
 ======================================================================
 
 Implement:
@@ -810,7 +870,7 @@ Do not upload the original engineering PDF to OpenAI in Phase 4.
 Only send the bounded text/image inputs assembled by the classification layer.
 
 ======================================================================
-20. OPENAI IMAGE INPUT
+21. OPENAI IMAGE INPUT
 ======================================================================
 
 Do NOT depend on public/signed MinIO URLs being reachable by OpenAI.
@@ -840,7 +900,7 @@ Do NOT implement automatic high-detail escalation in Phase 4.
 Evaluation results can justify that later.
 
 ======================================================================
-21. PROMPT-INJECTION BOUNDARY
+22. PROMPT-INJECTION BOUNDARY
 ======================================================================
 
 Document text and images are untrusted input.
@@ -858,7 +918,7 @@ Do not allow document text to alter the taxonomy, system instructions, output
 schema, or provider behavior.
 
 ======================================================================
-22. PROMPT AND TAXONOMY VERSIONING
+23. PROMPT AND TAXONOMY VERSIONING
 ======================================================================
 
 Prompts must live in version-controlled files, not inline ad-hoc strings buried
@@ -885,7 +945,7 @@ Changing prompt behavior requires a new prompt version.
 Do not silently edit an old prompt while keeping the same version identifier.
 
 ======================================================================
-23. STRUCTURED DOCUMENT CLASSIFIER OUTPUT
+24. STRUCTURED DOCUMENT CLASSIFIER OUTPUT
 ======================================================================
 
 Use a strict schema equivalent to:
@@ -925,7 +985,7 @@ Validate all provider output before persistence.
 An invalid structured response fails the run cleanly.
 
 ======================================================================
-24. CONFIDENCE SEMANTICS
+25. CONFIDENCE SEMANTICS
 ======================================================================
 
 Do not describe confidence_score as a calibrated probability.
@@ -950,7 +1010,7 @@ Thresholds belong to the versioned classification profile.
 Do not ask the model to independently return both score and band.
 
 ======================================================================
-25. DOCUMENT CLASSIFICATION INPUT PROFILE
+26. DOCUMENT CLASSIFICATION INPUT PROFILE
 ======================================================================
 
 Create a deterministic, versioned ClassificationProfile.
@@ -978,7 +1038,7 @@ The exact object should serialize deterministically and have a profile hash.
 The profile must be stored/versioned independently of provider-specific code.
 
 ======================================================================
-26. DETERMINISTIC PAGE SAMPLING
+27. DETERMINISTIC PAGE SAMPLING
 ======================================================================
 
 Document-level classification must not send every page of a large document.
@@ -1022,7 +1082,7 @@ Otherwise the AI would be partially told the expected answer and evaluation
 would be contaminated.
 
 ======================================================================
-27. DOCUMENT CLASSIFIER INPUT
+28. DOCUMENT CLASSIFIER INPUT
 ======================================================================
 
 A document classifier request may contain:
@@ -1046,7 +1106,7 @@ unless a future requirement justifies it.
 The classifier should identify the document from its own evidence.
 
 ======================================================================
-28. PAGE-LEVEL CLASSIFICATION
+29. PAGE-LEVEL CLASSIFICATION
 ======================================================================
 
 When page classification is required:
@@ -1084,7 +1144,7 @@ The expected result must contain:
 Any schema/page-set mismatch is an INVALID_PROVIDER_RESPONSE failure.
 
 ======================================================================
-29. PAGE-CLASSIFICATION COMPLETION
+30. PAGE-CLASSIFICATION COMPLETION
 ======================================================================
 
 A run requiring page classification is COMPLETED only when:
@@ -1113,7 +1173,7 @@ purposes, but:
 Retry creates a new run.
 
 ======================================================================
-30. CLASSIFICATION WORKER
+31. CLASSIFICATION WORKER
 ======================================================================
 
 Use:
@@ -1142,7 +1202,7 @@ The extraction worker may depend on:
 Do not put OpenAI SDK code in pure domain packages.
 
 ======================================================================
-31. DEDICATED CELERY QUEUE
+32. DEDICATED CELERY QUEUE
 ======================================================================
 
 Create a dedicated queue:
@@ -1160,7 +1220,7 @@ Future equipment extraction may receive its own queue later.
 Configure worker routing explicitly rather than relying on the default queue.
 
 ======================================================================
-32. AUTOMATIC CLASSIFICATION TRIGGER
+33. AUTOMATIC CLASSIFICATION TRIGGER
 ======================================================================
 
 When Phase 3 successfully transitions a processing run to:
@@ -1189,7 +1249,7 @@ Never roll back successful document processing because AI classification could
 not be queued.
 
 ======================================================================
-33. CLASSIFICATION DISABLED MODE
+34. CLASSIFICATION DISABLED MODE
 ======================================================================
 
 Add configuration equivalent to:
@@ -1212,14 +1272,14 @@ API endpoints that explicitly request AI classification should return a clean
 Do not require OPENAI_API_KEY when AI classification is disabled.
 
 ======================================================================
-34. CONFIGURATION
+35. CONFIGURATION
 ======================================================================
 
 Add configuration equivalent to:
 
     AI_CLASSIFICATION_ENABLED
 
-    AI_PROVIDER=openai
+    AI_PROVIDER=fake|openai
 
     AI_CLASSIFICATION_MODEL=gpt-6-luna
 
@@ -1234,6 +1294,15 @@ Add configuration equivalent to:
 Provider credentials belong ONLY in the service that actually calls the
 provider.
 
+If AI_PROVIDER=fake:
+    OPENAI_API_KEY is not required.
+
+If AI_PROVIDER=openai and AI_CLASSIFICATION_ENABLED=true:
+    OPENAI_API_KEY is required by the extraction worker.
+
+If AI_CLASSIFICATION_ENABLED=false:
+    OPENAI_API_KEY is not required.
+
 OPENAI_API_KEY must NOT be exposed to:
 
     browser
@@ -1247,7 +1316,7 @@ provider API key.
 Do not commit keys.
 
 ======================================================================
-35. OPENAI FAILURE HANDLING
+36. OPENAI FAILURE HANDLING
 ======================================================================
 
 Represent clean classification errors equivalent to:
@@ -1274,14 +1343,14 @@ A persistent failure ends the run as FAILED.
 Explicit user retry creates a new run.
 
 ======================================================================
-36. AI USAGE AND COST TELEMETRY
+37. LIGHTWEIGHT AI USAGE TELEMETRY
 ======================================================================
 
-Phase 4 is the first paid AI layer.
+Phase 4 is the first external AI inference layer.
 
-Persist provider usage telemetry from day one.
+Persist lightweight raw usage telemetry from day one.
 
-Create a lightweight entity such as:
+Create an entity such as:
 
     ClassificationAICall
 
@@ -1321,12 +1390,6 @@ Suggested fields:
 
     latency_ms
 
-    estimated_cost_usd
-        nullable
-
-    pricing_version
-        nullable
-
     created_at
 
 Do NOT store:
@@ -1336,43 +1399,24 @@ Do NOT store:
     full native-text input
     secrets
 
-in telemetry rows.
+Do NOT implement in Phase 4:
 
-Persist enough usage information to calculate later:
-
-    AI cost / document
-    AI cost / page
-    AI cost / project
-    AI cost / customer
-    latency / classification
-    token usage / taxonomy class
-
-======================================================================
-37. COST ESTIMATION
-======================================================================
-
-Raw token usage is authoritative telemetry.
-
-Estimated monetary cost is secondary telemetry.
-
-Implement pricing behind one isolated/versioned pricing configuration or cost
-estimator.
-
-Do NOT scatter dollar rates throughout application code.
-
-A pricing change must not alter historical stored estimates.
-
-Record:
-
+    estimated_cost_usd
     pricing_version
+    model pricing tables
+    pricing configuration
+    cost-per-document calculations
+    cost-per-project accounting
+    cost-per-customer accounting
+    AI-cost dashboards
+    monetary-cost evaluation metrics
 
-alongside estimated cost.
+Monetary cost accounting is deferred to a later phase.
 
-If usage/pricing information is unavailable:
+Raw usage telemetry is retained so that later cost analysis can be implemented
+without losing historical usage information.
 
-    estimated_cost_usd may be NULL.
-
-Cost estimation must NEVER affect classification correctness or acceptance.
+Usage telemetry must never affect classification correctness or acceptance.
 
 ======================================================================
 38. SECURITY / DATA HANDLING
@@ -1790,7 +1834,6 @@ Metrics should include at minimum:
     MIXED_DOCUMENT precision/recall
     page accuracy for labeled pages
     average input/output tokens
-    estimated AI cost per document
     latency statistics
 
 Do not run live-provider evaluations in normal CI.
@@ -1952,8 +1995,8 @@ TELEMETRY
 
 - usage tokens persisted
 - latency persisted
-- estimated cost calculation uses versioned pricing config
 - telemetry contains no prompt/image/document payload
+- estimated cost, pricing version, and pricing configuration are not persisted
 
 ACCESS
 
@@ -2002,7 +2045,7 @@ Log operational events such as:
     run completed
     prediction accepted
     manual classification override
-    token/cost summary
+    token usage summary
 
 Do not log:
 
@@ -2059,6 +2102,11 @@ Do NOT implement:
     automatic high-confidence acceptance
     page-level engineer approval workflow
     stronger-model escalation
+    estimated_cost_usd
+    pricing_version
+    pricing tables and pricing configuration
+    cost-per-document, cost-per-project, and cost-per-customer accounting
+    monetary-cost evaluation metrics
 
 Phase 4 answers only:
 
@@ -2232,7 +2280,7 @@ The ADR must record at least:
 13. Prompt/taxonomy/profile/provider/model versions are persisted.
 14. Automatic classification runs only when enabled.
 15. Manual classification works independently of AI.
-16. AI usage/cost telemetry is persisted.
+16. Lightweight AI usage telemetry is persisted. Monetary cost accounting is deferred.
 17. Live-model evaluation is separate from normal CI.
 18. No extraction/engineering-model work is part of Phase 4.
 
@@ -2424,7 +2472,7 @@ Phase 4 is complete only when:
 - existing processed documents can be backfilled
 - reclassification is supported
 - usage/token/latency telemetry is persisted
-- estimated cost uses versioned pricing config
+- monetary cost accounting is not implemented
 - evaluation harness exists
 - confidential evaluation docs are not committed
 - normal automated tests use fake/mocked providers
@@ -2462,7 +2510,7 @@ Implement approximately in this order:
 18. Add lightweight classification summary to document list responses
 19. Update revision inheritance/manual type provenance behavior
 20. Implement frontend classification UX
-21. Implement AI usage/cost telemetry
+21. Implement lightweight AI usage telemetry
 22. Implement evaluation harness
 23. Run unit/integration/concurrency/regression tests
 24. Run frontend tests/lint/type/build
@@ -2502,7 +2550,7 @@ K. APIs added/changed
 
 L. Frontend behavior
 
-M. AI usage/cost telemetry
+M. AI usage telemetry
 
 N. Evaluation harness
 
