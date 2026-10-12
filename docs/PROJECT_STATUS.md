@@ -4,7 +4,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 **Current implemented phase:** 3 (document processing)  
 **In progress:** none  
-**Next:** Phase 4 (document classification). Workspace UI landed in `938639d`; the evaluation harness is not implemented
+**Next:** Phase 4 (document classification). Evaluation harness landed in `e44da99`; hardening and phase completion are not done
 
 ## Phase 0 — Architecture and repository setup
 
@@ -143,17 +143,17 @@ Phase 2 tree at `2c75e44`, plus the untracked Phase 3 spec. Integration tests us
 
 ## Phase 4 — AI document classification
 
-**Status:** Specified (2026-10-11). Workspace UI landed; classification stays off.
+**Status:** Specified (2026-10-11). Evaluation harness landed.
 
 Specification: `cursor/phase4_specs.txt`  
-Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 landed in `3063120`; PR-02 landed in `e962e9e`; PR-03 landed in `ca91cfd`; PR-04 landed in `9d9460a`; PR-05 landed in `3ef0ccf`; PR-06 landed in `dfb0fc3`; PR-07 landed in `938639d`; PR-08 onward are not started)  
+Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 landed in `3063120`; PR-02 landed in `e962e9e`; PR-03 landed in `ca91cfd`; PR-04 landed in `9d9460a`; PR-05 landed in `3ef0ccf`; PR-06 landed in `dfb0fc3`; PR-07 landed in `938639d`; PR-08 landed in `e44da99`; PR-09 is not started)  
 Decisions: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed 2026-10-11)
 
-Phase 4 will classify an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. When classification is enabled, a completed processing run queues `document_classification` and `extraction-worker` classifies it. The OpenAI adapter is mocked in tests. Classification stays off in Compose. The API returns a suggestion and attempt on list, detail, and upload, and accept is the only way a suggestion becomes the confirmed type. The revision documents workspace shows that suggestion, including page predictions when the suggestion is a mixed document.
+Phase 4 will classify an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. When classification is enabled, a completed processing run queues `document_classification` and `extraction-worker` classifies it. The OpenAI adapter is mocked in tests. Compose enables classification for the API, document worker, and extraction worker, using the fake provider. The API returns a suggestion and attempt on list, detail, and upload, and accept is the only way a suggestion becomes the confirmed type. The revision documents workspace shows that suggestion, including page predictions when the suggestion is a mixed document. `powerforge-eval-classification` scores a labeled manifest offline. CI does not run a live OpenAI evaluation.
 
 ### Not implemented yet
 
-- Evaluation harness
+- Hardening, verification, and Phase 4 completion
 
 ### Baseline before implementation (2026-10-11)
 
@@ -176,7 +176,7 @@ Phase 3 tree on `main`, plus the untracked Phase 4 spec and this delivery plan, 
 | --- | --- | --- |
 | 2 | Document management | Complete (2026-10-06) |
 | 3 | Document processing | Complete (2026-10-10) |
-| 4 | Document classification | Specified (2026-10-11); workspace UI landed, evaluation not started |
+| 4 | Document classification | Specified (2026-10-11); evaluation harness landed, hardening not started |
 | 5 | Engineering model persistence | Not started |
 | 6–13 | Extraction through export | Not started |
 

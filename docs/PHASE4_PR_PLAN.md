@@ -90,7 +90,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-05](#pr-05--worker-queue-openai-adapter-trigger-and-backfill) | Worker, queue, OpenAI adapter, trigger, and backfill | Backend/Infra | L | PR-04 | [x] landed in `3ef0ccf` |
 | [PR-06](#pr-06--classification-apis-and-acceptance-provenance) | Classification APIs and acceptance provenance | Backend | L | PR-04 | [x] landed in `dfb0fc3` |
 | [PR-07](#pr-07--classification-workspace-ui) | Classification workspace UI | Web | M | PR-06 | [x] landed in `938639d` |
-| [PR-08](#pr-08--evaluation-harness) | Evaluation harness | Tooling | M | PR-04 | [ ] |
+| [PR-08](#pr-08--evaluation-harness) | Evaluation harness | Tooling | M | PR-04 | [x] landed in `e44da99` |
 | [PR-09](#pr-09--hardening-verification-and-phase-4-completion) | Hardening, verification, and Phase 4 completion | All | M | all | [ ] |
 
 PR-05, PR-06, and PR-08 are independent of each other after PR-04. PR-07 needs PR-06 (the list payload). PR-08 can merge in parallel with PR-06/PR-07.
@@ -459,6 +459,8 @@ ADR-006 must record at least the 20 numbered decisions in spec §64. It must not
 ---
 
 ### PR-08 — Evaluation harness
+
+**Status.** Done. The offline evaluation command and example fixtures are on `main` (`e44da99`). Live OpenAI evaluation stays out of CI. ADR-006 remains Proposed.
 
 **Goal.** Measure classifier quality against an external labeled set without committing confidential documents or calling OpenAI from CI. (§51–§53, §65)
 
