@@ -89,7 +89,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-04](#pr-04--classification-service-and-fake-provider) | Classification service and fake provider | Backend | L | PR-02, PR-03 | [x] landed in `9d9460a` |
 | [PR-05](#pr-05--worker-queue-openai-adapter-trigger-and-backfill) | Worker, queue, OpenAI adapter, trigger, and backfill | Backend/Infra | L | PR-04 | [x] landed in `3ef0ccf` |
 | [PR-06](#pr-06--classification-apis-and-acceptance-provenance) | Classification APIs and acceptance provenance | Backend | L | PR-04 | [x] landed in `dfb0fc3` |
-| [PR-07](#pr-07--classification-workspace-ui) | Classification workspace UI | Web | M | PR-06 | [ ] |
+| [PR-07](#pr-07--classification-workspace-ui) | Classification workspace UI | Web | M | PR-06 | [x] landed in `938639d` |
 | [PR-08](#pr-08--evaluation-harness) | Evaluation harness | Tooling | M | PR-04 | [ ] |
 | [PR-09](#pr-09--hardening-verification-and-phase-4-completion) | Hardening, verification, and Phase 4 completion | All | M | all | [ ] |
 
@@ -422,6 +422,8 @@ ADR-006 must record at least the 20 numbered decisions in spec §64. It must not
 
 ### PR-07 — Classification workspace UI
 
+**Status.** Done. The revision documents workspace shows the suggestion, accept, and mixed page predictions on `main` (`938639d`). Classification stays off until enabled. ADR-006 remains Proposed.
+
 **Goal.** Show AI classification on the existing revision documents workspace and let the engineer accept, override, retry, or reclassify. Status, review, mixed pages, and failure actions are one surface. (§47–§50)
 
 **Depends on.** PR-06.
@@ -640,7 +642,7 @@ What a user of the running app sees while Phase 4 is only partly merged:
 | PR-04 | No user-visible change. Classification defaults to disabled. Upload and Phase 3 processing still do not enqueue classification. |
 | PR-05 | Rebuild API, document-worker, and extraction-worker images. When enabled, a completed Phase 3 run queues classification. The UI does not show it until PR-06/PR-07. Existing processed documents wait for backfill. `document-worker` and `validation-worker` must not be pointed at `document_classification`. |
 | PR-06 | List/detail JSON gains a `classification` object. Old web clients ignore unknown fields. Swagger can accept, retry, and reclassify. Rebuild the API image. |
-| PR-07 | Web UI only: suggestion column, accept/override, mixed pages, retry/reclassify. Rebuild the web image. |
+| PR-07 | Suggestion column, accept/override, mixed pages, and retry/reclassify. The list suggestion includes the prediction id. Rebuild the web image and the extraction-worker image. |
 | PR-08 | CLI and fixtures only. App unchanged. |
 | PR-09 | Docs and audit only. After pulling, `docker compose down -v && docker compose up --build` if you want a clean stack. |
 
