@@ -22,6 +22,7 @@ RUN pip install --no-cache-dir --upgrade pip \
         -e /app/packages/validation \
         -e /app/packages/provenance \
         -e /app/packages/ai \
+        -e /app/packages/document-classification \
         -e /app/services/api
 
 EXPOSE 8000

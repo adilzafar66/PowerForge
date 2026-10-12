@@ -33,3 +33,8 @@ class CeleryClassificationEnqueue:
                 broker=get_settings().redis_url,
             )
         return self._app
+
+
+def get_classification_enqueue() -> CeleryClassificationEnqueue:
+    """FastAPI dependency. Tests override this so classification does not need Redis."""
+    return CeleryClassificationEnqueue()

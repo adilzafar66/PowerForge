@@ -7,6 +7,7 @@ This module does not import FastAPI, Celery, or a vendor SDK.
 from __future__ import annotations
 
 import logging
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -119,6 +120,31 @@ class ClassificationNotRetryable(Exception):
 
     def __init__(self) -> None:
         super().__init__("Classification cannot be retried")
+
+
+@dataclass(frozen=True)
+class ClassificationDocumentSummary:
+    """Suggestion and newest attempt for one document. Reads do not enqueue."""
+
+    suggestion_run: DocumentClassificationRun | None
+    suggestion: ClassificationPrediction | None
+    attempt: DocumentClassificationRun | None
+
+
+@dataclass(frozen=True)
+class ClassificationHistoryEntry:
+    """One run and its document prediction, when the run produced one."""
+
+    run: DocumentClassificationRun
+    prediction: ClassificationPrediction | None
+
+
+@dataclass(frozen=True)
+class ClassificationPageView:
+    """A page prediction from the suggestion's completed run."""
+
+    page_number: int
+    prediction: ClassificationPrediction
 
 
 class _InvalidProviderResponse(Exception):
@@ -279,6 +305,116 @@ class ClassificationService:
         if run is None:
             return None
         return self._document_prediction(run.id)
+
+    def summaries_for_documents(
+        self, document_ids: Collection[UUID]
+    ) -> dict[UUID, ClassificationDocumentSummary]:
+        """Suggestion and newest attempt for every id. One pass; this read does not enqueue."""
+        ids = list(dict.fromkeys(document_ids))
+        if not ids:
+            return {}
+        profile = self.processing_profile
+        processing_rows = self.session.scalars(
+            select(DocumentProcessingRun).where(
+                DocumentProcessingRun.document_id.in_(ids),
+                DocumentProcessingRun.processor_version == profile.processor_version,
+                DocumentProcessingRun.profile_hash == profile.profile_hash,
+            )
+        ).all()
+        current: dict[UUID, DocumentProcessingRun] = {}
+        for processing in processing_rows:
+            incumbent = current.get(processing.document_id)
+            if incumbent is None or _prefer_processing(processing, incumbent):
+                current[processing.document_id] = processing
+        completed_processing = {
+            document_id: processing.id
+            for document_id, processing in current.items()
+            if processing.status == ProcessingRunStatus.COMPLETED
+        }
+        classification_rows = self.session.scalars(
+            select(DocumentClassificationRun)
+            .where(DocumentClassificationRun.document_id.in_(ids))
+            .order_by(
+                DocumentClassificationRun.created_at.desc(),
+                DocumentClassificationRun.attempt_number.desc(),
+            )
+        ).all()
+        attempts: dict[UUID, DocumentClassificationRun] = {}
+        suggestions: dict[UUID, DocumentClassificationRun] = {}
+        for run in classification_rows:
+            attempts.setdefault(run.document_id, run)
+            processing_id = completed_processing.get(run.document_id)
+            if (
+                processing_id is not None
+                and run.processing_run_id == processing_id
+                and run.status == ClassificationRunStatus.COMPLETED
+                and run.document_id not in suggestions
+            ):
+                suggestions[run.document_id] = run
+        suggestion_ids = [run.id for run in suggestions.values()]
+        predictions = self._document_predictions(suggestion_ids)
+        return {
+            document_id: ClassificationDocumentSummary(
+                suggestion_run=suggestions.get(document_id),
+                suggestion=(
+                    predictions.get(suggestions[document_id].id)
+                    if document_id in suggestions
+                    else None
+                ),
+                attempt=attempts.get(document_id),
+            )
+            for document_id in ids
+        }
+
+    def history_for_document(self, document_id: UUID) -> list[ClassificationHistoryEntry]:
+        """Every classification run for the document, newest first. This read does not enqueue."""
+        runs = list(
+            self.session.scalars(
+                select(DocumentClassificationRun)
+                .where(DocumentClassificationRun.document_id == document_id)
+                .order_by(
+                    DocumentClassificationRun.created_at.desc(),
+                    DocumentClassificationRun.attempt_number.desc(),
+                )
+            ).all()
+        )
+        predictions = self._document_predictions([run.id for run in runs])
+        return [ClassificationHistoryEntry(run, predictions.get(run.id)) for run in runs]
+
+    def page_predictions_for_document(
+        self, document_id: UUID
+    ) -> list[ClassificationPageView] | None:
+        """Page predictions from the completed suggestion. None when there is no suggestion."""
+        summary = self.summaries_for_documents([document_id])[document_id]
+        if summary.suggestion_run is None or summary.suggestion is None:
+            return None
+        rows = self.session.execute(
+            select(ClassificationPrediction, DocumentPage.page_number)
+            .join(DocumentPage, DocumentPage.id == ClassificationPrediction.document_page_id)
+            .where(
+                ClassificationPrediction.classification_run_id == summary.suggestion_run.id,
+                ClassificationPrediction.scope == ClassificationScope.PAGE,
+            )
+            .order_by(DocumentPage.page_number)
+        ).all()
+        return [
+            ClassificationPageView(page_number=page_number, prediction=prediction)
+            for prediction, page_number in rows
+        ]
+
+    def _document_predictions(
+        self, run_ids: Collection[UUID]
+    ) -> dict[UUID, ClassificationPrediction]:
+        ids = list(run_ids)
+        if not ids:
+            return {}
+        rows = self.session.scalars(
+            select(ClassificationPrediction).where(
+                ClassificationPrediction.classification_run_id.in_(ids),
+                ClassificationPrediction.scope == ClassificationScope.DOCUMENT,
+            )
+        ).all()
+        return {prediction.classification_run_id: prediction for prediction in rows}
 
     def _require_enabled(self) -> None:
         if not self.settings.ai_classification_enabled:
@@ -682,6 +818,23 @@ class ClassificationService:
     def _commit(self) -> None:
         self.session.commit()
         self.session.expire_all()
+
+
+def _prefer_processing(
+    candidate: DocumentProcessingRun,
+    incumbent: DocumentProcessingRun,
+) -> bool:
+    """True when ``candidate`` is the current processing run instead of ``incumbent``."""
+    candidate_live = candidate.status in _PROCESSING_LIVE
+    incumbent_live = incumbent.status in _PROCESSING_LIVE
+    if candidate_live != incumbent_live:
+        return candidate_live
+    if candidate_live:
+        return False
+    return (candidate.attempt_count, candidate.created_at) > (
+        incumbent.attempt_count,
+        incumbent.created_at,
+    )
 
 
 def _identity_from_settings(

@@ -13,6 +13,7 @@ import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from typing import Any, BinaryIO
 
 from sqlalchemy import Select, and_, or_, select
@@ -20,6 +21,13 @@ from sqlalchemy.orm import Session, aliased
 
 from powerforge_api.db_errors import integrity_guard
 from powerforge_api.exceptions import (
+    AIClassificationDisabled,
+    ClassificationInProgressError,
+    ClassificationNotAcceptable,
+    ClassificationNotComplete,
+    ClassificationNotRetryableError,
+    ClassificationPredictionNotFound,
+    ClassificationRunNotFound,
     CrossProjectDocumentAccess,
     DocumentAlreadyInRevision,
     DocumentRemoved,
@@ -35,6 +43,15 @@ from powerforge_api.exceptions import (
     StorageUploadFailed,
 )
 from powerforge_api.schemas.documents import (
+    ClassificationAlternativeResponse,
+    ClassificationAttemptSummary,
+    ClassificationDetailResponse,
+    ClassificationPageListResponse,
+    ClassificationPagePredictionResponse,
+    ClassificationRunListResponse,
+    ClassificationRunResponse,
+    ClassificationSuggestionSummary,
+    ClassificationSummaryResponse,
     DocumentPageResponse,
     DocumentStatusFilter,
     DocumentSummary,
@@ -54,7 +71,23 @@ from powerforge_api.services.revision_documents import (
     lock_project_shared,
     lock_revision,
 )
+from powerforge_document_classification.fake import FakeClassificationProvider
+from powerforge_document_classification.service import (
+    ClassificationDisabled,
+    ClassificationDocumentSummary,
+    ClassificationHistoryEntry,
+    ClassificationInProgress,
+    ClassificationNotRetryable,
+    ClassificationPageView,
+    ClassificationService,
+    DocumentClassificationEnqueue,
+)
+from powerforge_document_classification.service import (
+    ProcessingNotComplete as ClassificationProcessingNotComplete,
+)
 from powerforge_document_model import (
+    ClassificationRunStatus,
+    ClassificationScope,
     DocumentClassification,
     DocumentOrigin,
     PageArtifactType,
@@ -63,7 +96,9 @@ from powerforge_document_model import (
     build_storage_key,
 )
 from powerforge_document_processing.models import (
+    ClassificationPrediction,
     Document,
+    DocumentClassificationRun,
     DocumentPage,
     DocumentProcessingRun,
     PageArtifact,
@@ -96,6 +131,13 @@ class _ReadOnlyEnqueue:
         return None
 
 
+class _NoopClassificationEnqueue:
+    """Stand-in so a classification read never publishes a task."""
+
+    def enqueue_document_classification(self, run_id: uuid.UUID) -> None:
+        return None
+
+
 @dataclass(frozen=True)
 class UploadMetadata:
     """Revision-scoped metadata supplied by the uploader. Blank values are None."""
@@ -123,11 +165,13 @@ class DocumentService:
         storage: ObjectStorage,
         settings: Settings,
         enqueue: DocumentProcessingEnqueue | None = None,
+        classification_enqueue: DocumentClassificationEnqueue | None = None,
     ) -> None:
         self.session = session
         self.storage = storage
         self.settings = settings
         self._enqueue = enqueue
+        self._classification_enqueue = classification_enqueue
 
     def upload(
         self,
@@ -280,6 +324,131 @@ class DocumentService:
         except ProcessingNotRetryable as exc:
             raise ProcessingNotRetryableError("Processing cannot be retried") from exc
         return _status_response(run)
+
+    def get_classification(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+    ) -> ClassificationDetailResponse:
+        """Suggestion and attempt for this association. Does not create a run or publish a task."""
+        association, document = self._require_association(
+            project_id, revision_id, revision_document_id
+        )
+        summary = self._classification().summaries_for_documents([document.id])[document.id]
+        return _classification_detail(association, summary, self.settings.ai_classification_enabled)
+
+    def list_classification_runs(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+    ) -> ClassificationRunListResponse:
+        """Classification history. Does not create a run or publish a task."""
+        _, document = self._require_association(project_id, revision_id, revision_document_id)
+        entries = self._classification().history_for_document(document.id)
+        return ClassificationRunListResponse(
+            enabled=self.settings.ai_classification_enabled,
+            items=[_classification_run(entry) for entry in entries],
+        )
+
+    def list_classification_pages(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+    ) -> ClassificationPageListResponse:
+        """Page predictions from the completed suggestion. Does not create or publish a run."""
+        _, document = self._require_association(project_id, revision_id, revision_document_id)
+        pages = self._classification().page_predictions_for_document(document.id)
+        if pages is None:
+            raise ClassificationNotComplete("Classification is not complete")
+        return ClassificationPageListResponse(
+            enabled=self.settings.ai_classification_enabled,
+            items=[_classification_page(page) for page in pages],
+        )
+
+    def reclassify(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+    ) -> ClassificationDetailResponse:
+        """Start a new classification attempt. Not a revision mutation."""
+        _, document = self._require_association(project_id, revision_id, revision_document_id)
+        try:
+            self._classification(publish=True).reclassify_document(document.id)
+        except (
+            ClassificationDisabled,
+            ClassificationProcessingNotComplete,
+            ClassificationInProgress,
+            ClassificationNotRetryable,
+        ) as exc:
+            _map_classification(exc)
+        return self.get_classification(project_id, revision_id, revision_document_id)
+
+    def retry_classification(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+        run_id: uuid.UUID,
+    ) -> ClassificationDetailResponse:
+        """Retry one failed classification run. Not a revision mutation."""
+        _, document = self._require_association(project_id, revision_id, revision_document_id)
+        run = self.session.get(DocumentClassificationRun, run_id)
+        if run is None or run.document_id != document.id:
+            raise ClassificationRunNotFound("Classification run not found")
+        try:
+            self._classification(publish=True).retry_failed_classification(run_id)
+        except (
+            ClassificationDisabled,
+            ClassificationProcessingNotComplete,
+            ClassificationInProgress,
+            ClassificationNotRetryable,
+        ) as exc:
+            _map_classification(exc)
+        return self.get_classification(project_id, revision_id, revision_document_id)
+
+    def accept_prediction(
+        self,
+        project_id: uuid.UUID,
+        revision_id: uuid.UUID,
+        revision_document_id: uuid.UUID,
+        prediction_id: uuid.UUID,
+    ) -> RevisionDocumentResponse:
+        """Copy the predicted type onto this association and record the accepted prediction."""
+
+        def apply(_revision: ProjectRevision) -> _MutationResult:
+            association = self._load_association(project_id, revision_id, revision_document_id)
+            if association.status == RevisionDocumentStatus.REMOVED:
+                raise DocumentRemoved("Restore the document before accepting a classification")
+            prediction = self.session.get(ClassificationPrediction, prediction_id)
+            if prediction is None or prediction.document_id != association.document_id:
+                raise ClassificationPredictionNotFound("Classification prediction not found")
+            if prediction.scope != ClassificationScope.DOCUMENT:
+                raise ClassificationNotAcceptable("Only a document prediction can be accepted")
+            run = self.session.get(DocumentClassificationRun, prediction.classification_run_id)
+            if (
+                run is None
+                or run.document_id != association.document_id
+                or run.status != ClassificationRunStatus.COMPLETED
+            ):
+                raise ClassificationNotAcceptable("Only a completed classification can be accepted")
+            association.document_type = prediction.predicted_type
+            association.accepted_classification_prediction_id = prediction.id
+            return _MutationResult(
+                association.id,
+                association.document_id,
+                log_extra={
+                    "prediction_id": prediction.id,
+                    "predicted_type": prediction.predicted_type.value,
+                },
+            )
+
+        result = self._mutate(project_id, revision_id, "accept_classification", apply)
+        self._log("classification accepted", project_id, revision_id, result)
+        return self._load_response(project_id, revision_id, result.revision_document_id)
 
     def list_pages(
         self,
@@ -440,11 +609,22 @@ class DocumentService:
             )
             for name in changed:
                 setattr(association, name, updates[name])
+            # Any submitted type clears acceptance, including a resubmit of the stored type.
+            cleared_acceptance = False
+            if (
+                "document_type" in updates
+                and association.accepted_classification_prediction_id is not None
+            ):
+                association.accepted_classification_prediction_id = None
+                cleared_acceptance = True
+            changed_fields = list(changed)
+            if cleared_acceptance:
+                changed_fields.append("accepted_classification_prediction_id")
             return _MutationResult(
                 association.id,
                 association.document_id,
-                changed=bool(changed),
-                log_extra={"changed_fields": changed},
+                changed=bool(changed) or cleared_acceptance,
+                log_extra={"changed_fields": changed_fields},
             )
 
         result = self._mutate(project_id, revision_id, "update_document_metadata", apply)
@@ -541,6 +721,11 @@ class DocumentService:
                 "notes": source.notes,
                 **overrides,
             }
+            accepted_prediction_id = (
+                None
+                if "document_type" in overrides
+                else source.accepted_classification_prediction_id
+            )
             association = RevisionDocument(
                 project_id=project_id,
                 revision_id=revision_id,
@@ -548,6 +733,7 @@ class DocumentService:
                 origin=DocumentOrigin.INHERITED,
                 inherited_from_revision_id=source.revision_id,
                 status=RevisionDocumentStatus.INCLUDED,
+                accepted_classification_prediction_id=accepted_prediction_id,
                 **fields,
             )
             self.session.add(association)
@@ -808,12 +994,32 @@ class DocumentService:
         return self._with_processing([row])[0]
 
     def _with_processing(self, rows: list[Any]) -> list[RevisionDocumentResponse]:
-        runs = self._processing().current_runs([row[1].id for row in rows])
-        return [_to_response(*row, runs.get(row[1].id)) for row in rows]
+        document_ids = [row[1].id for row in rows]
+        runs = self._processing().current_runs(document_ids)
+        summaries = self._classification().summaries_for_documents(document_ids)
+        enabled = self.settings.ai_classification_enabled
+        return [
+            _to_response(*row, runs.get(row[1].id), summaries[row[1].id], enabled) for row in rows
+        ]
 
     def _processing(self) -> ProcessingService:
         enqueue = self._enqueue if self._enqueue is not None else _ReadOnlyEnqueue()
         return ProcessingService(self.session, self.storage, enqueue)
+
+    def _classification(self, *, publish: bool = False) -> ClassificationService:
+        """Reads use a no-op enqueue. Only reclassify and retry publish a task."""
+        port: DocumentClassificationEnqueue
+        if publish and self._classification_enqueue is not None:
+            port = self._classification_enqueue
+        else:
+            port = _NoopClassificationEnqueue()
+        return ClassificationService(
+            self.session,
+            self.storage,
+            port,
+            FakeClassificationProvider(),
+            self.settings,
+        )
 
     def _require_association(
         self,
@@ -890,6 +1096,8 @@ def _to_response(
     document: Document,
     inherited_identifier: str | None,
     run: DocumentProcessingRun | None = None,
+    summary: ClassificationDocumentSummary | None = None,
+    classification_enabled: bool = False,
 ) -> RevisionDocumentResponse:
     return RevisionDocumentResponse(
         id=association.id,
@@ -906,6 +1114,7 @@ def _to_response(
         added_at=association.added_at,
         removed_at=association.removed_at,
         processing=_summary(run),
+        classification=_classification_summary(association, summary, classification_enabled),
     )
 
 
@@ -920,6 +1129,123 @@ def _summary(run: DocumentProcessingRun | None) -> ProcessingSummary | None:
         error_code=run.error_code,
         error_message=run.error_message,
     )
+
+
+def _classification_summary(
+    association: RevisionDocument,
+    summary: ClassificationDocumentSummary | None,
+    enabled: bool,
+) -> ClassificationSummaryResponse:
+    if summary is None:
+        return ClassificationSummaryResponse(enabled=enabled)
+    suggestion = None
+    prediction = summary.suggestion
+    suggestion_run = summary.suggestion_run
+    if prediction is not None and suggestion_run is not None:
+        suggestion = ClassificationSuggestionSummary(
+            predicted_type=prediction.predicted_type,
+            confidence_band=prediction.confidence_band,
+            accepted=association.accepted_classification_prediction_id == prediction.id,
+            requires_page_classification=bool(suggestion_run.requires_page_classification),
+        )
+    attempt = None
+    if summary.attempt is not None:
+        attempt = _attempt(summary.attempt)
+    return ClassificationSummaryResponse(enabled=enabled, suggestion=suggestion, attempt=attempt)
+
+
+def _classification_detail(
+    association: RevisionDocument,
+    summary: ClassificationDocumentSummary,
+    enabled: bool,
+) -> ClassificationDetailResponse:
+    base = _classification_summary(association, summary, enabled)
+    prediction = summary.suggestion
+    return ClassificationDetailResponse(
+        enabled=base.enabled,
+        suggestion=base.suggestion,
+        attempt=base.attempt,
+        confidence_score=None if prediction is None else float(prediction.confidence_score),
+        alternatives=[] if prediction is None else _alternatives(prediction.alternatives),
+        rationale=None if prediction is None else prediction.rationale,
+    )
+
+
+def _classification_run(entry: ClassificationHistoryEntry) -> ClassificationRunResponse:
+    run = entry.run
+    prediction = entry.prediction
+    return ClassificationRunResponse(
+        id=run.id,
+        status=run.status,
+        stage=run.stage,
+        pages_total=run.pages_total,
+        pages_classified=run.pages_classified,
+        error_code=run.error_code,
+        created_at=run.created_at,
+        attempt_number=run.attempt_number,
+        provider=run.provider,
+        model=run.model,
+        classifier_version=run.classifier_version,
+        taxonomy_version=run.taxonomy_version,
+        prompt_version=run.prompt_version,
+        sampling_profile_version=run.sampling_profile_version,
+        processing_run_id=run.processing_run_id,
+        predicted_type=None if prediction is None else prediction.predicted_type,
+        confidence_band=None if prediction is None else prediction.confidence_band,
+        confidence_score=None if prediction is None else float(prediction.confidence_score),
+    )
+
+
+def _classification_page(page: ClassificationPageView) -> ClassificationPagePredictionResponse:
+    prediction = page.prediction
+    return ClassificationPagePredictionResponse(
+        page_number=page.page_number,
+        predicted_type=prediction.predicted_type,
+        confidence_band=prediction.confidence_band,
+        confidence_score=float(prediction.confidence_score),
+        alternatives=_alternatives(prediction.alternatives),
+        rationale=prediction.rationale,
+    )
+
+
+def _attempt(run: DocumentClassificationRun) -> ClassificationAttemptSummary:
+    return ClassificationAttemptSummary(
+        status=run.status,
+        stage=run.stage,
+        pages_total=run.pages_total,
+        pages_classified=run.pages_classified,
+        error_code=run.error_code,
+    )
+
+
+def _alternatives(raw: object) -> list[ClassificationAlternativeResponse]:
+    if not isinstance(raw, list):
+        return []
+    items: list[ClassificationAlternativeResponse] = []
+    for entry in raw:
+        if not isinstance(entry, dict):
+            continue
+        type_name = entry.get("type")
+        score = entry.get("score")
+        if (
+            isinstance(type_name, str)
+            and isinstance(score, int | float | Decimal)
+            and not isinstance(score, bool)
+        ):
+            items.append(ClassificationAlternativeResponse(type=type_name, score=float(score)))
+    return items
+
+
+def _map_classification(exc: Exception) -> None:
+    if isinstance(exc, ClassificationDisabled):
+        raise AIClassificationDisabled("AI classification is disabled") from exc
+    if isinstance(exc, ClassificationProcessingNotComplete):
+        raise ProcessingNotComplete("Processing is not complete") from exc
+    if isinstance(exc, ClassificationInProgress):
+        raise ClassificationInProgressError("Classification is in progress", exc.run_id) from exc
+    if isinstance(exc, ClassificationNotRetryable):
+        raise ClassificationNotRetryableError("Classification cannot be retried") from exc
+    raise exc
 
 
 def _status_response(run: DocumentProcessingRun | None) -> ProcessingStatusResponse:

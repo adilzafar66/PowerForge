@@ -18,6 +18,9 @@ from powerforge_api.schemas.documents import (
     MAX_DESCRIPTION_LENGTH,
     MAX_DOCUMENT_NUMBER_LENGTH,
     MAX_NOTES_LENGTH,
+    ClassificationDetailResponse,
+    ClassificationPageListResponse,
+    ClassificationRunListResponse,
     DocumentPageListResponse,
     DocumentPageResponse,
     DocumentStatusFilter,
@@ -30,6 +33,10 @@ from powerforge_api.schemas.documents import (
     UploadResponse,
 )
 from powerforge_api.services.document_service import DocumentService, UploadMetadata
+from powerforge_document_classification.enqueue import (
+    CeleryClassificationEnqueue,
+    get_classification_enqueue,
+)
 from powerforge_document_model import DocumentClassification, DocumentOrigin
 from powerforge_document_processing.enqueue import (
     CeleryProcessingEnqueue,
@@ -46,6 +53,9 @@ SessionDep = Annotated[Session, Depends(get_session)]
 StorageDep = Annotated[ObjectStorage, Depends(get_object_storage)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 EnqueueDep = Annotated[CeleryProcessingEnqueue, Depends(get_processing_enqueue)]
+ClassificationEnqueueDep = Annotated[
+    CeleryClassificationEnqueue, Depends(get_classification_enqueue)
+]
 
 
 class UploadSizeGuardRoute(APIRoute):
@@ -408,3 +418,129 @@ def artifact_url(
         raise http_for(exc) from exc
     response.headers["Cache-Control"] = "no-store"
     return result
+
+
+@router.get(
+    "/{revision_document_id}/classification",
+    response_model=ClassificationDetailResponse,
+    summary="Get the classification suggestion and current attempt",
+)
+def get_classification(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> ClassificationDetailResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        return service.get_classification(project_id, revision_id, revision_document_id)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+
+
+@router.get(
+    "/{revision_document_id}/classification/runs",
+    response_model=ClassificationRunListResponse,
+    summary="List classification runs for a document",
+)
+def list_classification_runs(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> ClassificationRunListResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        return service.list_classification_runs(project_id, revision_id, revision_document_id)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+
+
+@router.get(
+    "/{revision_document_id}/classification/pages",
+    response_model=ClassificationPageListResponse,
+    summary="List page predictions from the completed suggestion",
+)
+def list_classification_pages(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> ClassificationPageListResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        return service.list_classification_pages(project_id, revision_id, revision_document_id)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+
+
+@router.post(
+    "/{revision_document_id}/classification/reclassify",
+    response_model=ClassificationDetailResponse,
+    summary="Start a new classification attempt",
+)
+def reclassify_document(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+    enqueue: ClassificationEnqueueDep,
+) -> ClassificationDetailResponse:
+    service = DocumentService(session, storage, settings, classification_enqueue=enqueue)
+    try:
+        return service.reclassify(project_id, revision_id, revision_document_id)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+
+
+@router.post(
+    "/{revision_document_id}/classification/runs/{run_id}/retry",
+    response_model=ClassificationDetailResponse,
+    summary="Retry a failed classification run",
+)
+def retry_classification(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    run_id: UUID,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+    enqueue: ClassificationEnqueueDep,
+) -> ClassificationDetailResponse:
+    service = DocumentService(session, storage, settings, classification_enqueue=enqueue)
+    try:
+        return service.retry_classification(project_id, revision_id, revision_document_id, run_id)
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+
+
+@router.post(
+    "/{revision_document_id}/classification/predictions/{prediction_id}/accept",
+    response_model=RevisionDocumentResponse,
+    summary="Accept a document classification prediction",
+)
+def accept_classification(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_id: UUID,
+    prediction_id: UUID,
+    session: SessionDep,
+    storage: StorageDep,
+    settings: SettingsDep,
+) -> RevisionDocumentResponse:
+    service = DocumentService(session, storage, settings)
+    try:
+        return service.accept_prediction(
+            project_id, revision_id, revision_document_id, prediction_id
+        )
+    except ProjectError as exc:
+        raise http_for(exc) from exc

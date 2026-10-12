@@ -5,8 +5,15 @@ from __future__ import annotations
 from fastapi import HTTPException, status
 
 from powerforge_api.exceptions import (
+    AIClassificationDisabled,
     ArchivedProject,
     CancelledProject,
+    ClassificationInProgressError,
+    ClassificationNotAcceptable,
+    ClassificationNotComplete,
+    ClassificationNotRetryableError,
+    ClassificationPredictionNotFound,
+    ClassificationRunNotFound,
     CrossProjectDocumentAccess,
     DocumentAlreadyInRevision,
     DocumentRemoved,
@@ -47,7 +54,9 @@ def http_for(exc: ProjectError) -> HTTPException:
         | RevisionProjectMismatch
         | RevisionDocumentNotFound
         | CrossProjectDocumentAccess
-        | PageNotFound,
+        | PageNotFound
+        | ClassificationPredictionNotFound
+        | ClassificationRunNotFound,
     ):
         status_code = status.HTTP_404_NOT_FOUND
     elif isinstance(
@@ -63,7 +72,12 @@ def http_for(exc: ProjectError) -> HTTPException:
         | DocumentAlreadyInRevision
         | DocumentRemoved
         | ProcessingNotComplete
-        | ProcessingNotRetryableError,
+        | ProcessingNotRetryableError
+        | AIClassificationDisabled
+        | ClassificationInProgressError
+        | ClassificationNotRetryableError
+        | ClassificationNotComplete
+        | ClassificationNotAcceptable,
     ):
         status_code = status.HTTP_409_CONFLICT
     elif isinstance(exc, FileTooLarge):
@@ -82,4 +96,6 @@ def http_for(exc: ProjectError) -> HTTPException:
             detail["existing_revision_document_id"] = str(exc.existing_revision_document_id)
         if exc.existing_status is not None:
             detail["existing_status"] = exc.existing_status
+    if isinstance(exc, ClassificationInProgressError):
+        detail["run_id"] = str(exc.run_id)
     return HTTPException(status_code=status_code, detail=detail)

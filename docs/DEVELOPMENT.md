@@ -20,6 +20,19 @@ Phase 3 processing runs on `document-worker`. New uploads enqueue a run; documen
 
 Phase 4 classification runs on `extraction-worker` after Phase 3 commits a completed processing run, and only when classification is enabled. That worker listens on `document_classification`. The OpenAI adapter lives there; tests mock it and do not call OpenAI. Documents already processed wait for `powerforge-backfill-classification --limit N` ([PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md)).
 
+The API reads and accepts classification in process. It does not call OpenAI. List, detail, and upload responses include a `classification` object (`enabled`, `suggestion`, `attempt`). Routes under `.../documents/{revisionDocumentId}`:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/classification` | Suggestion, attempt, score, alternatives, and rationale. Does not start a run |
+| `GET` | `/classification/runs` | History without prompts, text, images, storage keys, or provider payloads |
+| `GET` | `/classification/pages` | Page predictions from the completed suggestion. 409 `classification_not_complete` when there is none |
+| `POST` | `/classification/reclassify` | New pending attempt. 409 `ai_classification_disabled` while classification is off |
+| `POST` | `/classification/runs/{runId}/retry` | Retry the newest failed run for that identity |
+| `POST` | `/classification/predictions/{predictionId}/accept` | Set the confirmed type from a completed document prediction |
+
+Reads stay available while classification is off, including removed, superseded, and archived associations. Accept and a manual type edit stay available too. Reclassify and retry are the routes that return 409 `ai_classification_disabled`. Accept is the only writer of `accepted_classification_prediction_id`. Submitting `document_type` clears that id. Creating a revision copies it; reuse copies it unless the body includes `document_type`.
+
 ## Phase 4 configuration
 
 These fields exist on `Settings`. Classification stays off (`AI_CLASSIFICATION_ENABLED` defaults to false). They stay out of `.env.example`. `extraction-worker` in Compose sets classification off and substitutes `OPENAI_API_KEY` from the environment; do not commit a key. A blank key counts as unset. `Settings()` constructs when the key is absent. The API, `document-worker`, and `validation-worker` start without it and do not receive the key. `extraction-worker` refuses to start when classification is enabled, `AI_PROVIDER=openai`, and the key is missing. Fake mode and disabled mode start without a key.

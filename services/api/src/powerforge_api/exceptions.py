@@ -129,6 +129,38 @@ class PageNotFound(ProjectError):
     code = "page_not_found"
 
 
+class AIClassificationDisabled(ProjectError):
+    code = "ai_classification_disabled"
+
+
+class ClassificationInProgressError(ProjectError):
+    code = "classification_in_progress"
+
+    def __init__(self, message: str, run_id: uuid.UUID) -> None:
+        super().__init__(message)
+        self.run_id = run_id
+
+
+class ClassificationNotRetryableError(ProjectError):
+    code = "classification_not_retryable"
+
+
+class ClassificationNotComplete(ProjectError):
+    code = "classification_not_complete"
+
+
+class ClassificationNotAcceptable(ProjectError):
+    code = "classification_not_acceptable"
+
+
+class ClassificationPredictionNotFound(ProjectError):
+    code = "classification_prediction_not_found"
+
+
+class ClassificationRunNotFound(ProjectError):
+    code = "classification_run_not_found"
+
+
 class UnexpectedIntegrityError(ProjectError):
     code = "unexpected_integrity_error"
 

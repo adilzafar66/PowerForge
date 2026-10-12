@@ -194,8 +194,10 @@ def test_fake_provider_does_not_import_openai() -> None:
     assert source.name == "fake.py"
 
 
-def test_upload_package_does_not_import_classification() -> None:
+def test_api_package_does_not_import_extraction_worker_or_openai() -> None:
+    """The API may import the classification package. It must not import the worker or OpenAI."""
     root = REPO_ROOT / "services" / "api"
+    forbidden = ("extraction_worker", "openai")
     for path in root.rglob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         modules: list[str] = []
@@ -204,7 +206,13 @@ def test_upload_package_does_not_import_classification() -> None:
                 modules.extend(alias.name for alias in node.names)
             elif isinstance(node, ast.ImportFrom) and node.module:
                 modules.append(node.module)
-        assert all("powerforge_document_classification" not in module for module in modules), path
+        for module in modules:
+            assert not any(
+                module == name or module.startswith(f"{name}.") for name in forbidden
+            ), path
+    dockerfile = (REPO_ROOT / "services" / "api" / "Dockerfile").read_text(encoding="utf-8")
+    assert "-e /app/packages/document-classification" in dockerfile
+    assert "openai" not in dockerfile.lower()
 
 
 def _document_request(filename: str) -> ClassifyDocumentRequest:

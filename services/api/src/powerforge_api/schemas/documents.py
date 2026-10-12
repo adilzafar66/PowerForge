@@ -11,6 +11,9 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from powerforge_document_model import (
+    ClassificationRunStatus,
+    ClassificationStage,
+    ConfidenceBand,
     DocumentClassification,
     DocumentOrigin,
     PageArtifactType,
@@ -89,6 +92,86 @@ class DocumentPageListResponse(BaseModel):
     items: list[DocumentPageResponse]
 
 
+class ClassificationSuggestionSummary(BaseModel):
+    """Latest completed document prediction for the current processing run."""
+
+    predicted_type: DocumentClassification
+    confidence_band: ConfidenceBand
+    accepted: bool
+    requires_page_classification: bool
+
+
+class ClassificationAttemptSummary(BaseModel):
+    """Newest classification run of any status. A failed attempt does not hide the suggestion."""
+
+    status: ClassificationRunStatus
+    stage: ClassificationStage | None = None
+    pages_total: int
+    pages_classified: int
+    error_code: str | None = None
+
+
+class ClassificationSummaryResponse(BaseModel):
+    enabled: bool
+    suggestion: ClassificationSuggestionSummary | None = None
+    attempt: ClassificationAttemptSummary | None = None
+
+
+class ClassificationAlternativeResponse(BaseModel):
+    type: str
+    score: float
+
+
+class ClassificationDetailResponse(ClassificationSummaryResponse):
+    """Suggestion and attempt, plus the score, alternatives, and rationale of the suggestion."""
+
+    confidence_score: float | None = None
+    alternatives: list[ClassificationAlternativeResponse] = Field(default_factory=list)
+    rationale: str | None = None
+
+
+class ClassificationRunResponse(BaseModel):
+    """One historical run. No prompt, document text, image, storage key, or provider payload."""
+
+    id: UUID
+    status: ClassificationRunStatus
+    stage: ClassificationStage | None = None
+    pages_total: int
+    pages_classified: int
+    error_code: str | None = None
+    created_at: datetime
+    attempt_number: int
+    provider: str
+    model: str
+    classifier_version: str
+    taxonomy_version: str
+    prompt_version: str
+    sampling_profile_version: str
+    processing_run_id: UUID
+    predicted_type: DocumentClassification | None = None
+    confidence_band: ConfidenceBand | None = None
+    confidence_score: float | None = None
+
+
+class ClassificationRunListResponse(BaseModel):
+    enabled: bool
+    items: list[ClassificationRunResponse]
+
+
+class ClassificationPagePredictionResponse(BaseModel):
+    page_number: int
+    predicted_type: DocumentClassification
+    confidence_band: ConfidenceBand
+    confidence_score: float
+    alternatives: list[ClassificationAlternativeResponse] = Field(default_factory=list)
+    rationale: str | None = None
+
+
+class ClassificationPageListResponse(BaseModel):
+    enabled: bool
+    items: list[ClassificationPagePredictionResponse]
+
+
 class RevisionDocumentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -106,6 +189,7 @@ class RevisionDocumentResponse(BaseModel):
     added_at: datetime
     removed_at: datetime | None = None
     processing: ProcessingSummary | None = None
+    classification: ClassificationSummaryResponse
 
 
 class RevisionDocumentListResponse(BaseModel):
