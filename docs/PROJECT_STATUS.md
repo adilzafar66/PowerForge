@@ -4,7 +4,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 **Current implemented phase:** 3 (document processing)  
 **In progress:** none  
-**Next:** Phase 4 (document classification), specified in PR-01 (`3063120`), not implemented
+**Next:** Phase 4 (document classification). Contracts landed in `e962e9e`; classification is not implemented
 
 ## Phase 0 — Architecture and repository setup
 
@@ -143,10 +143,10 @@ Phase 2 tree at `2c75e44`, plus the untracked Phase 3 spec. Integration tests us
 
 ## Phase 4 — AI document classification
 
-**Status:** Specified (2026-10-11). Not implemented.
+**Status:** Specified (2026-10-11). Contracts landed; classification is not implemented.
 
 Specification: `cursor/phase4_specs.txt`  
-Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 landed in `3063120`; PR-02 onward are not started)  
+Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 landed in `3063120`; PR-02 landed in `e962e9e`; PR-03 onward are not started)  
 Decisions: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed 2026-10-11)
 
 Phase 4 will classify an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. Nothing in this phase is in the running application yet: no `MIXED_DOCUMENT` value, no classification tables, no worker queue, no provider calls, and no classification UI.
@@ -154,7 +154,7 @@ Phase 4 will classify an immutable `Document` after a completed Phase 3 processi
 ### Not implemented yet
 
 - `MIXED_DOCUMENT` and the classification schema
-- Fake and OpenAI providers, prompts, and the classification worker
+- Fake and OpenAI providers and the classification worker
 - Accept, retry, reclassify, and the suggestion/attempt API
 - Revision-workspace classification UI
 - Evaluation harness
@@ -180,7 +180,7 @@ Phase 3 tree on `main`, plus the untracked Phase 4 spec and this delivery plan, 
 | --- | --- | --- |
 | 2 | Document management | Complete (2026-10-06) |
 | 3 | Document processing | Complete (2026-10-10) |
-| 4 | Document classification | Specified (2026-10-11), not started |
+| 4 | Document classification | Specified (2026-10-11); contracts landed, classification not started |
 | 5 | Engineering model persistence | Not started |
 | 6–13 | Extraction through export | Not started |
 

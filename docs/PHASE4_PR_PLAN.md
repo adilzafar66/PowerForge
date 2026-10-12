@@ -84,7 +84,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | PR | Title | Area | Size | Depends on | Status |
 | --- | --- | --- | --- | --- | --- |
 | [PR-01](#pr-01--specification-adr-and-documentation) | Specification, ADR-006, docs, this plan | Docs | S | — | [x] landed in `3063120` |
-| [PR-02](#pr-02--classification-contracts-profile-and-prompts) | Classification contracts, profile, and prompts | Domain | M | PR-01 | [ ] |
+| [PR-02](#pr-02--classification-contracts-profile-and-prompts) | Classification contracts, profile, and prompts | Domain | M | PR-01 | [x] landed in `e962e9e` |
 | [PR-03](#pr-03--migration-0006-and-classification-models) | Migration `0006` and classification models | DB | M | PR-02 | [ ] |
 | [PR-04](#pr-04--classification-service-and-fake-provider) | Classification service and fake provider | Backend | L | PR-02, PR-03 | [ ] |
 | [PR-05](#pr-05--worker-queue-openai-adapter-trigger-and-backfill) | Worker, queue, OpenAI adapter, trigger, and backfill | Backend/Infra | L | PR-04 | [ ] |
@@ -156,6 +156,8 @@ ADR-006 must record at least the 20 numbered decisions in spec §64. It must not
 ---
 
 ### PR-02 — Classification contracts, profile, and prompts
+
+**Status.** Done. Provider contracts, taxonomy v2, the default profile hash, sampling, prompts, and error codes are on `main` (`e962e9e`). The live `DocumentClassification` enum is unchanged. ADR-006 remains Proposed.
 
 **Goal.** Add the provider-neutral classification vocabulary that every later PR imports. No database writes. No OpenAI SDK. (§5, §18, §22–§28, §36 error codes, §61, §62)
 
