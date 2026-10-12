@@ -4,7 +4,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 **Current implemented phase:** 3 (document processing)  
 **In progress:** none  
-**Next:** Phase 4 (document classification). Worker landed in `3ef0ccf`; the API and UI are not implemented
+**Next:** Phase 4 (document classification). API landed in `dfb0fc3`; the UI is not implemented
 
 ## Phase 0 — Architecture and repository setup
 
@@ -24,7 +24,7 @@ Decisions: [ADR-003](../decisions/ADR-003-project-revision-model.md)
 Delivered:
 
 - `packages/project` (`powerforge_project`) — status enums and transition helper
-- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0006_document_classification`. `0005_document_processing` adds `document_pages`, `document_processing_runs`, and `page_artifacts`. `0006_document_classification` adds `MIXED_DOCUMENT` and the unused classification tables.
+- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0006_document_classification`. `0005_document_processing` adds `document_pages`, `document_processing_runs`, and `page_artifacts`. `0006_document_classification` adds `MIXED_DOCUMENT` and the classification tables.
 - REST API under `/api/projects` and nested revisions (create/list/get/patch + pause/resume/cancel/archive/unarchive + activate)
 - Web UI: `/` project list, `/projects/new`, `/projects/[id]`, revision placeholder, `/status` stack health
 - Backend and frontend tests covering lifecycle, uniqueness, and concurrent activate
@@ -143,17 +143,16 @@ Phase 2 tree at `2c75e44`, plus the untracked Phase 3 spec. Integration tests us
 
 ## Phase 4 — AI document classification
 
-**Status:** Specified (2026-10-11). Worker landed; classification stays off.
+**Status:** Specified (2026-10-11). API landed; classification stays off.
 
 Specification: `cursor/phase4_specs.txt`  
-Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 landed in `3063120`; PR-02 landed in `e962e9e`; PR-03 landed in `ca91cfd`; PR-04 landed in `9d9460a`; PR-05 landed in `3ef0ccf`; PR-06 onward are not started)  
+Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 landed in `3063120`; PR-02 landed in `e962e9e`; PR-03 landed in `ca91cfd`; PR-04 landed in `9d9460a`; PR-05 landed in `3ef0ccf`; PR-06 landed in `dfb0fc3`; PR-07 onward are not started)  
 Decisions: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed 2026-10-11)
 
-Phase 4 will classify an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. When classification is enabled, a completed processing run queues `document_classification` and `extraction-worker` classifies it. The OpenAI adapter is mocked in tests. Classification stays off in Compose. There is no classification API or UI.
+Phase 4 will classify an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. When classification is enabled, a completed processing run queues `document_classification` and `extraction-worker` classifies it. The OpenAI adapter is mocked in tests. Classification stays off in Compose. The API returns a suggestion and attempt on list, detail, and upload, and accept is the only way a suggestion becomes the confirmed type. There is no classification UI.
 
 ### Not implemented yet
 
-- Accept and the suggestion/attempt API
 - Revision-workspace classification UI
 - Evaluation harness
 
@@ -178,7 +177,7 @@ Phase 3 tree on `main`, plus the untracked Phase 4 spec and this delivery plan, 
 | --- | --- | --- |
 | 2 | Document management | Complete (2026-10-06) |
 | 3 | Document processing | Complete (2026-10-10) |
-| 4 | Document classification | Specified (2026-10-11); worker landed, API and UI not started |
+| 4 | Document classification | Specified (2026-10-11); API landed, UI not started |
 | 5 | Engineering model persistence | Not started |
 | 6–13 | Extraction through export | Not started |
 

@@ -88,7 +88,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-03](#pr-03--migration-0006-and-classification-models) | Migration `0006` and classification models | DB | M | PR-02 | [x] landed in `ca91cfd` |
 | [PR-04](#pr-04--classification-service-and-fake-provider) | Classification service and fake provider | Backend | L | PR-02, PR-03 | [x] landed in `9d9460a` |
 | [PR-05](#pr-05--worker-queue-openai-adapter-trigger-and-backfill) | Worker, queue, OpenAI adapter, trigger, and backfill | Backend/Infra | L | PR-04 | [x] landed in `3ef0ccf` |
-| [PR-06](#pr-06--classification-apis-and-acceptance-provenance) | Classification APIs and acceptance provenance | Backend | L | PR-04 | [ ] |
+| [PR-06](#pr-06--classification-apis-and-acceptance-provenance) | Classification APIs and acceptance provenance | Backend | L | PR-04 | [x] landed in `dfb0fc3` |
 | [PR-07](#pr-07--classification-workspace-ui) | Classification workspace UI | Web | M | PR-06 | [ ] |
 | [PR-08](#pr-08--evaluation-harness) | Evaluation harness | Tooling | M | PR-04 | [ ] |
 | [PR-09](#pr-09--hardening-verification-and-phase-4-completion) | Hardening, verification, and Phase 4 completion | All | M | all | [ ] |
@@ -363,6 +363,8 @@ ADR-006 must record at least the 20 numbered decisions in spec §64. It must not
 ---
 
 ### PR-06 — Classification APIs and acceptance provenance
+
+**Status.** Done. Classification reads, accept, and provenance are on `main` (`dfb0fc3`). Classification stays off until enabled. There is no classification UI. ADR-006 remains Proposed.
 
 **Goal.** Revision-scoped reads and mutations for classification, plus the list/detail summary and the provenance rules that first become meaningful when a prediction can be accepted. (§15–§17, §34, §39–§44, §56)
 
