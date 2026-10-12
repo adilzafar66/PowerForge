@@ -95,6 +95,7 @@ class DocumentPageListResponse(BaseModel):
 class ClassificationSuggestionSummary(BaseModel):
     """Latest completed document prediction for the current processing run."""
 
+    prediction_id: UUID
     predicted_type: DocumentClassification
     confidence_band: ConfidenceBand
     accepted: bool
@@ -104,6 +105,7 @@ class ClassificationSuggestionSummary(BaseModel):
 class ClassificationAttemptSummary(BaseModel):
     """Newest classification run of any status. A failed attempt does not hide the suggestion."""
 
+    id: UUID
     status: ClassificationRunStatus
     stage: ClassificationStage | None = None
     pages_total: int

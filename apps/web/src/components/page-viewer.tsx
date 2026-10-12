@@ -16,6 +16,8 @@ type Props = {
   revisionId: string;
   revisionDocumentId: string;
   filename: string;
+  /** When set, the viewer selects this page number after the page list loads. */
+  initialPageNumber?: number | null;
   onClose: () => void;
 };
 
@@ -24,6 +26,7 @@ export function PageViewer({
   revisionId,
   revisionDocumentId,
   filename,
+  initialPageNumber = null,
   onClose,
 }: Props) {
   const [pages, setPages] = useState<DocumentPage[] | null>(null);
@@ -38,7 +41,11 @@ export function PageViewer({
       .then((items) => {
         if (cancelled) return;
         setPages(items);
-        setSelectedId(items[0]?.id ?? null);
+        const preferred =
+          initialPageNumber == null
+            ? undefined
+            : items.find((page) => page.page_number === initialPageNumber);
+        setSelectedId(preferred?.id ?? items[0]?.id ?? null);
         return Promise.all(
           items.map(async (page) => {
             const thumbnail = page.artifacts.find(
@@ -70,7 +77,7 @@ export function PageViewer({
     return () => {
       cancelled = true;
     };
-  }, [projectId, revisionId, revisionDocumentId]);
+  }, [projectId, revisionId, revisionDocumentId, initialPageNumber]);
 
   useEffect(() => {
     if (!selectedId) return;

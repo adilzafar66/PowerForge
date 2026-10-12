@@ -22,6 +22,12 @@ import {
   restoreDocument,
   reuseDocument,
   updateDocument,
+  acceptClassification,
+  reclassifyDocument,
+  retryClassification,
+  listClassificationPages,
+  classificationAttemptState,
+  classificationErrorLabel,
 } from "./documents";
 
 const P = "11111111-1111-1111-1111-111111111111";
@@ -435,4 +441,94 @@ describe("isReadOnlyErrorCode", () => {
       expect(isReadOnlyErrorCode(code)).toBe(false);
     },
   );
+});
+
+describe("classification actions", () => {
+  const summary = { enabled: true, suggestion: null, attempt: null };
+
+  it("posts accept to the prediction route and returns the document", async () => {
+    const fetchMock = respond({ id: D });
+    const result = await acceptClassification(P, R, D, "pred-1");
+    expect(result).toEqual({ id: D });
+    expect(lastCall(fetchMock)).toMatchObject({
+      path: `${BASE}/${D}/classification/predictions/pred-1/accept`,
+      method: "POST",
+    });
+  });
+
+  it("posts reclassify and retry, and reads page predictions only from the pages route", async () => {
+    const fetchMock = respond(summary);
+    await reclassifyDocument(P, R, D);
+    expect(lastCall(fetchMock)).toMatchObject({
+      path: `${BASE}/${D}/classification/reclassify`,
+      method: "POST",
+    });
+
+    await retryClassification(P, R, D, "run-9");
+    expect(lastCall(fetchMock)).toMatchObject({
+      path: `${BASE}/${D}/classification/runs/run-9/retry`,
+      method: "POST",
+    });
+
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        items: [{ page_number: 2, predicted_type: "PANEL_SCHEDULE", confidence_band: "LOW" }],
+      }),
+    } as Response);
+    const pages = await listClassificationPages(P, R, D);
+    expect(pages).toEqual([
+      { page_number: 2, predicted_type: "PANEL_SCHEDULE", confidence_band: "LOW" },
+    ]);
+    expect(lastCall(fetchMock).path).toBe(`${BASE}/${D}/classification/pages`);
+    expect(lastCall(fetchMock).method).toBe("GET");
+  });
+
+  it("derives attempt state separately from a stored suggestion", () => {
+    expect(classificationAttemptState(null)).toBe("disabled");
+    expect(classificationAttemptState({ enabled: false, suggestion: null, attempt: null })).toBe(
+      "disabled",
+    );
+    expect(classificationAttemptState(summary)).toBe("not_classified");
+    expect(
+      classificationAttemptState({
+        ...summary,
+        attempt: {
+          id: "run",
+          status: "PENDING",
+          stage: null,
+          pages_total: 0,
+          pages_classified: 0,
+          error_code: null,
+        },
+      }),
+    ).toBe("pending");
+    expect(
+      classificationAttemptState({
+        ...summary,
+        attempt: {
+          id: "run",
+          status: "FAILED",
+          stage: null,
+          pages_total: 1,
+          pages_classified: 0,
+          error_code: "PROVIDER_TIMEOUT",
+        },
+        suggestion: {
+          prediction_id: "pred",
+          predicted_type: "SINGLE_LINE_DIAGRAM",
+          confidence_band: "HIGH",
+          accepted: false,
+          requires_page_classification: false,
+        },
+      }),
+    ).toBe("failed");
+    expect(classificationErrorLabel("PROVIDER_TIMEOUT")).toBe(
+      "The classification provider timed out.",
+    );
+    expect(classificationErrorLabel("CLASSIFICATION_TASK_TIMEOUT")).toBe("Classification timed out.");
+    expect(classificationErrorLabel("OTHER")).toBe("OTHER");
+    expect(classificationErrorLabel(null)).toBe("Classification failed");
+  });
 });

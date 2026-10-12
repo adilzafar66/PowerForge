@@ -34,6 +34,7 @@ RUN pip install --no-cache-dir --upgrade pip \
     elif [ "$WORKER_PACKAGE" = "extraction-worker" ]; then \
         pip install --no-cache-dir \
             -e /app/packages/shared \
+            -e /app/packages/project \
             -e /app/packages/document-model \
             -e /app/packages/document-processing \
             -e /app/packages/document-classification \

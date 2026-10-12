@@ -26,6 +26,10 @@ vi.mock("@/lib/documents", async (importOriginal) => ({
   retryProcessing: vi.fn(),
   listPages: vi.fn(),
   getPageArtifactUrl: vi.fn(),
+  acceptClassification: vi.fn(),
+  reclassifyDocument: vi.fn(),
+  retryClassification: vi.fn(),
+  listClassificationPages: vi.fn(),
 }));
 
 vi.mock("@/lib/projects", async (importOriginal) => ({
@@ -36,15 +40,21 @@ vi.mock("@/lib/projects", async (importOriginal) => ({
 import { RevisionDocuments } from "@/components/revision-documents";
 import { listRevisions } from "@/lib/projects";
 import {
+  acceptClassification,
   getDownloadUrl,
   getPageArtifactUrl,
+  listClassificationPages,
   listDocuments,
   listPages,
+  reclassifyDocument,
   removeDocument,
   restoreDocument,
+  retryClassification,
   retryProcessing,
   updateDocument,
   uploadDocument,
+  type ClassificationAttempt,
+  type ClassificationSuggestion,
   type ProcessingSummary,
   type RevisionDocument,
 } from "@/lib/documents";
@@ -77,6 +87,7 @@ function makeRow(overrides: Partial<RevisionDocument> & { name?: string; mime?: 
     added_at: "2026-10-01T10:00:00Z",
     removed_at: null,
     processing: null,
+    classification: { enabled: true, suggestion: null, attempt: null },
     ...rest,
   } as RevisionDocument;
 }
@@ -723,5 +734,457 @@ describe("processing column and page viewer", () => {
       "src",
       "https://files.example/ANALYSIS_IMAGE/page-1",
     );
+  });
+});
+
+function suggestion(
+  overrides: Partial<ClassificationSuggestion> = {},
+): ClassificationSuggestion {
+  return {
+    prediction_id: "pred-1",
+    predicted_type: "TRANSFORMER_SHOP_DRAWING",
+    confidence_band: "HIGH",
+    accepted: false,
+    requires_page_classification: false,
+    ...overrides,
+  };
+}
+
+function attempt(
+  overrides: Partial<ClassificationAttempt> & { status: ClassificationAttempt["status"] },
+): ClassificationAttempt {
+  return {
+    id: "run-1",
+    stage: "DOCUMENT",
+    pages_total: 2,
+    pages_classified: 0,
+    error_code: null,
+    ...overrides,
+  };
+}
+
+function classified(
+  name: string,
+  classification: RevisionDocument["classification"],
+  extra: Partial<RevisionDocument> = {},
+) {
+  return makeRow({ name, classification, ...extra });
+}
+
+function page(id: string, pageNumber: number) {
+  return {
+    id,
+    page_number: pageNumber,
+    source_width: "612",
+    source_height: "792",
+    source_unit: "POINTS" as const,
+    rotation_degrees: 0,
+    native_text_char_count: 0,
+    artifacts: [],
+  };
+}
+
+describe("AI suggestion column", () => {
+  const accept = vi.mocked(acceptClassification);
+  const reclassify = vi.mocked(reclassifyDocument);
+  const retry = vi.mocked(retryClassification);
+  const classificationPages = vi.mocked(listClassificationPages);
+  const update = vi.mocked(updateDocument);
+  const pages = vi.mocked(listPages);
+  const artifactUrl = vi.mocked(getPageArtifactUrl);
+
+  beforeEach(() => {
+    accept.mockReset();
+    reclassify.mockReset();
+    retry.mockReset();
+    classificationPages.mockReset();
+  });
+
+  it("renders each attempt state from the list payload without calling classification", async () => {
+    list.mockResolvedValue([
+      classified("none.pdf", { enabled: true, suggestion: null, attempt: null }),
+      classified("off.pdf", {
+        enabled: false,
+        suggestion: suggestion({ predicted_type: "PANEL_SCHEDULE", confidence_band: "MEDIUM" }),
+        attempt: attempt({ status: "FAILED", error_code: "PROVIDER_TIMEOUT" }),
+      }),
+      classified("wait.pdf", {
+        enabled: true,
+        suggestion: null,
+        attempt: attempt({ status: "PENDING" }),
+      }),
+      classified("run.pdf", {
+        enabled: true,
+        suggestion: null,
+        attempt: attempt({ status: "RUNNING" }),
+      }),
+      classified(
+        "ready.pdf",
+        {
+          enabled: true,
+          suggestion: suggestion({ confidence_band: "HIGH" }),
+          attempt: attempt({ status: "COMPLETED" }),
+        },
+        { document_type: "TRANSFORMER_SHOP_DRAWING" },
+      ),
+      classified("bad.pdf", {
+        enabled: true,
+        suggestion: null,
+        attempt: attempt({ status: "FAILED", error_code: "PROVIDER_TIMEOUT" }),
+      }),
+    ]);
+    renderWorkspace();
+
+    const none = await screen.findByRole("row", { name: /none.pdf/ });
+    expect(within(none).getByText("Not classified")).toBeInTheDocument();
+    const off = screen.getByRole("row", { name: /off.pdf/ });
+    expect(within(off).getByText("AI classification disabled")).toBeInTheDocument();
+    expect(within(off).getByText(/Panel Schedule/)).toBeInTheDocument();
+    expect(within(off).queryByRole("button", { name: "Reclassify" })).toBeNull();
+    expect(within(off).queryByRole("button", { name: "Retry classification" })).toBeNull();
+    expect(within(screen.getByRole("row", { name: /wait.pdf/ })).getByText("Pending")).toBeInTheDocument();
+    expect(within(screen.getByRole("row", { name: /run.pdf/ })).getByText("Classifying")).toBeInTheDocument();
+    const ready = screen.getByRole("row", { name: /ready.pdf/ });
+    expect(within(ready).getByText("Ready")).toBeInTheDocument();
+    expect(within(ready).getByText("High")).toBeInTheDocument();
+    expect(within(ready).queryByLabelText("Accepted")).toBeNull();
+    const bad = screen.getByRole("row", { name: /bad.pdf/ });
+    expect(within(bad).getByText("Failed")).toBeInTheDocument();
+    expect(within(bad).getByText("The classification provider timed out.")).toBeInTheDocument();
+    expect(accept).not.toHaveBeenCalled();
+    expect(reclassify).not.toHaveBeenCalled();
+    expect(retry).not.toHaveBeenCalled();
+    expect(classificationPages).not.toHaveBeenCalled();
+  });
+
+  it("shows Retry only for a failed attempt and Reclassify only for a settled suggestion", async () => {
+    list.mockResolvedValue([
+      classified("pending.pdf", {
+        enabled: true,
+        suggestion: suggestion({ predicted_type: "SPECIFICATION" }),
+        attempt: attempt({ status: "PENDING" }),
+      }),
+      classified("running.pdf", {
+        enabled: true,
+        suggestion: suggestion({ predicted_type: "MOTOR_DATA" }),
+        attempt: attempt({ status: "RUNNING" }),
+      }),
+      classified("failed-empty.pdf", {
+        enabled: true,
+        suggestion: null,
+        attempt: attempt({ status: "FAILED", error_code: "CLASSIFICATION_TASK_TIMEOUT" }),
+      }),
+      classified("done.pdf", {
+        enabled: true,
+        suggestion: suggestion({ predicted_type: "CABLE_SCHEDULE" }),
+        attempt: attempt({ status: "COMPLETED" }),
+      }),
+      classified("failed-keep.pdf", {
+        enabled: true,
+        suggestion: suggestion({ predicted_type: "SINGLE_LINE_DIAGRAM" }),
+        attempt: attempt({ status: "FAILED", error_code: "CLASSIFICATION_TASK_TIMEOUT" }),
+      }),
+    ]);
+    renderWorkspace();
+
+    const pending = await screen.findByRole("row", { name: /pending.pdf/ });
+    expect(within(pending).queryByRole("button", { name: "Reclassify" })).toBeNull();
+    expect(within(pending).queryByRole("button", { name: "Retry classification" })).toBeNull();
+    expect(within(pending).getByText(/Specification/)).toBeInTheDocument();
+    const running = screen.getByRole("row", { name: /running.pdf/ });
+    expect(within(running).queryByRole("button", { name: "Reclassify" })).toBeNull();
+    expect(within(running).queryByRole("button", { name: "Retry classification" })).toBeNull();
+    const empty = screen.getByRole("row", { name: /failed-empty.pdf/ });
+    expect(within(empty).getByRole("button", { name: "Retry classification" })).toBeInTheDocument();
+    expect(within(empty).queryByRole("button", { name: "Reclassify" })).toBeNull();
+    expect(within(empty).getByText("Classification timed out.")).toBeInTheDocument();
+    const done = screen.getByRole("row", { name: /done.pdf/ });
+    expect(within(done).getByRole("button", { name: "Reclassify" })).toBeInTheDocument();
+    expect(within(done).queryByRole("button", { name: "Retry classification" })).toBeNull();
+    const kept = screen.getByRole("row", { name: /failed-keep.pdf/ });
+    expect(within(kept).getByRole("button", { name: "Retry classification" })).toBeInTheDocument();
+    expect(within(kept).getByRole("button", { name: "Reclassify" })).toBeInTheDocument();
+    expect(within(kept).getAllByText(/Single Line Diagram/).length).toBeGreaterThan(0);
+  });
+
+  it("accepts an unaccepted suggestion and replaces the row", async () => {
+    const user = userEvent.setup();
+    const accepted = classified(
+      "tx.pdf",
+      {
+        enabled: true,
+        suggestion: suggestion({ predicted_type: "TRANSFORMER_SHOP_DRAWING", accepted: true }),
+        attempt: attempt({ status: "COMPLETED" }),
+      },
+      { document_type: "TRANSFORMER_SHOP_DRAWING" },
+    );
+    list.mockResolvedValue([
+      classified(
+        "tx.pdf",
+        {
+          enabled: true,
+          suggestion: suggestion({ predicted_type: "TRANSFORMER_SHOP_DRAWING" }),
+          attempt: attempt({ status: "COMPLETED" }),
+        },
+        { document_type: "TRANSFORMER_SHOP_DRAWING" },
+      ),
+    ]);
+    accept.mockResolvedValue(accepted);
+    renderWorkspace(true);
+
+    await user.click(await screen.findByRole("button", { name: "Accept" }));
+
+    expect(accept).toHaveBeenCalledWith(P, R, "rd-tx.pdf", "pred-1");
+    expect(await screen.findByLabelText("Accepted")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Accept" })).toBeNull();
+  });
+
+  it("uses the same accept route when the confirmed type differs", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([
+      classified(
+        "tx.pdf",
+        {
+          enabled: true,
+          suggestion: suggestion({ predicted_type: "TRANSFORMER_SHOP_DRAWING" }),
+          attempt: attempt({ status: "COMPLETED" }),
+        },
+        { document_type: "ELECTRICAL_DRAWING" },
+      ),
+    ]);
+    accept.mockResolvedValue(
+      classified(
+        "tx.pdf",
+        {
+          enabled: true,
+          suggestion: suggestion({ predicted_type: "TRANSFORMER_SHOP_DRAWING", accepted: true }),
+          attempt: attempt({ status: "COMPLETED" }),
+        },
+        { document_type: "TRANSFORMER_SHOP_DRAWING" },
+      ),
+    );
+    renderWorkspace(true);
+
+    const row = await screen.findByRole("row", { name: /tx.pdf/ });
+    expect(within(row).getAllByText("Electrical Drawing").length).toBeGreaterThan(0);
+    expect(within(row).getByText(/Transformer Shop Drawing/)).toBeInTheDocument();
+    await user.click(within(row).getByRole("button", { name: "Use AI Suggestion" }));
+
+    expect(accept).toHaveBeenCalledWith(P, R, "rd-tx.pdf", "pred-1");
+    expect(await screen.findByLabelText("Accepted")).toBeInTheDocument();
+  });
+
+  it("opens the existing editor to choose another type", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([
+      classified(
+        "tx.pdf",
+        {
+          enabled: true,
+          suggestion: suggestion({ predicted_type: "TRANSFORMER_SHOP_DRAWING" }),
+          attempt: attempt({ status: "COMPLETED" }),
+        },
+        { document_type: "TRANSFORMER_SHOP_DRAWING" },
+      ),
+    ]);
+    renderWorkspace(true);
+
+    await user.click(await screen.findByRole("button", { name: "Choose another type" }));
+
+    expect(await screen.findByRole("dialog", { name: "Edit document details" })).toBeInTheDocument();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("keeps the current type without patching", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([
+      classified(
+        "tx.pdf",
+        {
+          enabled: true,
+          suggestion: suggestion({ predicted_type: "TRANSFORMER_SHOP_DRAWING" }),
+          attempt: attempt({ status: "COMPLETED" }),
+        },
+        { document_type: "ELECTRICAL_DRAWING" },
+      ),
+    ]);
+    renderWorkspace(true);
+
+    await user.click(await screen.findByRole("button", { name: "Keep Current" }));
+
+    expect(update).not.toHaveBeenCalled();
+    expect(accept).not.toHaveBeenCalled();
+    expect(screen.getAllByText("Electrical Drawing").length).toBeGreaterThan(0);
+  });
+
+  it("shows the checkmark only when the suggestion is accepted", async () => {
+    list.mockResolvedValue([
+      classified(
+        "open.pdf",
+        {
+          enabled: true,
+          suggestion: suggestion({ predicted_type: "SPECIFICATION", accepted: false }),
+          attempt: attempt({ status: "COMPLETED" }),
+        },
+        { document_type: "SPECIFICATION" },
+      ),
+      classified(
+        "yes.pdf",
+        {
+          enabled: true,
+          suggestion: suggestion({ predicted_type: "SPECIFICATION", accepted: true }),
+          attempt: attempt({ status: "COMPLETED" }),
+        },
+        { document_type: "SPECIFICATION" },
+      ),
+      classified(
+        "differ.pdf",
+        {
+          enabled: true,
+          suggestion: suggestion({ predicted_type: "MOTOR_DATA", accepted: true }),
+          attempt: attempt({ status: "COMPLETED" }),
+        },
+        { document_type: "CABLE_SCHEDULE" },
+      ),
+    ]);
+    renderWorkspace();
+
+    const open = await screen.findByRole("row", { name: /open.pdf/ });
+    expect(within(open).queryByLabelText("Accepted")).toBeNull();
+    expect(within(screen.getByRole("row", { name: /yes.pdf/ })).getByLabelText("Accepted")).toBeInTheDocument();
+    expect(within(screen.getByRole("row", { name: /differ.pdf/ })).getByLabelText("Accepted")).toBeInTheDocument();
+  });
+
+  it("keeps the previous suggestion when reclassify fails", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([
+      classified("sld.pdf", {
+        enabled: true,
+        suggestion: suggestion({ predicted_type: "SINGLE_LINE_DIAGRAM", confidence_band: "MEDIUM" }),
+        attempt: attempt({ status: "FAILED", error_code: "CLASSIFICATION_TASK_TIMEOUT" }),
+      }),
+    ]);
+    reclassify.mockResolvedValue({
+      enabled: true,
+      suggestion: suggestion({ predicted_type: "SINGLE_LINE_DIAGRAM", confidence_band: "MEDIUM" }),
+      attempt: attempt({ id: "run-2", status: "FAILED", error_code: "PROVIDER_TIMEOUT" }),
+    });
+    renderWorkspace();
+
+    const row = await screen.findByRole("row", { name: /sld.pdf/ });
+    expect(within(row).getAllByText(/Single Line Diagram/).length).toBeGreaterThan(0);
+    expect(within(row).getByText("Classification timed out.")).toBeInTheDocument();
+    await user.click(within(row).getByRole("button", { name: "Reclassify" }));
+
+    expect(reclassify).toHaveBeenCalledWith(P, R, "rd-sld.pdf");
+    expect(await screen.findByText("The classification provider timed out.")).toBeInTheDocument();
+    expect(screen.getAllByText(/Single Line Diagram/).length).toBeGreaterThan(0);
+    expect(screen.getByText("Failed")).toBeInTheDocument();
+  });
+
+  it("retries a failed run and merges the returned attempt", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([
+      classified("bad.pdf", {
+        enabled: true,
+        suggestion: null,
+        attempt: attempt({ id: "run-7", status: "FAILED", error_code: "PROVIDER_TIMEOUT" }),
+      }),
+    ]);
+    retry.mockResolvedValue({
+      enabled: true,
+      suggestion: null,
+      attempt: attempt({ id: "run-8", status: "PENDING" }),
+    });
+    renderWorkspace();
+
+    await user.click(await screen.findByRole("button", { name: "Retry classification" }));
+
+    expect(retry).toHaveBeenCalledWith(P, R, "rd-bad.pdf", "run-7");
+    expect(await screen.findByText("Pending")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry classification" })).toBeNull();
+  });
+
+  it("loads mixed page predictions on demand and opens that page", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([
+      classified("mixed.pdf", {
+        enabled: true,
+        suggestion: suggestion({
+          predicted_type: "MIXED_DOCUMENT",
+          confidence_band: "LOW",
+          requires_page_classification: true,
+        }),
+        attempt: attempt({ status: "COMPLETED" }),
+      }),
+    ]);
+    classificationPages.mockResolvedValue([
+      { page_number: 1, predicted_type: "SINGLE_LINE_DIAGRAM", confidence_band: "HIGH" },
+      { page_number: 2, predicted_type: "PANEL_SCHEDULE", confidence_band: "LOW" },
+    ]);
+    pages.mockResolvedValue([page("page-1", 1), page("page-2", 2)]);
+    artifactUrl.mockResolvedValue({
+      url: "https://files.example/page",
+      expires_at: "2026-10-10T00:00:00Z",
+      filename: "page.png",
+    });
+    renderWorkspace();
+
+    const row = await screen.findByRole("row", { name: /mixed.pdf/ });
+    expect(within(row).getByRole("button", { name: "View page types" })).toBeInTheDocument();
+    expect(classificationPages).not.toHaveBeenCalled();
+    await user.click(within(row).getByRole("button", { name: "View page types" }));
+
+    expect(classificationPages).toHaveBeenCalledTimes(1);
+    expect(classificationPages).toHaveBeenCalledWith(P, R, "rd-mixed.pdf");
+    expect(await within(row).findByRole("cell", { name: "Panel Schedule" })).toBeInTheDocument();
+    expect(within(row).getAllByText("Low").length).toBeGreaterThan(0);
+    await user.click(within(row).getByRole("button", { name: "2" }));
+
+    expect(await screen.findByRole("button", { name: /Page 2/, pressed: true })).toBeInTheDocument();
+    expect(pages).toHaveBeenCalledWith(P, R, "rd-mixed.pdf");
+  });
+
+  it("hides accept and choose-type on a read-only revision while the suggestion stays", async () => {
+    list.mockResolvedValue([
+      classified(
+        "open.pdf",
+        {
+          enabled: true,
+          suggestion: suggestion({ predicted_type: "SPECIFICATION" }),
+          attempt: attempt({ status: "FAILED", error_code: "OTHER" }),
+        },
+        { document_type: "SPECIFICATION" },
+      ),
+    ]);
+    renderWorkspace(false);
+
+    const open = await screen.findByRole("row", { name: /open.pdf/ });
+    expect(within(open).getAllByText(/Specification/).length).toBeGreaterThan(0);
+    expect(within(open).queryByRole("button", { name: "Accept" })).toBeNull();
+    expect(within(open).queryByRole("button", { name: "Choose another type" })).toBeNull();
+    expect(within(open).getByRole("button", { name: "Retry classification" })).toBeInTheDocument();
+    expect(within(open).getByRole("button", { name: "Reclassify" })).toBeInTheDocument();
+  });
+
+  it("keeps a removed row's suggestion visible without accept or choose-type", async () => {
+    list.mockResolvedValue([
+      classified(
+        "gone.pdf",
+        {
+          enabled: true,
+          suggestion: suggestion({ predicted_type: "MOTOR_DATA", confidence_band: "LOW" }),
+          attempt: attempt({ status: "COMPLETED" }),
+        },
+        { status: "REMOVED", document_type: "MOTOR_DATA" },
+      ),
+    ]);
+    renderWorkspace(true);
+
+    const gone = await screen.findByRole("row", { name: /gone.pdf/ });
+    expect(within(gone).getAllByText(/Motor Data/).length).toBeGreaterThan(0);
+    expect(within(gone).queryByRole("button", { name: "Accept" })).toBeNull();
+    expect(within(gone).queryByRole("button", { name: "Choose another type" })).toBeNull();
+    expect(within(gone).getByRole("button", { name: "Reclassify" })).toBeInTheDocument();
   });
 });

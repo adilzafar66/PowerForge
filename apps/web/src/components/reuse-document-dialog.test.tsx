@@ -59,6 +59,8 @@ function row(name: string, revisionId: string, status: "INCLUDED" | "REMOVED" = 
     notes: null,
     added_at: "2026-10-01T10:00:00Z",
     removed_at: null,
+    processing: null,
+    classification: { enabled: true, suggestion: null, attempt: null },
   } as RevisionDocument;
 }
 

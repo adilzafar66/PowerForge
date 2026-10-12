@@ -54,6 +54,8 @@ export type RevisionDocument = {
   removed_at: string | null;
   /** Current processing run, or null when this document has never been processed. */
   processing: ProcessingSummary | null;
+  /** Suggestion and newest attempt. The list payload is enough to render the column. */
+  classification: ClassificationSummary;
 };
 
 export type ProcessingRunStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
@@ -66,6 +68,47 @@ export type ProcessingSummary = {
   error_code: string | null;
   error_message: string | null;
 };
+
+export type ClassificationRunStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
+export type ClassificationStage = "DOCUMENT" | "PAGES";
+export type ConfidenceBand = "HIGH" | "MEDIUM" | "LOW";
+
+export type ClassificationSuggestion = {
+  prediction_id: string;
+  predicted_type: DocumentType;
+  confidence_band: ConfidenceBand;
+  accepted: boolean;
+  requires_page_classification: boolean;
+};
+
+export type ClassificationAttempt = {
+  id: string;
+  status: ClassificationRunStatus;
+  stage: ClassificationStage | null;
+  pages_total: number;
+  pages_classified: number;
+  error_code: string | null;
+};
+
+export type ClassificationSummary = {
+  enabled: boolean;
+  suggestion: ClassificationSuggestion | null;
+  attempt: ClassificationAttempt | null;
+};
+
+export type ClassificationPagePrediction = {
+  page_number: number;
+  predicted_type: DocumentType;
+  confidence_band: ConfidenceBand;
+};
+
+export type ClassificationAttemptState =
+  | "disabled"
+  | "not_classified"
+  | "pending"
+  | "classifying"
+  | "ready"
+  | "failed";
 
 export type ProcessingStatusResponse = {
   processing: ProcessingSummary | null;
@@ -155,6 +198,61 @@ export const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = D
 
 export function documentTypeLabel(type: DocumentType): string {
   return DOCUMENT_TYPE_LABELS[type] ?? type;
+}
+
+const ATTEMPT_STATE_LABELS: Record<ClassificationAttemptState, string> = {
+  disabled: "AI classification disabled",
+  not_classified: "Not classified",
+  pending: "Pending",
+  classifying: "Classifying",
+  ready: "Ready",
+  failed: "Failed",
+};
+
+/** Attempt label for the list column. A suggestion can still be shown beside it. */
+export function classificationAttemptState(
+  classification: ClassificationSummary | null | undefined,
+): ClassificationAttemptState {
+  if (!classification?.enabled) {
+    return "disabled";
+  }
+  const status = classification.attempt?.status;
+  if (status === "PENDING") {
+    return "pending";
+  }
+  if (status === "RUNNING") {
+    return "classifying";
+  }
+  if (status === "FAILED") {
+    return "failed";
+  }
+  if (classification.suggestion) {
+    return "ready";
+  }
+  return "not_classified";
+}
+
+export function classificationAttemptLabel(
+  classification: ClassificationSummary | null | undefined,
+): string {
+  return ATTEMPT_STATE_LABELS[classificationAttemptState(classification)];
+}
+
+export function confidenceBandLabel(band: ConfidenceBand): string {
+  if (band === "HIGH") return "High";
+  if (band === "MEDIUM") return "Medium";
+  return "Low";
+}
+
+/** Short text for a failed attempt. The two timeout codes stay distinct. */
+export function classificationErrorLabel(code: string | null | undefined): string {
+  if (code === "PROVIDER_TIMEOUT") {
+    return "The classification provider timed out.";
+  }
+  if (code === "CLASSIFICATION_TASK_TIMEOUT") {
+    return "Classification timed out.";
+  }
+  return code || "Classification failed";
 }
 
 export function originLabel(origin: DocumentOrigin): string {
@@ -319,6 +417,52 @@ export async function retryProcessing(
     `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/processing/retry`,
     { method: "POST" },
   );
+}
+
+export async function acceptClassification(
+  projectId: string,
+  revisionId: string,
+  revisionDocumentId: string,
+  predictionId: string,
+): Promise<RevisionDocument> {
+  return request<RevisionDocument>(
+    `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/classification/predictions/${predictionId}/accept`,
+    { method: "POST" },
+  );
+}
+
+export async function reclassifyDocument(
+  projectId: string,
+  revisionId: string,
+  revisionDocumentId: string,
+): Promise<ClassificationSummary> {
+  return request<ClassificationSummary>(
+    `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/classification/reclassify`,
+    { method: "POST" },
+  );
+}
+
+export async function retryClassification(
+  projectId: string,
+  revisionId: string,
+  revisionDocumentId: string,
+  runId: string,
+): Promise<ClassificationSummary> {
+  return request<ClassificationSummary>(
+    `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/classification/runs/${runId}/retry`,
+    { method: "POST" },
+  );
+}
+
+export async function listClassificationPages(
+  projectId: string,
+  revisionId: string,
+  revisionDocumentId: string,
+): Promise<ClassificationPagePrediction[]> {
+  const body = await request<{ items: ClassificationPagePrediction[] }>(
+    `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/classification/pages`,
+  );
+  return body.items;
 }
 
 export async function listPages(

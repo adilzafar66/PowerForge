@@ -1143,6 +1143,7 @@ def _classification_summary(
     suggestion_run = summary.suggestion_run
     if prediction is not None and suggestion_run is not None:
         suggestion = ClassificationSuggestionSummary(
+            prediction_id=prediction.id,
             predicted_type=prediction.predicted_type,
             confidence_band=prediction.confidence_band,
             accepted=association.accepted_classification_prediction_id == prediction.id,
@@ -1210,6 +1211,7 @@ def _classification_page(page: ClassificationPageView) -> ClassificationPagePred
 
 def _attempt(run: DocumentClassificationRun) -> ClassificationAttemptSummary:
     return ClassificationAttemptSummary(
+        id=run.id,
         status=run.status,
         stage=run.stage,
         pages_total=run.pages_total,

@@ -105,7 +105,7 @@ def test_list_loads_classification_summaries_once(
     second = upload(project_id, revision_id, filename="b.pdf").json()
     _complete_processing(first["document"]["id"])
     processing_id = _complete_processing(second["document"]["id"])
-    _add_run(second["document"]["id"], processing_id)
+    seeded = _add_run(second["document"]["id"], processing_id)
 
     calls: list[list[object]] = []
     original = ClassificationService.summaries_for_documents
@@ -125,9 +125,11 @@ def test_list_loads_classification_summaries_once(
     by_id = {item["id"]: item for item in listed.json()["items"]}
     assert by_id[first["id"]]["classification"]["suggestion"] is None
     suggestion = by_id[second["id"]]["classification"]["suggestion"]
+    assert suggestion["prediction_id"] == seeded["prediction_id"]
     assert suggestion["predicted_type"] == "SINGLE_LINE_DIAGRAM"
     assert suggestion["accepted"] is False
     assert suggestion["confidence_band"] == "HIGH"
+    assert by_id[second["id"]]["classification"]["attempt"]["id"] == seeded["run_id"]
 
 
 def test_completed_suggestion_remains_after_failed_and_inflight_reclassify(
@@ -138,8 +140,8 @@ def test_completed_suggestion_remains_after_failed_and_inflight_reclassify(
     body = upload(project_id, revision_id).json()
     processing_id = _complete_processing(body["document"]["id"])
     moment = datetime.now(UTC) - timedelta(minutes=5)
-    _add_run(body["document"]["id"], processing_id, created_at=moment)
-    _add_run(
+    completed = _add_run(body["document"]["id"], processing_id, created_at=moment)
+    failed_run = _add_run(
         body["document"]["id"],
         processing_id,
         status=ClassificationRunStatus.FAILED,
@@ -149,7 +151,9 @@ def test_completed_suggestion_remains_after_failed_and_inflight_reclassify(
     )
 
     failed = client.get(_doc(project_id, revision_id, body["id"], "/classification")).json()
+    assert failed["suggestion"]["prediction_id"] == completed["prediction_id"]
     assert failed["suggestion"]["predicted_type"] == "SINGLE_LINE_DIAGRAM"
+    assert failed["attempt"]["id"] == failed_run["run_id"]
     assert failed["attempt"]["status"] == "FAILED"
     assert failed["attempt"]["error_code"] == "PROVIDER_TIMEOUT"
     assert failed["confidence_score"] == pytest.approx(0.95)
@@ -159,7 +163,9 @@ def test_completed_suggestion_remains_after_failed_and_inflight_reclassify(
     started = client.post(_doc(project_id, revision_id, body["id"], "/classification/reclassify"))
     assert started.status_code == 200, started.text
     again = started.json()
+    assert again["suggestion"]["prediction_id"] == completed["prediction_id"]
     assert again["suggestion"]["predicted_type"] == "SINGLE_LINE_DIAGRAM"
+    assert again["attempt"]["id"] == classification_http["enqueue"].calls[0]
     assert again["attempt"]["status"] == "PENDING"
     detail = client.get(_doc(project_id, revision_id, body["id"])).json()
     assert detail["document_type"] == "UNKNOWN"
@@ -184,6 +190,7 @@ def test_accept_sets_type_and_prediction_id(classification_http: dict[str, Any])
     assert accepted.status_code == 200, accepted.text
     payload = accepted.json()
     assert payload["document_type"] == "SINGLE_LINE_DIAGRAM"
+    assert payload["classification"]["suggestion"]["prediction_id"] == seeded["prediction_id"]
     assert payload["classification"]["suggestion"]["accepted"] is True
     assert _accepted_id(body["id"]) == seeded["prediction_id"]
     detail = client.get(_doc(project_id, revision_id, body["id"], "/classification")).json()
