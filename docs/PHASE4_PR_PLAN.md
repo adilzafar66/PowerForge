@@ -85,7 +85,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | --- | --- | --- | --- | --- | --- |
 | [PR-01](#pr-01--specification-adr-and-documentation) | Specification, ADR-006, docs, this plan | Docs | S | — | [x] landed in `3063120` |
 | [PR-02](#pr-02--classification-contracts-profile-and-prompts) | Classification contracts, profile, and prompts | Domain | M | PR-01 | [x] landed in `e962e9e` |
-| [PR-03](#pr-03--migration-0006-and-classification-models) | Migration `0006` and classification models | DB | M | PR-02 | [ ] |
+| [PR-03](#pr-03--migration-0006-and-classification-models) | Migration `0006` and classification models | DB | M | PR-02 | [x] landed in `ca91cfd` |
 | [PR-04](#pr-04--classification-service-and-fake-provider) | Classification service and fake provider | Backend | L | PR-02, PR-03 | [ ] |
 | [PR-05](#pr-05--worker-queue-openai-adapter-trigger-and-backfill) | Worker, queue, OpenAI adapter, trigger, and backfill | Backend/Infra | L | PR-04 | [ ] |
 | [PR-06](#pr-06--classification-apis-and-acceptance-provenance) | Classification APIs and acceptance provenance | Backend | L | PR-04 | [ ] |
@@ -202,6 +202,8 @@ ADR-006 must record at least the 20 numbered decisions in spec §64. It must not
 ---
 
 ### PR-03 — Migration `0006` and classification models
+
+**Status.** Done. Migration `0006_document_classification` and the unused classification mappings are on `main` (`ca91cfd`). `MIXED_DOCUMENT` is on the live enum. ADR-006 remains Proposed.
 
 **Goal.** Persist the Phase 4 schema and add `MIXED_DOCUMENT` to the live taxonomy. No classification behavior yet. (§5, §10, §13–§16, §37, §60)
 
