@@ -65,6 +65,7 @@ services:
       MAX_IMAGE_PIXELS: "600000000"
       CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
       LOG_LEVEL: INFO
+      AI_CLASSIFICATION_ENABLED: "true"
     ports:
       - "8000:8000"
     depends_on:
@@ -106,6 +107,7 @@ services:
       S3_SIGNED_URL_EXPIRES_SECONDS: "900"
       MAX_IMAGE_PIXELS: "600000000"
       MAX_PROCESSING_PAGES: "1000"
+      AI_CLASSIFICATION_ENABLED: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -131,7 +133,7 @@ services:
       S3_BUCKET: powerforge
       S3_PUBLIC_ENDPOINT_URL: http://localhost:9000
       S3_SIGNED_URL_EXPIRES_SECONDS: "900"
-      AI_CLASSIFICATION_ENABLED: "false"
+      AI_CLASSIFICATION_ENABLED: "true"
       AI_PROVIDER: fake
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     depends_on:
