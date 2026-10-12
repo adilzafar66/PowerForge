@@ -3,7 +3,7 @@
 How Phase 4 (AI-assisted document classification) is delivered: a sequence of small, reviewable pull requests. Work through them in order. Each one is a self-contained unit that leaves `main` green.
 
 - Specification: [`cursor/phase4_specs.txt`](../cursor/phase4_specs.txt). Section references below (`§11`) point at it.
-- Decisions: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed until PR-09)
+- Decisions: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Accepted)
 - Phase status: [PROJECT_STATUS.md](PROJECT_STATUS.md)
 
 This file is the delivery plan. If a PR forces a change to the plan or the spec, update this file (and the spec) in that PR and say so in the PR description.
@@ -91,7 +91,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-06](#pr-06--classification-apis-and-acceptance-provenance) | Classification APIs and acceptance provenance | Backend | L | PR-04 | [x] landed in `dfb0fc3` |
 | [PR-07](#pr-07--classification-workspace-ui) | Classification workspace UI | Web | M | PR-06 | [x] landed in `938639d` |
 | [PR-08](#pr-08--evaluation-harness) | Evaluation harness | Tooling | M | PR-04 | [x] landed in `e44da99` |
-| [PR-09](#pr-09--hardening-verification-and-phase-4-completion) | Hardening, verification, and Phase 4 completion | All | M | all | [ ] |
+| [PR-09](#pr-09--hardening-verification-and-phase-4-completion) | Hardening, verification, and Phase 4 completion | All | M | all | [x] |
 
 PR-05, PR-06, and PR-08 are independent of each other after PR-04. PR-07 needs PR-06 (the list payload). PR-08 can merge in parallel with PR-06/PR-07.
 
@@ -499,6 +499,8 @@ ADR-006 must record at least the 20 numbered decisions in spec §64. It must not
 
 ### PR-09 — Hardening, verification, and Phase 4 completion
 
+**Status.** Done. The requirements audit, verification, and documentation close-out are in this change. ADR-006 is Accepted (2026-10-12). One gap was filled: a page with no native-text artifact is asserted to contribute an empty excerpt. The evaluation command loads the renderer and the OpenAI adapter by module name so the classification package keeps its import boundary. The PR-08 acceptance line below cites D8 for the command name; the settled decision is D5. Compose stays on the fake provider with classification enabled. The handoff is [PHASE4_HANDOFF.md](PHASE4_HANDOFF.md).
+
 **Goal.** Prove every requirement is met, correct documentation drift, and close the phase. (§55, §58–§59, §65–§69)
 
 **Depends on.** PR-01 … PR-08.
@@ -646,7 +648,7 @@ What a user of the running app sees while Phase 4 is only partly merged:
 | PR-06 | List/detail JSON gains a `classification` object. Old web clients ignore unknown fields. Swagger can accept, retry, and reclassify. Rebuild the API image. |
 | PR-07 | Suggestion column, accept/override, mixed pages, and retry/reclassify. The list suggestion includes the prediction id. Rebuild the web image and the extraction-worker image. |
 | PR-08 | CLI and fixtures only. App unchanged. |
-| PR-09 | Docs and audit only. After pulling, `docker compose down -v && docker compose up --build` if you want a clean stack. |
+| PR-09 | Docs and audit. App behavior is unchanged. After pulling, `docker compose down -v && docker compose up --build` if you want a clean stack. |
 
 Never merge a PR that requires a later PR to avoid breaking existing flows. After PR-03, PR-05, and PR-07, rebuild the affected images.
 

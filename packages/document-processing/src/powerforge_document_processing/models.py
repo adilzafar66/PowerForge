@@ -537,7 +537,7 @@ class PageArtifact(Base):
 
 
 class DocumentClassificationRun(Base):
-    """One AI classification attempt. The running app does not write this table yet."""
+    """One AI classification attempt for one document and classifier identity."""
 
     __tablename__ = "document_classification_runs"
     __table_args__ = (
@@ -634,7 +634,7 @@ class DocumentClassificationRun(Base):
 
 
 class ClassificationPrediction(Base):
-    """Immutable document or page prediction. The running app does not write this table yet."""
+    """Immutable document or page prediction written by a classification run."""
 
     __tablename__ = "classification_predictions"
     __table_args__ = (

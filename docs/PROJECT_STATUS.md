@@ -2,9 +2,9 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** 3 (document processing)  
+**Current implemented phase:** 4 (AI document classification)  
 **In progress:** none  
-**Next:** Phase 4 (document classification). Evaluation harness landed in `e44da99`; hardening and phase completion are not done
+**Next:** Phase 5 (engineering model persistence). Not started
 
 ## Phase 0 — Architecture and repository setup
 
@@ -143,17 +143,31 @@ Phase 2 tree at `2c75e44`, plus the untracked Phase 3 spec. Integration tests us
 
 ## Phase 4 — AI document classification
 
-**Status:** Specified (2026-10-11). Evaluation harness landed.
+**Status:** Complete (2026-10-12).
 
 Specification: `cursor/phase4_specs.txt`  
-Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 landed in `3063120`; PR-02 landed in `e962e9e`; PR-03 landed in `ca91cfd`; PR-04 landed in `9d9460a`; PR-05 landed in `3ef0ccf`; PR-06 landed in `dfb0fc3`; PR-07 landed in `938639d`; PR-08 landed in `e44da99`; PR-09 is not started)  
-Decisions: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed 2026-10-11)
+Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 through PR-09)  
+Decisions: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Accepted 2026-10-12)  
+Handoff: [PHASE4_HANDOFF.md](PHASE4_HANDOFF.md)
 
-Phase 4 will classify an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. When classification is enabled, a completed processing run queues `document_classification` and `extraction-worker` classifies it. The OpenAI adapter is mocked in tests. Compose enables classification for the API, document worker, and extraction worker, using the fake provider. The API returns a suggestion and attempt on list, detail, and upload, and accept is the only way a suggestion becomes the confirmed type. The revision documents workspace shows that suggestion, including page predictions when the suggestion is a mixed document. `powerforge-eval-classification` scores a labeled manifest offline. CI does not run a live OpenAI evaluation.
+Phase 4 classifies an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. When classification is enabled, a completed processing run queues `document_classification` and `extraction-worker` classifies it. The OpenAI adapter is mocked in tests. Compose enables classification for the API, document worker, and extraction worker, using the fake provider. The API returns a suggestion and attempt on list, detail, and upload, and accept is the only way a suggestion becomes the confirmed type. The revision documents workspace shows that suggestion, including page predictions when the suggestion is a mixed document. `powerforge-eval-classification` scores a labeled manifest offline. CI does not run a live OpenAI evaluation.
 
-### Not implemented yet
+### Close-out (2026-10-12)
 
-- Hardening, verification, and Phase 4 completion
+The audit mapped spec §55 and §67 onto the existing classification suites. One assertion was added: a page with no native-text artifact contributes an empty excerpt. The evaluation command loads the renderer and the OpenAI adapter by module name, so the classification package still has no static import of those boundaries. A diff of the Phase 4 commits against `1ec0c71` (Phase 3 close) found no OCR, equipment or table extraction, SLD topology, embeddings, RAG, cost fields, or ETAP/SKM/EasyPower code. Compose stays on the fake provider with classification enabled.
+
+The PR-08 acceptance line cites decision D8 for the evaluation command name. The settled name is decision D5. D8 is the upload-response summary.
+
+| Check | Result |
+| --- | --- |
+| `ruff check .` | Passed |
+| `pytest` (integration skipped) | 293 passed, 351 skipped |
+| `RUN_INTEGRATION=1 pytest` on throwaway `powerforge_pr09` migrated to head, then dropped | 644 passed |
+| Upgrade `powerforge_pr09_0005` from `0005_document_processing` with one completed processing run, then to head | Classification tables present. `powerforge_document_classification.backfill.main(["--limit", "1"])` with classification enabled inserted one run. The console script is not installed in `.venv`. Database dropped |
+| `npm run lint`, `npm test`, `npx tsc --noEmit`, `npm run build` (`apps/web`) | Lint clean. 190 tests passed. Typecheck clean. Build succeeded |
+| Live OpenAI evaluation | Not run. `OPENAI_API_KEY` was absent |
+| `docker compose down -v && docker compose up --build -d` | Exit 0. Fresh database at `0006_document_classification` |
+| Clean-stack scenario (`AI_PROVIDER=fake`, classification enabled) | Upload reached processing `COMPLETED` and a `SINGLE_LINE_DIAGRAM` suggestion. Accept set the confirmed type. A child revision inherited that document with the same one classification run. Reclassify added a second run and left the confirmed type in place. A filename containing `fail` failed with `PROVIDER_UNAVAILABLE`, and retry created a new failed run. `document-worker` consumed only `document_processing`. The unsigned object URL returned 403; the signed URL returned the PDF |
 
 ### Baseline before implementation (2026-10-11)
 
@@ -176,7 +190,7 @@ Phase 3 tree on `main`, plus the untracked Phase 4 spec and this delivery plan, 
 | --- | --- | --- |
 | 2 | Document management | Complete (2026-10-06) |
 | 3 | Document processing | Complete (2026-10-10) |
-| 4 | Document classification | Specified (2026-10-11); evaluation harness landed, hardening not started |
+| 4 | Document classification | Complete (2026-10-12) |
 | 5 | Engineering model persistence | Not started |
 | 6–13 | Extraction through export | Not started |
 
@@ -191,4 +205,5 @@ Record here so later phases do not inherit accidental behavior.
 - **Constraint-specific IntegrityError mapping.** *Resolved in PR-03.* Writes go through `integrity_guard` in `db_errors.py`, which maps `exc.orig.diag.constraint_name` to a domain error. Known names today: `uq_projects_project_number` → `DuplicateProjectNumber`; `uq_project_revisions_project_id_identifier` → `DuplicateRevisionIdentifier`; `uq_project_revisions_one_active` → `RevisionNotActivatable`. Anything else becomes `UnexpectedIntegrityError` (JSON 500, code `unexpected_integrity_error`) and is logged with the constraint name and SQLSTATE only. PR-07 and PR-09 extend the same mapping.
 - **Integration tests write to the configured database and never clean up.** The existing `integration` tests insert uniquely named projects into whatever `DATABASE_URL` points at. Running them against a dev database pollutes it. Use a throwaway database (see [DEVELOPMENT.md](DEVELOPMENT.md)); consider a dedicated test database fixture later.
 - **No recovery for a stale `RUNNING` processing run.** The Celery soft limit (600s) marks the run `FAILED` with `PROCESSING_TIMEOUT`. A worker crash, a dead host, or the hard kill (660s) does not. The row stays `RUNNING`. `ensure` and backfill leave a `RUNNING` run alone, retry rejects it, and the unique live-run index blocks another attempt, so the workspace shows Processing with no Retry until the row is edited. A live worker can still be inside the hard limit, so `ensure` should keep ignoring a fresh `RUNNING` run. Recovery belongs in a separate step: once `started_at` is older than the hard limit, mark that run `FAILED` with `PROCESSING_TIMEOUT` and leave its rows in place. The existing retry can start the next attempt.
+- **No recovery for a stale `RUNNING` classification run.** The same gap exists for classification. A worker killed without the soft time limit leaves the run `RUNNING`. `ensure` returns it. Backfill does not adopt it. Page classification is all-or-nothing: a failed batch fails the run, and retry repeats the work.
 - **Stale spec path references (fixed 2026-10-01).** Docs referred to `cursor/PHASE1_SPECS.txt`; the tracked file is `cursor/phase1_specs.txt`. The mismatched case works on macOS but breaks on case-sensitive filesystems.

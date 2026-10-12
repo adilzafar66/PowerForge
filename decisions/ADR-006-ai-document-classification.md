@@ -2,11 +2,11 @@
 
 ## Status
 
-Proposed (2026-10-11). Not implemented. Specification: `cursor/phase4_specs.txt`. Delivery: [PHASE4_PR_PLAN.md](../docs/PHASE4_PR_PLAN.md).
+Accepted (2026-10-12). Specification: `cursor/phase4_specs.txt`. Delivery: [PHASE4_PR_PLAN.md](../docs/PHASE4_PR_PLAN.md). Handoff: [PHASE4_HANDOFF.md](../docs/PHASE4_HANDOFF.md).
 
 ## Date
 
-2026-10-11 (proposed).
+2026-10-12 (accepted). Proposed 2026-10-11.
 
 ## Context
 
@@ -69,11 +69,20 @@ The engineer already sets `RevisionDocument.document_type` by hand. That field i
 
 **Negative / follow-up**
 
-- `extraction-worker` today only heartbeats. It will need PostgreSQL, object storage, the classification package, and the OpenAI SDK, and it must listen only on `document_classification`.
-- The API and `document-worker` must be able to enqueue that work without importing the extraction worker or holding `OPENAI_API_KEY`.
+- The API and `document-worker` enqueue classification without importing the extraction worker or holding `OPENAI_API_KEY`.
 - A worker killed without the soft time limit can leave a classification run `RUNNING`. `ensure` returns it. Backfill does not adopt it. This matches the existing Phase 3 processing-run debt.
 - Page classification is all-or-nothing for a run. A failed batch fails the run, and retry repeats the work.
 
-## Not decided here
+## Settled in delivery
 
-The delivery plan's open decisions stay open until the PR that needs them: where the Celery publish helper lives, the numeric timeout defaults, the HTTP status for a disabled classification route and for page predictions before completion, the backfill and evaluation command names, worker concurrency, whether upload responses include the classification summary, and whether the SQLAlchemy mappings live next to the Phase 3 models. Proposed defaults are in [PHASE4_PR_PLAN.md](../docs/PHASE4_PR_PLAN.md). None of them are implemented.
+The open items in [PHASE4_PR_PLAN.md](../docs/PHASE4_PR_PLAN.md) section 6 are decided:
+
+1. The Celery publish helper is `powerforge_document_classification.enqueue`.
+2. Timeouts are 60 seconds for one provider call, 600 seconds soft, and 660 seconds hard.
+3. A disabled explicit AI route returns 409 `ai_classification_disabled`.
+4. Page predictions before a completed suggestion return 409 `classification_not_complete`. `GET /classification` stays 200 with a null suggestion.
+5. The commands are `powerforge-backfill-classification` and `powerforge-eval-classification`.
+6. `extraction-worker` concurrency is 1.
+7. The package import name is `powerforge_document_classification`.
+8. Upload responses include the classification summary.
+9. The SQLAlchemy mappings live in `powerforge_document_processing.models`.

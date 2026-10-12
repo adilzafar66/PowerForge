@@ -2,7 +2,7 @@
 
 Document processing and stable page representation. Specification: [`cursor/phase3_specs.txt`](../cursor/phase3_specs.txt). Decisions: [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md) (Accepted).
 
-**Status:** Complete (2026-10-10). The document list carries the current processing summary, and the revision documents workspace shows that status, retry, and an inspection-only page viewer. Upload calls `ensure` after the document commit, and `document-worker` consumes the `document_processing` queue. Existing documents wait for `powerforge-backfill-processing`. Phase 4 is not started.
+**Status:** Complete (2026-10-10). The document list carries the current processing summary, and the revision documents workspace shows that status, retry, and an inspection-only page viewer. Upload calls `ensure` after the document commit, and `document-worker` consumes the `document_processing` queue. Existing documents wait for `powerforge-backfill-processing`. Phase 4 is complete.
 
 Delivery is a sequence of pull requests: [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md). Implement only the current PR from that document.
 

@@ -94,7 +94,7 @@ Specified in `cursor/phase3_specs.txt` and [ADR-005](../decisions/ADR-005-docume
 
 ## Classification provenance (Phase 4)
 
-Specified in `cursor/phase4_specs.txt` and [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed). Not implemented. No evidence rows are created in Phase 4.
+Specified in `cursor/phase4_specs.txt` and [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Accepted). Complete (2026-10-12). No evidence rows are created in Phase 4.
 
 - **Machine classification attaches to `Document`.** A classification run cites one completed processing run. Revisions that share the file share that result.
 - **The confirmed type stays on `RevisionDocument`.** `document_type` is what the engineer accepted or typed. `accepted_classification_prediction_id`, when set, records which document-level prediction that type was accepted from.

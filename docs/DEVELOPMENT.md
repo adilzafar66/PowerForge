@@ -35,7 +35,7 @@ Reads stay available while classification is off, including removed, superseded,
 
 ## Phase 4 configuration
 
-These fields exist on `Settings`. Classification stays off (`AI_CLASSIFICATION_ENABLED` defaults to false). They stay out of `.env.example`. `extraction-worker` in Compose sets classification off and substitutes `OPENAI_API_KEY` from the environment; do not commit a key. A blank key counts as unset. `Settings()` constructs when the key is absent. The API, `document-worker`, and `validation-worker` start without it and do not receive the key. `extraction-worker` refuses to start when classification is enabled, `AI_PROVIDER=openai`, and the key is missing. Fake mode and disabled mode start without a key.
+These fields exist on `Settings`. The code default is off (`AI_CLASSIFICATION_ENABLED` defaults to false). Compose sets it true for the API, `document-worker`, and `extraction-worker`, with `AI_PROVIDER=fake`. They stay out of `.env.example`. `extraction-worker` substitutes `OPENAI_API_KEY` from the environment; do not commit a key. A blank key counts as unset. `Settings()` constructs when the key is absent. The API, `document-worker`, and `validation-worker` start without it and do not receive the key. `extraction-worker` refuses to start when classification is enabled, `AI_PROVIDER=openai`, and the key is missing. Fake mode and disabled mode start without a key.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |

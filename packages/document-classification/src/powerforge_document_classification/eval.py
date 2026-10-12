@@ -8,6 +8,7 @@ only live path.
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import statistics
 import sys
@@ -149,8 +150,9 @@ def _provider(name: str) -> tuple[ClassificationProvider, Settings | None]:
 
 
 def _openai_provider() -> tuple[ClassificationProvider, Settings]:
+    # Loaded by name so this package does not statically depend on the worker.
     try:
-        from extraction_worker.openai_classification import OpenAIClassificationProvider
+        module = importlib.import_module("extraction_worker.openai_classification")
     except ImportError as exc:
         raise SystemExit(
             "The extraction-worker package is required for --provider openai"
@@ -158,7 +160,7 @@ def _openai_provider() -> tuple[ClassificationProvider, Settings]:
     settings = get_settings()
     if not settings.openai_api_key:
         raise SystemExit("OPENAI_API_KEY is required when --provider openai")
-    return OpenAIClassificationProvider(settings), settings
+    return module.OpenAIClassificationProvider(settings), settings
 
 
 def _score_item(
@@ -200,12 +202,13 @@ def _labeled_page_count(item: EvalItem) -> int:
 
 
 def _render(path: Path, settings: Settings) -> list[Any]:
+    # Loaded by name so the fake evaluation path does not depend on the renderer.
     from powerforge_document_model import DEFAULT_PROFILE
-    from powerforge_document_processing.rendering import RenderingFailed, open_rendered_pages
 
+    rendering = importlib.import_module("powerforge_document_processing.rendering")
     extension = path.suffix.lstrip(".").lower()
     try:
-        with open_rendered_pages(
+        with rendering.open_rendered_pages(
             path,
             extension,
             DEFAULT_PROFILE,
@@ -213,7 +216,7 @@ def _render(path: Path, settings: Settings) -> list[Any]:
             settings.max_processing_pages,
         ) as source:
             return list(source)
-    except (RenderingFailed, OSError) as exc:
+    except (rendering.RenderingFailed, OSError) as exc:
         raise SystemExit(f"Could not render {path.name} for classification") from exc
 
 

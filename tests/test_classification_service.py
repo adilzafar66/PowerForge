@@ -594,6 +594,8 @@ def test_pages_above_pages_total_are_ignored_and_text_comes_from_the_artifact(
     assert {image.page_number for image in request.images} <= {1, 2}
     page_one = next(excerpt for excerpt in request.text_excerpts if excerpt.page_number == 1)
     assert page_one.text == long_text[:2000]
+    page_two = next(excerpt for excerpt in request.text_excerpts if excerpt.page_number == 2)
+    assert page_two.text == ""
     assert "only-on-page-three" not in request.model_dump_json()
     evidence = request.model_dump(exclude={"allowed_types", "instructions"})
     assert "BREAKER_DOCUMENT" not in str(evidence)
