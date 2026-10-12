@@ -115,7 +115,7 @@ Create a virtualenv and install the workspace:
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
-pip install -e packages/shared -e packages/project -e packages/engineering-model -e packages/document-model -e packages/document-processing -e packages/extraction -e packages/topology -e packages/validation -e packages/provenance -e packages/ai -e services/api
+pip install -e packages/shared -e packages/project -e packages/engineering-model -e packages/document-model -e packages/document-classification -e packages/document-processing -e packages/extraction -e packages/topology -e packages/validation -e packages/provenance -e packages/ai -e services/api
 pip install -e ".[dev]"
 ```
 

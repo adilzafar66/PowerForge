@@ -1,4 +1,4 @@
-from powerforge_ai.providers import StructuredExtractionResult
+from powerforge_ai.providers import DocumentClassificationResult, StructuredExtractionResult
 from powerforge_document_model import DocumentClassification
 from powerforge_engineering_model import EquipmentType, InformationState, VerificationState
 from powerforge_extraction import ExtractionMethod
@@ -46,6 +46,17 @@ def test_evidence_ref_requires_document() -> None:
 
 def test_validation_registry_starts_empty() -> None:
     assert RuleRegistry().names() == ()
+
+
+def test_document_classification_result_is_provider_neutral() -> None:
+    result = DocumentClassificationResult(
+        predicted_type="TRANSFORMER_SHOP_DRAWING",
+        confidence_score=0.91,
+        rationale="Pages show transformer outline drawings.",
+    )
+    assert result.predicted_type == "TRANSFORMER_SHOP_DRAWING"
+    assert result.confidence_score == 0.91
+    assert "confidence_band" not in DocumentClassificationResult.model_fields
 
 
 def test_structured_extraction_result_is_provider_agnostic() -> None:

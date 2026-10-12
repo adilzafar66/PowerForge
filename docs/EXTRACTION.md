@@ -99,7 +99,7 @@ Specified in `cursor/phase4_specs.txt` and [ADR-006](../decisions/ADR-006-ai-doc
 
 Phase 4 is the `DocumentClassifier` row above and nothing else in that table. It chooses a document class, and sometimes a page class, from the existing taxonomy plus `MIXED_DOCUMENT`. It does not extract equipment, attributes, tables, or topology.
 
-The provider contract stays vendor-neutral (`ClassificationProvider`). OpenAI is the first adapter and is not built yet. Tests will use a fake provider. Classification prompts will live with the classification package, versioned, rather than as the first production files under `packages/ai/prompts/`. Those prompt files do not exist yet.
+The provider contract stays vendor-neutral (`ClassificationProvider`). OpenAI is the first adapter and is not built yet. Tests will use a fake provider. Classification prompts live in `powerforge_document_classification` (`document_classifier_v1` and `page_classifier_v1`). They are not under `packages/ai/prompts/`.
 
 ## Out of scope until named phases
 
