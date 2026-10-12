@@ -28,7 +28,15 @@ from powerforge_document_model import DocumentClassification
 from powerforge_document_model.profile import hash_material_fields
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-FORBIDDEN_IMPORTS = frozenset({"fastapi", "celery", "sqlalchemy", "boto3", "openai"})
+FORBIDDEN_IMPORTS = frozenset({"fastapi", "celery", "boto3", "openai", "PIL", "fitz"})
+SQLALCHEMY_ALLOWED = frozenset({"assembly.py", "service.py"})
+PROCESSING_BOUNDARIES = frozenset(
+    {
+        "powerforge_document_processing.rendering",
+        "powerforge_document_processing.enqueue",
+        "powerforge_document_processing.processing",
+    }
+)
 PACKAGE_ROOTS = (
     REPO_ROOT
     / "packages"
@@ -37,17 +45,6 @@ PACKAGE_ROOTS = (
     / "powerforge_document_classification",
     REPO_ROOT / "packages" / "ai" / "src" / "powerforge_ai",
 )
-
-
-def _imported_roots(path: Path) -> set[str]:
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    modules: list[str] = []
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            modules.extend(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            modules.append(node.module)
-    return {module.split(".", 1)[0] for module in modules}
 
 
 def test_taxonomy_matches_the_live_enum() -> None:
@@ -161,8 +158,23 @@ def test_timeout_codes_stay_distinct() -> None:
     assert task_timeout.value == "CLASSIFICATION_TASK_TIMEOUT"
 
 
+def _imported_modules(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    modules: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            modules.extend(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            modules.append(node.module)
+    return set(modules)
+
+
 def test_classification_packages_do_not_import_frameworks_or_openai() -> None:
     for root in PACKAGE_ROOTS:
         for path in root.rglob("*.py"):
-            overlap = _imported_roots(path) & FORBIDDEN_IMPORTS
+            imported = _imported_modules(path)
+            overlap = {module.split(".", 1)[0] for module in imported} & FORBIDDEN_IMPORTS
             assert overlap == set(), f"{path} imports {sorted(overlap)}"
+            if "sqlalchemy" in {module.split(".", 1)[0] for module in imported}:
+                assert path.name in SQLALCHEMY_ALLOWED, f"{path} imports sqlalchemy"
+            assert PROCESSING_BOUNDARIES.isdisjoint(imported), path

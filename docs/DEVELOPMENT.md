@@ -18,18 +18,24 @@ Phase 2 (complete; see [PROJECT_STATUS.md](PROJECT_STATUS.md)) added document ma
 
 Phase 3 processing runs on `document-worker`. New uploads enqueue a run; documents already stored wait for `powerforge-backfill-processing --limit N`. The revision documents workspace shows processing status, retry, and the page viewer ([PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md)).
 
-Phase 4 classification is specified and not implemented ([PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md)). The settings below are the planned knobs. They are not read by the application, and they are not in `.env.example` or `docker-compose.yml`.
+Phase 4 classification can run in process through the fake provider. Uploads do not call it, and there is no Celery task or OpenAI adapter yet ([PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md)).
 
-## Phase 4 configuration (specified)
+## Phase 4 configuration
 
-Classification stays off until a later PR adds the settings and the worker. Do not put `OPENAI_API_KEY` in Compose, `.env.example`, or source control. The API and `document-worker` must start without that key. Only `extraction-worker` will require it, and only when classification is enabled and the provider is OpenAI.
+These fields exist on `Settings`. Classification stays off (`AI_CLASSIFICATION_ENABLED` defaults to false). They are still absent from `.env.example` and `docker-compose.yml`. Do not put `OPENAI_API_KEY` in Compose, `.env.example`, or source control. A blank key counts as unset. `Settings()` constructs when the key is absent, and nothing checks for the key at startup. The API and `document-worker` start without it. Only `extraction-worker` will require it, and only when classification is enabled and the provider is OpenAI.
 
-| Variable | Planned default | Purpose |
+| Variable | Default | Purpose |
 | --- | --- | --- |
-| `AI_CLASSIFICATION_ENABLED` | `false` | When false, uploads and Phase 3 processing behave as they do today, and explicit classification routes will fail cleanly |
-| `AI_PROVIDER` | `fake` | `fake` runs the full workflow without a network call. `openai` is the real adapter |
+| `AI_CLASSIFICATION_ENABLED` | `false` | When false, `ensure`, `retry`, and `reclassify` insert nothing. Uploads still only start Phase 3 processing |
+| `AI_PROVIDER` | `fake` | `fake` or `openai`. `fake` runs the workflow without a network call |
+| `AI_CLASSIFICATION_MODEL` | `gpt-6-luna` | Model stored on the run and included in the classifier identity |
+| `AI_CLASSIFICATION_REASONING_EFFORT` | `none` | Stored for the later adapter. Not part of the identity hash |
+| `AI_CLASSIFICATION_IMAGE_DETAIL` | `low` | Copied onto the sampling profile, so a change alters `profile_hash` |
+| `AI_CLASSIFICATION_TIMEOUT_SECONDS` | `60` | Bound for one provider call. Exceeding it is `PROVIDER_TIMEOUT` |
+| `AI_CLASSIFICATION_TASK_SOFT_TIME_LIMIT_SECONDS` | `600` | Bound for the whole Celery task. Exceeding it is `CLASSIFICATION_TASK_TIMEOUT` |
+| `AI_CLASSIFICATION_TASK_HARD_TIME_LIMIT_SECONDS` | `660` | Hard ceiling. The soft limit must be lower so the worker can mark the run failed |
 
-`AI_CLASSIFICATION_TIMEOUT_SECONDS` will bound one provider call (`PROVIDER_TIMEOUT`). `AI_CLASSIFICATION_TASK_SOFT_TIME_LIMIT_SECONDS` and `AI_CLASSIFICATION_TASK_HARD_TIME_LIMIT_SECONDS` will bound the whole Celery task (`CLASSIFICATION_TASK_TIMEOUT`). The numeric defaults are still an open decision in the PR plan. None of these variables exist on `Settings` yet.
+Reasoning effort is not hashed. Image detail is. The soft task limit must be strictly below the hard limit.
 
 ## Prerequisites
 
@@ -115,7 +121,7 @@ Create a virtualenv and install the workspace:
 ```bash
 python -m venv .venv
 .venv\Scripts\activate
-pip install -e packages/shared -e packages/project -e packages/engineering-model -e packages/document-model -e packages/document-classification -e packages/document-processing -e packages/extraction -e packages/topology -e packages/validation -e packages/provenance -e packages/ai -e services/api
+pip install -e packages/shared -e packages/project -e packages/engineering-model -e packages/document-model -e packages/document-processing -e packages/document-classification -e packages/extraction -e packages/topology -e packages/validation -e packages/provenance -e packages/ai -e services/api
 pip install -e ".[dev]"
 ```
 

@@ -1,6 +1,7 @@
 from functools import lru_cache
+from typing import Literal, Self
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,6 +44,16 @@ class Settings(BaseSettings):
         description="Comma-separated browser origins allowed to call the API.",
     )
 
+    ai_classification_enabled: bool = False
+    ai_provider: Literal["fake", "openai"] = "fake"
+    ai_classification_model: str = "gpt-6-luna"
+    ai_classification_reasoning_effort: str = "none"
+    ai_classification_image_detail: str = "low"
+    ai_classification_timeout_seconds: int = Field(default=60, gt=0)
+    ai_classification_task_soft_time_limit_seconds: int = Field(default=600, gt=0)
+    ai_classification_task_hard_time_limit_seconds: int = Field(default=660, gt=0)
+    openai_api_key: str | None = None
+
     @field_validator("database_url")
     @classmethod
     def normalize_database_url(cls, value: str) -> str:
@@ -52,12 +63,23 @@ class Settings(BaseSettings):
             return "postgresql+psycopg://" + value.removeprefix("postgresql://")
         return value
 
-    @field_validator("s3_public_endpoint_url", mode="before")
+    @field_validator("s3_public_endpoint_url", "openai_api_key", mode="before")
     @classmethod
-    def blank_public_endpoint_is_unset(cls, value: object) -> object:
+    def blank_string_is_unset(cls, value: object) -> object:
         if isinstance(value, str) and not value.strip():
             return None
         return value
+
+    @model_validator(mode="after")
+    def classification_soft_limit_is_below_hard(self) -> Self:
+        soft = self.ai_classification_task_soft_time_limit_seconds
+        hard = self.ai_classification_task_hard_time_limit_seconds
+        if soft >= hard:
+            raise ValueError(
+                "AI_CLASSIFICATION_TASK_SOFT_TIME_LIMIT_SECONDS must be less than "
+                "AI_CLASSIFICATION_TASK_HARD_TIME_LIMIT_SECONDS"
+            )
+        return self
 
     def s3_public_endpoint(self) -> str:
         return self.s3_public_endpoint_url or self.s3_endpoint_url

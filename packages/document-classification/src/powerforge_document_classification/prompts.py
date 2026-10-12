@@ -21,3 +21,8 @@ def document_classifier_prompt() -> str:
 
 def page_classifier_prompt() -> str:
     return load_prompt(f"{page_classifier_v1}.txt")
+
+
+def classifier_prompt_version() -> str:
+    """Stored prompt identity. Either prompt id changing is a new classifier identity."""
+    return f"{document_classifier_v1}+{page_classifier_v1}"

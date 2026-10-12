@@ -1,7 +1,8 @@
-"""Provider-neutral document classification vocabulary.
+"""Document classification vocabulary and run orchestration.
 
-No database, Celery, or vendor SDK. Predicted classes are validated here;
-the live DocumentClassification enum is not extended in this package.
+Vocabulary modules stay free of SQLAlchemy. The service and input assembler
+use the shared models and the object-storage port. This package does not
+import FastAPI, Celery, or a vendor SDK.
 """
 
 from powerforge_document_classification.errors import ClassificationErrorCode

@@ -15,3 +15,11 @@ class ClassificationErrorCode(StrEnum):
     CLASSIFICATION_INPUT_ERROR = "CLASSIFICATION_INPUT_ERROR"
     ARTIFACT_UNAVAILABLE = "ARTIFACT_UNAVAILABLE"
     UNKNOWN_CLASSIFICATION_ERROR = "UNKNOWN_CLASSIFICATION_ERROR"
+
+
+class ClassificationProviderError(Exception):
+    """A provider call failed before a usable classification result existed."""
+
+    def __init__(self, code: ClassificationErrorCode) -> None:
+        self.code = code
+        super().__init__(code.value)
