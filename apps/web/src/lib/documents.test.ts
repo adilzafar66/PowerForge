@@ -53,8 +53,11 @@ afterEach(() => {
 
 describe("document labels and formatting", () => {
   it("has a label for every backend document type, with UNKNOWN shown as Unclassified", () => {
-    expect(DOCUMENT_TYPES).toHaveLength(16);
-    expect(new Set(DOCUMENT_TYPES).size).toBe(16);
+    expect(DOCUMENT_TYPES).toHaveLength(17);
+    expect(new Set(DOCUMENT_TYPES).size).toBe(17);
+    expect(DOCUMENT_TYPES[DOCUMENT_TYPES.indexOf("OTHER") - 1]).toBe("MIXED_DOCUMENT");
+    expect(DOCUMENT_TYPES[DOCUMENT_TYPES.length - 1]).toBe("UNKNOWN");
+    expect(documentTypeLabel("MIXED_DOCUMENT")).toBe("Mixed Document");
     expect(Object.keys(DOCUMENT_TYPE_LABELS).sort()).toEqual([...DOCUMENT_TYPES].sort());
     expect(DOCUMENT_TYPE_OPTIONS.map((option) => option.value)).toEqual([...DOCUMENT_TYPES]);
     expect(documentTypeLabel("UNKNOWN")).toBe("Unclassified");

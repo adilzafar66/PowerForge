@@ -50,12 +50,14 @@ def _imported_roots(path: Path) -> set[str]:
     return {module.split(".", 1)[0] for module in modules}
 
 
-def test_taxonomy_adds_mixed_document_without_changing_the_live_enum() -> None:
+def test_taxonomy_matches_the_live_enum() -> None:
     live = tuple(member.value for member in DocumentClassification)
-    assert len(live) == 16
-    assert MIXED_DOCUMENT not in live
-    assert DOCUMENT_TYPES == live + (MIXED_DOCUMENT,)
-    assert PAGE_TYPES == live
+    assert len(live) == 17
+    assert MIXED_DOCUMENT in live
+    assert live[live.index("OTHER") - 1] == MIXED_DOCUMENT
+    assert live[-1] == "UNKNOWN"
+    assert DOCUMENT_TYPES == live
+    assert PAGE_TYPES == tuple(value for value in live if value != MIXED_DOCUMENT)
     assert len({DocumentClassification.UNKNOWN, DocumentClassification.OTHER, MIXED_DOCUMENT}) == 3
     assert set(TYPE_DEFINITIONS) == {"UNKNOWN", "OTHER", "MIXED_DOCUMENT"}
 

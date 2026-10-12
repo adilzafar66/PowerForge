@@ -120,11 +120,11 @@ Initial classes:
 - `STUDY_DOCUMENT`
 - `OTHER` (added in Phase 2)
 - `UNKNOWN` (default)
-- `MIXED_DOCUMENT` (specified for Phase 4; not in the live enum until that phase is implemented)
+- `MIXED_DOCUMENT` (on the live enum, immediately before `OTHER`)
 
 In Phase 2 the class is a manual choice stored on the `RevisionDocument` (revision-scoped, so the same file can be classified differently in different revisions) and has no confidence value.
 
-Automatic classification is specified in Phase 4 and is not implemented. The model returns a numeric score. PowerForge derives `HIGH`, `MEDIUM`, and `LOW` from it. A score below the high threshold routes the document to page classification. It does not write `RevisionDocument.document_type` and it does not mark the document for automatic review. Only an explicit accept changes the confirmed type. The enum lives in the document-model package (`DocumentClassification`) so all phases share one vocabulary.
+Automatic classification is specified in Phase 4 and is not implemented. `document_classification_runs`, `classification_predictions`, and `classification_ai_calls` exist and nothing writes them yet. The model returns a numeric score. PowerForge derives `HIGH`, `MEDIUM`, and `LOW` from it. A score below the high threshold routes the document to page classification. It does not write `RevisionDocument.document_type` and it does not mark the document for automatic review. Only an explicit accept changes the confirmed type. An engineer can already choose Mixed Document by hand. The enum lives in the document-model package (`DocumentClassification`) so all phases share one vocabulary.
 
 ## Phase 3 scope
 

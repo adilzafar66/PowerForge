@@ -9,6 +9,11 @@ from sqlalchemy.exc import SAWarning
 from sqlalchemy.orm import configure_mappers
 
 from powerforge_document_model import (
+    ClassificationCallKind,
+    ClassificationRunStatus,
+    ClassificationScope,
+    ClassificationStage,
+    ConfidenceBand,
     DocumentClassification,
     DocumentOrigin,
     PageArtifactType,
@@ -18,7 +23,10 @@ from powerforge_document_model import (
 )
 from powerforge_document_processing.models import (
     Base,
+    ClassificationAICall,
+    ClassificationPrediction,
     Document,
+    DocumentClassificationRun,
     DocumentPage,
     DocumentProcessingRun,
     PageArtifact,
@@ -52,6 +60,7 @@ EXPECTED_REVISION_DOCUMENT_INDEXES = {
     "ix_revision_documents_document_id",
     "ix_revision_documents_revision_id_status",
     "ix_revision_documents_revision_id_document_type",
+    "ix_revision_documents_accepted_prediction",
 }
 
 
@@ -81,6 +90,9 @@ def test_new_tables_registered() -> None:
         "document_pages",
         "document_processing_runs",
         "page_artifacts",
+        "document_classification_runs",
+        "classification_predictions",
+        "classification_ai_calls",
     } <= set(Base.metadata.tables)
 
 
@@ -107,6 +119,27 @@ def test_processing_enum_labels_match_python_enums() -> None:
     assert unit.name == "source_unit"
     assert artifact_type.name == "page_artifact_type"
     assert DocumentProcessingRun.__table__.c.error_code.nullable is True
+
+
+def test_classification_enum_labels_match_python_enums() -> None:
+    run_status = DocumentClassificationRun.__table__.c.status.type
+    stage = DocumentClassificationRun.__table__.c.stage.type
+    scope = ClassificationPrediction.__table__.c.scope.type
+    band = ClassificationPrediction.__table__.c.confidence_band.type
+    call_kind = ClassificationAICall.__table__.c.call_kind.type
+    assert list(run_status.enums) == [member.value for member in ClassificationRunStatus]
+    assert list(stage.enums) == [member.value for member in ClassificationStage]
+    assert list(scope.enums) == [member.value for member in ClassificationScope]
+    assert list(band.enums) == [member.value for member in ConfidenceBand]
+    assert list(call_kind.enums) == [member.value for member in ClassificationCallKind]
+    assert run_status.name == "classification_run_status"
+    assert stage.name == "classification_stage"
+    assert scope.name == "classification_scope"
+    assert band.name == "confidence_band"
+    assert call_kind.name == "classification_call_kind"
+    assert DocumentClassificationRun.__table__.c.error_code.nullable is True
+    assert "estimated_cost_usd" not in ClassificationAICall.__table__.c
+    assert "pricing_version" not in ClassificationAICall.__table__.c
 
 
 def test_project_revision_lineage_constraints() -> None:
@@ -144,6 +177,9 @@ def test_no_cascading_deletes() -> None:
         DocumentPage.__table__,
         DocumentProcessingRun.__table__,
         PageArtifact.__table__,
+        DocumentClassificationRun.__table__,
+        ClassificationPrediction.__table__,
+        ClassificationAICall.__table__,
     ):
         for constraint in table.constraints:
             if isinstance(constraint, ForeignKeyConstraint):
@@ -162,4 +198,8 @@ def test_revision_document_composite_foreign_keys_start_with_project_id() -> Non
     assert foreign_keys["fk_revision_documents_inherited_from"] == [
         "project_id",
         "inherited_from_revision_id",
+    ]
+    assert foreign_keys["fk_revision_documents_accepted_prediction"] == [
+        "accepted_classification_prediction_id",
+        "document_id",
     ]

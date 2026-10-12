@@ -24,7 +24,7 @@ Decisions: [ADR-003](../decisions/ADR-003-project-revision-model.md)
 Delivered:
 
 - `packages/project` (`powerforge_project`) — status enums and transition helper
-- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0005_document_processing`, which adds `document_pages`, `document_processing_runs`, and `page_artifacts`
+- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0006_document_classification`. `0005_document_processing` adds `document_pages`, `document_processing_runs`, and `page_artifacts`. `0006_document_classification` adds `MIXED_DOCUMENT` and the unused classification tables.
 - REST API under `/api/projects` and nested revisions (create/list/get/patch + pause/resume/cancel/archive/unarchive + activate)
 - Web UI: `/` project list, `/projects/new`, `/projects/[id]`, revision placeholder, `/status` stack health
 - Backend and frontend tests covering lifecycle, uniqueness, and concurrent activate
@@ -149,11 +149,11 @@ Specification: `cursor/phase4_specs.txt`
 Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 landed in `3063120`; PR-02 landed in `e962e9e`; PR-03 onward are not started)  
 Decisions: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed 2026-10-11)
 
-Phase 4 will classify an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. Nothing in this phase is in the running application yet: no `MIXED_DOCUMENT` value, no classification tables, no worker queue, no provider calls, and no classification UI.
+Phase 4 will classify an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. `MIXED_DOCUMENT` is on the live enum, and the classification tables exist. Nothing writes them yet: no worker queue, no provider calls, and no classification UI.
 
 ### Not implemented yet
 
-- `MIXED_DOCUMENT` and the classification schema
+- Classification behavior (the schema is unused)
 - Fake and OpenAI providers and the classification worker
 - Accept, retry, reclassify, and the suggestion/attempt API
 - Revision-workspace classification UI

@@ -12,6 +12,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -24,10 +25,15 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, ENUM, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, ENUM, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from powerforge_document_model import (
+    ClassificationCallKind,
+    ClassificationRunStatus,
+    ClassificationScope,
+    ClassificationStage,
+    ConfidenceBand,
     DocumentClassification,
     DocumentOrigin,
     PageArtifactType,
@@ -82,6 +88,36 @@ page_artifact_type_enum = ENUM(
 source_unit_enum = ENUM(
     SourceUnit,
     name="source_unit",
+    create_type=False,
+    values_callable=lambda enum: [member.value for member in enum],
+)
+classification_run_status_enum = ENUM(
+    ClassificationRunStatus,
+    name="classification_run_status",
+    create_type=False,
+    values_callable=lambda enum: [member.value for member in enum],
+)
+classification_stage_enum = ENUM(
+    ClassificationStage,
+    name="classification_stage",
+    create_type=False,
+    values_callable=lambda enum: [member.value for member in enum],
+)
+classification_scope_enum = ENUM(
+    ClassificationScope,
+    name="classification_scope",
+    create_type=False,
+    values_callable=lambda enum: [member.value for member in enum],
+)
+confidence_band_enum = ENUM(
+    ConfidenceBand,
+    name="confidence_band",
+    create_type=False,
+    values_callable=lambda enum: [member.value for member in enum],
+)
+classification_call_kind_enum = ENUM(
+    ClassificationCallKind,
+    name="classification_call_kind",
     create_type=False,
     values_callable=lambda enum: [member.value for member in enum],
 )
@@ -280,6 +316,11 @@ class RevisionDocument(Base):
             "revision_id",
             "document_type",
         ),
+        Index(
+            "ix_revision_documents_accepted_prediction",
+            "accepted_classification_prediction_id",
+            postgresql_where=text("accepted_classification_prediction_id IS NOT NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -301,6 +342,9 @@ class RevisionDocument(Base):
         document_classification_enum,
         nullable=False,
         server_default=text("'UNKNOWN'::document_classification"),
+    )
+    accepted_classification_prediction_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True)
     )
     document_number: Mapped[str | None] = mapped_column(Text)
     description: Mapped[str | None] = mapped_column(Text)
@@ -342,6 +386,7 @@ class DocumentPage(Base):
             "page_number",
             name="uq_document_pages_document_id_page_number",
         ),
+        UniqueConstraint("id", "document_id", name="uq_document_pages_id_document_id"),
         CheckConstraint("page_number >= 1", name="ck_document_pages_page_number_positive"),
         CheckConstraint(
             "rotation_degrees IN (0, 90, 180, 270)",
@@ -396,6 +441,11 @@ class DocumentProcessingRun(Base):
             "profile_hash",
             unique=True,
             postgresql_where=text("status IN ('PENDING', 'RUNNING', 'COMPLETED')"),
+        ),
+        UniqueConstraint(
+            "id",
+            "document_id",
+            name="uq_document_processing_runs_id_document_id",
         ),
     )
 
@@ -484,3 +534,253 @@ class PageArtifact(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+
+class DocumentClassificationRun(Base):
+    """One AI classification attempt. The running app does not write this table yet."""
+
+    __tablename__ = "document_classification_runs"
+    __table_args__ = (
+        UniqueConstraint(
+            "id",
+            "document_id",
+            name="uq_document_classification_runs_id_document_id",
+        ),
+        ForeignKeyConstraint(
+            ["processing_run_id", "document_id"],
+            ["document_processing_runs.id", "document_processing_runs.document_id"],
+            name="fk_document_classification_runs_processing_run",
+        ),
+        ForeignKeyConstraint(
+            ["retry_of_run_id", "document_id"],
+            ["document_classification_runs.id", "document_classification_runs.document_id"],
+            name="fk_document_classification_runs_retry_of",
+        ),
+        CheckConstraint(
+            "pages_total >= 0",
+            name="ck_document_classification_runs_pages_total_nonnegative",
+        ),
+        CheckConstraint(
+            "pages_classified >= 0",
+            name="ck_document_classification_runs_pages_classified_nonnegative",
+        ),
+        CheckConstraint(
+            "attempt_number >= 1",
+            name="ck_document_classification_runs_attempt_positive",
+        ),
+        Index("ix_document_classification_runs_document_id", "document_id"),
+        Index("ix_document_classification_runs_processing_run_id", "processing_run_id"),
+        Index("ix_document_classification_runs_identity", "classifier_identity_hash"),
+        Index(
+            "uq_document_classification_runs_one_live",
+            "classifier_identity_hash",
+            unique=True,
+            postgresql_where=text("status IN ('PENDING', 'RUNNING')"),
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("documents.id", name="fk_document_classification_runs_document_id"),
+        nullable=False,
+    )
+    processing_run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    retry_of_run_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    attempt_number: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("1"),
+    )
+    classifier_version: Mapped[str] = mapped_column(Text, nullable=False)
+    taxonomy_version: Mapped[str] = mapped_column(Text, nullable=False)
+    prompt_version: Mapped[str] = mapped_column(Text, nullable=False)
+    sampling_profile_version: Mapped[str] = mapped_column(Text, nullable=False)
+    sampling_profile_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    classifier_identity_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    provider: Mapped[str] = mapped_column(Text, nullable=False)
+    model: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[ClassificationRunStatus] = mapped_column(
+        classification_run_status_enum,
+        nullable=False,
+        server_default=text("'PENDING'::classification_run_status"),
+    )
+    stage: Mapped[ClassificationStage | None] = mapped_column(classification_stage_enum)
+    requires_page_classification: Mapped[bool | None] = mapped_column(Boolean)
+    pages_total: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    pages_classified: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    failed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    error_code: Mapped[str | None] = mapped_column(Text)
+    error_message: Mapped[str | None] = mapped_column(Text)
+
+
+class ClassificationPrediction(Base):
+    """Immutable document or page prediction. The running app does not write this table yet."""
+
+    __tablename__ = "classification_predictions"
+    __table_args__ = (
+        UniqueConstraint(
+            "id",
+            "document_id",
+            name="uq_classification_predictions_id_document_id",
+        ),
+        ForeignKeyConstraint(
+            ["classification_run_id", "document_id"],
+            ["document_classification_runs.id", "document_classification_runs.document_id"],
+            name="fk_classification_predictions_run",
+        ),
+        ForeignKeyConstraint(
+            ["document_page_id", "document_id"],
+            ["document_pages.id", "document_pages.document_id"],
+            name="fk_classification_predictions_page",
+        ),
+        CheckConstraint(
+            "(scope = 'DOCUMENT' AND document_page_id IS NULL) "
+            "OR (scope = 'PAGE' AND document_page_id IS NOT NULL)",
+            name="ck_classification_predictions_scope_page",
+        ),
+        CheckConstraint(
+            "scope <> 'PAGE' OR predicted_type <> 'MIXED_DOCUMENT'",
+            name="ck_classification_predictions_page_not_mixed",
+        ),
+        CheckConstraint(
+            "confidence_score >= 0 AND confidence_score <= 1",
+            name="ck_classification_predictions_score",
+        ),
+        CheckConstraint(
+            "jsonb_typeof(alternatives) = 'array' AND jsonb_array_length(alternatives) <= 3",
+            name="ck_classification_predictions_alternatives",
+        ),
+        CheckConstraint(
+            "rationale IS NULL OR char_length(rationale) <= 500",
+            name="ck_classification_predictions_rationale",
+        ),
+        Index("ix_classification_predictions_document_id", "document_id"),
+        Index("ix_classification_predictions_document_page_id", "document_page_id"),
+        Index(
+            "uq_classification_predictions_one_document",
+            "classification_run_id",
+            unique=True,
+            postgresql_where=text("scope = 'DOCUMENT'"),
+        ),
+        Index(
+            "uq_classification_predictions_run_page",
+            "classification_run_id",
+            "document_page_id",
+            unique=True,
+            postgresql_where=text("scope = 'PAGE'"),
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    classification_run_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    document_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("documents.id", name="fk_classification_predictions_document_id"),
+        nullable=False,
+    )
+    scope: Mapped[ClassificationScope] = mapped_column(classification_scope_enum, nullable=False)
+    document_page_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    predicted_type: Mapped[DocumentClassification] = mapped_column(
+        document_classification_enum,
+        nullable=False,
+    )
+    confidence_score: Mapped[Decimal] = mapped_column(Numeric, nullable=False)
+    confidence_band: Mapped[ConfidenceBand] = mapped_column(confidence_band_enum, nullable=False)
+    alternatives: Mapped[list] = mapped_column(
+        JSONB,
+        nullable=False,
+        server_default=text("'[]'::jsonb"),
+    )
+    rationale: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
+class ClassificationAICall(Base):
+    """Raw usage for one provider call. No prompts, images, document text, or cost."""
+
+    __tablename__ = "classification_ai_calls"
+    __table_args__ = (
+        CheckConstraint(
+            "(input_tokens IS NULL OR input_tokens >= 0) "
+            "AND (cached_input_tokens IS NULL OR cached_input_tokens >= 0) "
+            "AND (output_tokens IS NULL OR output_tokens >= 0) "
+            "AND (reasoning_tokens IS NULL OR reasoning_tokens >= 0) "
+            "AND image_count >= 0 AND latency_ms >= 0",
+            name="ck_classification_ai_calls_usage_nonnegative",
+        ),
+        CheckConstraint(
+            "page_numbers IS NULL OR jsonb_typeof(page_numbers) = 'array'",
+            name="ck_classification_ai_calls_page_numbers",
+        ),
+        Index("ix_classification_ai_calls_classification_run_id", "classification_run_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        server_default=text("gen_random_uuid()"),
+    )
+    classification_run_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "document_classification_runs.id",
+            name="fk_classification_ai_calls_classification_run_id",
+        ),
+        nullable=False,
+    )
+    call_kind: Mapped[ClassificationCallKind] = mapped_column(
+        classification_call_kind_enum,
+        nullable=False,
+    )
+    page_numbers: Mapped[list | None] = mapped_column(JSONB)
+    provider: Mapped[str] = mapped_column(Text, nullable=False)
+    model: Mapped[str] = mapped_column(Text, nullable=False)
+    provider_response_id: Mapped[str | None] = mapped_column(Text)
+    input_tokens: Mapped[int | None] = mapped_column(Integer)
+    cached_input_tokens: Mapped[int | None] = mapped_column(Integer)
+    output_tokens: Mapped[int | None] = mapped_column(Integer)
+    reasoning_tokens: Mapped[int | None] = mapped_column(Integer)
+    image_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    latency_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
+RevisionDocument.__table__.append_constraint(
+    ForeignKeyConstraint(
+        ["accepted_classification_prediction_id", "document_id"],
+        ["classification_predictions.id", "classification_predictions.document_id"],
+        name="fk_revision_documents_accepted_prediction",
+    )
+)

@@ -175,9 +175,12 @@ def test_fresh_upgrade_reaches_0004_with_expected_schema(scratch_url: URL) -> No
         assert DOCUMENT_INDEXES <= _index_names(engine, "documents")
         assert REVISION_DOCUMENT_INDEXES <= _index_names(engine, "revision_documents")
 
-        assert _enum_labels(engine, "document_classification") == [
-            member.value for member in DocumentClassification
+        historical = [
+            member.value
+            for member in DocumentClassification
+            if member is not DocumentClassification.MIXED_DOCUMENT
         ]
+        assert _enum_labels(engine, "document_classification") == historical
         assert _enum_labels(engine, "document_origin") == [
             member.value for member in DocumentOrigin
         ]

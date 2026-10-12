@@ -10,6 +10,11 @@ engineering-model logic or calculations.
 from powerforge_document_model.artifact_key import build_artifact_key
 from powerforge_document_model.coordinates import NormalizedBox
 from powerforge_document_model.enums import (
+    ClassificationCallKind,
+    ClassificationRunStatus,
+    ClassificationScope,
+    ClassificationStage,
+    ConfidenceBand,
     DocumentClassification,
     DocumentOrigin,
     FileFormat,
@@ -46,6 +51,11 @@ from powerforge_document_model.validation import (
 
 __all__ = [
     "DEFAULT_PROFILE",
+    "ClassificationCallKind",
+    "ClassificationRunStatus",
+    "ClassificationScope",
+    "ClassificationStage",
+    "ConfidenceBand",
     "DocumentClassification",
     "DocumentOrigin",
     "DocumentValidationError",

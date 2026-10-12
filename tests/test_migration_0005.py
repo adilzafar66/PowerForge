@@ -153,7 +153,7 @@ def _seed_document(engine: Engine) -> tuple[uuid.UUID, str]:
 
 @pytest.mark.integration
 def test_fresh_upgrade_reaches_0005_with_expected_schema(scratch_url: URL) -> None:
-    _alembic(scratch_url, "upgrade", "head")
+    _alembic(scratch_url, "upgrade", HEAD)
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == HEAD
@@ -186,7 +186,7 @@ def test_upgrade_from_0004_preserves_existing_documents(scratch_url: URL) -> Non
         assert _version(engine) == PREVIOUS
         document_id, storage_key = _seed_document(engine)
 
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
 
         assert _version(engine) == HEAD
         with engine.connect() as connection:
@@ -224,7 +224,7 @@ def test_backfill_after_upgrade_from_0004_creates_one_run_per_document(scratch_u
     try:
         first, _key = _seed_document(engine)
         second, _other = _seed_document(engine)
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         factory = sessionmaker(bind=engine, expire_on_commit=False)
         storage = InMemoryObjectStorage()
         enqueue = _Enqueue()
@@ -262,7 +262,7 @@ def test_downgrade_to_0004_and_reupgrade(scratch_url: URL) -> None:
     engine = create_engine(scratch_url)
     try:
         document_id, storage_key = _seed_document(engine)
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
 
         _alembic(scratch_url, "downgrade", PREVIOUS)
 
@@ -277,7 +277,7 @@ def test_downgrade_to_0004_and_reupgrade(scratch_url: URL) -> None:
             ).one()
         assert (row.id, row.storage_key) == (document_id, storage_key)
 
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert _version(engine) == HEAD
         assert _enum_types(engine) == PHASE3_ENUMS
     finally:

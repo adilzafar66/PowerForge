@@ -16,6 +16,7 @@ class DocumentClassification(StrEnum):
     EQUIPMENT_PHOTO = "EQUIPMENT_PHOTO"
     NAMEPLATE_PHOTO = "NAMEPLATE_PHOTO"
     STUDY_DOCUMENT = "STUDY_DOCUMENT"
+    MIXED_DOCUMENT = "MIXED_DOCUMENT"
     OTHER = "OTHER"
     UNKNOWN = "UNKNOWN"
 
@@ -53,6 +54,34 @@ class PageArtifactType(StrEnum):
 class SourceUnit(StrEnum):
     POINTS = "POINTS"
     PIXELS = "PIXELS"
+
+
+class ClassificationRunStatus(StrEnum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+
+class ClassificationStage(StrEnum):
+    DOCUMENT = "DOCUMENT"
+    PAGES = "PAGES"
+
+
+class ClassificationScope(StrEnum):
+    DOCUMENT = "DOCUMENT"
+    PAGE = "PAGE"
+
+
+class ConfidenceBand(StrEnum):
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+
+
+class ClassificationCallKind(StrEnum):
+    DOCUMENT = "DOCUMENT"
+    PAGE_BATCH = "PAGE_BATCH"
 
 
 class ProcessingErrorCode(StrEnum):

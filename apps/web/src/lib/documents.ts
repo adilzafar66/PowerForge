@@ -16,6 +16,7 @@ export const DOCUMENT_TYPES = [
   "EQUIPMENT_PHOTO",
   "NAMEPLATE_PHOTO",
   "STUDY_DOCUMENT",
+  "MIXED_DOCUMENT",
   "OTHER",
   "UNKNOWN",
 ] as const;
@@ -143,6 +144,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   EQUIPMENT_PHOTO: "Equipment Photo",
   NAMEPLATE_PHOTO: "Nameplate Photo",
   STUDY_DOCUMENT: "Study Document",
+  MIXED_DOCUMENT: "Mixed Document",
   OTHER: "Other",
   UNKNOWN: "Unclassified",
 };

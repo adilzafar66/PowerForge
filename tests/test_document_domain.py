@@ -47,6 +47,7 @@ CLASSIFICATION_VALUES = (
     "EQUIPMENT_PHOTO",
     "NAMEPLATE_PHOTO",
     "STUDY_DOCUMENT",
+    "MIXED_DOCUMENT",
     "OTHER",
     "UNKNOWN",
 )
@@ -66,6 +67,7 @@ def test_document_classification_values_and_order() -> None:
     assert values == list(CLASSIFICATION_VALUES)
     assert DocumentClassification.OTHER in DocumentClassification
     assert DocumentClassification.UNKNOWN in DocumentClassification
+    assert values[values.index("OTHER") - 1] == "MIXED_DOCUMENT"
     assert values.index("OTHER") < values.index("UNKNOWN")
     assert values[-1] == "UNKNOWN"
     assert DocumentClassification.SINGLE_LINE_DIAGRAM == "SINGLE_LINE_DIAGRAM"
