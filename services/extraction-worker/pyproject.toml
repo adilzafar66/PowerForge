@@ -1,12 +1,19 @@
 [project]
 name = "powerforge-extraction-worker"
 version = "0.1.0"
-description = "AI extraction worker. Phase 0 heartbeat only; no model calls."
+description = "Classification worker. Consumes the document_classification queue."
 requires-python = ">=3.12"
 dependencies = [
     "celery[redis]>=5.4",
     "redis>=5.1",
     "pydantic-settings>=2.4",
+    "psycopg[binary]>=3.2",
+    "openai>=2",
+    "powerforge-shared",
+    "powerforge-document-model",
+    "powerforge-document-processing",
+    "powerforge-document-classification",
+    "powerforge-ai",
 ]
 
 [build-system]

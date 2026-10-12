@@ -28,8 +28,9 @@ from powerforge_document_model import DocumentClassification
 from powerforge_document_model.profile import hash_material_fields
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-FORBIDDEN_IMPORTS = frozenset({"fastapi", "celery", "boto3", "openai", "PIL", "fitz"})
-SQLALCHEMY_ALLOWED = frozenset({"assembly.py", "service.py"})
+FORBIDDEN_IMPORTS = frozenset({"fastapi", "boto3", "openai", "PIL", "fitz"})
+CELERY_ALLOWED = frozenset({"enqueue.py"})
+SQLALCHEMY_ALLOWED = frozenset({"assembly.py", "service.py", "backfill.py"})
 PROCESSING_BOUNDARIES = frozenset(
     {
         "powerforge_document_processing.rendering",
@@ -173,8 +174,11 @@ def test_classification_packages_do_not_import_frameworks_or_openai() -> None:
     for root in PACKAGE_ROOTS:
         for path in root.rglob("*.py"):
             imported = _imported_modules(path)
-            overlap = {module.split(".", 1)[0] for module in imported} & FORBIDDEN_IMPORTS
+            roots = {module.split(".", 1)[0] for module in imported}
+            overlap = roots & FORBIDDEN_IMPORTS
             assert overlap == set(), f"{path} imports {sorted(overlap)}"
-            if "sqlalchemy" in {module.split(".", 1)[0] for module in imported}:
+            if "celery" in roots:
+                assert path.name in CELERY_ALLOWED, f"{path} imports celery"
+            if "sqlalchemy" in roots:
                 assert path.name in SQLALCHEMY_ALLOWED, f"{path} imports sqlalchemy"
             assert PROCESSING_BOUNDARIES.isdisjoint(imported), path

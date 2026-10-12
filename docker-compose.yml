@@ -121,11 +121,26 @@ services:
       args:
         WORKER_PACKAGE: extraction-worker
         CELERY_APP: extraction_worker.celery_app
+        CELERY_QUEUE: document_classification
     environment:
       REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql+psycopg://powerforge:powerforge@postgres:5432/powerforge
+      S3_ENDPOINT_URL: http://minio:9000
+      S3_ACCESS_KEY: powerforge
+      S3_SECRET_KEY: powerforge_minio
+      S3_BUCKET: powerforge
+      S3_PUBLIC_ENDPOINT_URL: http://localhost:9000
+      S3_SIGNED_URL_EXPIRES_SECONDS: "900"
+      AI_CLASSIFICATION_ENABLED: "false"
+      AI_PROVIDER: fake
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
+      minio:
+        condition: service_started
 
   validation-worker:
     build:

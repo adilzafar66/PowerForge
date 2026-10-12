@@ -10,6 +10,7 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "powerforge-shared",
     "powerforge-document-processing",
+    "powerforge-document-classification",
 ]
 
 [build-system]

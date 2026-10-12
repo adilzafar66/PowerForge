@@ -16,6 +16,8 @@ COPY packages/shared /app/packages/shared
 COPY packages/project /app/packages/project
 COPY packages/document-model /app/packages/document-model
 COPY packages/document-processing /app/packages/document-processing
+COPY packages/ai /app/packages/ai
+COPY packages/document-classification /app/packages/document-classification
 COPY services/${WORKER_PACKAGE} /app/services/worker
 
 RUN pip install --no-cache-dir --upgrade pip \
@@ -25,7 +27,19 @@ RUN pip install --no-cache-dir --upgrade pip \
             -e /app/packages/project \
             -e /app/packages/document-model \
             -e /app/packages/document-processing \
+            -e /app/packages/ai \
+            -e /app/packages/document-classification \
             -e /app/services/worker \
+            "psycopg[binary]>=3.2"; \
+    elif [ "$WORKER_PACKAGE" = "extraction-worker" ]; then \
+        pip install --no-cache-dir \
+            -e /app/packages/shared \
+            -e /app/packages/document-model \
+            -e /app/packages/document-processing \
+            -e /app/packages/document-classification \
+            -e /app/packages/ai \
+            -e /app/services/worker \
+            "openai>=2" \
             "psycopg[binary]>=3.2"; \
     else \
         pip install --no-cache-dir -e /app/packages/shared -e /app/services/worker; \

@@ -86,6 +86,7 @@ _ERROR_MESSAGES = {
     ),
     ClassificationErrorCode.CLASSIFICATION_INPUT_ERROR: "The classification input is incomplete",
     ClassificationErrorCode.UNKNOWN_CLASSIFICATION_ERROR: "Classification failed",
+    ClassificationErrorCode.CLASSIFICATION_TASK_TIMEOUT: "Classification timed out",
 }
 
 
@@ -248,9 +249,15 @@ class ClassificationService:
             self._fail(run_id, exc.code)
         except (_InvalidProviderResponse, InvalidPageType, ValidationError):
             self._fail(run_id, ClassificationErrorCode.INVALID_PROVIDER_RESPONSE)
-        except Exception:
+        except Exception as exc:
+            if exc.__class__.__name__ == "SoftTimeLimitExceeded":
+                raise
             logger.exception("classification failed", extra={"run_id": str(run_id)})
             self._fail(run_id, ClassificationErrorCode.UNKNOWN_CLASSIFICATION_ERROR)
+
+    def mark_task_timeout(self, run_id: UUID) -> None:
+        """Mark a RUNNING run failed after the Celery soft time limit. The caller re-raises."""
+        self._fail(run_id, ClassificationErrorCode.CLASSIFICATION_TASK_TIMEOUT)
 
     def latest_completed_document_prediction(
         self, document_id: UUID

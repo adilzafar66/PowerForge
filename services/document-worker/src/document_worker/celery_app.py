@@ -1,3 +1,4 @@
+import logging
 from functools import lru_cache
 from uuid import UUID
 
@@ -7,8 +8,10 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from powerforge_document_processing.enqueue import PROCESS_RUN_TASK
 from powerforge_document_processing.storage.base import ObjectStorage
-from powerforge_shared.config import get_settings
+from powerforge_shared.config import Settings, get_settings
 from powerforge_shared.logging import configure_logging
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -71,6 +74,44 @@ def mark_processing_timeout(session: Session, run_id: UUID) -> None:
     session.commit()
 
 
+def maybe_enqueue_classification(
+    session: Session,
+    storage: ObjectStorage,
+    processing_run_id: UUID,
+    enqueue: object | None = None,
+    settings: Settings | None = None,
+) -> None:
+    """After a committed COMPLETED processing run, enqueue classification when it is enabled."""
+    chosen = settings if settings is not None else get_settings()
+    if not chosen.ai_classification_enabled:
+        return
+    from powerforge_document_model import ProcessingRunStatus
+    from powerforge_document_processing.models import DocumentProcessingRun
+
+    run = session.get(DocumentProcessingRun, processing_run_id)
+    if run is None or run.status != ProcessingRunStatus.COMPLETED:
+        return
+    from powerforge_document_classification.enqueue import CeleryClassificationEnqueue
+    from powerforge_document_classification.fake import FakeClassificationProvider
+    from powerforge_document_classification.service import ClassificationService
+
+    port = enqueue if enqueue is not None else CeleryClassificationEnqueue()
+    try:
+        ClassificationService(
+            session,
+            storage,
+            port,
+            FakeClassificationProvider(),
+            chosen,
+        ).ensure_document_classification(run.document_id)
+    except Exception:
+        logger.exception(
+            "classification enqueue failed",
+            extra={"processing_run_id": str(processing_run_id)},
+        )
+        session.rollback()
+
+
 def execute_processing_run(run_id: UUID, session: Session, storage: ObjectStorage) -> None:
     """Claim and process one run. A second call writes nothing."""
     from powerforge_document_processing.processing import ProcessingService
@@ -106,7 +147,9 @@ def process_document_run(run_id: str) -> None:
     from powerforge_document_processing.storage.factory import build_s3_storage
 
     session = _open_session()
+    storage = build_s3_storage(get_settings())
     try:
-        execute_processing_run(UUID(run_id), session, build_s3_storage(get_settings()))
+        execute_processing_run(UUID(run_id), session, storage)
+        maybe_enqueue_classification(session, storage, UUID(run_id))
     finally:
         session.close()

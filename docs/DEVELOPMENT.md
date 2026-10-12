@@ -18,11 +18,11 @@ Phase 2 (complete; see [PROJECT_STATUS.md](PROJECT_STATUS.md)) added document ma
 
 Phase 3 processing runs on `document-worker`. New uploads enqueue a run; documents already stored wait for `powerforge-backfill-processing --limit N`. The revision documents workspace shows processing status, retry, and the page viewer ([PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md)).
 
-Phase 4 classification can run in process through the fake provider. Uploads do not call it, and there is no Celery task or OpenAI adapter yet ([PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md)).
+Phase 4 classification runs on `extraction-worker` after Phase 3 commits a completed processing run, and only when classification is enabled. That worker listens on `document_classification`. The OpenAI adapter lives there; tests mock it and do not call OpenAI. Documents already processed wait for `powerforge-backfill-classification --limit N` ([PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md)).
 
 ## Phase 4 configuration
 
-These fields exist on `Settings`. Classification stays off (`AI_CLASSIFICATION_ENABLED` defaults to false). They are still absent from `.env.example` and `docker-compose.yml`. Do not put `OPENAI_API_KEY` in Compose, `.env.example`, or source control. A blank key counts as unset. `Settings()` constructs when the key is absent, and nothing checks for the key at startup. The API and `document-worker` start without it. Only `extraction-worker` will require it, and only when classification is enabled and the provider is OpenAI.
+These fields exist on `Settings`. Classification stays off (`AI_CLASSIFICATION_ENABLED` defaults to false). They stay out of `.env.example`. `extraction-worker` in Compose sets classification off and substitutes `OPENAI_API_KEY` from the environment; do not commit a key. A blank key counts as unset. `Settings()` constructs when the key is absent. The API, `document-worker`, and `validation-worker` start without it and do not receive the key. `extraction-worker` refuses to start when classification is enabled, `AI_PROVIDER=openai`, and the key is missing. Fake mode and disabled mode start without a key.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
@@ -154,10 +154,24 @@ celery -A document_worker.celery_app worker --loglevel=info -Q document_processi
 
 (from `services/document-worker` with `PYTHONPATH` including that service’s `src`).
 
-Backfill does not run when the API starts. It enqueues documents that have no compatible run, and documents whose current run is still unclaimed `PENDING`. It does not retry `FAILED`. `--limit` is required:
+Extraction worker (needs Redis, Postgres, and the same `S3_*` values as the document worker). It listens only on `document_classification` and stays at one process. Put `OPENAI_API_KEY` in this process’s environment only, and only when classification is enabled with `AI_PROVIDER=openai`:
+
+```bash
+celery -A extraction_worker.celery_app worker --loglevel=info -Q document_classification --concurrency=1
+```
+
+(from `services/extraction-worker` with `PYTHONPATH` including that service’s `src` and the classification package).
+
+Backfill does not run when the API starts. Processing backfill enqueues documents that have no compatible run, and documents whose current run is still unclaimed `PENDING`. It does not retry `FAILED`. `--limit` is required:
 
 ```bash
 powerforge-backfill-processing --limit 100
+```
+
+Classification backfill selects the oldest documents whose current processing run for the active profile is `COMPLETED`, then keeps only those `ensure` would enqueue: no compatible classification run yet, or an unclaimed compatible `PENDING` run. Compatible `COMPLETED`, `RUNNING`, and `FAILED` rows are left alone. `--limit` is required and must be at least 1. Classification must be enabled. The OpenAI key belongs only in the extraction-worker environment:
+
+```bash
+powerforge-backfill-classification --limit 100
 ```
 
 ## Tests

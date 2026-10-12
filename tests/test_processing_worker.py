@@ -88,6 +88,7 @@ print(json.dumps({
             str(REPO_ROOT / "services/extraction-worker/src"),
             str(REPO_ROOT / "services/validation-worker/src"),
             str(REPO_ROOT / "packages/shared/src"),
+            str(REPO_ROOT / "packages/document-classification/src"),
         ]
     )
     result = subprocess.run(
@@ -126,18 +127,37 @@ def test_compose_binds_only_the_document_worker_to_its_queue() -> None:
     compose = (REPO_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
     dockerfile = (REPO_ROOT / "services" / "worker.Dockerfile").read_text(encoding="utf-8")
     start = compose.index("  document-worker:")
-    end = compose.index("  extraction-worker:")
-    block = compose[start:end]
+    extraction = compose.index("  extraction-worker:")
+    validation = compose.index("  validation-worker:")
+    block = compose[start:extraction]
+    extract = compose[extraction:validation]
     assert "CELERY_QUEUE: document_processing" in block
     assert "S3_ENDPOINT_URL: http://minio:9000" in block
     assert "S3_ACCESS_KEY: powerforge" in block
     assert "S3_SECRET_KEY: powerforge_minio" in block
     assert "S3_BUCKET: powerforge" in block
     assert "S3_PUBLIC_ENDPOINT_URL: http://localhost:9000" in block
-    assert "CELERY_QUEUE" not in compose[end:]
+    assert "OPENAI_API_KEY" not in block
+    assert "CELERY_QUEUE: document_classification" in extract
+    assert "DATABASE_URL:" in extract
+    assert "S3_ENDPOINT_URL: http://minio:9000" in extract
+    assert "AI_CLASSIFICATION_ENABLED:" in extract
+    assert "AI_PROVIDER: fake" in extract
+    assert "OPENAI_API_KEY: ${OPENAI_API_KEY:-}" in extract
+    assert compose.count("OPENAI_API_KEY: ${OPENAI_API_KEY:-}") == 1
+    assert "CELERY_QUEUE" not in compose[validation:]
+    assert "OPENAI_API_KEY" not in compose[validation:]
     assert "ARG CELERY_QUEUE=celery" in dockerfile
     assert "--concurrency=1" in dockerfile
     assert "-Q ${CELERY_QUEUE}" in dockerfile
+    document_image, extraction_image = dockerfile.split(
+        'elif [ "$WORKER_PACKAGE" = "extraction-worker" ]', 1
+    )
+    extraction_image = extraction_image.split("else", 1)[0]
+    assert "openai" not in document_image
+    assert "/app/packages/document-classification" in document_image
+    assert '"openai>=2"' in extraction_image
+    assert "/app/packages/document-classification" in extraction_image
 
 
 def test_api_lifespan_does_not_backfill() -> None:

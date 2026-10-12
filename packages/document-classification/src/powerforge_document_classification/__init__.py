@@ -2,7 +2,7 @@
 
 Vocabulary modules stay free of SQLAlchemy. The service and input assembler
 use the shared models and the object-storage port. This package does not
-import FastAPI, Celery, or a vendor SDK.
+import FastAPI or a vendor SDK. Only ``enqueue.py`` imports Celery.
 """
 
 from powerforge_document_classification.errors import ClassificationErrorCode
