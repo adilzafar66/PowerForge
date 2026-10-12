@@ -1,0 +1,26 @@
+{
+  "items": [
+    {
+      "path": "fixtures/sld-one.pdf",
+      "expected_document_type": "SINGLE_LINE_DIAGRAM"
+    },
+    {
+      "path": "fixtures/transformer-shop.pdf",
+      "expected_document_type": "TRANSFORMER_SHOP_DRAWING"
+    },
+    {
+      "path": "fixtures/mixed-packet.pdf",
+      "expected_document_type": "MIXED_DOCUMENT",
+      "expected_page_types": [
+        {
+          "page_number": 1,
+          "expected_type": "ELECTRICAL_DRAWING"
+        }
+      ]
+    },
+    {
+      "path": "fixtures/unknown-scan.pdf",
+      "expected_document_type": "UNKNOWN"
+    }
+  ]
+}

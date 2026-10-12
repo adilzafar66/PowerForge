@@ -20,3 +20,6 @@ htmlcov
 .turbo
 .idea
 .vscode
+
+# Local labeled evaluation documents. Do not commit customer or engineering PDFs.
+evals/classification/private/

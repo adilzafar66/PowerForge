@@ -14,6 +14,7 @@ dependencies = [
 
 [project.scripts]
 powerforge-backfill-classification = "powerforge_document_classification.backfill:main"
+powerforge-eval-classification = "powerforge_document_classification.eval:main"
 
 [build-system]
 requires = ["setuptools>=68"]

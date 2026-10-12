@@ -187,6 +187,18 @@ Classification backfill selects the oldest documents whose current processing ru
 powerforge-backfill-classification --limit 100
 ```
 
+Classification quality is measured offline with `powerforge-eval-classification`. It reads a labeled manifest, runs the fake provider unless you opt in, and writes a JSON report. It does not use Postgres or the API, and CI does not run it. The committed example uses tiny filename fixtures:
+
+```bash
+powerforge-eval-classification --manifest evals/classification/example-manifest.json
+```
+
+Point `--manifest` at your own labeled set under `evals/classification/private/` (that directory is gitignored). Paths in the manifest are relative to the manifest file. Each item has `expected_document_type` and optional `expected_page_types`. A live OpenAI smoke is explicit and stays out of CI. Run it from an environment that has the extraction-worker package installed, and set `OPENAI_API_KEY` only for that process:
+
+```bash
+powerforge-eval-classification --manifest evals/classification/private/manifest.json --provider openai
+```
+
 ## Tests
 
 ```bash
