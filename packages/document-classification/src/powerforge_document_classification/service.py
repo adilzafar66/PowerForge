@@ -620,15 +620,14 @@ class ClassificationService:
         run.stage = ClassificationStage.PAGES
         run.pages_total = len(pages)
         self._commit()
-        batches = build_page_batches(
+        for batch in build_page_batches(
             self.session,
             self.storage,
             document,
             processing.id,
             pages,
             self.profile,
-        )
-        for batch in batches:
+        ):
             page_response = self._provider.classify_pages(batch)
             run = self._load_run(run_id)
             numbers = [page.page_number for page in batch.pages]
@@ -636,6 +635,7 @@ class ClassificationService:
             self._store_call(run, ClassificationCallKind.PAGE_BATCH, numbers, page_response.usage)
             run.pages_classified += len(numbers)
             self._commit()
+            del batch
         if self._document_prediction(run_id) is None or not self._pages_complete(run_id, pages):
             raise _InvalidProviderResponse
         run = self._load_run(run_id)

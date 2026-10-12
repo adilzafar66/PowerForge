@@ -30,6 +30,7 @@ from powerforge_ai.providers import (
     ClassifyPageInput,
     ClassifyPagesRequest,
 )
+from powerforge_document_classification.assembly import build_page_batches
 from powerforge_document_classification.errors import (
     ClassificationErrorCode,
     ClassificationProviderError,
@@ -46,6 +47,7 @@ from powerforge_document_classification.fake import (
     FakeClassificationProvider,
 )
 from powerforge_document_classification.identity import classifier_identity_hash
+from powerforge_document_classification.profile import DEFAULT_CLASSIFICATION_PROFILE
 from powerforge_document_classification.service import (
     ClassificationDisabled,
     ClassificationInProgress,
@@ -917,6 +919,39 @@ def test_nine_pages_produce_two_page_batches(session: Session) -> None:
     assert calls[1].image_count == 8
     assert calls[2].image_count == 1
     assert all(call.input_tokens == FAKE_INPUT_TOKENS for call in calls)
+
+
+def test_page_batches_read_artifacts_one_batch_at_a_time(session: Session) -> None:
+    storage = InMemoryObjectStorage()
+    ready = _ready(
+        session,
+        storage,
+        filename="mixed.pdf",
+        pages_total=9,
+        texts={number: f"page {number}" for number in range(1, 10)},
+    )
+    storage.calls.clear()
+    batches = build_page_batches(
+        session,
+        storage,
+        ready.document,
+        ready.processing.id,
+        [ready.pages[number] for number in range(1, 10)],
+        DEFAULT_CLASSIFICATION_PROFILE,
+    )
+    first = next(batches)
+    assert [page.page_number for page in first.pages] == list(range(1, 9))
+    read_keys = set(storage.calls_for("get"))
+    assert ready.thumb_keys[9] not in read_keys
+    assert ready.text_keys[9] not in read_keys
+    assert {ready.thumb_keys[number] for number in range(1, 9)} <= read_keys
+    second = next(batches)
+    assert [page.page_number for page in second.pages] == [9]
+    read_keys = set(storage.calls_for("get"))
+    assert ready.thumb_keys[9] in read_keys
+    assert ready.text_keys[9] in read_keys
+    with pytest.raises(StopIteration):
+        next(batches)
 
 
 def _lock_waits(engine: Engine) -> int:

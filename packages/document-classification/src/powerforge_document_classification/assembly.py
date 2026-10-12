@@ -5,6 +5,8 @@ Reads thumbnail and native-text artifacts only. The original file is never opene
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -109,14 +111,18 @@ def build_page_batches(
     processing_run_id: object,
     pages: list[DocumentPage],
     profile: ClassificationProfile,
-) -> list[ClassifyPagesRequest]:
-    """One request per batch. Every page in the page set is included."""
+) -> Iterator[ClassifyPagesRequest]:
+    """Yield one batch at a time, reading only that batch's thumbnails and text.
+
+    The page rows are already loaded. Artifact bytes for later batches stay in
+    object storage until the caller advances the iterator.
+    """
     batch_size = profile.page_classification_batch_size
     if batch_size < 1:
         raise ClassificationAssemblyError(ClassificationErrorCode.CLASSIFICATION_INPUT_ERROR)
-    prepared: list[ClassifyPageInput] = []
+    chunk: list[ClassifyPageInput] = []
     for page in pages:
-        prepared.append(
+        chunk.append(
             ClassifyPageInput(
                 page_number=page.page_number,
                 text=_native_text(
@@ -129,19 +135,21 @@ def build_page_batches(
                 image=_thumbnail(session, storage, processing_run_id, page),
             )
         )
-    requests: list[ClassifyPagesRequest] = []
-    for start in range(0, len(prepared), batch_size):
-        chunk = prepared[start : start + batch_size]
-        requests.append(
-            ClassifyPagesRequest(
-                filename=document.original_filename,
-                extension=document.file_extension,
-                pages=chunk,
-                allowed_types=PAGE_TYPES,
-                instructions=page_classifier_prompt(),
-            )
-        )
-    return requests
+        if len(chunk) == batch_size:
+            yield _page_request(document, chunk)
+            chunk = []
+    if chunk:
+        yield _page_request(document, chunk)
+
+
+def _page_request(document: Document, pages: list[ClassifyPageInput]) -> ClassifyPagesRequest:
+    return ClassifyPagesRequest(
+        filename=document.original_filename,
+        extension=document.file_extension,
+        pages=pages,
+        allowed_types=PAGE_TYPES,
+        instructions=page_classifier_prompt(),
+    )
 
 
 def _artifact(
