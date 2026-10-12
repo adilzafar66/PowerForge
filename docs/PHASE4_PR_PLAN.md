@@ -86,7 +86,7 @@ Update the checkbox and status when a PR merges; keep [PROJECT_STATUS.md](PROJEC
 | [PR-01](#pr-01--specification-adr-and-documentation) | Specification, ADR-006, docs, this plan | Docs | S | — | [x] landed in `3063120` |
 | [PR-02](#pr-02--classification-contracts-profile-and-prompts) | Classification contracts, profile, and prompts | Domain | M | PR-01 | [x] landed in `e962e9e` |
 | [PR-03](#pr-03--migration-0006-and-classification-models) | Migration `0006` and classification models | DB | M | PR-02 | [x] landed in `ca91cfd` |
-| [PR-04](#pr-04--classification-service-and-fake-provider) | Classification service and fake provider | Backend | L | PR-02, PR-03 | [ ] |
+| [PR-04](#pr-04--classification-service-and-fake-provider) | Classification service and fake provider | Backend | L | PR-02, PR-03 | [x] landed in `9d9460a` |
 | [PR-05](#pr-05--worker-queue-openai-adapter-trigger-and-backfill) | Worker, queue, OpenAI adapter, trigger, and backfill | Backend/Infra | L | PR-04 | [ ] |
 | [PR-06](#pr-06--classification-apis-and-acceptance-provenance) | Classification APIs and acceptance provenance | Backend | L | PR-04 | [ ] |
 | [PR-07](#pr-07--classification-workspace-ui) | Classification workspace UI | Web | M | PR-06 | [ ] |
@@ -253,6 +253,8 @@ ADR-006 must record at least the 20 numbered decisions in spec §64. It must not
 ---
 
 ### PR-04 — Classification service and fake provider
+
+**Status.** Done. The classification service and fake provider are on `main` (`9d9460a`). Uploads still only start Phase 3 processing. ADR-006 remains Proposed.
 
 **Goal.** Orchestrate one classification attempt against the fake provider: assemble bounded input, run document classification, run page classification when required, persist immutable predictions and usage telemetry. Enqueue is a port. (§6–§12, §19, §24–§30, §34–§37, §44, §53, §56)
 

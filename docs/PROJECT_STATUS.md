@@ -4,7 +4,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 **Current implemented phase:** 3 (document processing)  
 **In progress:** none  
-**Next:** Phase 4 (document classification). Schema landed in `ca91cfd`; classification is not implemented
+**Next:** Phase 4 (document classification). Service landed in `9d9460a`; the worker and API are not implemented
 
 ## Phase 0 — Architecture and repository setup
 
@@ -143,19 +143,18 @@ Phase 2 tree at `2c75e44`, plus the untracked Phase 3 spec. Integration tests us
 
 ## Phase 4 — AI document classification
 
-**Status:** Specified (2026-10-11). Schema landed; classification is not implemented.
+**Status:** Specified (2026-10-11). Service landed; uploads do not classify.
 
 Specification: `cursor/phase4_specs.txt`  
-Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 landed in `3063120`; PR-02 landed in `e962e9e`; PR-03 landed in `ca91cfd`; PR-04 onward are not started)  
+Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) (PR-01 landed in `3063120`; PR-02 landed in `e962e9e`; PR-03 landed in `ca91cfd`; PR-04 landed in `9d9460a`; PR-05 onward are not started)  
 Decisions: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Proposed 2026-10-11)
 
-Phase 4 will classify an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. `MIXED_DOCUMENT` is on the live enum, and the classification tables exist. Nothing writes them yet: no worker queue, no provider calls, and no classification UI.
+Phase 4 will classify an immutable `Document` after a completed Phase 3 processing run. The AI result is a suggestion. `RevisionDocument.document_type` stays the engineer-confirmed type until an explicit accept. The classification service and fake provider can classify a document in process. Uploads still only start Phase 3 processing. There is no worker queue, OpenAI adapter, classification API, or classification UI.
 
 ### Not implemented yet
 
-- Classification behavior (the schema is unused)
-- Fake and OpenAI providers and the classification worker
-- Accept, retry, reclassify, and the suggestion/attempt API
+- Classification worker, queue, and OpenAI adapter
+- Accept and the suggestion/attempt API
 - Revision-workspace classification UI
 - Evaluation harness
 
@@ -180,7 +179,7 @@ Phase 3 tree on `main`, plus the untracked Phase 4 spec and this delivery plan, 
 | --- | --- | --- |
 | 2 | Document management | Complete (2026-10-06) |
 | 3 | Document processing | Complete (2026-10-10) |
-| 4 | Document classification | Specified (2026-10-11); schema landed, classification not started |
+| 4 | Document classification | Specified (2026-10-11); service landed, worker and API not started |
 | 5 | Engineering model persistence | Not started |
 | 6–13 | Extraction through export | Not started |
 
