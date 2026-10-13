@@ -96,7 +96,7 @@ Update the checkbox and status when a PR merges. PR-01 and PR-04 keep [PROJECT_S
 | [PR-01](#pr-01--document-presentation-state) | Document presentation state | Web | S | — | [x] |
 | [PR-02](#pr-02--workspace-toolbar-quick-views-and-filters) | Workspace toolbar, quick views, and filters | Web | M | PR-01 | [x] |
 | [PR-03](#pr-03--master-detail-list-and-document-drawer) | Master-detail list and document drawer | Web | L | PR-01, PR-02 | [x] |
-| [PR-04](#pr-04--verification-documentation-and-phase-45-completion) | Verification, documentation, and Phase 4.5 completion | Docs | S | all | [ ] |
+| [PR-04](#pr-04--verification-documentation-and-phase-45-completion) | Verification, documentation, and Phase 4.5 completion | Docs | S | all | [x] |
 
 ---
 
@@ -317,6 +317,8 @@ Do not split classification, processing, metadata, and mixed pages into separate
 
 ### PR-04 — Verification, documentation, and Phase 4.5 completion
 
+**Status.** Done (2026-10-12). Merge commits: PR-01 `9f00180`, PR-02 `dcca9b7`, PR-03 `d0bfef2`. This close-out sits on `d0bfef2`. The audit found one gap: retry processing, retry classification, and reclassify were hidden on a read-only revision even though those API calls are document operations. They are shown again. Accept, change type, edit, remove, and restore stay hidden. No Python diff.
+
 **Goal.** Prove the definition of done against the merged UI, write the short design note, and publish the handoff. No new interaction. (§54–§58)
 
 **Depends on.** PR-01, PR-02, PR-03.
@@ -339,6 +341,66 @@ Do not split classification, processing, metadata, and mixed pages into separate
 **Acceptance.** §57 is checked item by item in the PR description. Commands and browser results are only those actually run.
 
 **Size.** S.
+
+### Handoff (§58)
+
+**A. Components.** Added `document-presentation.ts`, `document-workspace-toolbar.tsx`, `ui/sheet.tsx`, `document-list.tsx`, `document-state.tsx`, `document-overflow-menu.tsx`, `document-detail-drawer.tsx`, `document-overview.tsx`, `document-classification-panel.tsx`, `document-processing-panel.tsx`, `document-metadata-panel.tsx`, and `mixed-document-page-types.tsx`. Removed `document-row-actions.tsx`. `revision-documents.tsx` keeps fetch, filters, selection, and mutations. `documents.ts` gained `getClassification`. `DropdownMenu` gained an optional text trigger.
+
+**B. Layout.** Header `Documents N`, Add Documents, search, Filters, then All / Needs Review / Issues / Removed. The list is beside a right-side drawer. Below `md` the row stacks filename, type, state, and overflow.
+
+**C. Columns.** Document, Type, State, overflow. The document cell shows at most three of: document number, file size, origin phrase, page count. Included is not shown. Uploaded and Inherited are not badges.
+
+**D. State.** `deriveDocumentPresentationState`: removed, processing failed, processing, classification failed, classifying, needs review, not started, ready. Needs review is included, a suggestion, and `accepted === false`. Failure subtype is in the accessible name, the tooltip, and the drawer.
+
+**E. Quick views.** All is included documents. Needs Review and Issues sit inside that count. Removed sits outside it. Counts are taken after search and advanced filters, before the quick-view slice.
+
+**F. Filters.** One `listDocuments` call with `status=ALL` and the debounced search. Type, origin, processing, and classification filter in the client. The trigger shows `Filters` or `Filters (n)`. Clear filters resets those four fields.
+
+**G. Drawer.** Header is filename, size, page count, document number, More, and close. One scrolling overview: confirmed type, AI classification, processing, origin, metadata. No tabs. `?document=` on the revision route opens it; Back, Escape, and close dismiss it.
+
+**H. AI.** The list summary paints the drawer immediately. `GET .../classification` loads rationale, score, and alternatives when the drawer opens. Accept, Choose another type, Use AI suggestion, and Keep current behave as in Phase 4. Keep current sends nothing. A failed attempt does not hide the previous suggestion. Reclassify sits below the accept actions.
+
+**I. Processing.** Complete shows the page count and View pages. In progress shows `processed / total`. Failed shows `error_message` and Retry processing. Closing the page viewer leaves the drawer on the same document.
+
+**J. Mixed pages.** Absent from the table. The drawer section calls `listClassificationPages` when opened, one row per page, and can open the viewer at that page. No page-level accept. No range grouping.
+
+**K. Overflow.** View pages when processing completed; Download original always; Open original when `canOpenInline`. Edit, remove, and restore only when `canMutate` and the row is included or removed as today. Retry processing, retry classification, and reclassify follow the document and stay available on a read-only revision.
+
+**L. Responsive.** The desktop table is four columns. Narrow viewports use a stacked row. The drawer can use the full viewport width.
+
+**M. Accessibility.** The row is focusable and opens on Enter or Space. The drawer is a dialog; focus moves in on open and back to the row on close. Escape closes it. Overflow menus are buttons. State text is always present next to the icon.
+
+**N. API.** No backend change. `getClassification` calls the existing `GET .../classification` route.
+
+**O. Tests.** `document-presentation.test.ts` covers precedence, needs review, issues, and quick-view counts. `revision-documents.test.tsx` covers the toolbar, the three columns, the drawer, menus, and the read-only split. No new suite was added in this PR. The read-only tests now expect retry processing, retry classification, and reclassify, and still expect accept, change type, edit, remove, and restore to be absent.
+
+**P. Commands.** `npm run lint`: no warnings or errors. `npm test`: 209 passed. `npx tsc --noEmit`: no errors. `npm run build`: succeeded. `ruff check .`: passed. `pytest`: 293 passed, 352 skipped. `RUN_INTEGRATION=1 pytest` on throwaway `powerforge_test` migrated to head: 645 passed. The database was dropped. `git diff` has no `services/`, `packages/`, or `database/` changes.
+
+**Q. Browser.** Not clicked. No browser tools were available. The flows not exercised are search, quick views, Filters, open a row, accept or keep current, pages, close the viewer, remove, and restore.
+
+**R. Deviations.** The secondary line drops page count when document number, size, and origin are all present. Open original stays in the menus. Selection uses `?document=` rather than a new route. There is one overview and no tabs. Mutations refetch the list and do not write the response over type, acceptance, or removal.
+
+**S. Debt.** The workspace does not poll. A processing or classification run that finishes in a worker stays on the last fetched snapshot until the next list reload or a page refresh. Page-range grouping was not built. Stale `RUNNING` recovery is already recorded in `PROJECT_STATUS.md`.
+
+**T. Phase 5.** Not implemented. No equipment, extraction, or topology UI.
+
+**U. Suggested commit message.** Close Phase 4.5 after the workspace audit.
+
+### Definition of done (§57)
+
+- The list is Document, Type, State, and overflow. Origin, date, and size are on the secondary line. Included is not shown on a normal row.
+- Processing and classification collapse to one presentation state. AI controls and mixed-page tables are out of the cells.
+- A row opens a drawer with confirmed type, AI classification, processing, origin, and metadata.
+- Previous actions remain reachable from the drawer or a menu, including document-level retry and reclassify on a read-only revision.
+- Add Documents consolidates upload and reuse. Quick views are All, Needs Review, Issues, and Removed. Secondary filters sit behind Filters. Search stays visible. Overflow holds secondary actions. Removed and read-only both work.
+- The list does not call `getClassification` or `listClassificationPages`. Page predictions load when the drawer section opens.
+- Phase 2, 3, and 4 workflows stay on the new surfaces. Frontend lint, tests, typecheck, and the production build passed, and the Python gate passed with an empty Python diff.
+- Responsive behavior is the stacked row and full-width drawer described above. It was not clicked in a browser.
+- No Phase 5 functionality was added.
+
+### Follow-ups
+
+- Refresh the open revision workspace when a worker finishes processing or classification, without a page reload.
 
 ---
 

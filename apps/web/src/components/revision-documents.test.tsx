@@ -780,16 +780,18 @@ describe("RevisionDocuments row actions", () => {
     expect(screen.getByRole("menuitem", { name: "Download original" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Open original" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "View pages" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Retry classification" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Reclassify" })).toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: "Edit metadata" })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Remove from revision" })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Restore to revision" })).toBeNull();
-    expect(screen.queryByRole("menuitem", { name: "Retry classification" })).toBeNull();
-    expect(screen.queryByRole("menuitem", { name: "Reclassify" })).toBeNull();
     expect(screen.queryByRole("menuitem", { name: "Retry processing" })).toBeNull();
 
     const drawer = await openDrawer(user, "a.pdf");
     expect(within(drawer).queryByRole("button", { name: "Accept suggestion" })).toBeNull();
     expect(within(drawer).queryByRole("button", { name: "Change type" })).toBeNull();
+    expect(within(drawer).getByRole("button", { name: "Retry" })).toBeInTheDocument();
+    expect(within(drawer).getByRole("button", { name: "Reclassify" })).toBeInTheDocument();
     expect(within(drawer).queryByRole("button", { name: "Retry processing" })).toBeNull();
     expect(within(drawer).getByRole("button", { name: "View pages" })).toBeInTheDocument();
   });
@@ -975,7 +977,8 @@ describe("processing and page viewer", () => {
     expect(retry).toHaveBeenCalledWith(P, R, "rd-bad.pdf");
   });
 
-  it("hides retry processing when the revision cannot be changed", async () => {
+  it("still offers retry processing when the revision cannot be changed", async () => {
+    const user = userEvent.setup();
     list.mockResolvedValue([
       makeRow({
         name: "bad.pdf",
@@ -983,9 +986,15 @@ describe("processing and page viewer", () => {
       }),
     ]);
     renderWorkspace(false);
-    await screen.findByText("bad.pdf");
-    expect(screen.queryByRole("button", { name: "Retry processing" })).toBeNull();
-    expect(screen.queryByRole("menuitem", { name: "Retry processing" })).toBeNull();
+    await openMenu(user, "bad.pdf");
+    expect(screen.getByRole("menuitem", { name: "Retry processing" })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitem", { name: "Edit metadata" })).toBeNull();
+    expect(screen.queryByRole("menuitem", { name: "Remove from revision" })).toBeNull();
+    await user.keyboard("{Escape}");
+
+    const drawer = await openDrawer(user, "bad.pdf");
+    expect(within(drawer).getByRole("button", { name: "Retry processing" })).toBeInTheDocument();
+    expect(within(drawer).queryByRole("button", { name: "Change type" })).toBeNull();
   });
 
   it("opens the viewer from the drawer and leaves that document selected", async () => {

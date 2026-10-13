@@ -97,7 +97,6 @@ export function DocumentOverview({
       ) : null}
       <DocumentProcessingPanel
         row={row}
-        canMutate={canMutate}
         busy={retrying}
         error={processingError}
         onViewPages={() => onViewPages()}

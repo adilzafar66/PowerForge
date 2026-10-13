@@ -98,7 +98,7 @@ export function DocumentClassificationPanel({
           )}
           <p className="text-red-700">Failed</p>
           <p className="text-[12.5px] text-slate-500">{classificationErrorLabel(attempt?.error_code)}</p>
-          {canRetryClassification(row, canMutate) ? (
+          {canRetryClassification(row) ? (
             <Button type="button" variant="secondary" size="sm" onClick={onRetry} disabled={busy}>
               Retry
             </Button>
@@ -129,7 +129,7 @@ export function DocumentClassificationPanel({
         </div>
       ) : null}
 
-      {canReclassifyDocument(row, canMutate) ? (
+      {canReclassifyDocument(row) ? (
         <div className="mt-3">
           <Button type="button" variant="ghost" size="sm" onClick={onReclassify} disabled={busy}>
             Reclassify

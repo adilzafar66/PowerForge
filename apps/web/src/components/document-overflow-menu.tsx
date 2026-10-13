@@ -35,21 +35,18 @@ export function canEditDocument(row: RevisionDocument, canMutate: boolean): bool
   return canMutate && included(row);
 }
 
-export function canReclassifyDocument(row: RevisionDocument, canMutate: boolean): boolean {
+/** Reclassify and classification retry follow the document, not revision mutability. */
+export function canReclassifyDocument(row: RevisionDocument): boolean {
   return (
-    canEditDocument(row, canMutate) &&
+    included(row) &&
     row.classification.enabled &&
     row.classification.suggestion != null &&
     !inFlight(row)
   );
 }
 
-export function canRetryClassification(row: RevisionDocument, canMutate: boolean): boolean {
-  return (
-    canEditDocument(row, canMutate) &&
-    row.classification.enabled &&
-    row.classification.attempt?.status === "FAILED"
-  );
+export function canRetryClassification(row: RevisionDocument): boolean {
+  return included(row) && row.classification.enabled && row.classification.attempt?.status === "FAILED";
 }
 
 export function DocumentOverflowMenu({
@@ -131,21 +128,21 @@ export function DocumentOverflowMenu({
       onSelect: () => handlers.onEditMetadata(row),
     });
   }
-  if (canReclassifyDocument(row, canMutate)) {
+  if (canReclassifyDocument(row)) {
     items.push({
       id: "reclassify",
       label: "Reclassify",
       onSelect: () => handlers.onReclassify(row),
     });
   }
-  if (canRetryClassification(row, canMutate)) {
+  if (canRetryClassification(row)) {
     items.push({
       id: "retry-classification",
       label: "Retry classification",
       onSelect: () => handlers.onRetryClassification(row),
     });
   }
-  if (canMutate && row.processing?.status === "FAILED") {
+  if (row.processing?.status === "FAILED") {
     items.push({
       id: "retry-processing",
       label: "Retry processing",

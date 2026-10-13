@@ -1,0 +1,11 @@
+Phase 4.5 document workspace
+
+This is a UI note, not an ADR. Backend semantics did not change.
+
+The revision documents page is a master-detail workspace. The table is Document, Type, and State, plus an overflow menu. A secondary line under the filename carries the document number, file size, origin, and page count when those fit. Included is not shown on a normal row.
+
+One presentation state is derived in the browser from the existing list payload. Precedence is removed, then processing failed, processing, classification failed, classifying, needs review, not started, and ready. Needs Review is an included document with an unaccepted suggestion. Issues are processing or classification failures. Removed is outside All.
+
+AI classification and processing live in the detail drawer, not in the table cells. Mixed-document page predictions load only when that drawer section opens. Accept, change type, metadata edits, remove, and restore stay on a mutable revision. Retry processing, retry classification, and reclassify stay available when the revision is read-only, because those calls belong to the document.
+
+Secondary actions live in the row overflow and the drawer More menu. Upload and reuse share Add Documents. Search stays visible. Type, origin, processing, and classification filters sit behind Filters.

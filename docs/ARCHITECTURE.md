@@ -293,9 +293,9 @@ OCR, equipment or table extraction, single-line topology, embeddings, automatic 
 
 ## Phase 4.5
 
-Phase 4.5 is a frontend refactor of the revision documents workspace. Specification: `cursor/phase4.5_specs.txt`. Delivery: [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md). Status: in progress. The workspace UI is unchanged. There is no ADR.
+Phase 4.5 is a frontend refactor of the revision documents workspace. Specification: `cursor/phase4.5_specs.txt`. Delivery: [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md). UI note: `cursor/phase4_5_document_workspace_ui.txt`. Status: complete (2026-10-12). There is no ADR.
 
-The list becomes a master-detail workspace. Presentation state is derived in the browser from the existing list payload. Document, revision, processing, and classification semantics stay as Phases 2–4 defined them. Until that UI lands, the workspace is still the Phase 4 table described above.
+The list is a master-detail workspace: Document, Type, and State, plus overflow. Presentation state is derived in the browser from the existing list payload. Classification review, processing, and metadata are in the detail drawer. Document, revision, processing, and classification semantics stay as Phases 2–4 defined them.
 
 ### Not in Phase 4.5
 

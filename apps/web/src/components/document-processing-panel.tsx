@@ -5,14 +5,12 @@ import type { RevisionDocument } from "@/lib/documents";
 
 export function DocumentProcessingPanel({
   row,
-  canMutate,
   busy,
   error,
   onViewPages,
   onRetry,
 }: {
   row: RevisionDocument;
-  canMutate: boolean;
   busy: boolean;
   error: string | null;
   onViewPages: () => void;
@@ -58,11 +56,9 @@ export function DocumentProcessingPanel({
           {processing.error_message ? (
             <p className="text-[12.5px] text-slate-500">{processing.error_message}</p>
           ) : null}
-          {canMutate ? (
-            <Button type="button" variant="secondary" size="sm" onClick={onRetry} disabled={busy}>
-              Retry processing
-            </Button>
-          ) : null}
+          <Button type="button" variant="secondary" size="sm" onClick={onRetry} disabled={busy}>
+            Retry processing
+          </Button>
         </div>
       ) : null}
       {error ? (

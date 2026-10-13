@@ -12,7 +12,7 @@ Living phase status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
 
 **Phase 4 (AI document classification):** complete. Spec: `cursor/phase4_specs.txt`. Decision: [ADR-006](../decisions/ADR-006-ai-document-classification.md) (Accepted). Delivery: [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md). Handoff: [PHASE4_HANDOFF.md](PHASE4_HANDOFF.md). Do not add OCR or the engineering model as a side effect.
 
-**Phase 4.5 (document workspace UI):** in progress. Spec: `cursor/phase4.5_specs.txt`. Delivery: [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md). No ADR. The workspace UI is unchanged. Do not change backend semantics or start the engineering model.
+**Phase 4.5 (document workspace UI):** complete (2026-10-12). Spec: `cursor/phase4.5_specs.txt`. Delivery: [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md). UI note: `cursor/phase4_5_document_workspace_ui.txt`. No ADR. The revision workspace is Document / Type / State plus a detail drawer. Do not change backend semantics or start the engineering model.
 
 ## Agent instructions
 
@@ -20,7 +20,7 @@ Living phase status: [PROJECT_STATUS.md](PROJECT_STATUS.md).
 2. Read the relevant domain docs for the work you were asked to do.
 3. Inspect existing code. Do not invent a second layout.
 4. Stay inside the requested phase. Do not implement OCR, AI extraction, SLD recognition, ETAP/SKM/EasyPower, electrical calculations, or report generation.
-5. Follow the phase process in `cursor/specification.txt` §36 when implementing a named phase. For Phase 1 details see `cursor/phase1_specs.txt` (complete); for Phase 2 see `cursor/phase2_specs.txt` (complete); for Phase 3 see `cursor/phase3_specs.txt` (complete); for Phase 4 see `cursor/phase4_specs.txt` (complete); for Phase 4.5 see `cursor/phase4.5_specs.txt` (in progress) and [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md). Phase 5 is not started.
+5. Follow the phase process in `cursor/specification.txt` §36 when implementing a named phase. For Phase 1 details see `cursor/phase1_specs.txt` (complete); for Phase 2 see `cursor/phase2_specs.txt` (complete); for Phase 3 see `cursor/phase3_specs.txt` (complete); for Phase 4 see `cursor/phase4_specs.txt` (complete); for Phase 4.5 see `cursor/phase4.5_specs.txt` (complete) and [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md). Phase 5 is not started.
 6. After architectural changes: explain, list affected modules, update docs (including [PROJECT_STATUS.md](PROJECT_STATUS.md)), add an ADR if the decision is significant.
 
 Product specification (source of truth for product scope): `cursor/specification.txt`.
@@ -28,7 +28,7 @@ Phase 1 implementation spec: `cursor/phase1_specs.txt` (implemented).
 Phase 2 implementation spec: `cursor/phase2_specs.txt` (implemented).  
 Phase 3 implementation spec: `cursor/phase3_specs.txt` (implemented).  
 Phase 4 implementation spec: `cursor/phase4_specs.txt` (complete).  
-Phase 4.5 implementation spec: `cursor/phase4.5_specs.txt` (in progress).
+Phase 4.5 implementation spec: `cursor/phase4.5_specs.txt` (complete).
 
 ## Product (one paragraph)
 

@@ -2,8 +2,7 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** 4 (AI document classification)  
-**In progress:** Phase 4.5 (document workspace UI)  
+**Current implemented phase:** 4.5 (document workspace UI)  
 **Next:** Phase 5 (engineering model persistence). Not started
 
 ## Phase 0 — Architecture and repository setup
@@ -186,14 +185,25 @@ Phase 3 tree on `main`, plus the untracked Phase 4 spec and this delivery plan, 
 
 ## Phase 4.5 — Document workspace UI
 
-**Status:** In progress (2026-10-12). Presentation state is derived in the web client. The workspace UI is unchanged.
+**Status:** Complete (2026-10-12). No ADR.
 
 Specification: `cursor/phase4.5_specs.txt`  
-Delivery: [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md)
+Delivery: [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md)  
+UI note: `cursor/phase4_5_document_workspace_ui.txt`
 
-Phase 4.5 redesigns the revision documents workspace into a master-detail layout. The list shows document identity, confirmed type, and one derived presentation state. Classification review, processing, metadata, and the rest of the row actions move to a detail drawer. No ADR. Document, revision, processing, and classification semantics stay as implemented in Phases 2–4. The engineering model is not part of this phase.
+The revision documents workspace is a master-detail layout. The list columns are Document, Type, and State, plus an overflow menu. The secondary line carries document number, file size, origin, and page count. Classification review, processing, metadata, and the remaining actions live in a right-side drawer. Presentation state is derived in the browser from the existing list payload. Document, revision, processing, and classification semantics stay as implemented in Phases 2–4. The engineering model is not part of this phase.
 
-The workspace still uses the Phase 4 table until PR-02 and PR-03 land.
+| Check | Result |
+| --- | --- |
+| `npm run lint` (`apps/web`) | No warnings or errors |
+| `npm test` (`apps/web`) | 209 passed |
+| `npx tsc --noEmit` (`apps/web`) | No errors |
+| `npm run build` (`apps/web`) | Succeeded |
+| `ruff check .` | Passed |
+| `pytest` (integration skipped) | 293 passed, 352 skipped |
+| `RUN_INTEGRATION=1 pytest` on throwaway `powerforge_test`, then dropped | 645 passed |
+
+The revision page was not clicked in a browser. No browser tools were available in this session.
 
 ## Later phases
 
@@ -202,7 +212,7 @@ The workspace still uses the Phase 4 table until PR-02 and PR-03 land.
 | 2 | Document management | Complete (2026-10-06) |
 | 3 | Document processing | Complete (2026-10-10) |
 | 4 | Document classification | Complete (2026-10-12) |
-| 4.5 | Document workspace UI | In progress |
+| 4.5 | Document workspace UI | Complete (2026-10-12) |
 | 5 | Engineering model persistence | Not started |
 | 6–13 | Extraction through export | Not started |
 
