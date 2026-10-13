@@ -96,6 +96,18 @@ export type ClassificationSummary = {
   attempt: ClassificationAttempt | null;
 };
 
+export type ClassificationAlternative = {
+  type: string;
+  score: number;
+};
+
+/** List summary plus the suggestion's score, alternatives, and rationale. */
+export type ClassificationDetail = ClassificationSummary & {
+  confidence_score: number | null;
+  alternatives: ClassificationAlternative[];
+  rationale: string | null;
+};
+
 export type ClassificationPagePrediction = {
   page_number: number;
   predicted_type: DocumentType;
@@ -451,6 +463,16 @@ export async function retryClassification(
   return request<ClassificationSummary>(
     `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/classification/runs/${runId}/retry`,
     { method: "POST" },
+  );
+}
+
+export async function getClassification(
+  projectId: string,
+  revisionId: string,
+  revisionDocumentId: string,
+): Promise<ClassificationDetail> {
+  return request<ClassificationDetail>(
+    `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/classification`,
   );
 }
 

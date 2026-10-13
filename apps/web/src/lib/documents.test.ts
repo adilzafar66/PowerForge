@@ -25,6 +25,7 @@ import {
   acceptClassification,
   reclassifyDocument,
   retryClassification,
+  getClassification,
   listClassificationPages,
   classificationAttemptState,
   classificationErrorLabel,
@@ -483,6 +484,23 @@ describe("classification actions", () => {
     ]);
     expect(lastCall(fetchMock).path).toBe(`${BASE}/${D}/classification/pages`);
     expect(lastCall(fetchMock).method).toBe("GET");
+
+    const detail = {
+      ...summary,
+      confidence_score: 0.91,
+      alternatives: [{ type: "PANEL_SCHEDULE", score: 0.2 }],
+      rationale: "Ratings and an outline.",
+    };
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => detail,
+    } as Response);
+    expect(await getClassification(P, R, D)).toEqual(detail);
+    expect(lastCall(fetchMock)).toMatchObject({
+      path: `${BASE}/${D}/classification`,
+      method: "GET",
+    });
   });
 
   it("derives attempt state separately from a stored suggestion", () => {

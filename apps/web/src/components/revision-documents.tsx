@@ -1,24 +1,20 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { DocumentEditor } from "@/components/document-editor";
-import { DocumentRowActions } from "@/components/document-row-actions";
+import { DocumentDetailDrawer } from "@/components/document-detail-drawer";
+import { DocumentList } from "@/components/document-list";
+import { type DocumentMenuHandlers } from "@/components/document-overflow-menu";
 import { DocumentUpload } from "@/components/document-upload";
 import {
   activeAdvancedFilterCount,
-  AddDocumentsMenu,
   DocumentQuickViews,
   DocumentWorkspaceToolbar,
 } from "@/components/document-workspace-toolbar";
 import { PageViewer } from "@/components/page-viewer";
 import { ReuseDocumentDialog } from "@/components/reuse-document-dialog";
-import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Button } from "@/components/ui/button";
-import { Mono } from "@/components/ui/mono";
 import { apiErrorOf } from "@/lib/api";
 import {
   EMPTY_ADVANCED_FILTERS,
@@ -31,26 +27,17 @@ import {
 } from "@/lib/document-presentation";
 import {
   acceptClassification,
-  classificationAttemptLabel,
-  classificationErrorLabel,
-  confidenceBandLabel,
-  documentTypeLabel,
-  formatFileSize,
   isReadOnlyErrorCode,
-  listClassificationPages,
   listDocuments,
-  originLabel,
   reclassifyDocument,
   removeDocument,
   restoreDocument,
   retryClassification,
   retryProcessing,
-  type ClassificationPagePrediction,
-  type ClassificationSummary,
-  type ProcessingSummary,
+  updateDocument,
+  type DocumentUpdateInput,
   type RevisionDocument,
 } from "@/lib/documents";
-import { formatDateShort } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -68,8 +55,6 @@ type Message = {
   /** Warnings say the list was refreshed because the server state had changed. */
   refreshed?: boolean;
 };
-
-const TH = "px-4 py-3 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase";
 
 function emptyCopy({
   items,
@@ -113,6 +98,9 @@ function emptyCopy({
 
 export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const documentParam = searchParams.get("document");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [advancedFilters, setAdvancedFilters] =
@@ -123,15 +111,27 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<Message | null>(null);
-  const [editing, setEditing] = useState<RevisionDocument | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(documentParam);
   const [removing, setRemoving] = useState<RevisionDocument | null>(null);
   const [viewing, setViewing] = useState<RevisionDocument | null>(null);
   const [viewerPage, setViewerPage] = useState<number | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [classifyingId, setClassifyingId] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [processingError, setProcessingError] = useState<string | null>(null);
+  const [focusMetadata, setFocusMetadata] = useState(false);
   const [reuseOpen, setReuseOpen] = useState(false);
   const [reloadToken, setReloadToken] = useState(0);
   const latestRequest = useRef(0);
+  const seenParam = useRef(documentParam);
+
+  useEffect(() => {
+    if (seenParam.current === documentParam) {
+      return;
+    }
+    seenParam.current = documentParam;
+    setSelectedId(documentParam);
+  }, [documentParam]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -159,7 +159,6 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
         }
         const { status, detail } = apiErrorOf(err);
         if (status === 404 || status === 409) {
-          // The state changed under the user: say so, then refresh once.
           setMessage({ tone: "warning", text: detail, refreshed: true });
           try {
             const result = await listDocuments(projectId, revisionId, query);
@@ -203,7 +202,6 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     [router, reloadList],
   );
 
-  /** Returns true when the failure was a state change that the page has now handled. */
   const handleMutationError = useCallback(
     (err: unknown): boolean => {
       const { status, code, detail } = apiErrorOf(err);
@@ -219,6 +217,49 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     },
     [handleReadOnly, refreshAfterChange],
   );
+
+  const selectDocument = useCallback(
+    (id: string) => {
+      setSelectedId(id);
+      const params = new URLSearchParams(searchParams.toString());
+      if (params.get("document") === id) {
+        return;
+      }
+      params.set("document", id);
+      router.push(`${pathname}?${params.toString()}`);
+    },
+    [pathname, router, searchParams],
+  );
+
+  const closeDocument = useCallback(() => {
+    setSelectedId(null);
+    setFocusMetadata(false);
+    if (searchParams.get("document")) {
+      router.back();
+    }
+  }, [router, searchParams]);
+
+  useEffect(() => {
+    if (!selectedId || items === null) {
+      return;
+    }
+    if (items.some((row) => row.id === selectedId)) {
+      return;
+    }
+    setSelectedId(null);
+    const params = new URLSearchParams(searchParams.toString());
+    if (!params.has("document")) {
+      return;
+    }
+    params.delete("document");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, [items, pathname, router, searchParams, selectedId]);
+
+  useEffect(() => {
+    setAiError(null);
+    setProcessingError(null);
+  }, [selectedId]);
 
   const restoreRow = useCallback(
     async (row: RevisionDocument) => {
@@ -242,21 +283,22 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
   }
 
   async function acceptRow(row: RevisionDocument) {
-    const predictionId = row.classification?.suggestion?.prediction_id;
-    if (!predictionId) return;
+    const predictionId = row.classification.suggestion?.prediction_id;
+    if (!predictionId) {
+      return;
+    }
     setClassifyingId(row.id);
+    setAiError(null);
     try {
-      const updated = await acceptClassification(projectId, revisionId, row.id, predictionId);
-      setItems((current) =>
-        current ? current.map((item) => (item.id === updated.id ? updated : item)) : current,
-      );
+      await acceptClassification(projectId, revisionId, row.id, predictionId);
       setMessage({
         tone: "success",
         text: `Accepted the suggestion for ${row.document.original_filename}.`,
       });
+      reloadList();
     } catch (err) {
       if (!handleMutationError(err)) {
-        setMessage({ tone: "error", text: apiErrorOf(err).detail });
+        setAiError(apiErrorOf(err).detail);
       }
     } finally {
       setClassifyingId(null);
@@ -265,33 +307,33 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
 
   async function reclassifyRow(row: RevisionDocument) {
     setClassifyingId(row.id);
+    setAiError(null);
     try {
-      const detail = await reclassifyDocument(projectId, revisionId, row.id);
-      setItems((current) =>
-        current
-          ? current.map((item) => (item.id === row.id ? mergeClassification(item, detail) : item))
-          : current,
-      );
+      await reclassifyDocument(projectId, revisionId, row.id);
+      reloadList();
     } catch (err) {
-      setMessage({ tone: "error", text: apiErrorOf(err).detail });
+      if (!handleMutationError(err)) {
+        setAiError(apiErrorOf(err).detail);
+      }
     } finally {
       setClassifyingId(null);
     }
   }
 
   async function retryClassificationRow(row: RevisionDocument) {
-    const runId = row.classification?.attempt?.id;
-    if (!runId) return;
+    const runId = row.classification.attempt?.id;
+    if (!runId) {
+      return;
+    }
     setClassifyingId(row.id);
+    setAiError(null);
     try {
-      const detail = await retryClassification(projectId, revisionId, row.id, runId);
-      setItems((current) =>
-        current
-          ? current.map((item) => (item.id === row.id ? mergeClassification(item, detail) : item))
-          : current,
-      );
+      await retryClassification(projectId, revisionId, row.id, runId);
+      reloadList();
     } catch (err) {
-      setMessage({ tone: "error", text: apiErrorOf(err).detail });
+      if (!handleMutationError(err)) {
+        setAiError(apiErrorOf(err).detail);
+      }
     } finally {
       setClassifyingId(null);
     }
@@ -299,20 +341,33 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
 
   async function retryRow(row: RevisionDocument) {
     setRetryingId(row.id);
+    setProcessingError(null);
     try {
-      const result = await retryProcessing(projectId, revisionId, row.id);
-      setItems((current) =>
-        current
-          ? current.map((item) =>
-              item.id === row.id ? { ...item, processing: result.processing } : item,
-            )
-          : current,
-      );
+      await retryProcessing(projectId, revisionId, row.id);
+      reloadList();
     } catch (err) {
-      setMessage({ tone: "error", text: apiErrorOf(err).detail });
+      if (!handleMutationError(err)) {
+        setProcessingError(apiErrorOf(err).detail);
+      }
     } finally {
       setRetryingId(null);
     }
+  }
+
+  async function saveRow(row: RevisionDocument, input: DocumentUpdateInput) {
+    try {
+      await updateDocument(projectId, revisionId, row.id, input);
+    } catch (err) {
+      if (handleMutationError(err)) {
+        return;
+      }
+      throw err;
+    }
+    setMessage({
+      tone: "success",
+      text: `Saved changes to ${row.document.original_filename}.`,
+    });
+    reloadList();
   }
 
   async function confirmRemove(row: RevisionDocument) {
@@ -327,18 +382,6 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
         setMessage({ tone: "error", text: apiErrorOf(err).detail });
       }
     }
-  }
-
-  function handleSaved(updated: RevisionDocument) {
-    setEditing(null);
-    setItems((current) =>
-      current ? current.map((item) => (item.id === updated.id ? updated : item)) : current,
-    );
-    setMessage({
-      tone: "success",
-      text: `Saved changes to ${updated.document.original_filename}.`,
-    });
-    reloadList();
   }
 
   const narrowed = (items ?? []).filter((row) => matchesAdvancedFilters(row, advancedFilters));
@@ -356,6 +399,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
           view: quickView,
         })
       : null;
+  const selected = items?.find((row) => row.id === selectedId) ?? null;
 
   function handleReuseChanged(count: number) {
     if (count > 0) {
@@ -366,6 +410,22 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
       reloadList();
     }
   }
+
+  const clearMetadataFocus = useCallback(() => setFocusMetadata(false), []);
+
+  const menuHandlers: DocumentMenuHandlers = {
+    onViewPages: (row) => openViewer(row),
+    onEditMetadata: (row) => {
+      selectDocument(row.id);
+      setFocusMetadata(true);
+    },
+    onReclassify: (row) => void reclassifyRow(row),
+    onRetryClassification: (row) => void retryClassificationRow(row),
+    onRetryProcessing: (row) => void retryRow(row),
+    onRemove: setRemoving,
+    onRestore: restoreRow,
+    onStateChanged: refreshAfterChange,
+  };
 
   return (
     <section aria-label="Documents">
@@ -439,473 +499,46 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
         />
       ) : null}
 
-      {editing ? (
-        <DocumentEditor
-          key={editing.id}
+      <DocumentList
+        rows={items === null ? null : visible}
+        selectedId={selected?.id ?? null}
+        projectId={projectId}
+        revisionId={revisionId}
+        canMutate={canMutate}
+        loading={loading}
+        error={error}
+        empty={empty}
+        handlers={menuHandlers}
+        onOpen={(row) => selectDocument(row.id)}
+        onRetry={reloadList}
+        onClearFilters={() => setAdvancedFilters(EMPTY_ADVANCED_FILTERS)}
+        onUpload={() => setUploadOpen(true)}
+        onReuse={() => setReuseOpen(true)}
+      />
+
+      {selected ? (
+        <DocumentDetailDrawer
+          row={selected}
           projectId={projectId}
           revisionId={revisionId}
-          document={editing}
           canMutate={canMutate}
-          onClose={() => setEditing(null)}
-          onSaved={handleSaved}
-          onMutationError={handleMutationError}
+          detailVersion={reloadToken}
+          classifying={classifyingId === selected.id}
+          retrying={retryingId === selected.id}
+          aiError={aiError}
+          processingError={processingError}
+          focusMetadata={focusMetadata}
+          handlers={menuHandlers}
+          onClose={closeDocument}
+          onMetadataFocused={clearMetadataFocus}
+          onAccept={() => void acceptRow(selected)}
+          onReclassify={() => void reclassifyRow(selected)}
+          onRetryClassification={() => void retryClassificationRow(selected)}
+          onRetryProcessing={() => void retryRow(selected)}
+          onViewPages={(pageNumber) => openViewer(selected, pageNumber)}
+          onSave={(input) => saveRow(selected, input)}
         />
       ) : null}
-
-      <Card>
-        <table className="w-full text-[13.5px]">
-          <thead>
-            <tr className="border-b border-slate-100">
-              <th className={cn(TH, "px-5")}>File</th>
-              <th className={TH}>Confirmed Type</th>
-              <th className={TH}>AI Suggestion</th>
-              <th className={TH}>Origin</th>
-              <th className={TH}>Status</th>
-              <th className={TH}>Processing</th>
-              <th className={cn(TH, "hidden lg:table-cell")}>Added</th>
-              <th className={cn(TH, "text-right")}>
-                <span className="sr-only">Actions</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody className={cn(loading && items ? "opacity-60" : undefined)}>
-            {items === null && loading ? (
-              [0, 1, 2].map((row) => (
-                <tr key={row} data-testid="document-skeleton" className="border-t border-slate-100">
-                  <td colSpan={8} className="px-5 py-4">
-                    <div className="h-4 w-1/2 animate-pulse rounded bg-slate-100" />
-                  </td>
-                </tr>
-              ))
-            ) : error ? (
-              <tr>
-                <td colSpan={8}>
-                  <div className="flex flex-col items-center gap-2 py-14">
-                    <p role="alert" className="text-[13.5px] text-red-600">
-                      {error}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => setReloadToken((token) => token + 1)}
-                    >
-                      Retry
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ) : empty ? (
-              <tr>
-                <td colSpan={8}>
-                  <div className="flex flex-col items-center gap-2 py-16">
-                    <p className="text-[13.5px] font-medium text-slate-400">{empty.text}</p>
-                    {empty.kind === "filters" ? (
-                      <button
-                        type="button"
-                        onClick={() => setAdvancedFilters(EMPTY_ADVANCED_FILTERS)}
-                        className="cursor-pointer text-[12.5px] text-accent hover:underline"
-                      >
-                        Clear filters
-                      </button>
-                    ) : null}
-                    {empty.kind === "revision" && canMutate ? (
-                      <AddDocumentsMenu
-                        onUpload={() => setUploadOpen(true)}
-                        onReuse={() => setReuseOpen(true)}
-                      />
-                    ) : null}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              visible.map((row, index) => (
-                <DocumentRow
-                  key={row.id}
-                  row={row}
-                  first={index === 0}
-                  projectId={projectId}
-                  revisionId={revisionId}
-                  canMutate={canMutate}
-                  retrying={retryingId === row.id}
-                  classifying={classifyingId === row.id}
-                  onStateChanged={refreshAfterChange}
-                  onEdit={setEditing}
-                  onRemove={setRemoving}
-                  onRestore={restoreRow}
-                  onRetry={retryRow}
-                  onView={(pageNumber) => openViewer(row, pageNumber)}
-                  onAccept={acceptRow}
-                  onReclassify={reclassifyRow}
-                  onRetryClassification={retryClassificationRow}
-                />
-              ))
-            )}
-          </tbody>
-        </table>
-      </Card>
     </section>
-  );
-}
-
-function DocumentRow({
-  row,
-  first,
-  projectId,
-  revisionId,
-  canMutate,
-  retrying,
-  classifying,
-  onStateChanged,
-  onEdit,
-  onRemove,
-  onRestore,
-  onRetry,
-  onView,
-  onAccept,
-  onReclassify,
-  onRetryClassification,
-}: {
-  row: RevisionDocument;
-  first: boolean;
-  projectId: string;
-  revisionId: string;
-  canMutate: boolean;
-  retrying: boolean;
-  classifying: boolean;
-  onStateChanged: (message: string) => void;
-  onEdit: (row: RevisionDocument) => void;
-  onRemove: (row: RevisionDocument) => void;
-  onRestore: (row: RevisionDocument) => Promise<void>;
-  onRetry: (row: RevisionDocument) => void;
-  onView: (pageNumber?: number) => void;
-  onAccept: (row: RevisionDocument) => void;
-  onReclassify: (row: RevisionDocument) => void;
-  onRetryClassification: (row: RevisionDocument) => void;
-}) {
-  const removed = row.status === "REMOVED";
-  return (
-    <tr className={cn(!first && "border-t border-slate-100", removed && "bg-slate-50/60")}>
-      <td className="px-5 py-3.5">
-        <p
-          className={cn(
-            "font-semibold break-all",
-            removed ? "text-slate-400 line-through" : "text-slate-900",
-          )}
-        >
-          {row.document.original_filename}
-        </p>
-        <p className="mt-0.5 text-[12px] text-slate-400">
-          {formatFileSize(row.document.size_bytes)}
-          {row.document_number ? (
-            <>
-              {" · "}
-              <Mono className="text-slate-500">{row.document_number}</Mono>
-            </>
-          ) : null}
-        </p>
-      </td>
-      <td className="px-4 py-3.5 text-slate-600">{documentTypeLabel(row.document_type)}</td>
-      <td className="px-4 py-3.5">
-        <ClassificationCell
-          row={row}
-          projectId={projectId}
-          revisionId={revisionId}
-          canMutate={canMutate}
-          busy={classifying}
-          onAccept={() => onAccept(row)}
-          onChooseType={() => onEdit(row)}
-          onReclassify={() => onReclassify(row)}
-          onRetry={() => onRetryClassification(row)}
-          onOpenPage={(pageNumber) => onView(pageNumber)}
-        />
-      </td>
-      <td className="px-4 py-3.5">
-        <span
-          className={cn(
-            "inline-flex rounded-full px-2 py-0.5 text-[11.5px] font-semibold",
-            row.origin === "INHERITED"
-              ? "bg-violet-50 text-violet-700"
-              : "bg-blue-50 text-blue-700",
-          )}
-        >
-          {originLabel(row.origin)}
-        </span>
-        {row.origin === "INHERITED" && row.inherited_from_revision_identifier ? (
-          <p className="mt-1 text-[12px] text-slate-400">
-            {row.inherited_from_revision_id ? (
-              <>
-                from{" "}
-                <Link
-                  href={`/projects/${projectId}/revisions/${row.inherited_from_revision_id}`}
-                  className="text-accent hover:underline"
-                >
-                  Revision {row.inherited_from_revision_identifier}
-                </Link>
-              </>
-            ) : (
-              <>from Revision {row.inherited_from_revision_identifier}</>
-            )}
-          </p>
-        ) : null}
-      </td>
-      <td className="px-4 py-3.5">
-        <span
-          className={cn(
-            "inline-flex rounded-full px-2 py-0.5 text-[11.5px] font-semibold",
-            removed ? "bg-slate-100 text-slate-500" : "bg-emerald-50 text-emerald-700",
-          )}
-        >
-          {removed ? "Removed" : "Included"}
-        </span>
-      </td>
-      <td className="px-4 py-3.5">
-        <ProcessingCell
-          processing={row.processing}
-          retrying={retrying}
-          onRetry={() => onRetry(row)}
-          onView={() => onView()}
-        />
-      </td>
-      <td className="hidden px-4 py-3.5 text-[12.5px] text-slate-400 lg:table-cell">
-        {formatDateShort(row.added_at)}
-      </td>
-      <td className="px-4 py-3.5">
-        <DocumentRowActions
-          projectId={projectId}
-          revisionId={revisionId}
-          document={row}
-          canMutate={canMutate}
-          onStateChanged={onStateChanged}
-          onEdit={onEdit}
-          onRemove={onRemove}
-          onRestore={onRestore}
-        />
-      </td>
-    </tr>
-  );
-}
-
-function ProcessingCell({
-  processing,
-  retrying,
-  onRetry,
-  onView,
-}: {
-  processing: ProcessingSummary | null | undefined;
-  retrying: boolean;
-  onRetry: () => void;
-  onView: () => void;
-}) {
-  if (!processing) {
-    return <span className="text-[13px] text-slate-400">Not started</span>;
-  }
-  if (processing.status === "PENDING") {
-    return <span className="text-[13px] font-medium text-slate-600">Pending</span>;
-  }
-  if (processing.status === "RUNNING") {
-    const progress =
-      processing.pages_total != null
-        ? ` ${processing.pages_processed}/${processing.pages_total}`
-        : "";
-    return (
-      <span className="text-[13px] font-medium text-slate-700">Processing{progress}</span>
-    );
-  }
-  if (processing.status === "COMPLETED") {
-    return (
-      <div className="flex flex-col items-start gap-1">
-        <span className="text-[13px] font-medium text-emerald-700">Ready</span>
-        <Button type="button" variant="secondary" size="sm" onClick={onView}>
-          View pages
-        </Button>
-      </div>
-    );
-  }
-  return (
-    <div className="flex flex-col items-start gap-1">
-      <span className="text-[13px] font-medium text-red-600">Failed</span>
-      {processing.error_message ? (
-        <p className="max-w-56 text-[12px] text-slate-500">{processing.error_message}</p>
-      ) : null}
-      <Button type="button" variant="secondary" size="sm" onClick={onRetry} disabled={retrying}>
-        Retry processing
-      </Button>
-    </div>
-  );
-}
-
-function mergeClassification(row: RevisionDocument, detail: ClassificationSummary): RevisionDocument {
-  return {
-    ...row,
-    classification: {
-      enabled: detail.enabled,
-      suggestion: detail.suggestion,
-      attempt: detail.attempt,
-    },
-  };
-}
-
-function ClassificationCell({
-  row,
-  projectId,
-  revisionId,
-  canMutate,
-  busy,
-  onAccept,
-  onChooseType,
-  onReclassify,
-  onRetry,
-  onOpenPage,
-}: {
-  row: RevisionDocument;
-  projectId: string;
-  revisionId: string;
-  canMutate: boolean;
-  busy: boolean;
-  onAccept: () => void;
-  onChooseType: () => void;
-  onReclassify: () => void;
-  onRetry: () => void;
-  onOpenPage: (pageNumber: number) => void;
-}) {
-  const classification = row.classification;
-  const suggestion = classification?.suggestion ?? null;
-  const attempt = classification?.attempt ?? null;
-  const stateLabel = classificationAttemptLabel(classification);
-  const included = row.status === "INCLUDED";
-  const canReview = canMutate && included;
-  const typesDiffer = suggestion != null && suggestion.predicted_type !== row.document_type;
-  const inFlight = attempt?.status === "PENDING" || attempt?.status === "RUNNING";
-  const showRetry = classification?.enabled === true && attempt?.status === "FAILED";
-  const showReclassify = classification?.enabled === true && suggestion != null && !inFlight;
-
-  return (
-    <div className="flex max-w-64 flex-col items-start gap-1">
-      <span className="text-[13px] font-medium text-slate-700">{stateLabel}</span>
-      {suggestion ? (
-        <p className="text-[13px] text-slate-600">
-          {documentTypeLabel(suggestion.predicted_type)}
-          {suggestion.accepted ? (
-            <span aria-label="Accepted"> ✓</span>
-          ) : null}{" "}
-          <span className="text-slate-500">{confidenceBandLabel(suggestion.confidence_band)}</span>
-        </p>
-      ) : null}
-      {typesDiffer ? (
-        <p className="text-[12px] text-slate-500">
-          Confirmed: {documentTypeLabel(row.document_type)}
-        </p>
-      ) : null}
-      {attempt?.status === "FAILED" ? (
-        <p className="text-[12px] text-slate-500">{classificationErrorLabel(attempt.error_code)}</p>
-      ) : null}
-      {canReview && suggestion && !suggestion.accepted && !typesDiffer ? (
-        <div className="flex flex-wrap gap-1">
-          <Button type="button" variant="secondary" size="sm" onClick={onAccept} disabled={busy}>
-            Accept
-          </Button>
-          <Button type="button" variant="secondary" size="sm" onClick={onChooseType} disabled={busy}>
-            Choose another type
-          </Button>
-        </div>
-      ) : null}
-      {canReview && suggestion && !suggestion.accepted && typesDiffer ? (
-        <div className="flex flex-wrap gap-1">
-          <Button type="button" variant="secondary" size="sm" onClick={onAccept} disabled={busy}>
-            Use AI Suggestion
-          </Button>
-          <Button type="button" variant="secondary" size="sm" disabled={busy}>
-            Keep Current
-          </Button>
-        </div>
-      ) : null}
-      {showRetry || showReclassify ? (
-        <div className="flex flex-wrap gap-1">
-          {showRetry ? (
-            <Button type="button" variant="secondary" size="sm" onClick={onRetry} disabled={busy}>
-              Retry classification
-            </Button>
-          ) : null}
-          {showReclassify ? (
-            <Button type="button" variant="secondary" size="sm" onClick={onReclassify} disabled={busy}>
-              Reclassify
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-      {suggestion?.predicted_type === "MIXED_DOCUMENT" ? (
-        <MixedPages
-          projectId={projectId}
-          revisionId={revisionId}
-          revisionDocumentId={row.id}
-          onOpenPage={onOpenPage}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function MixedPages({
-  projectId,
-  revisionId,
-  revisionDocumentId,
-  onOpenPage,
-}: {
-  projectId: string;
-  revisionId: string;
-  revisionDocumentId: string;
-  onOpenPage: (pageNumber: number) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [pages, setPages] = useState<ClassificationPagePrediction[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function toggle() {
-    if (!open && pages === null) {
-      try {
-        setPages(await listClassificationPages(projectId, revisionId, revisionDocumentId));
-      } catch (err) {
-        setError(apiErrorOf(err).detail);
-      }
-    }
-    setOpen((current) => !current);
-  }
-
-  return (
-    <div className="mt-1">
-      <Button type="button" variant="secondary" size="sm" onClick={() => void toggle()}>
-        {open ? "Hide page types" : "View page types"}
-      </Button>
-      {error ? <p className="mt-1 text-[12px] text-red-600">{error}</p> : null}
-      {open && pages ? (
-        <table className="mt-2 text-[12px]">
-          <thead>
-            <tr className="text-left text-slate-400">
-              <th className="pr-3 font-semibold">Page</th>
-              <th className="pr-3 font-semibold">AI Page Type</th>
-              <th className="font-semibold">Confidence</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pages.map((page) => (
-              <tr key={page.page_number}>
-                <td className="pr-3">
-                  <button
-                    type="button"
-                    className="cursor-pointer text-accent hover:underline"
-                    onClick={() => onOpenPage(page.page_number)}
-                  >
-                    {page.page_number}
-                  </button>
-                </td>
-                <td className="pr-3 text-slate-600">{documentTypeLabel(page.predicted_type)}</td>
-                <td className="text-slate-500">{confidenceBandLabel(page.confidence_band)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : null}
-    </div>
   );
 }

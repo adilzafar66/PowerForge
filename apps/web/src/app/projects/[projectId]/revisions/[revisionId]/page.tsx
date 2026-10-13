@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
 
@@ -92,11 +93,13 @@ export default async function RevisionPage({
           </div>
 
           <ReadOnlyBanner project={project} revision={revision} />
-          <RevisionDocuments
-            projectId={project.id}
-            revisionId={revision.id}
-            canMutate={canMutate({ project, revision })}
-          />
+          <Suspense fallback={null}>
+            <RevisionDocuments
+              projectId={project.id}
+              revisionId={revision.id}
+              canMutate={canMutate({ project, revision })}
+            />
+          </Suspense>
         </div>
       </AppShell>
     );
