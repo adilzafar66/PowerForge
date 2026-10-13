@@ -247,6 +247,7 @@ describe("RevisionDocuments rows", () => {
     expect(classificationDetail).not.toHaveBeenCalled();
     expect(vi.mocked(listClassificationPages)).not.toHaveBeenCalled();
     await user.click(first);
+    expect(nav.push).toHaveBeenCalledWith("/projects/p-1/revisions/r-2?document=rd-a.pdf");
     const drawer = await screen.findByRole("dialog", { name: "a.pdf" });
     expect(within(drawer).getByText("Uploaded in this revision")).toBeInTheDocument();
     expect(classificationDetail).toHaveBeenCalledWith(P, R, "rd-a.pdf");
@@ -1248,6 +1249,44 @@ describe("AI classification drawer", () => {
     expect(await screen.findByText("612 × 792 pt")).toBeInTheDocument();
   });
 
+  it("drops the previous document's page classifications when another row is selected", async () => {
+    const user = userEvent.setup();
+    list.mockResolvedValue([
+      makeRow({
+        name: "mixed.pdf",
+        document_type: "MIXED_DOCUMENT",
+        classification: {
+          enabled: true,
+          suggestion: suggestion({ predicted_type: "MIXED_DOCUMENT" }),
+          attempt: attempt({ status: "COMPLETED" }),
+        },
+      }),
+      makeRow({
+        name: "other.pdf",
+        document_type: "MIXED_DOCUMENT",
+        classification: {
+          enabled: true,
+          suggestion: suggestion({ predicted_type: "MIXED_DOCUMENT" }),
+          attempt: attempt({ status: "COMPLETED" }),
+        },
+      }),
+    ]);
+    classificationPages.mockResolvedValue([
+      { page_number: 2, predicted_type: "PANEL_SCHEDULE", confidence_band: "HIGH" },
+    ]);
+    renderWorkspace(true);
+
+    const drawer = await openDrawer(user, "mixed.pdf");
+    await user.click(within(drawer).getByRole("button", { name: "View page classifications" }));
+    expect(await within(drawer).findByRole("button", { name: /2 Panel Schedule/ })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("row", { name: /other.pdf/ }));
+    const next = await screen.findByRole("dialog", { name: "other.pdf" });
+    expect(within(next).queryByRole("button", { name: /2 Panel Schedule/ })).toBeNull();
+    expect(within(next).getByRole("button", { name: "View page classifications" })).toBeInTheDocument();
+    expect(classificationPages).toHaveBeenCalledTimes(1);
+  });
+
   it("hides accept on a removed row and still shows the suggestion", async () => {
     const user = userEvent.setup();
     list.mockResolvedValue([
@@ -1277,6 +1316,29 @@ describe("AI classification drawer", () => {
     const drawer = await screen.findByRole("dialog", { name: "a.pdf" });
     expect(drawer).toHaveTextContent("E-1");
     expect(classificationDetail).toHaveBeenCalledWith(P, R, "rd-a.pdf");
+  });
+
+  it("strips a deep-linked document query without leaving the revision", async () => {
+    const user = userEvent.setup();
+    nav.search = "other=1&document=rd-a.pdf";
+    list.mockResolvedValue([makeRow({ name: "a.pdf" })]);
+    const view = renderWorkspace();
+    expect(await screen.findByRole("dialog", { name: "a.pdf" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Close details" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(nav.back).not.toHaveBeenCalled();
+    expect(nav.replace).toHaveBeenCalledWith("/projects/p-1/revisions/r-2?other=1");
+    view.unmount();
+
+    nav.replace.mockClear();
+    nav.search = "document=rd-a.pdf";
+    renderWorkspace();
+    expect(await screen.findByRole("dialog", { name: "a.pdf" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(nav.back).not.toHaveBeenCalled();
+    expect(nav.replace).toHaveBeenCalledWith("/projects/p-1/revisions/r-2");
   });
 });
 

@@ -234,10 +234,14 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
   const closeDocument = useCallback(() => {
     setSelectedId(null);
     setFocusMetadata(false);
-    if (searchParams.get("document")) {
-      router.back();
+    if (!searchParams.get("document")) {
+      return;
     }
-  }, [router, searchParams]);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("document");
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, [pathname, router, searchParams]);
 
   useEffect(() => {
     if (!selectedId || items === null) {
@@ -518,6 +522,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
 
       {selected ? (
         <DocumentDetailDrawer
+          key={selected.id}
           row={selected}
           projectId={projectId}
           revisionId={revisionId}
