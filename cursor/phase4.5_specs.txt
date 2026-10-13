@@ -1,0 +1,1800 @@
+POWERFORGE — PHASE 4.5 IMPLEMENTATION
+DOCUMENT WORKSPACE UI / UX REFACTOR
+
+You are implementing a frontend-focused Phase 4.5 for PowerForge.
+
+Phases 0–4 are complete.
+
+The current revision-document workspace accumulated features incrementally across:
+
+- Phase 2 document management
+- Phase 3 document processing
+- Phase 4 AI classification
+
+The underlying architecture and backend behavior are correct, but the document
+table has become visually congested and action-heavy.
+
+Phase 4.5 must redesign the document workspace into a clean, professional,
+engineering-oriented master-detail interface.
+
+THIS IS PRIMARILY A FRONTEND INFORMATION-ARCHITECTURE REFACTOR.
+
+Do not redesign Phase 2–4 domain models or backend workflows.
+
+======================================================================
+1. INSPECT THE CURRENT IMPLEMENTATION FIRST
+======================================================================
+
+Before making changes:
+
+1. Read:
+   - README.md
+   - docs/PROJECT_STATUS.md
+   - docs/ARCHITECTURE.md
+   - relevant Phase 2–4 specifications
+   - ADR-004
+   - ADR-005
+   - ADR-006
+
+2. Inspect:
+   - current revision-documents page/workspace
+   - RevisionDocuments component(s)
+   - ClassificationCell or equivalent
+   - current processing-state UI
+   - page viewer
+   - manual metadata editing UI
+   - document upload workflow
+   - "add from another revision" workflow
+   - remove/restore actions
+   - classification acceptance/reclassification/retry UI
+   - existing design system/components
+   - responsive layout conventions
+   - frontend tests
+
+3. Run the existing frontend tests/type/lint/build checks and record the baseline.
+
+4. Preserve all Phase 2–4 functionality.
+
+5. Produce a concise implementation plan before editing code.
+
+The current repository is authoritative.
+
+======================================================================
+2. PURPOSE OF THIS REFACTOR
+======================================================================
+
+The current document table is carrying too many responsibilities.
+
+It currently attempts to simultaneously present:
+
+- filename
+- size
+- document number
+- confirmed type
+- AI suggestion
+- AI confidence
+- AI acceptance
+- origin
+- included/removed status
+- processing status
+- classification status
+- added date
+- page classification
+- retry actions
+- reclassify actions
+- processing actions
+- metadata actions
+- download
+- remove/restore
+
+This produces:
+
+- too many columns
+- too many buttons
+- poor visual hierarchy
+- horizontal congestion
+- nested workflows inside table cells
+- difficulty scanning documents quickly
+- increasingly poor scalability as future phases add more information
+
+The new design principle is:
+
+    ROWS COMMUNICATE STATE.
+    DETAIL PANELS PERFORM WORK.
+
+The document list should answer:
+
+    "What documents are in this revision?"
+    "What type are they?"
+    "Which documents need attention?"
+
+Detailed operations should happen in a selected-document detail surface.
+
+======================================================================
+3. HIGH-LEVEL TARGET ARCHITECTURE
+======================================================================
+
+Use a master-detail layout.
+
+Conceptually:
+
+    Revision Documents Workspace
+
+    ┌─────────────────────────────────────────────┬──────────────────────┐
+    │                                             │                      │
+    │            DOCUMENT LIST                    │   DOCUMENT DETAIL    │
+    │                                             │      DRAWER          │
+    │                                             │                      │
+    │                                             │                      │
+    └─────────────────────────────────────────────┴──────────────────────┘
+
+The main list stays clean and scannable.
+
+Selecting/clicking a document opens a right-side detail drawer/panel.
+
+On smaller screens, the detail surface may become a full-screen sheet/dialog
+according to the existing responsive component library.
+
+Do not build an entirely separate page unless current frontend architecture
+strongly favors routing over drawers.
+
+Preferred default:
+
+    right-side sheet/drawer
+
+======================================================================
+4. DOCUMENT LIST RESPONSIBILITY
+======================================================================
+
+The main document list should show only high-value scan information.
+
+Recommended primary columns:
+
+    DOCUMENT
+    CONFIRMED TYPE
+    STATE
+    overflow menu
+
+Do NOT keep separate permanent columns for:
+
+    Origin
+    Included/Removed status
+    Added date
+    Processing
+    AI Suggestion
+    Actions
+
+Those should be consolidated or moved elsewhere.
+
+The table should remain useful at ordinary laptop widths.
+
+======================================================================
+5. TARGET LIST DESIGN
+======================================================================
+
+Conceptually:
+
+    Documents 42                                      [ Add Documents ▾ ]
+
+    [ Search documents... ]   [ Filters ]
+
+    All 42    Needs Review 5    Issues 1    Removed 3
+
+
+    DOCUMENT                          TYPE                    STATE
+    ──────────────────────────────────────────────────────────────────────
+    SLD-Rev15.pdf                     Single-Line Diagram     ✓ Ready    ⋯
+    2.4 MB · Uploaded · Oct 12
+
+    TX1-Shop-Drawing.pdf              Unknown                 ◆ Review   ⋯
+    5.1 MB · Inherited from Rev 14
+    AI: Transformer Shop Drawing · High
+
+    Vendor-Package.pdf                Mixed Document          ✓ Ready    ⋯
+    18 pages · Uploaded
+
+    Panel-Schedules.pdf               Panel Schedule          ◌ Processing ⋯
+    8.3 MB · Uploaded                                    7 / 12 pages
+
+    Fault-Data.pdf                    Fault Data              ! Failed   ⋯
+    820 KB · Uploaded
+
+
+Exact styling should follow PowerForge's existing design language.
+
+Do not over-style or introduce unnecessary visual decoration.
+
+======================================================================
+6. DOCUMENT CELL
+======================================================================
+
+The Document column should carry identity plus quiet secondary metadata.
+
+Primary line:
+
+    filename
+
+Secondary metadata line may include, as applicable:
+
+    file size
+    origin
+    inherited revision
+    added date
+    page count
+    document number
+
+Example:
+
+    TX1-Shop-Drawing.pdf
+    5.1 MB · Inherited from Rev 14 · 8 pages
+
+Or:
+
+    SLD-Rev15.pdf
+    E-001 · 2.4 MB · Uploaded Oct 12
+
+Do not create dedicated columns for these secondary facts.
+
+Prioritize readability.
+
+Do not display every available metadata value simultaneously if it makes the row
+busy.
+
+======================================================================
+7. CONFIRMED TYPE COLUMN
+======================================================================
+
+This column represents:
+
+    RevisionDocument.document_type
+
+which remains the authoritative human-confirmed type.
+
+Examples:
+
+    Single-Line Diagram
+    Transformer Shop Drawing
+    Mixed Document
+    Unknown
+
+Do not display verbose AI workflow controls inside this cell.
+
+If the confirmed type is UNKNOWN and an AI suggestion exists, the AI suggestion
+may appear as a quiet secondary line:
+
+    Unknown
+    AI: Transformer Shop Drawing · High
+
+If confirmed type exists but AI differs:
+
+    Electrical Drawing
+    AI suggests: Single-Line Diagram
+
+Do not turn this into an error state automatically.
+
+The user may intentionally disagree with AI.
+
+======================================================================
+8. UNIFIED STATE COLUMN
+======================================================================
+
+Replace separate Processing and Classification columns with one compact
+presentation-layer State.
+
+IMPORTANT:
+
+Do NOT collapse backend processing/classification state models.
+
+This is UI-only aggregation.
+
+Create a small frontend state-derivation function or view model.
+
+Recommended visible states:
+
+    Ready
+    Processing
+    Classifying
+    Needs Review
+    Failed
+    Removed
+
+Optionally distinguish failure subtype in tooltip/detail:
+
+    Processing failed
+    Classification failed
+
+Examples:
+
+    ✓ Ready
+
+    ◌ Processing
+      7 / 12 pages
+
+    ◌ Classifying
+
+    ◆ Needs review
+
+    ! Failed
+
+    Removed
+
+The main list should present ONE dominant state.
+
+======================================================================
+9. STATE PRECEDENCE
+======================================================================
+
+Define deterministic presentation precedence.
+
+A sensible default:
+
+1. REMOVED
+2. PROCESSING FAILED
+3. PROCESSING IN PROGRESS
+4. CLASSIFICATION FAILED
+5. CLASSIFICATION IN PROGRESS
+6. NEEDS REVIEW
+7. READY
+
+Define this as a reusable frontend derivation rather than scattered conditionals.
+
+Suggested logic:
+
+REMOVED:
+    RevisionDocument.status == REMOVED
+
+PROCESSING FAILED:
+    Phase 3 latest processing state failed and no usable completed processing
+    state is available as required by current API semantics
+
+PROCESSING:
+    Phase 3 processing pending/running
+
+CLASSIFICATION FAILED:
+    current/latest classification attempt failed
+    AND document otherwise has usable Phase 3 processing
+
+CLASSIFYING:
+    classification attempt pending/running
+
+NEEDS REVIEW:
+    one or more review conditions below apply
+
+READY:
+    no issue/action currently requires attention
+
+Do not alter backend state to implement this.
+
+======================================================================
+10. NEEDS REVIEW DEFINITION
+======================================================================
+
+Use Needs Review when human classification attention is useful.
+
+Examples:
+
+    confirmed document type is UNKNOWN
+        AND usable AI suggestion exists
+
+    confirmed type differs from AI suggestion
+
+    AI suggests MIXED_DOCUMENT and the confirmed value has not been accepted
+
+    AI suggestion exists and has not yet been accepted/manual-resolved
+
+Do NOT mark every document with AI output as needing review if the confirmed
+classification already clearly reflects the accepted prediction.
+
+Exact logic should respect:
+
+    accepted_classification_prediction_id
+
+and current Phase 4 semantics.
+
+======================================================================
+11. "NORMAL" SHOULD BE QUIET
+======================================================================
+
+Do not clutter normal rows with redundant badges.
+
+For example:
+
+    INCLUDED
+
+should not appear on every normal row.
+
+Silence implies normal inclusion.
+
+Only expose exceptional state prominently:
+
+    Removed
+    Failed
+    Processing
+    Needs Review
+
+Similarly:
+
+    Uploaded
+
+and:
+
+    Inherited
+
+are metadata, not primary status.
+
+They belong in secondary row text/detail panel.
+
+======================================================================
+12. TOP WORKSPACE HEADER
+======================================================================
+
+Simplify the current toolbar.
+
+Preferred structure:
+
+    Documents 42                               [ Add Documents ▾ ]
+
+    [ Search documents... ]     [ Filters ]
+
+    All 42     Needs Review 5     Issues 1     Removed 3
+
+Do not permanently display a large collection of filter controls.
+
+======================================================================
+13. ADD DOCUMENTS MENU
+======================================================================
+
+Replace separate prominent buttons such as:
+
+    Upload
+    Add from another revision
+
+with one primary control:
+
+    [ Add Documents ▾ ]
+
+Menu options:
+
+    Upload files
+    Add from another revision
+
+Preserve all existing workflows.
+
+This is only a presentation consolidation.
+
+======================================================================
+14. QUICK VIEWS
+======================================================================
+
+Provide four primary workspace views:
+
+    All
+    Needs Review
+    Issues
+    Removed
+
+These should behave as clear, compact tabs/pills/segmented filters according to
+the existing design system.
+
+Definitions:
+
+ALL:
+    normal included documents
+
+NEEDS REVIEW:
+    documents requiring classification-related human attention
+
+ISSUES:
+    processing/classification failures or other current document-workflow errors
+
+REMOVED:
+    RevisionDocuments with status REMOVED
+
+Avoid mixing Removed documents into All by default.
+
+Display counts if readily available from current list data.
+
+No new backend endpoint is required merely for these counts unless absolutely
+necessary.
+
+======================================================================
+15. ADVANCED FILTERS
+======================================================================
+
+Replace permanently visible Type / Origin / Status filter controls with:
+
+    [ Filters ]
+
+Clicking opens a popover/sheet containing secondary filters such as:
+
+    Document Type
+    Origin
+    Processing State
+    Classification State
+
+Use the APIs/query behavior already supported by the backend where practical.
+
+Do not remove existing filtering capability.
+
+The goal is to reduce persistent visual clutter.
+
+Show an indicator/count when filters are active, for example:
+
+    Filters (2)
+
+Provide:
+
+    Clear filters
+
+======================================================================
+16. SEARCH
+======================================================================
+
+Keep document search visible because it is a high-frequency action.
+
+Search behavior should preserve existing functionality.
+
+Search should not visually compete with the rest of the toolbar.
+
+Prefer one primary search field.
+
+======================================================================
+17. ROW INTERACTION
+======================================================================
+
+The entire normal row should be clickable/selectable.
+
+Clicking opens the Document Detail drawer.
+
+Do not make every cell contain independent buttons.
+
+Avoid accidental row selection when the user clicks:
+
+    overflow menu
+    checkbox if any
+    inline link requiring another action
+
+Use proper event handling.
+
+Selected row may receive a subtle selected state while drawer is open.
+
+======================================================================
+18. ROW OVERFLOW MENU
+======================================================================
+
+Every row may expose:
+
+    ⋯
+
+Use it for secondary actions.
+
+Menu content depends on current document/revision state.
+
+Possible actions:
+
+    Open details
+    View pages
+    Download original
+    Edit metadata
+    Reclassify
+    Retry classification
+    Retry processing
+    Remove from revision
+    Restore to revision
+
+Do NOT show unavailable/invalid actions.
+
+Prefer hiding impossible actions rather than presenting many disabled items.
+
+Destructive actions should remain visually separated in the menu.
+
+Do not put all actions directly in the row.
+
+======================================================================
+19. ONE PROMINENT ACTION RULE
+======================================================================
+
+A row should generally contain:
+
+    zero text action buttons
+
+except where a document specifically requires immediate attention.
+
+For a Needs Review row, it is acceptable to show one subtle:
+
+    [ Review ]
+
+control if it materially improves workflow.
+
+However, row click already opening the detail drawer may make Review redundant.
+
+Avoid:
+
+    Accept
+    Choose another
+    Reclassify
+    Retry
+    View Pages
+    Edit
+    Download
+    Remove
+
+appearing together.
+
+======================================================================
+20. DOCUMENT DETAIL DRAWER
+======================================================================
+
+Selecting a document opens a right-side detail drawer.
+
+The drawer becomes the primary workspace for:
+
+    AI review
+    metadata
+    processing details
+    classification details
+    document origin
+    document actions
+
+Suggested width:
+
+    large enough for readable structured information
+    but not so wide that the document list becomes unusable
+
+Follow existing responsive sheet/drawer patterns.
+
+======================================================================
+21. DRAWER HEADER
+======================================================================
+
+Show:
+
+    filename
+    file size
+    page count
+    document number if present
+
+Example:
+
+    TX1-Shop-Drawing.pdf
+    5.1 MB · 8 pages · E-401
+
+Provide a close button.
+
+Do not place a large number of actions directly in the header.
+
+An optional:
+
+    ⋯ More
+
+menu may hold secondary actions.
+
+======================================================================
+22. DRAWER INFORMATION ARCHITECTURE
+======================================================================
+
+Use clear sections.
+
+Recommended initial layout:
+
+    OVERVIEW
+
+    Confirmed Type
+
+    AI Classification
+
+    Processing
+
+    Origin
+
+    Metadata
+
+    Actions / More
+
+Do not expose every database field.
+
+Present engineer-relevant information.
+
+======================================================================
+23. CONFIRMED TYPE IN DRAWER
+======================================================================
+
+Show:
+
+    Confirmed type
+    Transformer Shop Drawing
+
+or:
+
+    Confirmed type
+    Unknown
+
+Provide type editing through:
+
+    Change type
+
+or equivalent.
+
+Do not permanently show an open select unless that matches existing design
+patterns.
+
+Manual classification must preserve current Phase 4 semantics:
+
+    manually submitting document_type clears accepted AI provenance.
+
+The frontend must use existing APIs rather than attempting to mutate local state
+as authority.
+
+======================================================================
+24. AI CLASSIFICATION REVIEW
+======================================================================
+
+Move AI classification review out of the table.
+
+Example:
+
+    AI Classification
+
+    Suggested type
+    Transformer Shop Drawing
+
+    Confidence
+    High
+
+    Contains transformer ratings, outline drawings,
+    and connection information.
+
+    [ Accept suggestion ]
+    [ Choose another type ]
+
+If AI suggestion is already accepted:
+
+    ✓ Accepted AI classification
+
+Do not show Accept again.
+
+If confirmed type differs from suggestion:
+
+    Confirmed:
+    Electrical Drawing
+
+    AI suggestion:
+    Single-Line Diagram
+
+    [ Use AI suggestion ]
+    [ Keep current ]
+
+"Keep current" performs no backend mutation.
+
+======================================================================
+25. AI CLASSIFICATION HISTORY / RECLASSIFY
+======================================================================
+
+Do not make Reclassify a primary button beside Accept.
+
+Place it lower in the AI Classification section or in an overflow/menu.
+
+Show latest attempt state where useful:
+
+    Last classification
+    Ready
+
+or:
+
+    Reclassification failed
+    Previous valid suggestion retained
+
+Preserve Phase 4 semantics where:
+
+    latest attempt
+    !=
+    current usable suggestion
+
+The UI must not hide the previous valid suggestion merely because a later
+attempt failed.
+
+======================================================================
+26. CLASSIFICATION FAILURE UI
+======================================================================
+
+If classification latest attempt failed:
+
+    AI Classification
+
+    Current suggestion:
+    Transformer Shop Drawing · High
+
+    Latest attempt:
+    Failed
+
+    <concise error>
+
+    [ Retry ]
+
+If no prior valid suggestion exists:
+
+    Classification failed
+    <concise error>
+
+    [ Retry ]
+
+Do not show backend/provider stack traces.
+
+======================================================================
+27. PROCESSING SECTION
+======================================================================
+
+Move Phase 3 processing details into the drawer.
+
+Examples:
+
+    Processing
+    ✓ Complete
+    12 pages
+
+    [ View pages ]
+
+or:
+
+    Processing
+    In progress
+    7 / 12 pages
+
+or:
+
+    Processing failed
+    <concise error>
+
+    [ Retry processing ]
+
+Do not show multiple processing actions in the main table.
+
+======================================================================
+28. PAGE VIEWER
+======================================================================
+
+Preserve the existing Phase 3 page viewer.
+
+"View pages" from the detail drawer should open/use the existing page viewer.
+
+Do not rewrite the Phase 3 viewer unnecessarily.
+
+Where current architecture supports it, preserve the selected document/drawer
+context when returning from the page viewer.
+
+======================================================================
+29. MIXED-DOCUMENT PAGE CLASSIFICATION
+======================================================================
+
+REMOVE page-classification tables from inside document table cells.
+
+Mixed-document page classifications belong in the detail experience.
+
+For a MIXED_DOCUMENT:
+
+    AI Classification
+    Mixed Document · High
+
+    Page breakdown
+
+    1        Other
+    2–5      Switchgear Shop Drawing
+    6–9      Breaker Document
+    10–12    Equipment Schedule
+
+    [ View page classifications ]
+
+It is acceptable initially to show one row per page if range grouping would
+require substantial new complexity.
+
+However:
+
+    page classification MUST NOT render inside the main document table.
+
+Clicking a page classification should, where practical, navigate/select that
+page in the existing page viewer.
+
+Do not add page-level acceptance controls.
+
+======================================================================
+30. OPTIONAL DRAWER TABS
+======================================================================
+
+If the drawer becomes too vertically long, it is acceptable to introduce a
+small tab structure such as:
+
+    Overview | Pages | Classification
+
+However:
+
+- do not create tabs merely for visual novelty
+- do not duplicate information across tabs
+- keep the simplest design that supports the information clearly
+
+Recommended initial default:
+
+    one Overview drawer
+    with links to existing Pages view
+
+Only add Classification tab if mixed-page content materially benefits from it.
+
+======================================================================
+31. ORIGIN SECTION
+======================================================================
+
+Origin information belongs in the drawer and secondary row metadata.
+
+Examples:
+
+    Uploaded in Revision 15
+
+    Inherited from Revision 14
+
+    Added from Revision 12
+
+Use actual backend metadata available.
+
+Do not invent provenance the API does not expose.
+
+======================================================================
+32. METADATA SECTION
+======================================================================
+
+Show/edit revision-scoped metadata such as:
+
+    document number
+    description
+    notes
+    confirmed document type
+
+Use the existing metadata mutation API.
+
+Do not expose immutable Document fields as editable:
+
+    original filename
+    SHA-256
+    storage key
+    file size
+    MIME type
+
+The UI should continue respecting immutable evidence semantics.
+
+======================================================================
+33. REMOVE / RESTORE ACTIONS
+======================================================================
+
+Move remove/restore into:
+
+    drawer More menu
+    or row overflow menu
+
+Do not make them prominent table buttons.
+
+For included documents:
+
+    Remove from revision
+
+For removed documents:
+
+    Restore to revision
+
+Preserve Phase 2 semantics:
+
+    removing does not delete Document or storage object.
+
+Confirm destructive-looking actions where current UX conventions require it.
+
+======================================================================
+34. DOWNLOAD ORIGINAL
+======================================================================
+
+Download original should remain accessible.
+
+Place it in:
+
+    drawer More menu
+    and/or row overflow menu
+
+It does not require a permanent table button.
+
+Preserve signed/private storage behavior.
+
+======================================================================
+35. READ-ONLY REVISIONS
+======================================================================
+
+SUPERSEDED or otherwise immutable revisions must remain read-only.
+
+The drawer should still support:
+
+    viewing metadata
+    viewing AI classification
+    viewing processing state
+    page viewer
+    download
+
+Hide/disable mutation actions:
+
+    accept AI suggestion
+    change type
+    edit metadata
+    remove/restore
+    retry/reclassify if current business rules disallow them
+
+IMPORTANT:
+
+Processing/classification may belong to immutable Document rather than the
+revision.
+
+Follow current backend semantics exactly.
+
+Do not impose stricter frontend rules than the APIs/domain currently require
+unless necessary for UX clarity.
+
+======================================================================
+36. RESPONSIVE DESIGN
+======================================================================
+
+Desktop:
+
+    document list + right-side detail drawer
+
+Narrow tablet/mobile:
+
+    document list remains readable
+    detail drawer may occupy most/all viewport width
+
+The document table must avoid requiring excessive horizontal scrolling.
+
+On narrow screens it is acceptable to collapse into row/cards while preserving:
+
+    filename
+    type
+    state
+    overflow
+
+Do not attempt to preserve a wide desktop table at all costs.
+
+======================================================================
+37. ACCESSIBILITY
+======================================================================
+
+Use semantic interactive elements.
+
+Ensure:
+
+    rows are keyboard-selectable if made interactive
+    drawer focus is managed correctly
+    Escape closes drawer where appropriate
+    overflow menus are keyboard accessible
+    status is not communicated by color alone
+    buttons have descriptive accessible names
+    tooltips do not contain critical information unavailable elsewhere
+
+Do not use clickable <div> elements without keyboard semantics.
+
+======================================================================
+38. VISUAL HIERARCHY
+======================================================================
+
+Aim for a restrained professional engineering SaaS aesthetic.
+
+Primary emphasis:
+
+    document identity
+    confirmed type
+    current state
+    documents needing attention
+
+Secondary emphasis:
+
+    file size
+    origin
+    revision
+    dates
+    AI confidence
+    page count
+
+Tertiary/hidden-until-needed:
+
+    retries
+    reclassification
+    metadata editing
+    download
+    remove/restore
+    historical details
+
+Avoid badge overload.
+
+Avoid giving every metadata value its own badge.
+
+Use badges primarily for:
+
+    exceptional state
+    concise type/state indication where useful
+
+======================================================================
+39. ICONS / STATUS PRESENTATION
+======================================================================
+
+Use the project's existing icon library.
+
+Example semantics:
+
+    check        Ready
+    spinner      Processing/Classifying
+    warning      Needs Review
+    alert        Failed
+    archive/x    Removed
+
+Do not rely solely on icons.
+
+Always provide text.
+
+Do not introduce a large new icon dependency solely for this refactor.
+
+======================================================================
+40. NO BACKEND REDESIGN
+======================================================================
+
+This refactor should NOT introduce new backend/domain architecture unless a
+small response-shape adjustment is absolutely required to avoid severe frontend
+inefficiency.
+
+Do NOT change:
+
+    Document semantics
+    RevisionDocument semantics
+    processing runs
+    classification runs
+    accepted prediction provenance
+    revision inheritance
+    storage
+    worker architecture
+    queues
+    AI providers
+    taxonomy
+    classification rules
+
+Prefer deriving view state in frontend selectors/view models.
+
+If a backend change is genuinely necessary:
+
+    document it clearly
+    keep it minimal
+    add tests
+    explain why existing API data was insufficient
+
+======================================================================
+41. COMPONENT REFACTOR
+======================================================================
+
+The existing document workspace is likely too monolithic.
+
+Refactor into focused components as appropriate.
+
+Conceptually:
+
+    RevisionDocumentsWorkspace
+
+    DocumentWorkspaceToolbar
+
+    DocumentQuickViews
+
+    DocumentFiltersPopover
+
+    DocumentList
+
+    DocumentRow
+
+    DocumentState
+
+    DocumentOverflowMenu
+
+    DocumentDetailDrawer
+
+    DocumentOverview
+
+    DocumentClassificationPanel
+
+    DocumentProcessingPanel
+
+    DocumentMetadataPanel
+
+    MixedDocumentPageTypes
+
+Do not follow these names blindly if repository conventions prefer others.
+
+The goal is:
+
+    smaller focused components
+    testable state derivation
+    reduced deeply nested conditional JSX
+
+======================================================================
+42. FRONTEND VIEW MODEL / SELECTORS
+======================================================================
+
+Introduce pure functions/selectors for derived UI concepts.
+
+Examples:
+
+    deriveDocumentPresentationState(...)
+
+    documentNeedsReview(...)
+
+    documentHasIssue(...)
+
+    getCurrentAISuggestion(...)
+
+Do not duplicate complex state precedence across several components.
+
+Unit-test these functions thoroughly.
+
+Keep backend semantic types distinct from presentation states.
+
+======================================================================
+43. PRESERVE URL / NAVIGATION BEHAVIOR
+======================================================================
+
+Do not break project/revision routing.
+
+If practical, consider allowing selected document state to be reflected in URL
+query state, for example:
+
+    ?document=<revision_document_id>
+
+ONLY if this fits current routing cleanly.
+
+This would make:
+
+    browser Back
+    deep links
+    refresh with selected document
+
+work better.
+
+However:
+
+Do not make URL synchronization a blocker if it creates substantial scope.
+
+======================================================================
+44. LOADING / EMPTY STATES
+======================================================================
+
+Provide clean states for:
+
+No documents:
+
+    No documents in this revision
+    [ Add Documents ]
+
+No search results:
+
+    No documents match your search
+
+No Needs Review:
+
+    No documents need review
+
+No Issues:
+
+    No document issues
+
+Removed empty:
+
+    No removed documents
+
+Drawer loading:
+
+    use existing skeleton/loading conventions
+
+Avoid blank table shells.
+
+======================================================================
+45. ERROR STATES
+======================================================================
+
+Preserve current error reporting behavior but present errors near the relevant
+workflow.
+
+Examples:
+
+Upload failure:
+    upload workflow
+
+Metadata update failure:
+    detail drawer metadata section
+
+Accept classification failure:
+    classification section
+
+Retry failure:
+    processing/classification section
+
+Do not surface every error as a global page-level alert if a local error is more
+appropriate.
+
+======================================================================
+46. OPTIMISTIC UI
+======================================================================
+
+Do not introduce aggressive optimistic mutation if it risks mismatching
+PowerForge's revision/document integrity rules.
+
+Prefer:
+
+    action
+    API success
+    update/refetch state
+
+Use existing query/state conventions.
+
+Small local loading states are preferable to speculative data mutation.
+
+======================================================================
+47. UPLOAD WORKFLOW
+======================================================================
+
+Preserve existing multi-file upload behavior.
+
+The main UI change is entry-point consolidation:
+
+    Add Documents ▾
+        Upload files
+        Add from another revision
+
+Do not rewrite upload processing just to match the new workspace.
+
+After successful upload:
+
+    new documents should appear naturally in list
+    automatic Phase 3/4 states should update using existing refresh/query logic
+
+======================================================================
+48. REVIEW WORKFLOW DIRECTION
+======================================================================
+
+Do NOT implement the future generic Review module now.
+
+However, design this UI so document review actions are not permanently embedded
+inside table cells.
+
+This anticipates future review categories such as:
+
+    low-confidence extraction
+    conflicting equipment attributes
+    entity matching
+    topology ambiguity
+    missing critical data
+
+The current document workspace should not become the permanent home for every
+future engineering review action.
+
+======================================================================
+49. PERFORMANCE
+======================================================================
+
+Avoid introducing:
+
+    one API request per document row
+    one classification request per row
+    unnecessary page-artifact loads
+    all-page classification rendering in the list
+
+Use existing list summaries.
+
+Fetch detailed classification/page information only when the detail drawer
+needs it.
+
+Do not fetch page-level classifications for every document upfront.
+
+Mixed page predictions should load lazily when needed.
+
+======================================================================
+50. TESTING — REQUIRED
+======================================================================
+
+Update/add frontend tests for at least:
+
+WORKSPACE
+
+- document list renders simplified columns
+- no old dedicated Origin/Processing/Actions column clutter remains
+- row click opens detail drawer
+- drawer closes correctly
+- selected document changes correctly
+
+STATE DERIVATION
+
+- removed state
+- processing state
+- classifying state
+- processing failure
+- classification failure
+- needs-review state
+- ready state
+- precedence behaves deterministically
+
+NEEDS REVIEW
+
+- UNKNOWN + AI suggestion → review
+- accepted AI suggestion → not review
+- manual confirmed type different from AI → review where designed
+- no AI suggestion alone does not create invalid review state
+
+QUICK VIEWS
+
+- All
+- Needs Review
+- Issues
+- Removed
+- counts/filtering behave correctly
+
+FILTERS
+
+- advanced filter popover works
+- active-filter count/indicator
+- clear filters
+- search continues working
+
+DRAWER
+
+- confirmed type shown
+- AI suggestion shown
+- confidence band shown
+- accepted state shown
+- processing state shown
+- origin shown
+- metadata shown
+
+AI ACTIONS
+
+- accept suggestion works
+- manual type change works
+- use AI suggestion works
+- keep current causes no mutation
+- retry classification works
+- reclassify works
+- failed reclassification keeps previous valid suggestion visible
+
+PROCESSING ACTIONS
+
+- view pages
+- retry processing
+- processing progress
+
+MIXED DOCUMENT
+
+- page predictions are NOT rendered inside main table
+- page predictions appear in detail experience
+- page viewer navigation works if implemented
+
+OVERFLOW
+
+- correct actions appear by state
+- remove/restore actions behave correctly
+- download accessible
+- unavailable actions hidden/disabled appropriately
+
+READ-ONLY
+
+- superseded/read-only revision hides mutation controls
+- viewing/downloading remains available according to existing rules
+
+RESPONSIVE / ACCESSIBILITY
+
+- key drawer/menu keyboard behavior where current test tooling supports it
+- proper button/menu labels
+
+REGRESSION
+
+- upload workflow still works
+- add-from-revision still works
+- remove/restore still works
+- metadata editing still works
+- Phase 3 page viewer still works
+- Phase 4 classification workflows still work
+- all previous frontend tests continue to pass or are deliberately rewritten
+  where they tested obsolete presentation rather than behavior
+
+======================================================================
+51. DO NOT DELETE FUNCTIONALITY
+======================================================================
+
+The following capabilities must remain available somewhere in the redesigned UI:
+
+    search
+    type filtering
+    origin filtering
+    processing filtering if currently available
+    included/removed views
+    upload
+    add from another revision
+    view pages
+    edit metadata
+    manual type classification
+    AI suggestion
+    AI confidence
+    accept AI suggestion
+    manual override
+    retry classification
+    reclassify
+    mixed-document page classifications
+    retry processing
+    download original
+    remove
+    restore
+
+The refactor changes WHERE and HOW these appear.
+
+It must not quietly remove features merely to make the table cleaner.
+
+======================================================================
+52. NO PHASE 5 WORK
+======================================================================
+
+Do NOT implement:
+
+    engineering model UI
+    equipment list
+    equipment detail
+    engineering attributes
+    extraction results
+    topology
+    entity resolution
+    review queue
+    conflict resolution
+    missing-data workflows
+    ETAP/SKM/EasyPower integration
+
+This phase is only the document-workspace UX refactor.
+
+======================================================================
+53. TARGET END STATE
+======================================================================
+
+The result should feel approximately like:
+
+    Revision 15
+
+    Documents 42                                 [ Add Documents ▾ ]
+
+    [ Search documents... ]   [ Filters ]
+
+    All 42   Needs Review 5   Issues 1   Removed 3
+
+
+    DOCUMENT                         TYPE                    STATE
+    ─────────────────────────────────────────────────────────────────
+    SLD-Rev15.pdf                    Single-Line Diagram     ✓ Ready    ⋯
+    2.4 MB · Uploaded · Oct 12
+
+    TX1-Shop-Drawing.pdf             Unknown                 ◆ Review   ⋯
+    5.1 MB · Inherited from Rev 14
+    AI: Transformer Shop Drawing · High
+
+    Vendor-Package.pdf               Mixed Document          ✓ Ready    ⋯
+    18 pages · Uploaded
+
+    Panel-Schedules.pdf              Panel Schedule          ◌ Processing ⋯
+    8.3 MB · Uploaded                                  7 / 12 pages
+
+Clicking TX1-Shop-Drawing.pdf opens:
+
+    ┌─────────────────────────────────────┐
+    │ TX1-Shop-Drawing.pdf                │
+    │ 5.1 MB · 8 pages · E-401            │
+    │                                     │
+    │ OVERVIEW                            │
+    │                                     │
+    │ Confirmed type                      │
+    │ Unknown                             │
+    │ [ Change type ]                     │
+    │                                     │
+    │ AI CLASSIFICATION                   │
+    │                                     │
+    │ Transformer Shop Drawing            │
+    │ High confidence                     │
+    │                                     │
+    │ Contains transformer ratings,       │
+    │ outline drawings and connection...  │
+    │                                     │
+    │ [ Accept suggestion ]               │
+    │ [ Choose another type ]             │
+    │                                     │
+    │ PROCESSING                          │
+    │                                     │
+    │ ✓ Complete · 8 pages                │
+    │ [ View pages ]                      │
+    │                                     │
+    │ ORIGIN                              │
+    │ Inherited from Revision 14          │
+    │                                     │
+    │ METADATA                            │
+    │ Document number: E-401              │
+    │ Description: ...                    │
+    │ Notes: ...                          │
+    │                                     │
+    │ [ Edit metadata ]                   │
+    │                                     │
+    │ ⋯ More                              │
+    └─────────────────────────────────────┘
+
+This is illustrative, not a demand for exact pixel reproduction.
+
+Follow the existing PowerForge component/design system.
+
+======================================================================
+54. DESIGN QUALITY BAR
+======================================================================
+
+The finished document workspace should feel:
+
+    professional
+    calm
+    information-dense but not cluttered
+    suitable for engineers working with dozens/hundreds of documents
+    scalable to future PowerForge functionality
+
+A user should be able to scan 30–50 documents quickly without each row becoming
+a collection of buttons and badges.
+
+The most important hierarchy should be immediately obvious:
+
+    What is the document?
+    What do we currently consider it?
+    Does it need attention?
+
+Everything else is secondary.
+
+======================================================================
+55. IMPLEMENTATION ORDER
+======================================================================
+
+Recommended sequence:
+
+1. Inspect current component/API behavior
+2. Run frontend baseline
+3. Write implementation plan
+4. Define pure presentation-state derivation
+5. Split/refactor monolithic document workspace components
+6. Implement simplified document list
+7. Implement quick views
+8. Implement filters popover
+9. Consolidate Add Documents menu
+10. Implement row selection
+11. Implement detail drawer
+12. Move confirmed-type editing to drawer
+13. Move AI classification workflow to drawer
+14. Move processing workflow to drawer
+15. Move mixed page classifications out of table
+16. Implement overflow menu
+17. Implement removed/read-only states
+18. Refine responsive layout
+19. Add/update tests
+20. Run frontend tests
+21. Run TypeScript
+22. Run lint
+23. Run production build
+24. Perform browser/manual UX verification if available
+25. Update relevant documentation
+26. Audit diff to ensure no Phase 5 scope creep
+
+======================================================================
+56. DOCUMENTATION
+======================================================================
+
+Update:
+
+    docs/PROJECT_STATUS.md
+
+to record the UI refactor.
+
+If repository conventions justify it, create:
+
+    cursor/phase4_5_document_workspace_ui.txt
+
+or equivalent.
+
+Do NOT create a major architectural ADR unless this refactor introduces a true
+cross-system architectural decision.
+
+A short UI/design note is sufficient.
+
+Record:
+
+    master-detail document workspace
+    simplified table
+    unified presentation state
+    AI/processing workflows moved to drawer
+    actions moved to overflow/detail surfaces
+    no backend/domain semantics changed
+
+======================================================================
+57. DEFINITION OF DONE
+======================================================================
+
+Phase 4.5 is complete when:
+
+- document list is materially less congested
+- main list uses approximately Document / Type / State / overflow
+- origin/date/file-size metadata is consolidated into secondary text
+- normal INCLUDED state is not redundantly shown
+- Processing and Classification are consolidated into a presentation State
+- AI controls are removed from table cells
+- mixed-page classifications are removed from table cells
+- clicking a row opens a detail drawer/panel
+- drawer contains confirmed type
+- drawer contains AI classification/review
+- drawer contains processing details
+- drawer contains origin
+- drawer contains metadata
+- all previous actions remain reachable
+- Add Documents consolidates upload + reuse entry points
+- quick views exist for All / Needs Review / Issues / Removed
+- secondary filters are moved behind Filters
+- search remains prominent
+- row overflow handles secondary actions
+- removed/read-only states work correctly
+- no N+1 API regression is introduced
+- page classification details load lazily
+- all Phase 2 document-management workflows remain usable
+- all Phase 3 processing/page-viewer workflows remain usable
+- all Phase 4 classification/review workflows remain usable
+- frontend tests pass
+- TypeScript passes
+- lint passes
+- production build succeeds
+- responsive behavior is acceptable
+- no Phase 5 engineering-model functionality was added
+
+======================================================================
+58. FINAL HANDOFF REQUIRED
+======================================================================
+
+At completion provide:
+
+A. Components added/removed/refactored
+
+B. Final workspace layout
+
+C. Document-list columns and metadata strategy
+
+D. Presentation-state derivation rules
+
+E. Quick-view definitions
+
+F. Filter changes
+
+G. Detail-drawer structure
+
+H. AI-classification workflow placement
+
+I. Processing workflow placement
+
+J. Mixed-document page-classification placement
+
+K. Overflow-menu actions
+
+L. Responsive behavior
+
+M. Accessibility considerations implemented
+
+N. API/backend changes, if any, and why they were unavoidable
+
+O. Frontend tests changed/added
+
+P. Exact commands/checks run and results
+
+Q. Manual browser verification performed, if any
+
+R. Deviations from this specification
+
+S. Technical debt discovered/introduced
+
+T. Confirmation that no Phase 5 functionality was implemented
+
+U. Suggested commit message
+
+Do not claim browser verification or tests passed unless they were actually run.

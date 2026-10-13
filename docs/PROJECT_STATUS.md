@@ -3,7 +3,7 @@
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
 **Current implemented phase:** 4 (AI document classification)  
-**In progress:** none  
+**In progress:** Phase 4.5 (document workspace UI)  
 **Next:** Phase 5 (engineering model persistence). Not started
 
 ## Phase 0 — Architecture and repository setup
@@ -184,6 +184,17 @@ Phase 3 tree on `main`, plus the untracked Phase 4 spec and this delivery plan, 
 
 `npm run build` was not run. There is no web UI change in PR-01. Run it when the classification workspace changes.
 
+## Phase 4.5 — Document workspace UI
+
+**Status:** In progress (2026-10-12). Presentation state is derived in the web client. The workspace UI is unchanged.
+
+Specification: `cursor/phase4.5_specs.txt`  
+Delivery: [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md)
+
+Phase 4.5 redesigns the revision documents workspace into a master-detail layout. The list shows document identity, confirmed type, and one derived presentation state. Classification review, processing, metadata, and the rest of the row actions move to a detail drawer. No ADR. Document, revision, processing, and classification semantics stay as implemented in Phases 2–4. The engineering model is not part of this phase.
+
+The workspace still uses the Phase 4 table until PR-02 and PR-03 land.
+
 ## Later phases
 
 | Phase | Work | Status |
@@ -191,10 +202,11 @@ Phase 3 tree on `main`, plus the untracked Phase 4 spec and this delivery plan, 
 | 2 | Document management | Complete (2026-10-06) |
 | 3 | Document processing | Complete (2026-10-10) |
 | 4 | Document classification | Complete (2026-10-12) |
+| 4.5 | Document workspace UI | In progress |
 | 5 | Engineering model persistence | Not started |
 | 6–13 | Extraction through export | Not started |
 
-Authentication, a users table, and project-level access control are required by the product spec and are **not** part of Phase 0, Phase 1, Phase 2, Phase 3, or Phase 4. `created_by` (and Phase 2's `uploaded_by`/`added_by`/`removed_by`) remain nullable until then.
+Authentication, a users table, and project-level access control are required by the product spec and are **not** part of Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, or Phase 4.5. `created_by` (and Phase 2's `uploaded_by`/`added_by`/`removed_by`) remain nullable until then.
 
 ETAP / SKM / EasyPower integration is not part of these phases.
 

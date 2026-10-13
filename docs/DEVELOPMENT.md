@@ -20,6 +20,8 @@ Phase 3 processing runs on `document-worker`. New uploads enqueue a run; documen
 
 Phase 4 classification runs on `extraction-worker` after Phase 3 commits a completed processing run, and only when classification is enabled. That worker listens on `document_classification`. The OpenAI adapter lives there; tests mock it and do not call OpenAI. Documents already processed wait for `powerforge-backfill-classification --limit N` ([PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md)).
 
+Phase 4.5 will change only how that revision workspace is laid out. It is in progress (`cursor/phase4.5_specs.txt`, [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md)). The page still shows the Phase 4 document table.
+
 The API reads and accepts classification in process. It does not call OpenAI. List, detail, and upload responses include a `classification` object (`enabled`, `suggestion`, `attempt`). Routes under `.../documents/{revisionDocumentId}`:
 
 | Method | Path | Purpose |

@@ -44,7 +44,7 @@ The list and detail payloads also carry the current run's status, so the documen
 
 Phase 2 covers only `UPLOAD` and `FILE VALIDATION`, plus manual classification. It is synchronous per file and creates no jobs.
 
-The Phase 3 UI shows Pending, Processing, Ready, and Failed for that run. The Phase 4 UI shows the classification suggestion on the same table. OCR, layout, and extraction progress belong to later stages and are not shown yet.
+The Phase 3 UI shows Pending, Processing, Ready, and Failed for that run. The Phase 4 UI shows the classification suggestion on the same table. Phase 4.5 (in progress) will move that workspace into a master-detail layout and does not change these payloads. OCR, layout, and extraction progress belong to later stages and are not shown yet.
 
 ## Ownership
 
@@ -169,6 +169,12 @@ The classification target is the current completed processing run for the active
 Accept sets `document_type` and `accepted_classification_prediction_id`. A manual type submission clears that id, even when the type value does not change. Creating a revision and reusing a document both copy the id with the other revision metadata.
 
 Existing processed documents are backfilled by `powerforge-backfill-classification --limit N`. The command does not run on API startup and does not retry a failed classification.
+
+## Phase 4.5 scope
+
+Specification: `cursor/phase4.5_specs.txt`. Delivery: [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md). In progress (2026-10-12). The workspace UI is unchanged.
+
+Phase 4.5 changes where the revision workspace shows document, processing, and classification state. It does not change upload, processing, classification, storage, or the list payload. Derived presentation state lives in the browser.
 
 ## Processing tools
 

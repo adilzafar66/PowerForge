@@ -291,6 +291,16 @@ The provider contract is vendor-neutral. The first real adapter is OpenAI (`gpt-
 
 OCR, equipment or table extraction, single-line topology, embeddings, automatic acceptance, page-level approval, and the engineering model.
 
+## Phase 4.5
+
+Phase 4.5 is a frontend refactor of the revision documents workspace. Specification: `cursor/phase4.5_specs.txt`. Delivery: [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md). Status: in progress. The workspace UI is unchanged. There is no ADR.
+
+The list becomes a master-detail workspace. Presentation state is derived in the browser from the existing list payload. Document, revision, processing, and classification semantics stay as Phases 2–4 defined them. Until that UI lands, the workspace is still the Phase 4 table described above.
+
+### Not in Phase 4.5
+
+Backend or domain changes, a generic review queue, and the engineering model.
+
 ## Related documents
 
 - [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md)
@@ -311,3 +321,4 @@ OCR, equipment or table extraction, single-line topology, embeddings, automatic 
 - [PHASE3_PLAN.md](PHASE3_PLAN.md) — Phase 3 conceptual plan
 - [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md) — Phase 3 pull-request delivery plan
 - [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) — Phase 4 pull-request delivery plan
+- [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md) — Phase 4.5 pull-request delivery plan
