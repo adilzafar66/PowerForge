@@ -94,7 +94,7 @@ Update the checkbox and status when a PR merges. PR-01 and PR-04 keep [PROJECT_S
 | PR | Title | Area | Size | Depends on | Status |
 | --- | --- | --- | --- | --- | --- |
 | [PR-01](#pr-01--document-presentation-state) | Document presentation state | Web | S | — | [x] |
-| [PR-02](#pr-02--workspace-toolbar-quick-views-and-filters) | Workspace toolbar, quick views, and filters | Web | M | PR-01 | [ ] |
+| [PR-02](#pr-02--workspace-toolbar-quick-views-and-filters) | Workspace toolbar, quick views, and filters | Web | M | PR-01 | [x] |
 | [PR-03](#pr-03--master-detail-list-and-document-drawer) | Master-detail list and document drawer | Web | L | PR-01, PR-02 | [ ] |
 | [PR-04](#pr-04--verification-documentation-and-phase-45-completion) | Verification, documentation, and Phase 4.5 completion | Docs | S | all | [ ] |
 
@@ -181,6 +181,8 @@ Practical ordering: 01 → 02 → 03 → 04. There is no parallel slice. PR-03 n
 ---
 
 ### PR-02 — Workspace toolbar, quick views, and filters
+
+**Status.** Done. Frontend baseline before the toolbar change: 213 tests. After: 212 tests, lint clean, typecheck clean. The table columns and row actions are unchanged.
 
 **Goal.** Replace the permanent toolbar with search, four quick views, a filters popover, and one Add Documents menu. Row columns and row actions stay as they are, so every current workflow remains on the row. (§12–§16, §44, §45, §47, §49)
 

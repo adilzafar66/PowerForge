@@ -103,8 +103,15 @@ function renderWorkspace(canMutate = false) {
   return render(<RevisionDocuments projectId={P} revisionId={R} canMutate={canMutate} />);
 }
 
-function viewButton(name: string) {
-  return within(screen.getByRole("group", { name: "View" })).getByRole("button", { name });
+function quickView(name: string) {
+  return within(screen.getByRole("group", { name: "Quick views" })).getByRole("button", {
+    name: new RegExp(`^${name}\\b`),
+  });
+}
+
+async function openAddMenu(user: ReturnType<typeof userEvent.setup>) {
+  const [button] = await screen.findAllByRole("button", { name: "Add Documents" });
+  await user.click(button);
 }
 
 beforeEach(() => {
@@ -148,14 +155,15 @@ describe("RevisionDocuments rows", () => {
   it("shows the empty state, and a filtered empty state with Clear filters", async () => {
     const user = userEvent.setup();
     renderWorkspace();
-    expect(await screen.findByText("No documents in this revision yet.")).toBeInTheDocument();
+    expect(await screen.findByText("No documents in this revision")).toBeInTheDocument();
     expect(screen.queryByText("Clear filters")).toBeNull();
 
+    await user.click(screen.getByRole("button", { name: "Filters" }));
     await user.selectOptions(screen.getByLabelText("Origin"), "INHERITED");
     expect(await screen.findByText("No documents match your filters.")).toBeInTheDocument();
 
-    await user.click(screen.getByText("Clear filters"));
-    expect(await screen.findByText("No documents in this revision yet.")).toBeInTheDocument();
+    await user.click(screen.getAllByRole("button", { name: "Clear filters" })[0]);
+    expect(await screen.findByText("No documents in this revision")).toBeInTheDocument();
     expect(screen.getByLabelText("Origin")).toHaveValue("");
   });
 
@@ -175,59 +183,67 @@ describe("RevisionDocuments rows", () => {
 });
 
 describe("RevisionDocuments filters", () => {
-  it("loads with default filters", async () => {
+  it("loads every document once and leaves type and origin to the client", async () => {
     renderWorkspace();
     await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
-    expect(list).toHaveBeenCalledWith(P, R, {
-      status: "INCLUDED",
-      document_type: "",
-      origin: "",
-      search: "",
-    });
+    expect(list).toHaveBeenCalledWith(P, R, { status: "ALL", search: "" });
   });
 
-  it("sends Type, Origin and View changes to the client", async () => {
+  it("filters type, origin, processing, and classification without another request", async () => {
     const user = userEvent.setup();
+    list.mockResolvedValue([
+      makeRow({ name: "local.pdf" }),
+      makeRow({
+        name: "shop.pdf",
+        origin: "INHERITED",
+        document_type: "CABLE_SCHEDULE",
+        processing: {
+          status: "COMPLETED",
+          attempt_count: 1,
+          pages_processed: 2,
+          pages_total: 2,
+          error_code: null,
+          error_message: null,
+        },
+        classification: {
+          enabled: true,
+          suggestion: {
+            prediction_id: "pred",
+            predicted_type: "CABLE_SCHEDULE",
+            confidence_band: "HIGH",
+            accepted: true,
+            requires_page_classification: false,
+          },
+          attempt: {
+            id: "run",
+            status: "COMPLETED",
+            stage: "DOCUMENT",
+            pages_total: 2,
+            pages_classified: 2,
+            error_code: null,
+          },
+        },
+      }),
+    ]);
     renderWorkspace();
+    expect(await screen.findByText("local.pdf")).toBeInTheDocument();
     await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
 
-    await user.selectOptions(screen.getByLabelText("Type"), "CABLE_SCHEDULE");
-    await waitFor(() =>
-      expect(list).toHaveBeenLastCalledWith(
-        P,
-        R,
-        expect.objectContaining({ document_type: "CABLE_SCHEDULE" }),
-      ),
-    );
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    await user.selectOptions(screen.getByLabelText("Document type"), "CABLE_SCHEDULE");
     await user.selectOptions(screen.getByLabelText("Origin"), "INHERITED");
-    await waitFor(() =>
-      expect(list).toHaveBeenLastCalledWith(P, R, expect.objectContaining({ origin: "INHERITED" })),
-    );
-    await user.click(viewButton("Removed"));
-    await waitFor(() =>
-      expect(list).toHaveBeenLastCalledWith(P, R, expect.objectContaining({ status: "REMOVED" })),
-    );
-    await user.click(viewButton("All"));
-    await waitFor(() =>
-      expect(list).toHaveBeenLastCalledWith(P, R, expect.objectContaining({ status: "ALL" })),
-    );
-  });
+    await user.selectOptions(screen.getByLabelText("Processing state"), "COMPLETED");
+    await user.selectOptions(screen.getByLabelText("Classification state"), "ready");
 
-  it("shows removed rows in the Removed view and does not request them by default", async () => {
-    const user = userEvent.setup();
-    list.mockImplementation(async (_p, _r, filters) =>
-      filters?.status === "REMOVED"
-        ? [makeRow({ name: "old.pdf", status: "REMOVED" })]
-        : [makeRow({ name: "new.pdf" })],
-    );
-    renderWorkspace();
-    expect(await screen.findByText("new.pdf")).toBeInTheDocument();
-    expect(list).toHaveBeenCalledWith(P, R, expect.objectContaining({ status: "INCLUDED" }));
+    expect(screen.getByRole("button", { name: "Filters (4)" })).toBeInTheDocument();
+    expect(screen.queryByText("local.pdf")).toBeNull();
+    expect(screen.getByText("shop.pdf")).toBeInTheDocument();
+    expect(list).toHaveBeenCalledTimes(1);
 
-    await user.click(viewButton("Removed"));
-    const row = (await screen.findByText("old.pdf")).closest("tr")!;
-    expect(within(row).getByText("Removed")).toBeInTheDocument();
-    expect(screen.queryByText("new.pdf")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Clear filters" }));
+    expect(screen.getByRole("button", { name: "Filters" })).toBeInTheDocument();
+    expect(screen.getByText("local.pdf")).toBeInTheDocument();
+    expect(list).toHaveBeenCalledTimes(1);
   });
 
   it("debounces search and sends a single request for the final text", async () => {
@@ -241,13 +257,12 @@ describe("RevisionDocuments filters", () => {
     expect(list).toHaveBeenCalledTimes(1);
 
     await waitFor(() =>
-      expect(list).toHaveBeenLastCalledWith(P, R, expect.objectContaining({ search: "sld" })),
+      expect(list).toHaveBeenLastCalledWith(P, R, { status: "ALL", search: "sld" }),
     );
     expect(list).toHaveBeenCalledTimes(2);
   });
 
   it("ignores a slow earlier response that finishes after a newer one", async () => {
-    const user = userEvent.setup();
     let resolveFirst: (rows: RevisionDocument[]) => void = () => {};
     list.mockImplementationOnce(
       () => new Promise<RevisionDocument[]>((resolve) => (resolveFirst = resolve)),
@@ -256,7 +271,7 @@ describe("RevisionDocuments filters", () => {
     renderWorkspace();
     await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
 
-    await user.click(viewButton("All"));
+    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "fresh" } });
     expect(await screen.findByText("fresh.pdf")).toBeInTheDocument();
 
     await act(async () => {
@@ -264,6 +279,47 @@ describe("RevisionDocuments filters", () => {
     });
     expect(screen.getByText("fresh.pdf")).toBeInTheDocument();
     expect(screen.queryByText("stale.pdf")).toBeNull();
+  });
+
+  it("keeps classification, page, and download actions on the row", async () => {
+    list.mockResolvedValue([
+      makeRow({
+        name: "ready.pdf",
+        document_type: "PANEL_SCHEDULE",
+        processing: {
+          status: "COMPLETED",
+          attempt_count: 1,
+          pages_processed: 2,
+          pages_total: 2,
+          error_code: null,
+          error_message: null,
+        },
+        classification: {
+          enabled: true,
+          suggestion: {
+            prediction_id: "pred",
+            predicted_type: "PANEL_SCHEDULE",
+            confidence_band: "HIGH",
+            accepted: false,
+            requires_page_classification: false,
+          },
+          attempt: {
+            id: "run",
+            status: "COMPLETED",
+            stage: "DOCUMENT",
+            pages_total: 2,
+            pages_classified: 2,
+            error_code: null,
+          },
+        },
+      }),
+    ]);
+    renderWorkspace(true);
+
+    expect(await screen.findByRole("button", { name: "Accept" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View pages" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Download ready.pdf" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Actions for ready.pdf" })).toBeInTheDocument();
   });
 });
 
@@ -358,7 +414,7 @@ describe("RevisionDocuments download actions", () => {
 
     await user.click(await screen.findByRole("button", { name: "Open a.pdf" }));
 
-    expect(await screen.findByText("No documents in this revision yet.")).toBeInTheDocument();
+    expect(await screen.findByText("No documents in this revision")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Document not found");
     expect(list).toHaveBeenCalledTimes(2);
   });
@@ -372,22 +428,32 @@ describe("RevisionDocuments upload area", () => {
   }
   const pdf = () => new File([new Uint8Array(10)], "new.pdf", { type: "application/pdf" });
 
-  it("is absent when the revision cannot be changed and present when it can", async () => {
+  it("is absent when the revision cannot be changed and opens from Add Documents when it can", async () => {
+    const user = userEvent.setup();
     const first = renderWorkspace(false);
     await waitFor(() => expect(list).toHaveBeenCalled());
+    expect(screen.queryByRole("button", { name: "Add Documents" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Upload Documents" })).toBeNull();
     first.unmount();
 
     renderWorkspace(true);
+    expect(screen.queryByRole("button", { name: "Upload Documents" })).toBeNull();
+    await openAddMenu(user);
+    expect(screen.getByRole("menuitem", { name: "Upload files" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Add from another revision" })).toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: "Upload files" }));
     expect(await screen.findByRole("button", { name: "Upload Documents" })).toBeInTheDocument();
   });
 
   it("reloads the list when an upload completes", async () => {
+    const user = userEvent.setup();
     upload.mockResolvedValue({ duplicate_detected: false, duplicate_document_ids: [] } as never);
     renderWorkspace(true);
     await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
     list.mockResolvedValue([makeRow({ name: "new.pdf" })]);
 
+    await openAddMenu(user);
+    await user.click(screen.getByRole("menuitem", { name: "Upload files" }));
     choose(pdf());
 
     expect(await screen.findByRole("cell", { name: /new\.pdf/ })).toBeInTheDocument();
@@ -395,6 +461,7 @@ describe("RevisionDocuments upload area", () => {
   });
 
   it("shows a notice, refreshes the page and reloads the list on a read-only 409", async () => {
+    const user = userEvent.setup();
     upload.mockRejectedValue(
       Object.assign(new Error("Revision is superseded."), {
         apiError: { detail: "Revision is superseded.", code: "revision_read_only" },
@@ -404,6 +471,8 @@ describe("RevisionDocuments upload area", () => {
     renderWorkspace(true);
     await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
 
+    await openAddMenu(user);
+    await user.click(screen.getByRole("menuitem", { name: "Upload files" }));
     choose(pdf());
 
     expect(await screen.findByRole("status")).toHaveTextContent("Revision is superseded.");
@@ -412,54 +481,120 @@ describe("RevisionDocuments upload area", () => {
   });
 });
 
-describe("RevisionDocuments quick filters", () => {
-  const chip = (name: string) =>
-    within(screen.getByRole("group", { name: "Quick filters" })).getByRole("button", { name });
+describe("RevisionDocuments quick views", () => {
+  const reviewClassification = {
+    enabled: true,
+    suggestion: {
+      prediction_id: "pred",
+      predicted_type: "PANEL_SCHEDULE" as const,
+      confidence_band: "HIGH" as const,
+      accepted: false,
+      requires_page_classification: false,
+    },
+    attempt: {
+      id: "run",
+      status: "COMPLETED" as const,
+      stage: "DOCUMENT" as const,
+      pages_total: 1,
+      pages_classified: 1,
+      error_code: null,
+    },
+  };
+  const failedProcessing = {
+    status: "FAILED" as const,
+    attempt_count: 1,
+    pages_processed: 0,
+    pages_total: 4,
+    error_code: "RENDER_FAILED",
+    error_message: "Could not read the file",
+  };
 
-  it("marks All as active by default", async () => {
+  function loadMixed() {
+    list.mockResolvedValue([
+      makeRow({ name: "ready.pdf" }),
+      makeRow({
+        name: "review.pdf",
+        document_type: "UNKNOWN",
+        classification: reviewClassification,
+      }),
+      makeRow({ name: "bad.pdf", processing: failedProcessing }),
+      makeRow({ name: "gone.pdf", status: "REMOVED" }),
+    ]);
+  }
+
+  it("counts Needs Review and Issues inside All, and Removed outside it", async () => {
+    loadMixed();
     renderWorkspace();
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
-    expect(chip("All")).toHaveAttribute("aria-pressed", "true");
-    expect(chip("Removed")).toHaveAttribute("aria-pressed", "false");
+
+    expect(await screen.findByText("ready.pdf")).toBeInTheDocument();
+    expect(quickView("All")).toHaveTextContent("3");
+    expect(quickView("Needs Review")).toHaveTextContent("1");
+    expect(quickView("Issues")).toHaveTextContent("1");
+    expect(quickView("Removed")).toHaveTextContent("1");
+    expect(screen.getByRole("heading", { name: "Documents 3" })).toBeInTheDocument();
+    expect(screen.queryByText("gone.pdf")).toBeNull();
+    expect(list).toHaveBeenCalledTimes(1);
   });
 
-  it.each([
-    ["Uploaded", { status: "INCLUDED", origin: "UPLOADED", document_type: "" }],
-    ["Inherited", { status: "INCLUDED", origin: "INHERITED", document_type: "" }],
-    ["Unclassified", { status: "INCLUDED", origin: "", document_type: "UNKNOWN" }],
-    ["Removed", { status: "REMOVED", origin: "", document_type: "" }],
-  ])("%s requests the matching filters and becomes active", async (name, expected) => {
+  it("filters All, Needs Review, Issues, and Removed in the client", async () => {
     const user = userEvent.setup();
+    loadMixed();
     renderWorkspace();
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("ready.pdf")).toBeInTheDocument();
+    expect(screen.getByText("review.pdf")).toBeInTheDocument();
+    expect(screen.getByText("bad.pdf")).toBeInTheDocument();
 
-    await user.click(chip(name));
+    await user.click(quickView("Needs Review"));
+    expect(screen.getByText("review.pdf")).toBeInTheDocument();
+    expect(screen.queryByText("ready.pdf")).toBeNull();
+    expect(screen.queryByText("bad.pdf")).toBeNull();
+    expect(screen.queryByText("gone.pdf")).toBeNull();
 
-    await waitFor(() =>
-      expect(list).toHaveBeenLastCalledWith(P, R, expect.objectContaining(expected)),
-    );
-    expect(chip(name)).toHaveAttribute("aria-pressed", "true");
-    expect(chip("All")).toHaveAttribute("aria-pressed", "false");
+    await user.click(quickView("Issues"));
+    expect(screen.getByText("bad.pdf")).toBeInTheDocument();
+    expect(screen.queryByText("review.pdf")).toBeNull();
+
+    await user.click(quickView("Removed"));
+    expect(screen.getByText("gone.pdf")).toBeInTheDocument();
+    expect(screen.queryByText("bad.pdf")).toBeNull();
+
+    await user.click(quickView("All"));
+    expect(screen.getByText("ready.pdf")).toBeInTheDocument();
+    expect(screen.queryByText("gone.pdf")).toBeNull();
+    expect(list).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the typed search and tracks manual filter changes", async () => {
+  it("uses a distinct empty message for each quick view", async () => {
     const user = userEvent.setup();
+    list.mockResolvedValue([makeRow({ name: "ready.pdf" })]);
     renderWorkspace();
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("ready.pdf")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "sld" } });
-    await user.click(chip("Inherited"));
-    await waitFor(() =>
-      expect(list).toHaveBeenLastCalledWith(
-        P,
-        R,
-        expect.objectContaining({ origin: "INHERITED", search: "sld" }),
-      ),
+    await user.click(quickView("Needs Review"));
+    expect(screen.getByText("No documents need review")).toBeInTheDocument();
+    await user.click(quickView("Issues"));
+    expect(screen.getByText("No document issues")).toBeInTheDocument();
+    await user.click(quickView("Removed"));
+    expect(screen.getByText("No removed documents")).toBeInTheDocument();
+  });
+
+  it("says when search matches nothing", async () => {
+    list.mockImplementation(async (_project, _revision, filters) =>
+      filters?.search ? [] : [makeRow({ name: "sld.pdf" })],
     );
+    renderWorkspace();
+    expect(await screen.findByText("sld.pdf")).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByLabelText("Origin"), "UPLOADED");
-    expect(chip("Inherited")).toHaveAttribute("aria-pressed", "false");
-    expect(chip("Uploaded")).toHaveAttribute("aria-pressed", "true");
+    fireEvent.change(screen.getByLabelText("Search"), { target: { value: "missing" } });
+    expect(await screen.findByText("No documents match your search")).toBeInTheDocument();
+  });
+
+  it("treats a revision that only has removed documents as empty in All", async () => {
+    list.mockResolvedValue([makeRow({ name: "gone.pdf", status: "REMOVED" })]);
+    renderWorkspace();
+
+    expect(await screen.findByText("No documents in this revision")).toBeInTheDocument();
+    expect(screen.queryByText("gone.pdf")).toBeNull();
   });
 });
 
@@ -497,6 +632,7 @@ describe("RevisionDocuments row actions", () => {
     expect(screen.getByRole("menuitem", { name: "Remove from this revision" })).toBeInTheDocument();
     expect(screen.queryByRole("menuitem", { name: "Restore" })).toBeNull();
     await user.keyboard("{Escape}");
+    await user.click(quickView("Removed"));
 
     await openMenu(user, "b.pdf");
     expect(screen.getByRole("menuitem", { name: "Restore" })).toBeInTheDocument();
@@ -518,7 +654,7 @@ describe("RevisionDocuments row actions", () => {
     await user.click(screen.getByRole("button", { name: "Remove" }));
 
     expect(remove).toHaveBeenCalledWith(P, R, "rd-a.pdf");
-    expect(await screen.findByText("No documents in this revision yet.")).toBeInTheDocument();
+    expect(await screen.findByText("No documents in this revision")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Removed a.pdf from this revision.");
   });
 
@@ -540,6 +676,7 @@ describe("RevisionDocuments row actions", () => {
     list.mockResolvedValue([makeRow({ name: "b.pdf", status: "REMOVED" })]);
     restore.mockResolvedValue({} as never);
     renderWorkspace(true);
+    await user.click(quickView("Removed"));
 
     await openMenu(user, "b.pdf");
     await user.click(screen.getByRole("menuitem", { name: "Restore" }));
@@ -592,7 +729,8 @@ describe("RevisionDocuments row actions", () => {
     vi.mocked(listRevisions).mockResolvedValue([]);
     renderWorkspace(true);
 
-    await user.click(await screen.findByRole("button", { name: "Add from another revision" }));
+    await openAddMenu(user);
+    await user.click(screen.getByRole("menuitem", { name: "Add from another revision" }));
     expect(await screen.findByText("This project has no other revisions.")).toBeInTheDocument();
   });
 });
@@ -1179,7 +1317,9 @@ describe("AI suggestion column", () => {
         { status: "REMOVED", document_type: "MOTOR_DATA" },
       ),
     ]);
+    const user = userEvent.setup();
     renderWorkspace(true);
+    await user.click(quickView("Removed"));
 
     const gone = await screen.findByRole("row", { name: /gone.pdf/ });
     expect(within(gone).getAllByText(/Motor Data/).length).toBeGreaterThan(0);

@@ -7,18 +7,29 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { DocumentEditor } from "@/components/document-editor";
 import { DocumentRowActions } from "@/components/document-row-actions";
 import { DocumentUpload } from "@/components/document-upload";
+import {
+  activeAdvancedFilterCount,
+  AddDocumentsMenu,
+  DocumentQuickViews,
+  DocumentWorkspaceToolbar,
+} from "@/components/document-workspace-toolbar";
 import { PageViewer } from "@/components/page-viewer";
 import { ReuseDocumentDialog } from "@/components/reuse-document-dialog";
 import { Card } from "@/components/ui/card";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { fieldClassName } from "@/components/ui/input";
-import { SearchField } from "@/components/ui/search-field";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Button } from "@/components/ui/button";
 import { Mono } from "@/components/ui/mono";
 import { apiErrorOf } from "@/lib/api";
 import {
-  DOCUMENT_TYPE_OPTIONS,
+  EMPTY_ADVANCED_FILTERS,
+  countQuickViews,
+  matchesAdvancedFilters,
+  matchesQuickView,
+  type AdvancedDocumentFilters,
+  type DocumentQuickView,
+  type QuickViewCounts,
+} from "@/lib/document-presentation";
+import {
   acceptClassification,
   classificationAttemptLabel,
   classificationErrorLabel,
@@ -36,9 +47,6 @@ import {
   retryProcessing,
   type ClassificationPagePrediction,
   type ClassificationSummary,
-  type DocumentOrigin,
-  type DocumentStatusFilter,
-  type DocumentType,
   type ProcessingSummary,
   type RevisionDocument,
 } from "@/lib/documents";
@@ -54,20 +62,6 @@ type Props = {
   canMutate: boolean;
 };
 
-type Filters = {
-  search: string;
-  type: DocumentType | "";
-  origin: DocumentOrigin | "";
-  view: DocumentStatusFilter;
-};
-
-const DEFAULT_FILTERS: Filters = {
-  search: "",
-  type: "",
-  origin: "",
-  view: "INCLUDED",
-};
-
 type Message = {
   tone: "success" | "warning" | "error";
   text: string;
@@ -75,30 +69,56 @@ type Message = {
   refreshed?: boolean;
 };
 
-type Preset = Pick<Filters, "type" | "origin" | "view">;
-
-const QUICK_FILTERS: { id: string; label: string; preset: Preset }[] = [
-  { id: "all", label: "All", preset: { type: "", origin: "", view: "INCLUDED" } },
-  { id: "uploaded", label: "Uploaded", preset: { type: "", origin: "UPLOADED", view: "INCLUDED" } },
-  {
-    id: "inherited",
-    label: "Inherited",
-    preset: { type: "", origin: "INHERITED", view: "INCLUDED" },
-  },
-  {
-    id: "unclassified",
-    label: "Unclassified",
-    preset: { type: "UNKNOWN", origin: "", view: "INCLUDED" },
-  },
-  { id: "removed", label: "Removed", preset: { type: "", origin: "", view: "REMOVED" } },
-];
-
 const TH = "px-4 py-3 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase";
+
+function emptyCopy({
+  items,
+  narrowed,
+  counts,
+  search,
+  advancedActive,
+  view,
+}: {
+  items: RevisionDocument[];
+  narrowed: RevisionDocument[];
+  counts: QuickViewCounts;
+  search: string;
+  advancedActive: boolean;
+  view: DocumentQuickView;
+}): { text: string; kind: "revision" | "search" | "filters" | "view" } {
+  if (items.length === 0 && search !== "") {
+    return { text: "No documents match your search", kind: "search" };
+  }
+  if (advancedActive && narrowed.length === 0) {
+    return { text: "No documents match your filters.", kind: "filters" };
+  }
+  if (
+    search === "" &&
+    !advancedActive &&
+    (items.length === 0 || (view === "all" && counts.all === 0))
+  ) {
+    return { text: "No documents in this revision", kind: "revision" };
+  }
+  if (view === "needs_review" && narrowed.length > 0) {
+    return { text: "No documents need review", kind: "view" };
+  }
+  if (view === "issues" && narrowed.length > 0) {
+    return { text: "No document issues", kind: "view" };
+  }
+  if (view === "removed" && narrowed.length > 0) {
+    return { text: "No removed documents", kind: "view" };
+  }
+  return { text: "No documents in this revision", kind: "revision" };
+}
 
 export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
   const router = useRouter();
   const [searchInput, setSearchInput] = useState("");
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
+  const [search, setSearch] = useState("");
+  const [advancedFilters, setAdvancedFilters] =
+    useState<AdvancedDocumentFilters>(EMPTY_ADVANCED_FILTERS);
+  const [quickView, setQuickView] = useState<DocumentQuickView>("all");
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [items, setItems] = useState<RevisionDocument[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,9 +135,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      setFilters((current) =>
-        current.search === searchInput ? current : { ...current, search: searchInput },
-      );
+      setSearch((current) => (current === searchInput ? current : searchInput));
     }, SEARCH_DEBOUNCE_MS);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
@@ -129,12 +147,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     async function load() {
       setLoading(true);
       setError(null);
-      const query = {
-        status: filters.view,
-        document_type: filters.type,
-        origin: filters.origin,
-        search: filters.search,
-      };
+      const query = { status: "ALL" as const, search };
       try {
         const result = await listDocuments(projectId, revisionId, query);
         if (isCurrent()) {
@@ -169,7 +182,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     }
 
     void load();
-  }, [projectId, revisionId, filters, reloadToken]);
+  }, [projectId, revisionId, search, reloadToken]);
 
   const reloadList = useCallback(() => setReloadToken((token) => token + 1), []);
 
@@ -328,11 +341,21 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     reloadList();
   }
 
-  const filtersActive =
-    filters.search !== "" ||
-    filters.type !== "" ||
-    filters.origin !== "" ||
-    filters.view !== "INCLUDED";
+  const narrowed = (items ?? []).filter((row) => matchesAdvancedFilters(row, advancedFilters));
+  const counts = countQuickViews(narrowed);
+  const visible = narrowed.filter((row) => matchesQuickView(row, quickView));
+  const advancedActive = activeAdvancedFilterCount(advancedFilters) > 0;
+  const empty =
+    items !== null && visible.length === 0
+      ? emptyCopy({
+          items,
+          narrowed,
+          counts,
+          search,
+          advancedActive,
+          view: quickView,
+        })
+      : null;
 
   function handleReuseChanged(count: number) {
     if (count > 0) {
@@ -344,14 +367,20 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     }
   }
 
-  function clearFilters() {
-    setSearchInput("");
-    setFilters(DEFAULT_FILTERS);
-  }
-
   return (
     <section aria-label="Documents">
-      {canMutate ? (
+      <DocumentWorkspaceToolbar
+        documentCount={items === null ? null : counts.all}
+        canMutate={canMutate}
+        search={searchInput}
+        onSearchChange={setSearchInput}
+        filters={advancedFilters}
+        onFiltersChange={setAdvancedFilters}
+        onUpload={() => setUploadOpen(true)}
+        onReuse={() => setReuseOpen(true)}
+      />
+      <DocumentQuickViews value={quickView} counts={counts} onChange={setQuickView} />
+      {canMutate && uploadOpen ? (
         <DocumentUpload
           projectId={projectId}
           revisionId={revisionId}
@@ -359,93 +388,6 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
           onReadOnly={handleReadOnly}
         />
       ) : null}
-      {canMutate ? (
-        <div className="mb-3 flex justify-end">
-          <Button type="button" variant="secondary" size="sm" onClick={() => setReuseOpen(true)}>
-            Add from another revision
-          </Button>
-        </div>
-      ) : null}
-
-      <div
-        role="group"
-        aria-label="Quick filters"
-        className="mb-3 flex flex-wrap items-center gap-1.5"
-      >
-        {QUICK_FILTERS.map(({ id, label, preset }) => {
-          const active =
-            filters.type === preset.type &&
-            filters.origin === preset.origin &&
-            filters.view === preset.view;
-          return (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={active}
-              onClick={() => setFilters((current) => ({ ...current, ...preset }))}
-              className={cn(
-                "cursor-pointer rounded-full border px-3 py-1 text-[12px] font-semibold transition-colors",
-                active
-                  ? "border-blue-200 bg-blue-50 text-blue-700"
-                  : "border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700",
-              )}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <SearchField
-          value={searchInput}
-          onChange={setSearchInput}
-          placeholder="Search by file name, number or description…"
-        />
-        <select
-          aria-label="Type"
-          value={filters.type}
-          onChange={(event) =>
-            setFilters({
-              ...filters,
-              type: event.target.value as DocumentType | "",
-            })
-          }
-          className={cn(fieldClassName, "w-auto py-2 text-[13px]")}
-        >
-          <option value="">All types</option>
-          {DOCUMENT_TYPE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Origin"
-          value={filters.origin}
-          onChange={(event) =>
-            setFilters({
-              ...filters,
-              origin: event.target.value as DocumentOrigin | "",
-            })
-          }
-          className={cn(fieldClassName, "w-auto py-2 text-[13px]")}
-        >
-          <option value="">All origins</option>
-          <option value="UPLOADED">Uploaded</option>
-          <option value="INHERITED">Inherited</option>
-        </select>
-        <SegmentedControl
-          label="View"
-          value={filters.view}
-          onChange={(view) => setFilters({ ...filters, view })}
-          options={[
-            { value: "INCLUDED", label: "Included" },
-            { value: "REMOVED", label: "Removed" },
-            { value: "ALL", label: "All" },
-          ]}
-        />
-      </div>
 
       {message ? (
         <p
@@ -553,29 +495,31 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
                   </div>
                 </td>
               </tr>
-            ) : items && items.length === 0 ? (
+            ) : empty ? (
               <tr>
                 <td colSpan={8}>
                   <div className="flex flex-col items-center gap-2 py-16">
-                    <p className="text-[13.5px] font-medium text-slate-400">
-                      {filtersActive
-                        ? "No documents match your filters."
-                        : "No documents in this revision yet."}
-                    </p>
-                    {filtersActive ? (
+                    <p className="text-[13.5px] font-medium text-slate-400">{empty.text}</p>
+                    {empty.kind === "filters" ? (
                       <button
                         type="button"
-                        onClick={clearFilters}
+                        onClick={() => setAdvancedFilters(EMPTY_ADVANCED_FILTERS)}
                         className="cursor-pointer text-[12.5px] text-accent hover:underline"
                       >
                         Clear filters
                       </button>
                     ) : null}
+                    {empty.kind === "revision" && canMutate ? (
+                      <AddDocumentsMenu
+                        onUpload={() => setUploadOpen(true)}
+                        onReuse={() => setReuseOpen(true)}
+                      />
+                    ) : null}
                   </div>
                 </td>
               </tr>
             ) : (
-              items?.map((row, index) => (
+              visible.map((row, index) => (
                 <DocumentRow
                   key={row.id}
                   row={row}
