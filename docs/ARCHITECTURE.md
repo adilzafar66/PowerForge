@@ -97,7 +97,7 @@ Package and service mapping:
 - `services/extraction-worker` — AI extraction jobs
 - `services/validation-worker` — deterministic validation jobs
 - `packages/project` — project/revision enums and domain schemas
-- `packages/engineering-model` — canonical model types and contracts
+- `packages/engineering-model` — pure registry-v1 definitions, units, value validation, and requirement evaluation (Phase 5A); no persistence or provider dependencies
 - `packages/document-model` — document vocabulary: classification, origin and status enums, pure file-validation rules, storage-key builder, processing enums, the profile, and artifact key construction (no SQLAlchemy, FastAPI, S3 SDK, Pillow, or PyMuPDF)
 - `packages/document-processing` — shared `ObjectStorage`, the SQLAlchemy models (`Project`, `ProjectRevision`, `Document`, `RevisionDocument`, `DocumentPage`, `DocumentProcessingRun`, `PageArtifact`), page rendering, and `ProcessingService`. The API and `document-worker` both import it. The worker does not import FastAPI
 - `packages/extraction` — candidate extraction contracts

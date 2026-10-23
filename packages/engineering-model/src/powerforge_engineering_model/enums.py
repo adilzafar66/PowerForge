@@ -2,45 +2,73 @@ from enum import StrEnum
 
 
 class EquipmentType(StrEnum):
-    """Initial equipment types. Additional types may be added without a new table per type."""
+    """Stable registry-v1 keys; assembly classifications belong to BUS.bus_type."""
 
-    UTILITY_SOURCE = "UtilitySource"
-    GENERATOR = "Generator"
-    TRANSFORMER = "Transformer"
-    BUS = "Bus"
-    SWITCHGEAR = "Switchgear"
-    MCC = "MCC"
-    PANEL = "Panel"
-    BREAKER = "Breaker"
-    FUSE = "Fuse"
-    DISCONNECT = "Disconnect"
-    SWITCH = "Switch"
-    CABLE = "Cable"
-    MOTOR = "Motor"
-    LOAD = "Load"
-    CONNECTION = "Connection"
+    UTILITY_SOURCE = "UTILITY_SOURCE"
+    SYNCHRONOUS_GENERATOR = "SYNCHRONOUS_GENERATOR"
+    TWO_WINDING_TRANSFORMER = "TWO_WINDING_TRANSFORMER"
+    BUS = "BUS"
+    LV_BREAKER = "LV_BREAKER"
+    HV_BREAKER = "HV_BREAKER"
+    RECLOSER = "RECLOSER"
+    OVERCURRENT_RELAY = "OVERCURRENT_RELAY"
+    FUSE = "FUSE"
+    SINGLE_THROW_SWITCH = "SINGLE_THROW_SWITCH"
+    DOUBLE_THROW_SWITCH = "DOUBLE_THROW_SWITCH"
+    CABLE = "CABLE"
+    CT = "CT"
+    INDUCTION_MOTOR = "INDUCTION_MOTOR"
+    STATIC_LOAD = "STATIC_LOAD"
+    LUMPED_LOAD = "LUMPED_LOAD"
+    CAPACITOR = "CAPACITOR"
+    REACTOR = "REACTOR"
+    VFD = "VFD"
+    UPS = "UPS"
+
+
+class AttributeValueType(StrEnum):
+    NUMBER = "NUMBER"
+    INTEGER = "INTEGER"
+    TEXT = "TEXT"
+    BOOLEAN = "BOOLEAN"
+    ENUM = "ENUM"
 
 
 class InformationState(StrEnum):
-    """Presence / quality of an attribute. Do not use null alone for every situation."""
-
+    PRESENT = "PRESENT"
     UNKNOWN = "UNKNOWN"
     MISSING = "MISSING"
     NOT_APPLICABLE = "NOT_APPLICABLE"
     NOT_EXTRACTED = "NOT_EXTRACTED"
-    LOW_CONFIDENCE = "LOW_CONFIDENCE"
     CONFLICTING = "CONFLICTING"
-    INFERRED = "INFERRED"
-    VERIFIED = "VERIFIED"
 
 
 class VerificationState(StrEnum):
-    """Safety states for extracted vs engineer-confirmed information.
-
-    Never silently promote AI_EXTRACTED to ENGINEER_VERIFIED.
-    """
+    """Never silently promote extracted information to engineer verified."""
 
     AI_EXTRACTED = "AI_EXTRACTED"
     SYSTEM_VALIDATED = "SYSTEM_VALIDATED"
     ENGINEER_REVIEWED = "ENGINEER_REVIEWED"
     ENGINEER_VERIFIED = "ENGINEER_VERIFIED"
+
+
+class RequirementRuleType(StrEnum):
+    ANY_OF = "ANY_OF"
+    ALL_OF = "ALL_OF"
+    REQUIRED_IF = "REQUIRED_IF"
+    ALL_OR_NONE = "ALL_OR_NONE"
+
+
+class ConditionType(StrEnum):
+    ALWAYS = "ALWAYS"
+    ATTRIBUTE_EQUALS = "ATTRIBUTE_EQUALS"
+    ATTRIBUTE_IN = "ATTRIBUTE_IN"
+    ANY_PRESENT = "ANY_PRESENT"
+    EXTERNAL_CONTEXT = "EXTERNAL_CONTEXT"
+
+
+class RequirementStatus(StrEnum):
+    SATISFIED = "SATISFIED"
+    UNSATISFIED = "UNSATISFIED"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    NOT_EVALUATED = "NOT_EVALUATED"

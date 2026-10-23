@@ -16,6 +16,7 @@ dependencies = [
     "Pillow>=11.0",
     "python-multipart>=0.0.18",
     "powerforge-project",
+    "powerforge-engineering-model",
     "powerforge-document-model",
     "powerforge-document-processing",
     "powerforge-document-classification",

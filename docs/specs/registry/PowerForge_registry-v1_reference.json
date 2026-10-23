@@ -1,0 +1,4833 @@
+{
+  "registry_version": "registry-v1",
+  "status": "APPROVED_FOR_PHASE_5",
+  "generated_from": "PowerForge_Phase5_Equipment_Attribute_Registry_registry-v1_Freeze_Candidate.xlsx",
+  "runtime_policy": "REFERENCE_ONLY_DO_NOT_PARSE_XLSX_AT_RUNTIME",
+  "equipment_types": [
+    {
+      "key": "UTILITY_SOURCE",
+      "display_name": "Utility Source",
+      "source_sheet": "Utility Source",
+      "attributes": [
+        {
+          "key": "nominal_voltage",
+          "display_name": "Nominal Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Usually 24.94kV or 12.47kV",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "phase_count",
+          "display_name": "Phase Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Usually 3",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "fault_data_basis",
+          "display_name": "Source Data Basis",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [
+            "FAULT_CURRENT",
+            "SEQUENCE_IMPEDANCE",
+            "BOTH"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "three_phase_fault_current",
+          "display_name": "3-Phase Fault Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UTILITY_FAULT_DATA:A",
+          "requirement_condition": "Always for a study-ready utility short-circuit source.",
+          "display_order": 3
+        },
+        {
+          "key": "slg_fault_current",
+          "display_name": "Line-to-Ground Fault Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UTILITY_FAULT_DATA:A",
+          "requirement_condition": "Always for a study-ready utility short-circuit source.",
+          "display_order": 4
+        },
+        {
+          "key": "three_phase_x_r",
+          "display_name": "3-Phase X/R Ratio",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UTILITY_FAULT_DATA:A",
+          "requirement_condition": "Always for a study-ready utility short-circuit source.",
+          "display_order": 5
+        },
+        {
+          "key": "slg_x_r",
+          "display_name": "Single Line-to-Ground X/R Ratio",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UTILITY_FAULT_DATA:A",
+          "requirement_condition": "Always for a study-ready utility short-circuit source.",
+          "display_order": 6
+        },
+        {
+          "key": "positive_sequence_resistance",
+          "display_name": "Positive Sequence Resistance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UTILITY_FAULT_DATA:B",
+          "requirement_condition": "Always for a study-ready utility short-circuit source.",
+          "display_order": 7
+        },
+        {
+          "key": "positive_sequence_reactance",
+          "display_name": "Positive Sequence Reactance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UTILITY_FAULT_DATA:B",
+          "requirement_condition": "Always for a study-ready utility short-circuit source.",
+          "display_order": 8
+        },
+        {
+          "key": "zero_sequence_resistance",
+          "display_name": "Zero Sequence Resistance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UTILITY_FAULT_DATA:B",
+          "requirement_condition": "Always for a study-ready utility short-circuit source.",
+          "display_order": 9
+        },
+        {
+          "key": "zero_sequence_reactance",
+          "display_name": "Zero Sequence Reactance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UTILITY_FAULT_DATA:B",
+          "requirement_condition": "Always for a study-ready utility short-circuit source.",
+          "display_order": 10
+        }
+      ]
+    },
+    {
+      "key": "SYNCHRONOUS_GENERATOR",
+      "display_name": "Synchronous Generator",
+      "source_sheet": "Synchronous Generator",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "phase_count",
+          "display_name": "Phase Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Typically 3",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "rated_apparent_power",
+          "display_name": "Rated Apparent Power (kVA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kVA",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "rated_voltage",
+          "display_name": "Rated Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "rated_power_factor",
+          "display_name": "Rated Power Factor",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "pf Ranges from 0-1",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "rated_speed",
+          "display_name": "Rated Speed (rpm)",
+          "value_type": "NUMBER",
+          "canonical_unit": "rpm",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "pole_count",
+          "display_name": "Pole Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        },
+        {
+          "key": "reactance_base_power",
+          "display_name": "Alternator Base Power (kVA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kVA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Required if reactance values are based on it and it's different than rated value",
+          "requirement_group": "GEN_REACTANCE_BASE_POWER",
+          "requirement_condition": "Per-unit reactances are stated on a base power different from rated_apparent_power.",
+          "display_order": 8
+        },
+        {
+          "key": "reactance_base_voltage",
+          "display_name": "Alternator Base Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Required if reactance values are based on it and it's different than rated value",
+          "requirement_group": "GEN_REACTANCE_BASE_VOLTAGE",
+          "requirement_condition": "Per-unit reactances are stated on a base voltage different from rated_voltage.",
+          "display_order": 9
+        },
+        {
+          "key": "xd",
+          "display_name": "Direct-axis Synchronous Reactance (p.u.)",
+          "value_type": "NUMBER",
+          "canonical_unit": "p.u.",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Xd Machine base value",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 10
+        },
+        {
+          "key": "xq",
+          "display_name": "Quadrature-axis Synchronous Reactance (p.u.)",
+          "value_type": "NUMBER",
+          "canonical_unit": "p.u.",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Xq Machine base value",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 11
+        },
+        {
+          "key": "xd_transient",
+          "display_name": "Direct-axis Transient Reactance (p.u.)",
+          "value_type": "NUMBER",
+          "canonical_unit": "p.u.",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "X'd Machine base value",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 12
+        },
+        {
+          "key": "xq_transient",
+          "display_name": "Quadrature-axis Transient Reactance (p.u.)",
+          "value_type": "NUMBER",
+          "canonical_unit": "p.u.",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": "X'q Machine base value",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 13
+        },
+        {
+          "key": "xd_subtransient",
+          "display_name": "Direct-axis Subtransient Reactance (p.u.)",
+          "value_type": "NUMBER",
+          "canonical_unit": "p.u.",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "X''d Machine base value",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 14
+        },
+        {
+          "key": "xq_subtransient",
+          "display_name": "Quadrature-axis Subtransient Reactance (p.u.)",
+          "value_type": "NUMBER",
+          "canonical_unit": "p.u.",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": "X''q Machine base value",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 15
+        },
+        {
+          "key": "negative_sequence_reactance",
+          "display_name": "Negative Sequence Reactance (p.u.)",
+          "value_type": "NUMBER",
+          "canonical_unit": "p.u.",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "X2 Machine base value",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 16
+        },
+        {
+          "key": "zero_sequence_reactance",
+          "display_name": "Zero Sequence Reactance (p.u.)",
+          "value_type": "NUMBER",
+          "canonical_unit": "p.u.",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "X0 Machine base value",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 17
+        },
+        {
+          "key": "tdo_transient",
+          "display_name": "Direct-axis Transient Open-circuit Time Constant (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "T'do",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 18
+        },
+        {
+          "key": "tdo_subtransient",
+          "display_name": "Direct-axis Subtransient Open-circuit Time Constant (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "T''do",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 19
+        },
+        {
+          "key": "tqo_transient",
+          "display_name": "Quadrature-axis Transient Open-circuit Time Constant (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": "T'qo",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 20
+        },
+        {
+          "key": "tqo_subtransient",
+          "display_name": "Quadrature-axis Subtransient Open-circuit Time Constant (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": "T''qo",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 21
+        },
+        {
+          "key": "armature_time_constant",
+          "display_name": "Armature Time Constant (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Ta Armature/stator DC time constant",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 22
+        },
+        {
+          "key": "armature_resistance",
+          "display_name": "Armature Resistance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Ra Also known as stator winding resistance",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 23
+        },
+        {
+          "key": "negative_sequence_resistance",
+          "display_name": "Negative-sequence Resistance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "R2",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 24
+        },
+        {
+          "key": "zero_sequence_resistance",
+          "display_name": "Zero-sequence Resistance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "R0",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 25
+        },
+        {
+          "key": "grounding_configuration",
+          "display_name": "Grounding Configuration",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [
+            "SOLID",
+            "RESISTANCE",
+            "REACTANCE",
+            "UNGROUNDED",
+            "UNKNOWN"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 26
+        },
+        {
+          "key": "grounding_resistance",
+          "display_name": "Grounding Resistance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Rn Value depends on grounding configuration",
+          "requirement_group": "GEN_GROUNDING_RESISTANCE",
+          "requirement_condition": "grounding_configuration = RESISTANCE",
+          "display_order": 27
+        },
+        {
+          "key": "grounding_reactance",
+          "display_name": "Grounding Reactance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Xn Value depends on grounding configuration",
+          "requirement_group": "GEN_GROUNDING_REACTANCE",
+          "requirement_condition": "grounding_configuration = REACTANCE",
+          "display_order": 28
+        }
+      ]
+    },
+    {
+      "key": "TWO_WINDING_TRANSFORMER",
+      "display_name": "2-Winding Transformer",
+      "source_sheet": "2-Winding Transformer",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "rated_apparent_power",
+          "display_name": "Rated Apparent Power (kVA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kVA",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "fan_cooled_apparent_power",
+          "display_name": "Fan-Cooled Apparent Power (kVA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kVA",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "primary_voltage",
+          "display_name": "Primary Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "secondary_voltage",
+          "display_name": "Secondary Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "positive_sequence_impedance",
+          "display_name": "Positive Sequence Impedance (%)",
+          "value_type": "NUMBER",
+          "canonical_unit": "%",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Normal 2-winding impedance",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "zero_sequence_impedance",
+          "display_name": "Zero Sequence Impedance (%)",
+          "value_type": "NUMBER",
+          "canonical_unit": "%",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        },
+        {
+          "key": "positive_sequence_x_r",
+          "display_name": "Positive Sequence X/R Ratio",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 8
+        },
+        {
+          "key": "zero_sequence_x_r",
+          "display_name": "Zero Sequence X/R Ratio",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 9
+        },
+        {
+          "key": "primary_connection",
+          "display_name": "Primary Connection",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [
+            "DELTA",
+            "WYE",
+            "ZIGZAG"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 10
+        },
+        {
+          "key": "secondary_connection",
+          "display_name": "Secondary Connection",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [
+            "DELTA",
+            "WYE",
+            "ZIGZAG"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 11
+        },
+        {
+          "key": "vector_group",
+          "display_name": "Vector Group",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": "e.g. Dyn11",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 12
+        },
+        {
+          "key": "cooling_class",
+          "display_name": "Cooling Class",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": "e.g. ONAN, ONAF, AA, FA",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 13
+        },
+        {
+          "key": "temperature_rise",
+          "display_name": "Temperature Rise C",
+          "value_type": "NUMBER",
+          "canonical_unit": "°C",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 14
+        },
+        {
+          "key": "inrush_current_multiplier",
+          "display_name": "Inrush Current Multiplier",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Single point; Fallback if inrush curve doesn't exist",
+          "requirement_group": "XFMR_INRUSH_POINT",
+          "requirement_condition": "A single-point inrush representation is supplied.",
+          "display_order": 15
+        },
+        {
+          "key": "inrush_current_duration",
+          "display_name": "Inrush Current Duration (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Single point; Fallback if inrush curve doesn't exist",
+          "requirement_group": "XFMR_INRUSH_POINT",
+          "requirement_condition": "A single-point inrush representation is supplied.",
+          "display_order": 16
+        },
+        {
+          "key": "primary_grounding_configuration",
+          "display_name": "Primary Grounding Configuration",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [
+            "SOLID",
+            "RESISTANCE",
+            "REACTANCE",
+            "UNGROUNDED",
+            "UNKNOWN"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 17
+        },
+        {
+          "key": "primary_grounding_resistance",
+          "display_name": "Primary Grounding Resistance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "XFMR_PRIMARY_GROUND_R",
+          "requirement_condition": "primary_grounding_configuration = RESISTANCE",
+          "display_order": 18
+        },
+        {
+          "key": "primary_grounding_reactance",
+          "display_name": "Primary Grounding Reactance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "XFMR_PRIMARY_GROUND_X",
+          "requirement_condition": "primary_grounding_configuration = REACTANCE",
+          "display_order": 19
+        },
+        {
+          "key": "secondary_grounding_configuration",
+          "display_name": "Secondary Grounding Configuration",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [
+            "SOLID",
+            "RESISTANCE",
+            "REACTANCE",
+            "UNGROUNDED",
+            "UNKNOWN"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 20
+        },
+        {
+          "key": "secondary_grounding_resistance",
+          "display_name": "Secondary Grounding Resistance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "XFMR_SECONDARY_GROUND_R",
+          "requirement_condition": "secondary_grounding_configuration = RESISTANCE",
+          "display_order": 21
+        },
+        {
+          "key": "secondary_grounding_reactance",
+          "display_name": "Secondary Grounding Reactance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "XFMR_SECONDARY_GROUND_X",
+          "requirement_condition": "secondary_grounding_configuration = REACTANCE",
+          "display_order": 22
+        }
+      ]
+    },
+    {
+      "key": "BUS",
+      "display_name": "Bus",
+      "source_sheet": "Bus",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "bus_type",
+          "display_name": "Bus Type",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [
+            "SWITCHGEAR",
+            "SWITCHBOARD",
+            "PANELBOARD",
+            "MCC",
+            "JUNCTION_BOX",
+            "OTHER"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "nominal_voltage",
+          "display_name": "Nominal Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "continuous_current_rating",
+          "display_name": "Continuous Current Rating (A) ",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "phase_count",
+          "display_name": "Phase Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "short_circuit_current_rating",
+          "display_name": "Short-Circuit Current Rating (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Typically RMS symmetrical current",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "short_time_withstand_current",
+          "display_name": "Short-Time Withstand Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Typically RMS symmetrical",
+          "requirement_group": "BUS_SHORT_TIME_PAIR",
+          "requirement_condition": "Either short-time withstand field is supplied.",
+          "display_order": 7
+        },
+        {
+          "key": "short_time_withstand_duration",
+          "display_name": "Short-Time Withstand Duration (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "BUS_SHORT_TIME_PAIR",
+          "requirement_condition": "Either short-time withstand field is supplied.",
+          "display_order": 8
+        },
+        {
+          "key": "peak_withstand_current",
+          "display_name": "Peak Withstand Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Peak current, not RMS",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 9
+        },
+        {
+          "key": "series_rating_applicable",
+          "display_name": "Series Rating Applicable",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 10
+        },
+        {
+          "key": "main_protective_device_isolated",
+          "display_name": "Main Protective Device Isolated",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "BUS_SERIES_RATING_ISOLATION",
+          "requirement_condition": "series_rating_applicable = TRUE",
+          "display_order": 11
+        },
+        {
+          "key": "electrode_configuration",
+          "display_name": "Electrode Configuration",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [
+            "VCB",
+            "VCBB",
+            "HCB",
+            "VOA",
+            "HOA"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 12
+        },
+        {
+          "key": "electrode_gap",
+          "display_name": "Electrode Gap (mm)",
+          "value_type": "NUMBER",
+          "canonical_unit": "mm",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "IEEE 1584 electrode gap",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 13
+        },
+        {
+          "key": "enclosure_type",
+          "display_name": "Enclosure Type",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 14
+        },
+        {
+          "key": "enclosure_height",
+          "display_name": "Enclosure Height (mm)",
+          "value_type": "NUMBER",
+          "canonical_unit": "mm",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 15
+        },
+        {
+          "key": "enclosure_width",
+          "display_name": "Enclosure Width (mm)",
+          "value_type": "NUMBER",
+          "canonical_unit": "mm",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 16
+        },
+        {
+          "key": "enclosure_depth",
+          "display_name": "Enclosure Depth (mm)",
+          "value_type": "NUMBER",
+          "canonical_unit": "mm",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 17
+        },
+        {
+          "key": "bus_material",
+          "display_name": "Bus Material",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [
+            "COPPER",
+            "ALUMINUM",
+            "OTHER"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 18
+        },
+        {
+          "key": "working_distance",
+          "display_name": "Working Distance (mm)",
+          "value_type": "NUMBER",
+          "canonical_unit": "mm",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "If bus_type is given, working_distance is usually inferred.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 19
+        }
+      ]
+    },
+    {
+      "key": "LV_BREAKER",
+      "display_name": "LV Breaker",
+      "source_sheet": "LV Breaker",
+      "attributes": [
+        {
+          "key": "standard",
+          "display_name": "Standard (ANSI/IEC)",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [
+            "ANSI",
+            "IEC"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Required to determine trip curve.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Required to determine trip curve.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "catalog_number",
+          "display_name": "Catalog Number",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "breaker_type",
+          "display_name": "Breaker Type",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [
+            "MCB",
+            "MCCB",
+            "ICCB",
+            "ACB",
+            "LVPCB",
+            "OTHER"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "pole_count",
+          "display_name": "Pole Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "rated_voltage",
+          "display_name": "Rated Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "frame_rating",
+          "display_name": "Frame Rating (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Ampere rating of the breaker frame; Deduced if catalog_number is provided.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        },
+        {
+          "key": "sensor_rating",
+          "display_name": "Sensor Rating (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Ampere rating of the trip unit sensor; Required for electronic trip breakers.",
+          "requirement_group": "LV_BREAKER_ELECTRONIC_TRIP",
+          "requirement_condition": "trip_unit_type = ELECTRONIC",
+          "display_order": 8
+        },
+        {
+          "key": "rating_plug",
+          "display_name": "Rating Plug (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Size of the trip unit plug",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 9
+        },
+        {
+          "key": "trip_rating",
+          "display_name": "Trip Rating (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Trip amps / long-time pickup for thermal magnetic breakers; Required for thermal magnetic breakers.",
+          "requirement_group": "LV_BREAKER_THERMAL_TRIP",
+          "requirement_condition": "trip_unit_type = THERMAL_MAGNETIC",
+          "display_order": 10
+        },
+        {
+          "key": "long_time_pickup",
+          "display_name": "Long-Time Pickup (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Long-time pickup for electronic trip breakers; Required for electronic trip breakers.",
+          "requirement_group": "LV_BREAKER_ELECTRONIC_TRIP",
+          "requirement_condition": "trip_unit_type = ELECTRONIC",
+          "display_order": 11
+        },
+        {
+          "key": "interrupting_rating",
+          "display_name": "Interrupting Rating (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Interrupting rating is usually deduced from the breaker model + rated voltage.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 12
+        },
+        {
+          "key": "trip_unit_type",
+          "display_name": "Trip Unit Type",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [
+            "THERMAL_MAGNETIC",
+            "ELECTRONIC",
+            "NONE"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 13
+        },
+        {
+          "key": "trip_unit_model",
+          "display_name": "Trip Unit Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Required for electronic trip breakers; Required to determine trip curve.",
+          "requirement_group": "LV_BREAKER_ELECTRONIC_TRIP",
+          "requirement_condition": "trip_unit_type = ELECTRONIC",
+          "display_order": 14
+        },
+        {
+          "key": "normally_closed",
+          "display_name": "Normally Closed",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 15
+        }
+      ]
+    },
+    {
+      "key": "HV_BREAKER",
+      "display_name": "HV Breaker",
+      "source_sheet": "HV Breaker",
+      "attributes": [
+        {
+          "key": "standard",
+          "display_name": "Standard (ANSI/IEC)",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [
+            "ANSI",
+            "IEC"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "catalog_number",
+          "display_name": "Catalog Number",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "breaker_type",
+          "display_name": "Breaker Type",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [
+            "VCB",
+            "SF6",
+            "ACB",
+            "BOCB",
+            "MOCB",
+            "OTHER"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "pole_count",
+          "display_name": "Pole Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "rated_voltage",
+          "display_name": "Rated Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "continuous_current_rating",
+          "display_name": "Continuous Current Rating (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        },
+        {
+          "key": "short_circuit_breaking_current",
+          "display_name": "Short-Circuit Breaking Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Rated short-circuit interrupting rating - ANSI\nRated short-circuit breaking current - IEC Can be deduced from manufacturer + model.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 8
+        },
+        {
+          "key": "short_circuit_making_current",
+          "display_name": "Short-Circuit Making Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Rated closing-and-latching current - ANSI\nRated short-circuit making current - IEC Can be deduced from manufacturer + model.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 9
+        },
+        {
+          "key": "short_time_withstand_current",
+          "display_name": "Short-time Withstand Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Short-time current-carrying capability - ANSI\nRated short-time withstand current - IEC Can be deduced from manufacturer + model.",
+          "requirement_group": "HV_BREAKER_SHORT_TIME_PAIR",
+          "requirement_condition": "Either short-time withstand field is supplied.",
+          "display_order": 10
+        },
+        {
+          "key": "short_time_withstand_duration",
+          "display_name": "Short-time Withstand Duration (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Permissible tripping delay / short-time duration - ANSI\nRated short-circuit duration - IEC Can be deduced from manufacturer + model.",
+          "requirement_group": "HV_BREAKER_SHORT_TIME_PAIR",
+          "requirement_condition": "Either short-time withstand field is supplied.",
+          "display_order": 11
+        },
+        {
+          "key": "rated_interrupting_time",
+          "display_name": "Rated Interrupting Time (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Rated interrupting time - ANSI\nRated Break time - IEC Can be deduced from manufacturer + model.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 12
+        },
+        {
+          "key": "opening_time",
+          "display_name": "Opening Time (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": "Contact-parting time - ANSI\nRated opening time - IEC Can be deduced from manufacturer + model.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 13
+        },
+        {
+          "key": "closing_time",
+          "display_name": "Closing Time (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 14
+        },
+        {
+          "key": "normally_closed",
+          "display_name": "Normally Closed",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 15
+        }
+      ]
+    },
+    {
+      "key": "RECLOSER",
+      "display_name": "Recloser",
+      "source_sheet": "Recloser",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "controller",
+          "display_name": "Controller",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "pole_count",
+          "display_name": "Pole Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "rated_voltage",
+          "display_name": "Rated Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "continuous_current_rating",
+          "display_name": "Continuous Current Rating (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "short_circuit_breaking_current",
+          "display_name": "Short-Circuit Breaking Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "short_circuit_making_current",
+          "display_name": "Short-Circuit Making Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        },
+        {
+          "key": "short_time_withstand_current",
+          "display_name": "Short-time Withstand Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "RECLOSER_SHORT_TIME_PAIR",
+          "requirement_condition": "Either short-time withstand field is supplied.",
+          "display_order": 8
+        },
+        {
+          "key": "short_time_withstand_duration",
+          "display_name": "Short-time Withstand Duration (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "RECLOSER_SHORT_TIME_PAIR",
+          "requirement_condition": "Either short-time withstand field is supplied.",
+          "display_order": 9
+        },
+        {
+          "key": "rated_interrupting_time",
+          "display_name": "Rated Interrupting Time (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 10
+        },
+        {
+          "key": "opening_time",
+          "display_name": "Opening Time (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 11
+        },
+        {
+          "key": "closing_time",
+          "display_name": "Closing Time (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 12
+        },
+        {
+          "key": "normally_closed",
+          "display_name": "Normally Closed",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 13
+        }
+      ]
+    },
+    {
+      "key": "OVERCURRENT_RELAY",
+      "display_name": "Overcurrent Relay",
+      "source_sheet": "Overcurrent Relay (OCR)",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "firmware_version",
+          "display_name": "Firmware Version",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "nominal_current_input",
+          "display_name": "Nominal Current Input (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Usually 1 A or 5 A CT input",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "current_input_burden",
+          "display_name": "Current Input Burden (VA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "VA",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "minimum_relay_operating_time",
+          "display_name": "Minimum Relay Operating Time (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "If explicitly published/relevant",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "trip_output_operating_time",
+          "display_name": "Trip Output Operating Time (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "If separately published",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        }
+      ]
+    },
+    {
+      "key": "FUSE",
+      "display_name": "Fuse",
+      "source_sheet": "Fuse",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Required to determine trip curve.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Required to determine trip curve.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "catalog_number",
+          "display_name": "Catalog Number",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "rated_voltage",
+          "display_name": "Rated Voltage",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "current_rating",
+          "display_name": "Current Rating A",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Can be deduced from catalog number.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "interrupting_rating",
+          "display_name": "Interrupting Rating kA",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Can be deduced from manufacturer + model.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "fuse_class",
+          "display_name": "Fuse Class",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Can be deduced from manufacturer + model.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "fuse_speed",
+          "display_name": "Fuse Speed",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [
+            "VERY_FAST",
+            "FAST",
+            "QUICK",
+            "STANDARD",
+            "TIME_DELAY",
+            "LONG_TIME_DELAY",
+            "OTHER"
+          ],
+          "notes": "Can be deduced from manufacturer + model.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        },
+        {
+          "key": "current_limiting",
+          "display_name": "Current Limiting",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 8
+        }
+      ]
+    },
+    {
+      "key": "SINGLE_THROW_SWITCH",
+      "display_name": "Single-Throw Switch",
+      "source_sheet": "Single-Throw Switch",
+      "attributes": [
+        {
+          "key": "rated_voltage",
+          "display_name": "Rated Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "continuous_current_rating",
+          "display_name": "Continuous Current (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "short_time_withstand_current",
+          "display_name": "Short-time Withstand Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "SWITCH_SHORT_TIME_PAIR",
+          "requirement_condition": "Either short-time withstand field is supplied.",
+          "display_order": 2
+        },
+        {
+          "key": "short_time_withstand_duration",
+          "display_name": "Short-time Withstand Duration (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "SWITCH_SHORT_TIME_PAIR",
+          "requirement_condition": "Either short-time withstand field is supplied.",
+          "display_order": 3
+        },
+        {
+          "key": "peak_withstand_current",
+          "display_name": "Peak Withstand Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Peak instantaneous current withstand capability, including DC offset effects; do not interpret as RMS symmetrical current.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "short_circuit_current_rating",
+          "display_name": "Short-Circuit Current Rating (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "load_break_capable",
+          "display_name": "Load Break Capable",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "normally_closed",
+          "display_name": "Normally Closed",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        }
+      ]
+    },
+    {
+      "key": "DOUBLE_THROW_SWITCH",
+      "display_name": "Double-Throw Switch",
+      "source_sheet": "Double-Throw Switch",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "rated_voltage",
+          "display_name": "Rated Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "continuous_current_rating",
+          "display_name": "Continuous Current Rating (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "pole_count",
+          "display_name": "Pole Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "neutral_pole_type",
+          "display_name": "Neutral Pole Type",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [
+            "SOLID",
+            "SWITCHED",
+            "OVERLAPPING",
+            "NONE"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "operation_type",
+          "display_name": "Operation Type",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [
+            "MANUAL",
+            "AUTOMATIC"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "transition_type",
+          "display_name": "Transition Type",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [
+            "OPEN_TRANSITION",
+            "CLOSED_TRANSITION",
+            "DELAYED_TRANSITION",
+            "SOFT_LOAD_TRANSITION"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        },
+        {
+          "key": "short_time_withstand_current",
+          "display_name": "Short-time Withstand Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "DTS_SHORT_TIME_PAIR",
+          "requirement_condition": "Either short-time withstand field is supplied.",
+          "display_order": 8
+        },
+        {
+          "key": "short_time_withstand_duration",
+          "display_name": "Short-time Withstand Duration (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "DTS_SHORT_TIME_PAIR",
+          "requirement_condition": "Either short-time withstand field is supplied.",
+          "display_order": 9
+        },
+        {
+          "key": "peak_withstand_current",
+          "display_name": "Peak Withstand Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Peak instantaneous current withstand capability, including DC offset effects; do not interpret as RMS symmetrical current.",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 10
+        },
+        {
+          "key": "short_circuit_current_rating",
+          "display_name": "Short-Circuit Current Rating (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 11
+        },
+        {
+          "key": "withstand_closing_current_rating",
+          "display_name": "Withstand Closing Current Rating (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "DTS_WITHSTAND_CLOSING_PAIR",
+          "requirement_condition": "Either withstand-closing field is supplied.",
+          "display_order": 12
+        },
+        {
+          "key": "withstand_closing_duration",
+          "display_name": "Withstand Closing Duration (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "DTS_WITHSTAND_CLOSING_PAIR",
+          "requirement_condition": "Either withstand-closing field is supplied.",
+          "display_order": 13
+        },
+        {
+          "key": "rated_transfer_time",
+          "display_name": "Transfer Time (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 14
+        },
+        {
+          "key": "load_break_capable",
+          "display_name": "Load Break Capable",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 15
+        }
+      ]
+    },
+    {
+      "key": "CABLE",
+      "display_name": "Cable",
+      "source_sheet": "Cable",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "rated_voltage",
+          "display_name": "Voltage Rating (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "continuous_current_rating",
+          "display_name": "Continuous Current Rating (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "length",
+          "display_name": "Length (m)",
+          "value_type": "NUMBER",
+          "canonical_unit": "m",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "conductor_material",
+          "display_name": "Conductor Material (Al or Cu)",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [
+            "COPPER",
+            "ALUMINUM"
+          ],
+          "notes": null,
+          "requirement_group": "CABLE_ELECTRICAL_DEFINITION:A",
+          "requirement_condition": "Always for a study-ready cable model, in addition to length.",
+          "display_order": 5
+        },
+        {
+          "key": "conductor_size",
+          "display_name": "Conductor Size",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "e.g. 4/0 AWG, 500 kcmil, 240 mm²",
+          "requirement_group": "CABLE_ELECTRICAL_DEFINITION:A",
+          "requirement_condition": "Always for a study-ready cable model, in addition to length.",
+          "display_order": 6
+        },
+        {
+          "key": "core_count_per_cable",
+          "display_name": "Core Count Per Cable",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "CABLE_ELECTRICAL_DEFINITION:A",
+          "requirement_condition": "Always for a study-ready cable model, in addition to length.",
+          "display_order": 7
+        },
+        {
+          "key": "parallel_run_count",
+          "display_name": "Parallel Run Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "CABLE_ELECTRICAL_DEFINITION:A",
+          "requirement_condition": "Always for a study-ready cable model, in addition to length.",
+          "display_order": 8
+        },
+        {
+          "key": "insulation_material",
+          "display_name": "Insulation Material",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "e.g. XLPE",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 9
+        },
+        {
+          "key": "positive_sequence_resistance",
+          "display_name": "Positive Sequence Resistance (Ω/km)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω/km",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "CABLE_ELECTRICAL_DEFINITION:B",
+          "requirement_condition": "Always for a study-ready cable model, in addition to length.",
+          "display_order": 10
+        },
+        {
+          "key": "positive_sequence_reactance",
+          "display_name": "Positive Sequence Reactance (Ω/km)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω/km",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "CABLE_ELECTRICAL_DEFINITION:B",
+          "requirement_condition": "Always for a study-ready cable model, in addition to length.",
+          "display_order": 11
+        },
+        {
+          "key": "zero_sequence_resistance",
+          "display_name": "Zero Sequence Resistance (Ω/km)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω/km",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "CABLE_ELECTRICAL_DEFINITION:B",
+          "requirement_condition": "Always for a study-ready cable model, in addition to length.",
+          "display_order": 12
+        },
+        {
+          "key": "zero_sequence_reactance",
+          "display_name": "Zero Sequence Reactance (Ω/km)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω/km",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "CABLE_ELECTRICAL_DEFINITION:B",
+          "requirement_condition": "Always for a study-ready cable model, in addition to length.",
+          "display_order": 13
+        }
+      ]
+    },
+    {
+      "key": "CT",
+      "display_name": "CT",
+      "source_sheet": "CT",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "primary_current",
+          "display_name": "Primary Current (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "secondary_current",
+          "display_name": "Secondary Current (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "accuracy_class",
+          "display_name": "Accuracy Class",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "rated_burden",
+          "display_name": "Rated Burden (VA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "VA",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        }
+      ]
+    },
+    {
+      "key": "INDUCTION_MOTOR",
+      "display_name": "Induction Motor",
+      "source_sheet": "Induction Motor",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "rated_active_power",
+          "display_name": "Rated Active Power (kW)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kW",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "rated_voltage",
+          "display_name": "Rated Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "full_load_current",
+          "display_name": "Full Load Current (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "MOTOR_APPARENT_POWER_BASIS:A",
+          "requirement_condition": "Apparent-power base is needed and is not otherwise imported/derived.",
+          "display_order": 4
+        },
+        {
+          "key": "rated_speed",
+          "display_name": "Rated Speed (rpm)",
+          "value_type": "NUMBER",
+          "canonical_unit": "rpm",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "rated_slip",
+          "display_name": "Slip (%)",
+          "value_type": "NUMBER",
+          "canonical_unit": "%",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "phase_count",
+          "display_name": "Phase Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        },
+        {
+          "key": "pole_count",
+          "display_name": "Pole Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 8
+        },
+        {
+          "key": "efficiency",
+          "display_name": "Efficiency (%)",
+          "value_type": "NUMBER",
+          "canonical_unit": "%",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "MOTOR_APPARENT_POWER_BASIS:B",
+          "requirement_condition": "Apparent-power base is needed and is not otherwise imported/derived.",
+          "display_order": 9
+        },
+        {
+          "key": "power_factor",
+          "display_name": "Power Factor",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "MOTOR_APPARENT_POWER_BASIS:B",
+          "requirement_condition": "Apparent-power base is needed and is not otherwise imported/derived.",
+          "display_order": 10
+        },
+        {
+          "key": "service_factor",
+          "display_name": "Service Factor",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 11
+        },
+        {
+          "key": "starting_time",
+          "display_name": "Starting Time (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 12
+        },
+        {
+          "key": "locked_rotor_current",
+          "display_name": "Locked Rotor Current (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 13
+        },
+        {
+          "key": "locked_rotor_power_factor",
+          "display_name": "Locked Rotor Power Factor",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 14
+        },
+        {
+          "key": "subtransient_reactance",
+          "display_name": "Subtransient Reactance (p.u.)",
+          "value_type": "NUMBER",
+          "canonical_unit": "p.u.",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "X''",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 15
+        },
+        {
+          "key": "subtransient_x_r",
+          "display_name": "Subtransient X/R Ratio",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "X''/R",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 16
+        },
+        {
+          "key": "subtransient_time_constant",
+          "display_name": "Subtransient Time Constant (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "T''; Needed if time decay of motor fault contribution is modeled",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 17
+        },
+        {
+          "key": "negative_sequence_reactance",
+          "display_name": "Negative Sequence Reactance (p.u.)",
+          "value_type": "NUMBER",
+          "canonical_unit": "p.u.",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "X2; Needed for applicable unbalanced-fault calculations",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 18
+        },
+        {
+          "key": "zero_sequence_reactance",
+          "display_name": "Zero Sequence Reactance (p.u.)",
+          "value_type": "NUMBER",
+          "canonical_unit": "p.u.",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "X0; Needed only when a zero-sequence path exists and ground faults are modeled",
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 19
+        }
+      ]
+    },
+    {
+      "key": "STATIC_LOAD",
+      "display_name": "Static Load",
+      "source_sheet": "Static Load",
+      "attributes": [
+        {
+          "key": "rated_voltage",
+          "display_name": "Rated Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "rated_active_power",
+          "display_name": "Rated Active Power (kW)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kW",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Alternative load-power representation; see Requirement Rules.",
+          "requirement_group": "STATIC_LOAD_POWER_DEFINITION:B",
+          "requirement_condition": "Always for a study-ready static load.",
+          "display_order": 1
+        },
+        {
+          "key": "rated_reactive_power",
+          "display_name": "Rated Reactive Power (kvar)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kvar",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Alternative load-power representation; see Requirement Rules.",
+          "requirement_group": "STATIC_LOAD_POWER_DEFINITION:B",
+          "requirement_condition": "Always for a study-ready static load.",
+          "display_order": 2
+        },
+        {
+          "key": "rated_apparent_power",
+          "display_name": "Rated Apparent Power (kVA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kVA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Alternative load-power representation; see Requirement Rules.",
+          "requirement_group": "STATIC_LOAD_POWER_DEFINITION:A",
+          "requirement_condition": "Always for a study-ready static load.",
+          "display_order": 3
+        },
+        {
+          "key": "rated_current",
+          "display_name": "Rated Current (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "power_factor",
+          "display_name": "Power Factor",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": "Required with rated_apparent_power when using the kVA + PF representation.",
+          "requirement_group": "STATIC_LOAD_POWER_DEFINITION:A",
+          "requirement_condition": "Always for a study-ready static load.",
+          "display_order": 5
+        },
+        {
+          "key": "phase_count",
+          "display_name": "Phase Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        }
+      ]
+    },
+    {
+      "key": "LUMPED_LOAD",
+      "display_name": "Lumped Load",
+      "source_sheet": "Lumped Load",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "rated_voltage",
+          "display_name": "Rated Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "rated_current",
+          "display_name": "Rated Current (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "rated_active_power",
+          "display_name": "Rated Active Power (kW)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kW",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "rated_apparent_power",
+          "display_name": "Rated Apparent Power (kVA) ",
+          "value_type": "NUMBER",
+          "canonical_unit": "kVA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "LUMPED_LOAD_POWER_DEFINITION:A",
+          "requirement_condition": "Always, in addition to the required rated_active_power.",
+          "display_order": 5
+        },
+        {
+          "key": "power_factor",
+          "display_name": "Power Factor",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "LUMPED_LOAD_POWER_DEFINITION:B",
+          "requirement_condition": "Always, in addition to the required rated_active_power.",
+          "display_order": 6
+        },
+        {
+          "key": "phase_count",
+          "display_name": "Phase Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        },
+        {
+          "key": "motor_load_percent",
+          "display_name": "Motor Load Percent (%)",
+          "value_type": "NUMBER",
+          "canonical_unit": "%",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 8
+        }
+      ]
+    },
+    {
+      "key": "CAPACITOR",
+      "display_name": "Capacitor",
+      "source_sheet": "Capacitor",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "bank_count",
+          "display_name": "Bank Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "capacitors_per_bank",
+          "display_name": "Capacitors Per Bank",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "rated_voltage",
+          "display_name": "Rated Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "rated_reactive_power",
+          "display_name": "Rated Reactive Power (kvar)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kvar",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "rated_current",
+          "display_name": "Rated Current (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "rated_capacitance",
+          "display_name": "Rated Capacitance (µF)",
+          "value_type": "NUMBER",
+          "canonical_unit": "µF",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        },
+        {
+          "key": "phase_count",
+          "display_name": "Phase Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 8
+        },
+        {
+          "key": "connection_type",
+          "display_name": "Connection Type",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [
+            "DELTA",
+            "WYE"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 9
+        },
+        {
+          "key": "neutral_grounding_type",
+          "display_name": "Neutral Grounding Type",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [
+            "SOLID",
+            "UNGROUNDED",
+            "NONE"
+          ],
+          "notes": null,
+          "requirement_group": "CAPACITOR_WYE_GROUNDING",
+          "requirement_condition": "connection_type = WYE",
+          "display_order": 10
+        },
+        {
+          "key": "discharge_resistance",
+          "display_name": "Discharge Resistance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 11
+        },
+        {
+          "key": "short_circuit_current_rating",
+          "display_name": "Short-Circuit Current Rating (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 12
+        }
+      ]
+    },
+    {
+      "key": "REACTOR",
+      "display_name": "Reactor",
+      "source_sheet": "Reactor",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "reactor_type",
+          "display_name": "Reactor Type",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [
+            "SERIES",
+            "SHUNT",
+            "CURRENT_LIMITING",
+            "NEUTRAL_GROUNDING",
+            "FILTER",
+            "OTHER"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "phase_count",
+          "display_name": "Phase Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "rated_voltage",
+          "display_name": "Rated Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "continuous_current_rating",
+          "display_name": "Continuous Current Rating (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "rated_reactive_power",
+          "display_name": "Rated Reactive Power (kvar)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kvar",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "REACTOR_SHUNT_RATING",
+          "requirement_condition": "reactor_type = SHUNT",
+          "display_order": 6
+        },
+        {
+          "key": "positive_sequence_impedance",
+          "display_name": "Positive Sequence Impedance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "REACTOR_SERIES_IMPEDANCE:A",
+          "requirement_condition": "reactor_type IN {SERIES, CURRENT_LIMITING, FILTER}",
+          "display_order": 7
+        },
+        {
+          "key": "zero_sequence_impedance",
+          "display_name": "Zero Sequence Impedance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 8
+        },
+        {
+          "key": "neutral_grounding_impedance",
+          "display_name": "Neutral Grounding Impedance (Ω)",
+          "value_type": "NUMBER",
+          "canonical_unit": "Ω",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "REACTOR_NEUTRAL_GROUNDING",
+          "requirement_condition": "reactor_type = NEUTRAL_GROUNDING",
+          "display_order": 9
+        },
+        {
+          "key": "positive_sequence_x_r",
+          "display_name": "Positive Sequence X/R Ratio",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 10
+        },
+        {
+          "key": "zero_sequence_x_r",
+          "display_name": "Zero Sequence X/R Ratio",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 11
+        },
+        {
+          "key": "neutral_grounding_x_r",
+          "display_name": "Neutral Grounding X/R Ratio",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 12
+        },
+        {
+          "key": "impedance_tolerance",
+          "display_name": "Impedance Tolerance (%)",
+          "value_type": "NUMBER",
+          "canonical_unit": "%",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 13
+        },
+        {
+          "key": "rated_inductance",
+          "display_name": "Rated Inductance (mH)",
+          "value_type": "NUMBER",
+          "canonical_unit": "mH",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "REACTOR_SERIES_IMPEDANCE:B",
+          "requirement_condition": "reactor_type IN {SERIES, CURRENT_LIMITING, FILTER}",
+          "display_order": 14
+        },
+        {
+          "key": "short_time_withstand_current",
+          "display_name": "Short-time Withstand Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "REACTOR_SHORT_TIME_PAIR",
+          "requirement_condition": "Either short-time withstand field is supplied.",
+          "display_order": 15
+        },
+        {
+          "key": "short_time_withstand_duration",
+          "display_name": "Short-time Withstand Duration (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "REACTOR_SHORT_TIME_PAIR",
+          "requirement_condition": "Either short-time withstand field is supplied.",
+          "display_order": 16
+        },
+        {
+          "key": "peak_withstand_current",
+          "display_name": "Peak Withstand Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 17
+        },
+        {
+          "key": "connection_type",
+          "display_name": "Connection Type",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [
+            "DELTA",
+            "WYE"
+          ],
+          "notes": null,
+          "requirement_group": "REACTOR_CONNECTION",
+          "requirement_condition": "reactor_type IN {SHUNT, FILTER}",
+          "display_order": 18
+        }
+      ]
+    },
+    {
+      "key": "VFD",
+      "display_name": "VFD",
+      "source_sheet": "VFD",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "rated_active_power",
+          "display_name": "Rated Active Power (kW)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kW",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "rated_input_voltage",
+          "display_name": "Rated Input Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "rated_output_voltage",
+          "display_name": "Rated Output Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "rated_input_current",
+          "display_name": "Rated Input Current (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "rated_output_current",
+          "display_name": "Rated Output Current (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "short_circuit_current_rating",
+          "display_name": "Short-Circuit Current Rating (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        },
+        {
+          "key": "bypass_available",
+          "display_name": "Bypass Available",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 8
+        },
+        {
+          "key": "front_end_type",
+          "display_name": "Front-End Type",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [
+            "DIODE_RECTIFIER",
+            "THYRISTOR_RECTIFIER",
+            "ACTIVE_FRONT_END",
+            "OTHER"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 9
+        },
+        {
+          "key": "regenerative_capable",
+          "display_name": "Regenerative Capable",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 10
+        },
+        {
+          "key": "output_short_circuit_current",
+          "display_name": "Output Short-Circuit Current (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "VFD_OUTPUT_FAULT_DEFINITION:A",
+          "requirement_condition": "Output-side VFD short-circuit contribution is explicitly modeled.",
+          "display_order": 11
+        },
+        {
+          "key": "output_short_circuit_current_multiplier",
+          "display_name": "Output Short-Circuit Current Multiplier",
+          "value_type": "NUMBER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "VFD_OUTPUT_FAULT_DEFINITION:B",
+          "requirement_condition": "Output-side VFD short-circuit contribution is explicitly modeled.",
+          "display_order": 12
+        },
+        {
+          "key": "output_short_circuit_duration",
+          "display_name": "Output Short-Circuit Duration (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 13
+        },
+        {
+          "key": "output_short_circuit_trip_time",
+          "display_name": "Output Short-Circuit Trip Time (ms)",
+          "value_type": "NUMBER",
+          "canonical_unit": "ms",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 14
+        },
+        {
+          "key": "upstream_short_circuit_contribution",
+          "display_name": "Upstream Short-Circuit Contribution (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 15
+        }
+      ]
+    },
+    {
+      "key": "UPS",
+      "display_name": "UPS",
+      "source_sheet": "UPS",
+      "attributes": [
+        {
+          "key": "manufacturer",
+          "display_name": "Manufacturer",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 0
+        },
+        {
+          "key": "model",
+          "display_name": "Model",
+          "value_type": "TEXT",
+          "canonical_unit": null,
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 1
+        },
+        {
+          "key": "ups_topology",
+          "display_name": "UPS Topology",
+          "value_type": "ENUM",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [
+            "ONLINE_DOUBLE_CONVERSION",
+            "LINE_INTERACTIVE",
+            "OFFLINE_STANDBY",
+            "OTHER"
+          ],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 2
+        },
+        {
+          "key": "rated_input_voltage",
+          "display_name": "Rated Input Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 3
+        },
+        {
+          "key": "rated_output_voltage",
+          "display_name": "Rated Output Voltage (kV)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kV",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 4
+        },
+        {
+          "key": "input_phase_count",
+          "display_name": "Input Phase Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 5
+        },
+        {
+          "key": "output_phase_count",
+          "display_name": "Output Phase Count",
+          "value_type": "INTEGER",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 6
+        },
+        {
+          "key": "rated_output_apparent_power",
+          "display_name": "Rated Output Apparent Power",
+          "value_type": "NUMBER",
+          "canonical_unit": "kVA",
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 7
+        },
+        {
+          "key": "rated_input_current",
+          "display_name": "Rated Input Current",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 8
+        },
+        {
+          "key": "maximum_input_current",
+          "display_name": "Maximum Input Current",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 9
+        },
+        {
+          "key": "rated_output_current",
+          "display_name": "Rated Output Current",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": false,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 10
+        },
+        {
+          "key": "input_short_circuit_current_rating",
+          "display_name": "Input Short-Circuit Current Rating (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 11
+        },
+        {
+          "key": "output_short_circuit_current",
+          "display_name": "Output Short-Circuit Current (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UPS_INVERTER_FAULT_CURRENT",
+          "requirement_condition": "UPS inverter-mode short-circuit contribution is explicitly modeled and cannot be inferred from manufacturer/model data.",
+          "display_order": 12
+        },
+        {
+          "key": "output_short_circuit_duration",
+          "display_name": "Output Short-Circuit Duration (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 13
+        },
+        {
+          "key": "output_short_circuit_trip_time",
+          "display_name": "Output Short-Circuit Trip Time (ms)",
+          "value_type": "NUMBER",
+          "canonical_unit": "ms",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 14
+        },
+        {
+          "key": "upstream_short_circuit_contribution",
+          "display_name": "Upstream Short-Circuit Contribution (A)",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 15
+        },
+        {
+          "key": "static_bypass_available",
+          "display_name": "Static Bypass Available",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": true,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 16
+        },
+        {
+          "key": "separate_bypass_input",
+          "display_name": "Separate Bypass Input",
+          "value_type": "BOOLEAN",
+          "canonical_unit": null,
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UPS_STATIC_BYPASS_INPUT",
+          "requirement_condition": "static_bypass_available = TRUE",
+          "display_order": 17
+        },
+        {
+          "key": "rated_bypass_current",
+          "display_name": "Rated Bypass Current",
+          "value_type": "NUMBER",
+          "canonical_unit": "A",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UPS_STATIC_BYPASS_RATING",
+          "requirement_condition": "static_bypass_available = TRUE",
+          "display_order": 18
+        },
+        {
+          "key": "bypass_short_circuit_current_rating",
+          "display_name": "Bypass Short-Circuit Current Rating (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UPS_STATIC_BYPASS_RATING",
+          "requirement_condition": "static_bypass_available = TRUE",
+          "display_order": 19
+        },
+        {
+          "key": "bypass_short_time_withstand_current",
+          "display_name": "Bypass Short-time Withstand Current (kA)",
+          "value_type": "NUMBER",
+          "canonical_unit": "kA",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UPS_BYPASS_SHORT_TIME_PAIR",
+          "requirement_condition": "Either bypass short-time withstand field is supplied.",
+          "display_order": 20
+        },
+        {
+          "key": "bypass_short_time_withstand_duration",
+          "display_name": "Bypass Short-time Withstand Duration (s)",
+          "value_type": "NUMBER",
+          "canonical_unit": "s",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": "UPS_BYPASS_SHORT_TIME_PAIR",
+          "requirement_condition": "Either bypass short-time withstand field is supplied.",
+          "display_order": 21
+        },
+        {
+          "key": "fault_transfer_to_bypass_time",
+          "display_name": "Fault Transfer To Bypass Time (ms)",
+          "value_type": "NUMBER",
+          "canonical_unit": "ms",
+          "required": false,
+          "critical": true,
+          "allowed_values": [],
+          "notes": null,
+          "requirement_group": null,
+          "requirement_condition": null,
+          "display_order": 22
+        }
+      ]
+    }
+  ],
+  "unit_families": [
+    {
+      "family": "Voltage",
+      "default_unit": "kV",
+      "supported_input_units": [
+        "V",
+        "kV",
+        "MV"
+      ],
+      "notes": "Attribute definition owns the canonical storage unit; this is only the family default."
+    },
+    {
+      "family": "Current",
+      "default_unit": "A",
+      "supported_input_units": [
+        "A",
+        "kA"
+      ],
+      "notes": "Attribute definition owns the canonical storage unit; this is only the family default."
+    },
+    {
+      "family": "Fault current",
+      "default_unit": "kA",
+      "supported_input_units": [
+        "A",
+        "kA"
+      ],
+      "notes": "Attribute definition owns the canonical storage unit; this is only the family default."
+    },
+    {
+      "family": "Apparent power",
+      "default_unit": "kVA",
+      "supported_input_units": [
+        "VA",
+        "kVA",
+        "MVA"
+      ],
+      "notes": "VA is valid as an attribute canonical unit (e.g. CT/relay burden)."
+    },
+    {
+      "family": "Active power",
+      "default_unit": "kW",
+      "supported_input_units": [
+        "W",
+        "kW",
+        "MW",
+        "hp"
+      ],
+      "notes": "hp conversion is allowed only where semantically appropriate."
+    },
+    {
+      "family": "Reactive power",
+      "default_unit": "kvar",
+      "supported_input_units": [
+        "var",
+        "kvar",
+        "Mvar"
+      ],
+      "notes": null
+    },
+    {
+      "family": "Resistance / Reactance / Impedance",
+      "default_unit": "Ω",
+      "supported_input_units": [
+        "mΩ",
+        "Ω",
+        "kΩ"
+      ],
+      "notes": null
+    },
+    {
+      "family": "Impedance per length",
+      "default_unit": "Ω/km",
+      "supported_input_units": [
+        "Ω/m",
+        "Ω/km",
+        "Ω/1000 ft"
+      ],
+      "notes": null
+    },
+    {
+      "family": "Length",
+      "default_unit": "m",
+      "supported_input_units": [
+        "mm",
+        "cm",
+        "m",
+        "km",
+        "in",
+        "ft"
+      ],
+      "notes": "An attribute may canonically store mm (e.g. electrode gap/enclosure dimensions)."
+    },
+    {
+      "family": "Time",
+      "default_unit": "s",
+      "supported_input_units": [
+        "ms",
+        "s"
+      ],
+      "notes": "An attribute may canonically store ms (e.g. trip/output operating time)."
+    },
+    {
+      "family": "Frequency",
+      "default_unit": "Hz",
+      "supported_input_units": [
+        "Hz"
+      ],
+      "notes": null
+    },
+    {
+      "family": "Speed",
+      "default_unit": "rpm",
+      "supported_input_units": [
+        "rpm"
+      ],
+      "notes": null
+    },
+    {
+      "family": "Capacitance",
+      "default_unit": "µF",
+      "supported_input_units": [
+        "nF",
+        "µF",
+        "mF"
+      ],
+      "notes": null
+    },
+    {
+      "family": "Inductance",
+      "default_unit": "mH",
+      "supported_input_units": [
+        "µH",
+        "mH",
+        "H"
+      ],
+      "notes": null
+    },
+    {
+      "family": "Percentage",
+      "default_unit": "%",
+      "supported_input_units": [
+        "%"
+      ],
+      "notes": null
+    },
+    {
+      "family": "Temperature",
+      "default_unit": "°C",
+      "supported_input_units": [
+        "°C",
+        "°F"
+      ],
+      "notes": null
+    },
+    {
+      "family": "Per unit",
+      "default_unit": "p.u.",
+      "supported_input_units": [
+        "p.u."
+      ],
+      "notes": "Dimensionless per-unit quantity; base quantities are carried separately when needed."
+    }
+  ],
+  "requirement_rules": [
+    {
+      "equipment_type": "UTILITY_SOURCE",
+      "rule_id": "UTILITY_FAULT_DATA",
+      "rule_type": "ANY_OF",
+      "condition_description": "Always for a study-ready utility short-circuit source.",
+      "alternative": "A",
+      "attributes": [
+        "three_phase_fault_current",
+        "slg_fault_current",
+        "three_phase_x_r",
+        "slg_x_r"
+      ],
+      "engineering_rationale": "Direct fault-current + X/R representation.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "UTILITY_SOURCE",
+      "rule_id": "UTILITY_FAULT_DATA",
+      "rule_type": "ANY_OF",
+      "condition_description": "Always for a study-ready utility short-circuit source.",
+      "alternative": "B",
+      "attributes": [
+        "positive_sequence_resistance",
+        "positive_sequence_reactance",
+        "zero_sequence_resistance",
+        "zero_sequence_reactance"
+      ],
+      "engineering_rationale": "Sequence-impedance representation.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "SYNCHRONOUS_GENERATOR",
+      "rule_id": "GEN_REACTANCE_BASE_POWER",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "Per-unit reactances are stated on a base power different from rated_apparent_power.",
+      "alternative": null,
+      "attributes": [
+        "reactance_base_power"
+      ],
+      "engineering_rationale": "Needed to convert per-unit reactances to the canonical machine base.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "SYNCHRONOUS_GENERATOR",
+      "rule_id": "GEN_REACTANCE_BASE_VOLTAGE",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "Per-unit reactances are stated on a base voltage different from rated_voltage.",
+      "alternative": null,
+      "attributes": [
+        "reactance_base_voltage"
+      ],
+      "engineering_rationale": "Needed to convert per-unit reactances to the canonical machine base.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "SYNCHRONOUS_GENERATOR",
+      "rule_id": "GEN_GROUNDING_RESISTANCE",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "grounding_configuration = RESISTANCE",
+      "alternative": null,
+      "attributes": [
+        "grounding_resistance"
+      ],
+      "engineering_rationale": "Resistance-grounded neutral requires the grounding resistance.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "SYNCHRONOUS_GENERATOR",
+      "rule_id": "GEN_GROUNDING_REACTANCE",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "grounding_configuration = REACTANCE",
+      "alternative": null,
+      "attributes": [
+        "grounding_reactance"
+      ],
+      "engineering_rationale": "Reactance-grounded neutral requires the grounding reactance.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "TWO_WINDING_TRANSFORMER",
+      "rule_id": "XFMR_PRIMARY_GROUND_R",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "primary_grounding_configuration = RESISTANCE",
+      "alternative": null,
+      "attributes": [
+        "primary_grounding_resistance"
+      ],
+      "engineering_rationale": "Primary neutral resistance is required when resistance grounded.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "TWO_WINDING_TRANSFORMER",
+      "rule_id": "XFMR_PRIMARY_GROUND_X",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "primary_grounding_configuration = REACTANCE",
+      "alternative": null,
+      "attributes": [
+        "primary_grounding_reactance"
+      ],
+      "engineering_rationale": "Primary neutral reactance is required when reactance grounded.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "TWO_WINDING_TRANSFORMER",
+      "rule_id": "XFMR_SECONDARY_GROUND_R",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "secondary_grounding_configuration = RESISTANCE",
+      "alternative": null,
+      "attributes": [
+        "secondary_grounding_resistance"
+      ],
+      "engineering_rationale": "Secondary neutral resistance is required when resistance grounded.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "TWO_WINDING_TRANSFORMER",
+      "rule_id": "XFMR_SECONDARY_GROUND_X",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "secondary_grounding_configuration = REACTANCE",
+      "alternative": null,
+      "attributes": [
+        "secondary_grounding_reactance"
+      ],
+      "engineering_rationale": "Secondary neutral reactance is required when reactance grounded.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "TWO_WINDING_TRANSFORMER",
+      "rule_id": "XFMR_INRUSH_POINT",
+      "rule_type": "ALL_OR_NONE",
+      "condition_description": "A single-point inrush representation is supplied.",
+      "alternative": null,
+      "attributes": [
+        "inrush_current_multiplier",
+        "inrush_current_duration"
+      ],
+      "engineering_rationale": "The multiplier and its duration describe one inrush point and should be supplied together.",
+      "implementation_note": "For ALL_OR_NONE: if any listed attribute is supplied, all listed attributes must be supplied."
+    },
+    {
+      "equipment_type": "BUS",
+      "rule_id": "BUS_SHORT_TIME_PAIR",
+      "rule_type": "ALL_OR_NONE",
+      "condition_description": "Either short-time withstand field is supplied.",
+      "alternative": null,
+      "attributes": [
+        "short_time_withstand_current",
+        "short_time_withstand_duration"
+      ],
+      "engineering_rationale": "A short-time current rating is meaningful only with its duration.",
+      "implementation_note": "For ALL_OR_NONE: if any listed attribute is supplied, all listed attributes must be supplied."
+    },
+    {
+      "equipment_type": "BUS",
+      "rule_id": "BUS_SERIES_RATING_ISOLATION",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "series_rating_applicable = TRUE",
+      "alternative": null,
+      "attributes": [
+        "main_protective_device_isolated"
+      ],
+      "engineering_rationale": "Series-rated equipment evaluation needs the upstream/main protective-device relationship.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "LV_BREAKER",
+      "rule_id": "LV_BREAKER_THERMAL_TRIP",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "trip_unit_type = THERMAL_MAGNETIC",
+      "alternative": null,
+      "attributes": [
+        "trip_rating"
+      ],
+      "engineering_rationale": "Thermal-magnetic breakers use the fixed trip rating as the long-time current basis.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "LV_BREAKER",
+      "rule_id": "LV_BREAKER_ELECTRONIC_TRIP",
+      "rule_type": "ALL_OF",
+      "condition_description": "trip_unit_type = ELECTRONIC",
+      "alternative": null,
+      "attributes": [
+        "sensor_rating",
+        "long_time_pickup",
+        "trip_unit_model"
+      ],
+      "engineering_rationale": "Electronic-trip modeling needs the sensor basis, long-time pickup, and trip-unit model. rating_plug remains conditional on designs that use one.",
+      "implementation_note": "For ALL_OF: every listed attribute is required when the condition is true."
+    },
+    {
+      "equipment_type": "HV_BREAKER",
+      "rule_id": "HV_BREAKER_SHORT_TIME_PAIR",
+      "rule_type": "ALL_OR_NONE",
+      "condition_description": "Either short-time withstand field is supplied.",
+      "alternative": null,
+      "attributes": [
+        "short_time_withstand_current",
+        "short_time_withstand_duration"
+      ],
+      "engineering_rationale": "A short-time current rating is meaningful only with its duration.",
+      "implementation_note": "For ALL_OR_NONE: if any listed attribute is supplied, all listed attributes must be supplied."
+    },
+    {
+      "equipment_type": "RECLOSER",
+      "rule_id": "RECLOSER_SHORT_TIME_PAIR",
+      "rule_type": "ALL_OR_NONE",
+      "condition_description": "Either short-time withstand field is supplied.",
+      "alternative": null,
+      "attributes": [
+        "short_time_withstand_current",
+        "short_time_withstand_duration"
+      ],
+      "engineering_rationale": "A short-time current rating is meaningful only with its duration.",
+      "implementation_note": "For ALL_OR_NONE: if any listed attribute is supplied, all listed attributes must be supplied."
+    },
+    {
+      "equipment_type": "SINGLE_THROW_SWITCH",
+      "rule_id": "SWITCH_SHORT_TIME_PAIR",
+      "rule_type": "ALL_OR_NONE",
+      "condition_description": "Either short-time withstand field is supplied.",
+      "alternative": null,
+      "attributes": [
+        "short_time_withstand_current",
+        "short_time_withstand_duration"
+      ],
+      "engineering_rationale": "A short-time current rating is meaningful only with its duration.",
+      "implementation_note": "For ALL_OR_NONE: if any listed attribute is supplied, all listed attributes must be supplied."
+    },
+    {
+      "equipment_type": "DOUBLE_THROW_SWITCH",
+      "rule_id": "DTS_SHORT_TIME_PAIR",
+      "rule_type": "ALL_OR_NONE",
+      "condition_description": "Either short-time withstand field is supplied.",
+      "alternative": null,
+      "attributes": [
+        "short_time_withstand_current",
+        "short_time_withstand_duration"
+      ],
+      "engineering_rationale": "A short-time current rating is meaningful only with its duration.",
+      "implementation_note": "For ALL_OR_NONE: if any listed attribute is supplied, all listed attributes must be supplied."
+    },
+    {
+      "equipment_type": "DOUBLE_THROW_SWITCH",
+      "rule_id": "DTS_WITHSTAND_CLOSING_PAIR",
+      "rule_type": "ALL_OR_NONE",
+      "condition_description": "Either withstand-closing field is supplied.",
+      "alternative": null,
+      "attributes": [
+        "withstand_closing_current_rating",
+        "withstand_closing_duration"
+      ],
+      "engineering_rationale": "Withstand/closing current must be associated with its applicable duration.",
+      "implementation_note": "For ALL_OR_NONE: if any listed attribute is supplied, all listed attributes must be supplied."
+    },
+    {
+      "equipment_type": "CABLE",
+      "rule_id": "CABLE_ELECTRICAL_DEFINITION",
+      "rule_type": "ANY_OF",
+      "condition_description": "Always for a study-ready cable model, in addition to length.",
+      "alternative": "A",
+      "attributes": [
+        "conductor_material",
+        "conductor_size",
+        "core_count_per_cable",
+        "parallel_run_count"
+      ],
+      "engineering_rationale": "Physical-construction representation from which impedance can be calculated/selected.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "CABLE",
+      "rule_id": "CABLE_ELECTRICAL_DEFINITION",
+      "rule_type": "ANY_OF",
+      "condition_description": "Always for a study-ready cable model, in addition to length.",
+      "alternative": "B",
+      "attributes": [
+        "positive_sequence_resistance",
+        "positive_sequence_reactance",
+        "zero_sequence_resistance",
+        "zero_sequence_reactance"
+      ],
+      "engineering_rationale": "Direct sequence-impedance representation.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "INDUCTION_MOTOR",
+      "rule_id": "MOTOR_APPARENT_POWER_BASIS",
+      "rule_type": "ANY_OF",
+      "condition_description": "Apparent-power base is needed and is not otherwise imported/derived.",
+      "alternative": "A",
+      "attributes": [
+        "full_load_current"
+      ],
+      "engineering_rationale": "Voltage + full-load current can establish the apparent-power base.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "INDUCTION_MOTOR",
+      "rule_id": "MOTOR_APPARENT_POWER_BASIS",
+      "rule_type": "ANY_OF",
+      "condition_description": "Apparent-power base is needed and is not otherwise imported/derived.",
+      "alternative": "B",
+      "attributes": [
+        "efficiency",
+        "power_factor"
+      ],
+      "engineering_rationale": "Rated active power + efficiency + power factor can establish the apparent-power base.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "STATIC_LOAD",
+      "rule_id": "STATIC_LOAD_POWER_DEFINITION",
+      "rule_type": "ANY_OF",
+      "condition_description": "Always for a study-ready static load.",
+      "alternative": "A",
+      "attributes": [
+        "rated_apparent_power",
+        "power_factor"
+      ],
+      "engineering_rationale": "Apparent-power + PF representation.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "STATIC_LOAD",
+      "rule_id": "STATIC_LOAD_POWER_DEFINITION",
+      "rule_type": "ANY_OF",
+      "condition_description": "Always for a study-ready static load.",
+      "alternative": "B",
+      "attributes": [
+        "rated_active_power",
+        "rated_reactive_power"
+      ],
+      "engineering_rationale": "Active/reactive-power representation.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "LUMPED_LOAD",
+      "rule_id": "LUMPED_LOAD_POWER_DEFINITION",
+      "rule_type": "ANY_OF",
+      "condition_description": "Always, in addition to the required rated_active_power.",
+      "alternative": "A",
+      "attributes": [
+        "rated_apparent_power"
+      ],
+      "engineering_rationale": "Rated active + apparent power determines PF/reactive power.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "LUMPED_LOAD",
+      "rule_id": "LUMPED_LOAD_POWER_DEFINITION",
+      "rule_type": "ANY_OF",
+      "condition_description": "Always, in addition to the required rated_active_power.",
+      "alternative": "B",
+      "attributes": [
+        "power_factor"
+      ],
+      "engineering_rationale": "Rated active power + PF determines apparent/reactive power.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "CAPACITOR",
+      "rule_id": "CAPACITOR_WYE_GROUNDING",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "connection_type = WYE",
+      "alternative": null,
+      "attributes": [
+        "neutral_grounding_type"
+      ],
+      "engineering_rationale": "A wye-connected bank must identify whether the neutral is solidly grounded, ungrounded, or otherwise not grounded.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "REACTOR",
+      "rule_id": "REACTOR_SHUNT_RATING",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "reactor_type = SHUNT",
+      "alternative": null,
+      "attributes": [
+        "rated_reactive_power"
+      ],
+      "engineering_rationale": "Shunt reactors are conventionally specified by reactive-power rating at rated voltage.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "REACTOR",
+      "rule_id": "REACTOR_SERIES_IMPEDANCE",
+      "rule_type": "ANY_OF",
+      "condition_description": "reactor_type IN {SERIES, CURRENT_LIMITING, FILTER}",
+      "alternative": "A",
+      "attributes": [
+        "positive_sequence_impedance"
+      ],
+      "engineering_rationale": "Direct impedance representation.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "REACTOR",
+      "rule_id": "REACTOR_SERIES_IMPEDANCE",
+      "rule_type": "ANY_OF",
+      "condition_description": "reactor_type IN {SERIES, CURRENT_LIMITING, FILTER}",
+      "alternative": "B",
+      "attributes": [
+        "rated_inductance"
+      ],
+      "engineering_rationale": "Inductance representation; impedance is frequency-dependent and can be derived when frequency is known.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "REACTOR",
+      "rule_id": "REACTOR_NEUTRAL_GROUNDING",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "reactor_type = NEUTRAL_GROUNDING",
+      "alternative": null,
+      "attributes": [
+        "neutral_grounding_impedance"
+      ],
+      "engineering_rationale": "Neutral-grounding reactors are defined by the grounding impedance.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "REACTOR",
+      "rule_id": "REACTOR_CONNECTION",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "reactor_type IN {SHUNT, FILTER}",
+      "alternative": null,
+      "attributes": [
+        "connection_type"
+      ],
+      "engineering_rationale": "Connection affects network and zero-sequence behavior.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "REACTOR",
+      "rule_id": "REACTOR_SHORT_TIME_PAIR",
+      "rule_type": "ALL_OR_NONE",
+      "condition_description": "Either short-time withstand field is supplied.",
+      "alternative": null,
+      "attributes": [
+        "short_time_withstand_current",
+        "short_time_withstand_duration"
+      ],
+      "engineering_rationale": "A short-time current rating is meaningful only with its duration.",
+      "implementation_note": "For ALL_OR_NONE: if any listed attribute is supplied, all listed attributes must be supplied."
+    },
+    {
+      "equipment_type": "VFD",
+      "rule_id": "VFD_OUTPUT_FAULT_DEFINITION",
+      "rule_type": "ANY_OF",
+      "condition_description": "Output-side VFD short-circuit contribution is explicitly modeled.",
+      "alternative": "A",
+      "attributes": [
+        "output_short_circuit_current"
+      ],
+      "engineering_rationale": "Direct output fault-current representation.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "VFD",
+      "rule_id": "VFD_OUTPUT_FAULT_DEFINITION",
+      "rule_type": "ANY_OF",
+      "condition_description": "Output-side VFD short-circuit contribution is explicitly modeled.",
+      "alternative": "B",
+      "attributes": [
+        "output_short_circuit_current_multiplier"
+      ],
+      "engineering_rationale": "Multiplier representation when vendor data is expressed relative to rated output current.",
+      "implementation_note": "For ANY_OF: one complete alternative must be satisfied."
+    },
+    {
+      "equipment_type": "UPS",
+      "rule_id": "UPS_STATIC_BYPASS_INPUT",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "static_bypass_available = TRUE",
+      "alternative": null,
+      "attributes": [
+        "separate_bypass_input"
+      ],
+      "engineering_rationale": "Defines whether the bypass shares the rectifier input or has a separate source.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "UPS",
+      "rule_id": "UPS_STATIC_BYPASS_RATING",
+      "rule_type": "ALL_OF",
+      "condition_description": "static_bypass_available = TRUE",
+      "alternative": null,
+      "attributes": [
+        "rated_bypass_current",
+        "bypass_short_circuit_current_rating"
+      ],
+      "engineering_rationale": "Bypass-mode load capacity and short-circuit withstand/rating are needed when the bypass path exists.",
+      "implementation_note": "For ALL_OF: every listed attribute is required when the condition is true."
+    },
+    {
+      "equipment_type": "UPS",
+      "rule_id": "UPS_BYPASS_SHORT_TIME_PAIR",
+      "rule_type": "ALL_OR_NONE",
+      "condition_description": "Either bypass short-time withstand field is supplied.",
+      "alternative": null,
+      "attributes": [
+        "bypass_short_time_withstand_current",
+        "bypass_short_time_withstand_duration"
+      ],
+      "engineering_rationale": "A bypass short-time current rating is meaningful only with its duration.",
+      "implementation_note": "For ALL_OR_NONE: if any listed attribute is supplied, all listed attributes must be supplied."
+    },
+    {
+      "equipment_type": "UPS",
+      "rule_id": "UPS_INVERTER_FAULT_CURRENT",
+      "rule_type": "REQUIRED_IF",
+      "condition_description": "UPS inverter-mode short-circuit contribution is explicitly modeled and cannot be inferred from manufacturer/model data.",
+      "alternative": null,
+      "attributes": [
+        "output_short_circuit_current"
+      ],
+      "engineering_rationale": "Needed to represent current-limited inverter contribution.",
+      "implementation_note": "For REQUIRED_IF: the listed attribute(s) become required when the condition is true."
+    },
+    {
+      "equipment_type": "OVERCURRENT_RELAY",
+      "rule_id": "NONE",
+      "rule_type": "NONE",
+      "condition_description": "No equipment-configuration conditional requirements identified in registry-v1.",
+      "alternative": null,
+      "attributes": [],
+      "engineering_rationale": "Individual Required? flags apply directly.",
+      "implementation_note": null
+    },
+    {
+      "equipment_type": "FUSE",
+      "rule_id": "NONE",
+      "rule_type": "NONE",
+      "condition_description": "No equipment-configuration conditional requirements identified in registry-v1.",
+      "alternative": null,
+      "attributes": [],
+      "engineering_rationale": "Individual Required? flags apply directly.",
+      "implementation_note": null
+    },
+    {
+      "equipment_type": "CT",
+      "rule_id": "NONE",
+      "rule_type": "NONE",
+      "condition_description": "No equipment-configuration conditional requirements identified in registry-v1.",
+      "alternative": null,
+      "attributes": [],
+      "engineering_rationale": "Individual Required? flags apply directly.",
+      "implementation_note": null
+    }
+  ]
+}

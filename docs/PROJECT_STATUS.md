@@ -205,6 +205,28 @@ The revision documents workspace is a master-detail layout. The list columns are
 
 The revision page was not clicked in a browser. No browser tools were available in this session.
 
+## Phase 5A — Registry, units, and requirement engine
+
+**Status:** Implemented (2026-10-23); Phase 5B has not started.
+
+Specification: [Phase 5](specs/phase-5-engineering-model.md), scoped by the
+[Phase 5A prompt](prompts/phase-5a_codex.md). Decision: [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md).
+Domain/API usage and semantics: [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md).
+Implementation and exact validation commands: [PHASE5A_HANDOFF.md](PHASE5A_HANDOFF.md).
+
+The standard-library-only engineering-model package now owns immutable registry-v1
+definitions, value normalization, and pure requirement evaluation. The independent JSON
+snapshot matches all 20 equipment types, 296 attributes, 44 requirement reference rows,
+and 17 unit families. Three NONE rows are annotations rather than executable rules.
+The API validates the registry on construction and exposes
+`GET /api/engineering-model/registry` with typed conditions and permitted input units.
+No persistence, model inheritance, topology CRUD, or Engineering Model frontend was added.
+
+Validation: 176 new Phase 5A tests passed; full Python regression passed all 821 tests
+with live integrations against a disposable database, which was removed afterward.
+Ruff and formatting checks passed. Python static typechecking is not configured;
+no frontend changes or frontend checks were made.
+
 ## Later phases
 
 | Phase | Work | Status |
@@ -213,7 +235,8 @@ The revision page was not clicked in a browser. No browser tools were available 
 | 3 | Document processing | Complete (2026-10-10) |
 | 4 | Document classification | Complete (2026-10-12) |
 | 4.5 | Document workspace UI | Complete (2026-10-12) |
-| 5 | Engineering model persistence | Not started |
+| 5A | Registry, units, requirement engine, registry API | Implemented |
+| 5B–5G | Engineering model persistence through hardening | Not started |
 | 6–13 | Extraction through export | Not started |
 
 Authentication, a users table, and project-level access control are required by the product spec and are **not** part of Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, or Phase 4.5. `created_by` (and Phase 2's `uploaded_by`/`added_by`/`removed_by`) remain nullable until then.

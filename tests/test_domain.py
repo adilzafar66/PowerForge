@@ -8,9 +8,9 @@ from powerforge_validation import RuleRegistry
 
 
 def test_equipment_types_cover_initial_model() -> None:
-    assert EquipmentType.TRANSFORMER == "Transformer"
-    assert EquipmentType.BREAKER == "Breaker"
-    assert len(EquipmentType) >= 15
+    assert EquipmentType.TWO_WINDING_TRANSFORMER == "TWO_WINDING_TRANSFORMER"
+    assert EquipmentType.LV_BREAKER == "LV_BREAKER"
+    assert len(EquipmentType) == 20
 
 
 def test_verification_states_are_explicit() -> None:

@@ -7,9 +7,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from powerforge_api.routers.documents import router as documents_router
+from powerforge_api.routers.engineering_model import router as engineering_model_router
 from powerforge_api.routers.health import router as health_router
 from powerforge_api.routers.projects import router as projects_router
 from powerforge_document_processing.storage.factory import get_object_storage
+from powerforge_engineering_model import validate_registry
 from powerforge_shared.config import get_settings
 from powerforge_shared.logging import configure_logging
 
@@ -39,6 +41,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
+    validate_registry()
     settings = get_settings()
     application = FastAPI(
         title="PowerForge API",
@@ -60,6 +63,7 @@ def create_app() -> FastAPI:
     application.include_router(health_router)
     application.include_router(projects_router)
     application.include_router(documents_router)
+    application.include_router(engineering_model_router)
     return application
 
 
