@@ -8,11 +8,13 @@ from decimal import Decimal
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import selectinload
 
 from powerforge_api.db import get_engine, get_session_factory
 from powerforge_api.main import app
+from powerforge_api.schemas.projects import RevisionCreate, RevisionUpdate
 from powerforge_api.services import engineering_model_inheritance, revision_service
 from powerforge_api.services.engineering_model_service import EngineeringModelService
 from powerforge_document_model import DocumentOrigin
@@ -31,6 +33,25 @@ from powerforge_persistence.engineering import Equipment, EquipmentAttribute
 from powerforge_project import ProjectStatus, RevisionStatus
 
 client = TestClient(app)
+
+
+@pytest.mark.parametrize("value", [True, False, 1.0, 1.5, "1"])
+@pytest.mark.parametrize("schema", [RevisionCreate, RevisionUpdate])
+def test_system_phase_count_rejects_coercive_inputs(value, schema) -> None:
+    data = {"system_phase_count": value}
+    if schema is RevisionCreate:
+        data["identifier"] = "strict-phase-count"
+    with pytest.raises(ValidationError):
+        schema(**data)
+
+
+@pytest.mark.parametrize("value", [1, 3, None])
+@pytest.mark.parametrize("schema", [RevisionCreate, RevisionUpdate])
+def test_system_phase_count_accepts_strict_integer_values(value, schema) -> None:
+    data = {"system_phase_count": value}
+    if schema is RevisionCreate:
+        data["identifier"] = "strict-phase-count"
+    assert schema(**data).system_phase_count == value
 
 
 @pytest.fixture

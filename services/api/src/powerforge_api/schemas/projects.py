@@ -6,7 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, field_validator
 
 from powerforge_project import ProjectStatus, RevisionStatus
 
@@ -121,7 +121,7 @@ class RevisionCreate(BaseModel):
             "clears rather than inherits when model carry-forward is enabled."
         ),
     )
-    system_phase_count: int | None = Field(
+    system_phase_count: StrictInt | None = Field(
         default=None,
         description=(
             "Optional revision-wide common phase count (1 or 3). Null means no common "
@@ -158,7 +158,7 @@ class RevisionUpdate(BaseModel):
     description: str | None = None
     identifier: str | None = Field(default=None, min_length=1, max_length=128)
     system_frequency: Decimal | None = None
-    system_phase_count: int | None = None
+    system_phase_count: StrictInt | None = None
 
     @field_validator("identifier")
     @classmethod
