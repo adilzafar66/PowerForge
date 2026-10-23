@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -105,6 +106,28 @@ class RevisionCreate(BaseModel):
             "rejected. False records the base but copies nothing."
         ),
     )
+    carry_forward_model: bool | None = Field(
+        default=None,
+        description=(
+            "Whether to clone the base revision's ACTIVE equipment and inherit its "
+            "revision-level engineering metadata. Omitted or null: true when a base "
+            "is resolved, otherwise false. Independent of carry_forward_documents."
+        ),
+    )
+    system_frequency: Decimal | None = Field(
+        default=None,
+        description=(
+            "Optional revision-wide common frequency in canonical Hz. Explicit null "
+            "clears rather than inherits when model carry-forward is enabled."
+        ),
+    )
+    system_phase_count: int | None = Field(
+        default=None,
+        description=(
+            "Optional revision-wide common phase count (1 or 3). Null means no common "
+            "system-wide phase-count assumption."
+        ),
+    )
 
     @field_validator("identifier")
     @classmethod
@@ -114,12 +137,28 @@ class RevisionCreate(BaseModel):
             raise ValueError("must not be blank")
         return stripped
 
+    @field_validator("system_frequency")
+    @classmethod
+    def validate_system_frequency(cls, value: Decimal | None) -> Decimal | None:
+        if value is not None and (not value.is_finite() or value <= 0):
+            raise ValueError("system_frequency must be a finite value greater than zero")
+        return value
+
+    @field_validator("system_phase_count")
+    @classmethod
+    def validate_system_phase_count(cls, value: int | None) -> int | None:
+        if value is not None and value not in (1, 3):
+            raise ValueError("system_phase_count must be 1, 3, or null")
+        return value
+
 
 class RevisionUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     description: str | None = None
     identifier: str | None = Field(default=None, min_length=1, max_length=128)
+    system_frequency: Decimal | None = None
+    system_phase_count: int | None = None
 
     @field_validator("identifier")
     @classmethod
@@ -130,6 +169,16 @@ class RevisionUpdate(BaseModel):
         if not stripped:
             raise ValueError("must not be blank")
         return stripped
+
+    @field_validator("system_frequency")
+    @classmethod
+    def validate_system_frequency(cls, value: Decimal | None) -> Decimal | None:
+        return RevisionCreate.validate_system_frequency(value)
+
+    @field_validator("system_phase_count")
+    @classmethod
+    def validate_system_phase_count(cls, value: int | None) -> int | None:
+        return RevisionCreate.validate_system_phase_count(value)
 
 
 class RevisionResponse(BaseModel):
@@ -145,9 +194,15 @@ class RevisionResponse(BaseModel):
     created_by: UUID | None
     based_on_revision_id: UUID | None = None
     based_on_identifier: str | None = None
+    system_frequency: Decimal | None = None
+    system_phase_count: int | None = None
     inherited_document_count: int | None = Field(
         default=None,
         description="Documents inherited at creation. Set only on the create response.",
+    )
+    inherited_model_equipment_count: int | None = Field(
+        default=None,
+        description="ACTIVE equipment snapshots inherited at creation; create response only.",
     )
 
 

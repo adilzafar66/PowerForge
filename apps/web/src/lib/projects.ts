@@ -32,8 +32,12 @@ export type Revision = {
   created_by: string | null;
   based_on_revision_id: string | null;
   based_on_identifier: string | null;
+  system_frequency: string | number | null;
+  system_phase_count: number | null;
   /** Documents inherited at creation. Present only on the create response. */
   inherited_document_count?: number | null;
+  /** ACTIVE equipment snapshots inherited at creation; create response only. */
+  inherited_model_equipment_count?: number | null;
 };
 
 export type ProjectCreateInput = {
@@ -66,6 +70,9 @@ export type RevisionCreateInput = {
   activate?: boolean;
   based_on_revision_id?: string | null;
   carry_forward_documents?: boolean;
+  carry_forward_model?: boolean;
+  system_frequency?: string | number | null;
+  system_phase_count?: number | null;
 };
 
 export type { ApiError };

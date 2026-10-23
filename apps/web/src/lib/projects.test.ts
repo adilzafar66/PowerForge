@@ -56,6 +56,7 @@ describe("createRevision request body", () => {
     expect(body).toEqual({ identifier: "2", description: null, activate: false });
     expect("based_on_revision_id" in body).toBe(false);
     expect("carry_forward_documents" in body).toBe(false);
+    expect("carry_forward_model" in body).toBe(false);
     expect(created.inherited_document_count).toBe(2);
   });
 
@@ -64,9 +65,11 @@ describe("createRevision request body", () => {
       identifier: "2",
       based_on_revision_id: null,
       carry_forward_documents: false,
+      carry_forward_model: false,
     });
     expect(body.based_on_revision_id).toBeNull();
     expect(body.carry_forward_documents).toBe(false);
+    expect(body.carry_forward_model).toBe(false);
   });
 
   it("sends an explicit base, and carry forward turned off", async () => {
@@ -74,8 +77,10 @@ describe("createRevision request body", () => {
       identifier: "2",
       based_on_revision_id: BASE,
       carry_forward_documents: false,
+      carry_forward_model: false,
     });
     expect(body.based_on_revision_id).toBe(BASE);
     expect(body.carry_forward_documents).toBe(false);
+    expect(body.carry_forward_model).toBe(false);
   });
 });

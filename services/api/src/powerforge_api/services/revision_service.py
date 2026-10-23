@@ -6,6 +6,7 @@ import logging
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -15,14 +16,21 @@ from powerforge_api.exceptions import (
     DuplicateRevisionIdentifier,
     InvalidBaseRevision,
     InvalidRevisionIdentifier,
+    InvalidSystemFrequency,
+    InvalidSystemPhaseCount,
     ProjectNotFound,
     RevisionNotActivatable,
     RevisionNotFound,
     RevisionProjectMismatch,
 )
 from powerforge_api.schemas.projects import RevisionCreate, RevisionUpdate
+from powerforge_api.services.engineering_model_inheritance import copy_active_engineering_model
 from powerforge_api.services.revision_documents import copy_included_associations
-from powerforge_api.services.revision_writes import assert_project_modifiable, lock_revision
+from powerforge_api.services.revision_writes import (
+    assert_project_modifiable,
+    lock_revision,
+    lock_writable_revision,
+)
 from powerforge_persistence import Project, ProjectRevision
 from powerforge_project import RevisionStatus
 
@@ -33,6 +41,7 @@ logger = logging.getLogger(__name__)
 class RevisionCreateResult:
     revision: ProjectRevision
     inherited_document_count: int
+    inherited_model_equipment_count: int
 
 
 class RevisionService:
@@ -63,7 +72,14 @@ class RevisionService:
             raise InvalidRevisionIdentifier("Revision identifier must not be blank")
 
         base = self._resolve_base(project, data, base_is_explicit_null=base_is_explicit_null)
-        carry_forward = self._resolve_carry_forward(data, base)
+        carry_forward_documents = self._resolve_carry_forward_documents(data, base)
+        carry_forward_model = self._resolve_carry_forward_model(data, base)
+        system_frequency = self._resolve_model_metadata(
+            data, "system_frequency", base, carry_forward_model
+        )
+        system_phase_count = self._resolve_model_metadata(
+            data, "system_phase_count", base, carry_forward_model
+        )
 
         revision = ProjectRevision(
             project_id=project.id,
@@ -71,8 +87,11 @@ class RevisionService:
             description=data.description,
             status=RevisionStatus.DRAFT,
             based_on_revision_id=base.id if base is not None else None,
+            system_frequency=system_frequency,
+            system_phase_count=system_phase_count,
         )
-        inherited = 0
+        inherited_documents = 0
+        inherited_equipment = 0
         with integrity_guard(
             self.session,
             {
@@ -88,13 +107,21 @@ class RevisionService:
                 "ck_project_revisions_based_on_not_self": InvalidBaseRevision(
                     "A revision cannot be based on itself"
                 ),
+                "ck_project_revisions_system_frequency_positive": InvalidSystemFrequency(
+                    "System frequency must be a finite value greater than zero"
+                ),
+                "ck_project_revisions_system_phase_count": InvalidSystemPhaseCount(
+                    "System phase count must be 1, 3, or null"
+                ),
             },
             operation="create_revision",
         ):
             self.session.add(revision)
             self.session.flush()
-            if carry_forward and base is not None:
-                inherited = copy_included_associations(self.session, base, revision)
+            if carry_forward_documents and base is not None:
+                inherited_documents = copy_included_associations(self.session, base, revision)
+            if carry_forward_model and base is not None:
+                inherited_equipment = copy_active_engineering_model(self.session, base, revision)
             # Activation runs after the copy so the base package is read before the
             # base can be superseded.
             if data.activate:
@@ -102,17 +129,31 @@ class RevisionService:
             project.updated_at = datetime.now(UTC)
             self.session.commit()
         self.session.refresh(revision)
-        if carry_forward and base is not None:
+        if carry_forward_documents and base is not None:
             logger.info(
                 "revision document inheritance completed",
                 extra={
                     "project_id": project.id,
                     "revision_id": revision.id,
                     "base_revision_id": base.id,
-                    "inherited_document_count": inherited,
+                    "inherited_document_count": inherited_documents,
                 },
             )
-        return RevisionCreateResult(revision=revision, inherited_document_count=inherited)
+        if carry_forward_model and base is not None:
+            logger.info(
+                "revision model inheritance completed",
+                extra={
+                    "project_id": project.id,
+                    "revision_id": revision.id,
+                    "base_revision_id": base.id,
+                    "inherited_model_equipment_count": inherited_equipment,
+                },
+            )
+        return RevisionCreateResult(
+            revision=revision,
+            inherited_document_count=inherited_documents,
+            inherited_model_equipment_count=inherited_equipment,
+        )
 
     def _resolve_base(
         self,
@@ -141,12 +182,35 @@ class RevisionService:
         return self.session.scalar(stmt)
 
     @staticmethod
-    def _resolve_carry_forward(data: RevisionCreate, base: ProjectRevision | None) -> bool:
+    def _resolve_carry_forward_documents(
+        data: RevisionCreate, base: ProjectRevision | None
+    ) -> bool:
         if data.carry_forward_documents is None:
             return base is not None
         if data.carry_forward_documents and base is None:
             raise InvalidBaseRevision("carry_forward_documents requires a base revision")
         return data.carry_forward_documents
+
+    @staticmethod
+    def _resolve_carry_forward_model(data: RevisionCreate, base: ProjectRevision | None) -> bool:
+        if data.carry_forward_model is None:
+            return base is not None
+        if data.carry_forward_model and base is None:
+            raise InvalidBaseRevision("carry_forward_model requires a base revision")
+        return data.carry_forward_model
+
+    @staticmethod
+    def _resolve_model_metadata(
+        data: RevisionCreate,
+        field: str,
+        base: ProjectRevision | None,
+        carry_forward_model: bool,
+    ) -> Decimal | int | None:
+        if field in data.model_fields_set:
+            return getattr(data, field)
+        if carry_forward_model and base is not None:
+            return getattr(base, field)
+        return None
 
     def base_identifier(self, revision: ProjectRevision) -> str | None:
         if revision.based_on_revision_id is None:
@@ -181,9 +245,15 @@ class RevisionService:
         revision_id: uuid.UUID,
         data: RevisionUpdate,
     ) -> ProjectRevision:
-        project = self._get_project_for_write(project_id)
-        revision = self.get_revision(project_id, revision_id)
         updates = data.model_dump(exclude_unset=True)
+        model_metadata = {"system_frequency", "system_phase_count"} & updates.keys()
+        if model_metadata:
+            revision = lock_writable_revision(self.session, project_id, revision_id)
+            project = self.session.get(Project, project_id)
+            assert project is not None
+        else:
+            project = self._get_project_for_write(project_id)
+            revision = self.get_revision(project_id, revision_id)
         if "identifier" in updates and updates["identifier"] is not None:
             identifier = updates["identifier"].strip()
             if not identifier:
@@ -192,12 +262,19 @@ class RevisionService:
         for field, value in updates.items():
             setattr(revision, field, value)
         revision.updated_at = datetime.now(UTC)
-        project.updated_at = datetime.now(UTC)
+        if not model_metadata:
+            project.updated_at = datetime.now(UTC)
         with integrity_guard(
             self.session,
             {
                 "uq_project_revisions_project_id_identifier": DuplicateRevisionIdentifier(
                     "Revision identifier already exists on this project"
+                ),
+                "ck_project_revisions_system_frequency_positive": InvalidSystemFrequency(
+                    "System frequency must be a finite value greater than zero"
+                ),
+                "ck_project_revisions_system_phase_count": InvalidSystemPhaseCount(
+                    "System phase count must be 1, 3, or null"
                 ),
             },
             operation="update_revision",

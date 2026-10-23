@@ -10,8 +10,10 @@ from sqlalchemy.orm import Session
 
 from engineering_support import engineering_context as engineering_context
 from powerforge_api.exceptions import ArchivedProject, CancelledProject, RevisionReadOnly
+from powerforge_api.schemas.projects import RevisionCreate
 from powerforge_api.services.engineering_model_service import EngineeringModelService
 from powerforge_api.services.project_service import ProjectService
+from powerforge_api.services.revision_service import RevisionService
 from powerforge_api.services.revision_writes import lock_writable_revision
 from powerforge_engineering_model import InformationState
 from powerforge_persistence import Project, ProjectRevision
@@ -153,3 +155,67 @@ def test_archive_waits_for_shared_engineering_write_guard(engineering_context) -
         future.result(timeout=10)
     with pytest.raises(ArchivedProject):
         ctx.service.create_equipment(*ctx.ids, "BUS")
+
+
+def test_revision_clone_serializes_with_base_model_mutation(
+    engineering_context, monkeypatch
+) -> None:
+    """The clone sees a complete before-state; the blocked writer commits afterward."""
+    from powerforge_api.services import revision_service
+    from powerforge_persistence.engineering import Equipment
+
+    ctx = engineering_context
+    source = ctx.service.create_equipment(*ctx.ids, "BUS", name="Before")
+    engine = ctx.session.get_bind()
+    clone_ready, release_clone, writer_ready = Event(), Event(), Event()
+    backend = {}
+    copied = revision_service.copy_active_engineering_model
+
+    def holding_copy(session, base, target):
+        count = copied(session, base, target)
+        clone_ready.set()
+        assert release_clone.wait(5)
+        return count
+
+    monkeypatch.setattr(revision_service, "copy_active_engineering_model", holding_copy)
+
+    def clone():
+        with Session(engine) as session:
+            result = RevisionService(session).create_revision(
+                ctx.project_id,
+                RevisionCreate(
+                    identifier=f"clone-{source.id}",
+                    based_on_revision_id=ctx.revision_id,
+                    carry_forward_documents=False,
+                ),
+            )
+            return result.revision.id
+
+    def mutate():
+        with Session(engine) as session:
+            backend["pid"] = session.scalar(text("SELECT pg_backend_pid()"))
+            writer_ready.set()
+            EngineeringModelService(session).update_equipment(*ctx.ids, source.id, name="After")
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        clone_future = pool.submit(clone)
+        assert clone_ready.wait(5)
+        mutation_future = pool.submit(mutate)
+        assert writer_ready.wait(5)
+        try:
+            wait_blocked(engine, backend["pid"])
+        finally:
+            release_clone.set()
+        child_id = clone_future.result(timeout=10)
+        mutation_future.result(timeout=10)
+
+    with Session(engine) as session:
+        inherited = session.scalar(
+            select(Equipment).where(
+                Equipment.revision_id == child_id,
+                Equipment.inherited_from_equipment_id == source.id,
+            )
+        )
+        current_source = session.get(Equipment, source.id)
+        assert inherited.name == "Before"
+        assert current_source.name == "After"

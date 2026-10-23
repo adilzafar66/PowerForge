@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     CheckConstraint,
@@ -11,6 +12,8 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     Index,
+    Integer,
+    Numeric,
     Text,
     UniqueConstraint,
     func,
@@ -106,6 +109,16 @@ class ProjectRevision(Base):
             "based_on_revision_id IS NULL OR based_on_revision_id <> id",
             name="ck_project_revisions_based_on_not_self",
         ),
+        CheckConstraint(
+            "system_frequency IS NULL OR "
+            "(system_frequency > 0 AND system_frequency NOT IN "
+            "('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric))",
+            name="ck_project_revisions_system_frequency_positive",
+        ),
+        CheckConstraint(
+            "system_phase_count IS NULL OR system_phase_count IN (1, 3)",
+            name="ck_project_revisions_system_phase_count",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
@@ -138,5 +151,7 @@ class ProjectRevision(Base):
     )
     created_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     based_on_revision_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    system_frequency: Mapped[Decimal | None] = mapped_column(Numeric)
+    system_phase_count: Mapped[int | None] = mapped_column(Integer)
 
     project: Mapped[Project] = relationship(back_populates="revisions")

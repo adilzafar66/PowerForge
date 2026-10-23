@@ -67,7 +67,7 @@ def assert_schema(engine) -> None:
 
 
 def test_fresh_upgrade_to_head_has_exact_orm_schema(scratch_url) -> None:
-    _alembic(scratch_url, "upgrade", "head")
+    _alembic(scratch_url, "upgrade", HEAD)
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == HEAD
@@ -111,7 +111,7 @@ def test_existing_documents_and_classification_survive_upgrade_downgrade_reupgra
                 }
 
         before = legacy()
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert _version(engine) == HEAD
         assert_schema(engine)
         assert legacy() == before
@@ -149,7 +149,7 @@ def test_existing_documents_and_classification_survive_upgrade_downgrade_reupgra
                 == []
             )
         assert legacy() == before
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert _version(engine) == HEAD
         assert_schema(engine)
         assert legacy() == before

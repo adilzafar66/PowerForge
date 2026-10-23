@@ -4,7 +4,7 @@ This is the authoritative high-level roadmap for intended future scope. [PROJECT
 
 PowerForge keeps **Phase 0–13: fourteen primary numbered phases**. Phase 4.5 is an intentional intermediate document-workspace UX phase. Phase 5 has slices 5A–5G. Completed phases keep their historical numbering; later phases may have internal slices and design gates without adding top-level numbers. Keep the existing Phase 0–13 numbering and use subphases/gates for newly understood work rather than adding or renumbering top-level phases.
 
-Phases 0–4 and 4.5 are complete. **Phase 5A and Phase 5B are implemented; Phase 5C is next and has not started.** Phase 5 as a whole is not complete. Later phases are planned. The accepted foundations are [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md), the [Phase 5 specification](specs/phase-5-engineering-model.md), and the [Phase 5B handoff](PHASE5B_HANDOFF.md).
+Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5C are implemented; Phase 5D is next and has not started.** Phase 5 as a whole is not complete. Later phases are planned. The accepted foundations are [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md), the [Phase 5 specification](specs/phase-5-engineering-model.md), and the [Phase 5C handoff](PHASE5C_HANDOFF.md).
 
 ## Phase map
 
@@ -16,7 +16,7 @@ Phases 0–4 and 4.5 are complete. **Phase 5A and Phase 5B are implemented; Phas
 | 3 | Document processing | Complete; unchanged |
 | 4 | AI document classification | Complete; unchanged |
 | 4.5 | Document workspace UX | Complete; unchanged |
-| 5 | Canonical engineering model | 5A/5B implemented; 5C–5G not started |
+| 5 | Canonical engineering model | 5A–5C implemented; 5D–5G not started |
 | 6 | Evidence, candidates, and structured extraction | Planned |
 | 7 | Entity resolution | Planned |
 | 8 | SLD and topology extraction | Planned |
@@ -34,17 +34,17 @@ Phase 5 models the physical electrical system, independently of documents, AI pr
 | --- | --- | --- |
 | 5A | Registry, canonical units, requirement engine, registry API | Implemented |
 | 5B | Core persistence: EquipmentLineage, Equipment, EquipmentAttribute | Implemented |
-| 5C | Revision model inheritance, `carry_forward_model`, revision-level model metadata and its inheritance | Next; not started |
-| 5D | Manually authored topology persistence: ModelNode / ModelConnection | Not started |
+| 5C | Revision model inheritance, `carry_forward_model`, revision-level model metadata and its inheritance | Implemented |
+| 5D | Manually authored topology persistence: ModelNode / ModelConnection | Next; not started |
 | 5E | Revision-scoped engineering-model APIs | Not started |
 | 5F | Basic Engineering Model workspace UI | Not started |
 | 5G | Hardening, regression, documentation | Not started |
 
 The implemented registry contains 20 canonical equipment types, 296 attributes, and 44 requirement reference rows; verification vocabulary includes UNVERIFIED. Phase 5B adds typed equipment persistence and manual services without changing registry-v1. See [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md).
 
-### Approved Phase 5C extension: revision-level model metadata
+### Implemented Phase 5C extension: revision-level model metadata
 
-`system_frequency` and `system_phase_count` are approved product requirements for the engineering-model snapshot rooted at `ProjectRevision`. They are **not implemented**. No separate EngineeringModel entity is implied, and their values must not be copied into every EquipmentAttribute row merely to materialize defaults. Equipment-specific registry frequency and phase-count attributes remain unchanged.
+`system_frequency` and `system_phase_count` are implemented on the engineering-model snapshot rooted at `ProjectRevision`. No separate EngineeringModel entity was added, and their values are not copied into EquipmentAttribute rows. Equipment-specific registry frequency and phase-count attributes remain unchanged.
 
 | Conceptual field | Meaning |
 | --- | --- |
@@ -53,11 +53,11 @@ The implemented registry contains 20 canonical equipment types, 296 attributes, 
 
 Null phase count means no common assumption is asserted. Do not introduce magic values such as 0, MIXED, or UNKNOWN without a later approved design.
 
-The conceptual effective-frequency lookup is: use an explicitly PRESENT equipment frequency; otherwise use a configured revision frequency for applicable equipment; otherwise frequency is unavailable. This lookup does **not** decide whether an explicit disagreement is an allowed override. The Phase 5C specification must decide whether such disagreement is rejected or deterministically flagged. It must never be ignored. Phase-count lookup may similarly use the common value when an equipment value is absent, with explicit mismatches validated.
+The effective-value helper uses an explicitly PRESENT equipment value, otherwise the configured revision value for applicable equipment, otherwise no value. An explicit disagreement is preserved and reported with a deterministic mismatch flag. Phase 5C does not persist a finding or block edits solely because a mismatch exists.
 
 These are revision assumptions, not fabricated document evidence. Avoiding copied defaults prevents duplicated values, mass updates, false provenance, and persistence noise. Explicit equipment values remain useful for source-stated data, differing equipment, mixed phase configurations, and later consistency comparisons. Changing a model-wide assumption must not silently overwrite explicit equipment values.
 
-Before implementation, the Phase 5C specification must settle exact field names, the numeric type for frequency, validation constraints, carry-forward/inheritance behavior, API representation, effective equipment-value resolution, mismatch policy, and the effects of metadata edits on a writable revision. The existing Phase 5 specification and ADR-007 remain unchanged; a formal specification supplement is needed, with an ADR supplement/amendment considered if the design adds architectural decisions beyond ADR-007.
+Migration `0008_revision_model_metadata` stores frequency as nullable Decimal/NUMERIC canonical Hz greater than zero and phase count as nullable integer 1 or 3. `carry_forward_model` controls both ACTIVE-equipment cloning and omitted metadata inheritance independently of document inheritance. Explicit values override and explicit null clears. Metadata edits use the established writable-revision rules. See [PHASE5C_HANDOFF.md](PHASE5C_HANDOFF.md).
 
 ## Post-core-Phase-5 canonical-domain design gates
 
@@ -180,7 +180,6 @@ These do not create new primary phases, including Phase 14. Future ADRs/specific
 
 No ADR numbers or final schemas are assigned here. Required future decisions include:
 
-- Revision-level model metadata semantics/effective values: product requirement approved; exact Phase 5C persistence, API, inheritance, and mismatch policy still require specification. Assess whether an ADR supplement is warranted.
 - Protection functions / study settings: dedicated ADR before implementation.
 - Operating / study configurations: dedicated design decision before complete study integration.
 - Evidence + extraction candidate persistence, including traceable extraction runs.

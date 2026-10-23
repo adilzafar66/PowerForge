@@ -3,9 +3,11 @@
 from powerforge_engineering_model.definitions import (
     AttributeDefinition,
     AttributeState,
+    EffectiveModelValue,
     EquipmentDefinition,
     RequirementResult,
 )
+from powerforge_engineering_model.effective_values import resolve_effective_model_value
 from powerforge_engineering_model.enums import (
     AttributeValueType,
     EquipmentType,
@@ -33,6 +35,7 @@ __all__ = [
     "REGISTRY",
     "AttributeDefinition",
     "AttributeState",
+    "EffectiveModelValue",
     "AttributeValueType",
     "EquipmentDefinition",
     "EquipmentType",
@@ -46,6 +49,7 @@ __all__ = [
     "list_equipment_definitions",
     "normalize_attribute_value",
     "normalize_value",
+    "resolve_effective_model_value",
     "supported_input_units",
     "validate_registry",
 ]

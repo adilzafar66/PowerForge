@@ -2,9 +2,9 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** 5B — Core engineering-model persistence
+**Current implemented phase:** 5C — Revision model inheritance and revision-level engineering metadata
 
-**Next:** Phase 5C — Revision model inheritance and revision-level model metadata. Not started
+**Next:** Phase 5D — Manually authored topology persistence. Not started
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -26,7 +26,7 @@ Decisions: [ADR-003](../decisions/ADR-003-project-revision-model.md)
 Delivered:
 
 - `packages/project` (`powerforge_project`) — status enums and transition helper
-- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0007_engineering_model_core`, which adds the Phase 5B equipment tables. `0005_document_processing` adds `document_pages`, `document_processing_runs`, and `page_artifacts`. `0006_document_classification` adds `MIXED_DOCUMENT` and the classification tables.
+- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0008_revision_model_metadata`, which adds the Phase 5C revision metadata after the Phase 5B equipment tables in `0007_engineering_model_core`. `0005_document_processing` adds `document_pages`, `document_processing_runs`, and `page_artifacts`. `0006_document_classification` adds `MIXED_DOCUMENT` and the classification tables.
 - REST API under `/api/projects` and nested revisions (create/list/get/patch + pause/resume/cancel/archive/unarchive + activate)
 - Web UI: `/` project list, `/projects/new`, `/projects/[id]`, revision placeholder, `/status` stack health
 - Backend and frontend tests covering lifecycle, uniqueness, and concurrent activate
@@ -232,7 +232,7 @@ no frontend changes or frontend checks were made.
 
 ## Phase 5B — Core engineering-model persistence
 
-**Status:** Implemented (2026-10-23); Phase 5C has not started.
+**Status:** Implemented (2026-10-23).
 
 Specification: [Phase 5B prompt](prompts/phase-5b-codex.md), [Phase 5](specs/phase-5-engineering-model.md), and [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md).
 Implementation, decisions, and validation: [PHASE5B_HANDOFF.md](PHASE5B_HANDOFF.md).
@@ -240,13 +240,25 @@ Usage: [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md).
 
 Migration `0007_engineering_model_core` adds project-owned equipment lineage, revision-scoped equipment, and typed canonical attributes. A neutral persistence package owns Base/project/revision/engineering mappings, with compatibility exports for existing document callers. Internal services atomically materialize registry attributes, normalize manual values, preserve meaningful data during type changes, and soft-remove/restore equipment. Document and engineering writes share project-then-revision locking and lifecycle checks.
 
-Initial attributes use NOT_EXTRACTED / UNVERIFIED with null origin, confidence, and values. Database constraints enforce typed slots, confidence bounds, ownership, and uniqueness. Registry-v1, units, and requirement evaluation remain unchanged. Revision creation still carries forward documents only. No model cloning, topology, public equipment CRUD, or frontend was added.
+Initial attributes use NOT_EXTRACTED / UNVERIFIED with null origin, confidence, and values. Database constraints enforce typed slots, confidence bounds, ownership, and uniqueness. Registry-v1, units, and requirement evaluation remain unchanged. Phase 5B itself added no model cloning, topology, public equipment CRUD, or frontend.
 
 Validation: all **918 Python tests passed** with live integrations on a disposable database; **473 passed, 445 skipped** without integrations. Ruff, formatting, whitespace, and package dependency checks passed. Exact commands are recorded in the handoff. Tests cover all 20 equipment types, typed values and representative unit conversions, manual states, safe type changes and rollback, soft lifecycle, ownership, real concurrent lifecycle changes, and fresh/data-preserving upgrade/downgrade/re-upgrade.
 
+## Phase 5C — Revision model inheritance and model metadata
+
+**Status:** Implemented (2026-10-23); Phase 5D has not started.
+
+Specification: [Phase 5C prompt](prompts/phase-5c-codex.md), [Phase 5](specs/phase-5-engineering-model.md), and [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md). Implementation, decisions, and exact validation results: [PHASE5C_HANDOFF.md](PHASE5C_HANDOFF.md).
+
+Migration `0008_revision_model_metadata` adds nullable `system_frequency` (canonical Hz as Decimal/NUMERIC, finite and positive) and `system_phase_count` (integer 1 or 3) to ProjectRevision. Revision creation accepts `carry_forward_model` independently from document carry-forward. With a base it defaults true, clones only ACTIVE equipment into independent rows with preserved lineage and direct source pointers, and inherits omitted model metadata. Explicit values override and explicit null clears. Without a base it defaults false, and explicit true is rejected.
+
+Clone compatibility is checked against the current immutable registry. Newly added destination attributes materialize untouched; old or incompatible untouched placeholders may be omitted; meaningful incompatible data rejects and rolls back the transaction. Revision creation, document inheritance, model inheritance, metadata, and optional activation share one transaction and the established project-then-revision lock order. The pure effective-value helper prefers explicit PRESENT equipment values, then revision defaults, and reports disagreements without mutating rows or persisting findings.
+
+The existing revision-create UI now exposes only the independent model carry-forward checkbox. No topology, public engineering-model CRUD API, Engineering Model workspace, extraction, evidence, reconciliation, or Phase 5D work was added.
+
 ## Later phases
 
-Phase 5A and 5B are implemented; 5C–5G have not started. The approved Phase 5C extension includes optional revision-level `system_frequency` and `system_phase_count`, their inheritance, and effective-value semantics. These are planned metadata on the revision snapshot, not defaults copied into equipment rows; exact design requires a Phase 5C specification. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5C are implemented; 5D–5G have not started. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -256,7 +268,7 @@ Phase 5A and 5B are implemented; 5C–5G have not started. The approved Phase 5C
 | 4.5 | Document workspace UI | Complete (2026-10-12) |
 | 5A | Registry, units, requirement engine, registry API | Implemented |
 | 5B | Core engineering-model persistence | Implemented |
-| 5C | Revision model inheritance and revision-level model metadata | Next; not started |
+| 5C | Revision model inheritance and revision-level model metadata | Implemented |
 | 5D–5G | Topology persistence, revision-scoped APIs, basic workspace UI, hardening | Not started |
 | 6 | Evidence, candidates, and structured extraction | Not started |
 | 7 | Entity resolution | Not started |
@@ -267,7 +279,7 @@ Phase 5A and 5B are implemented; 5C–5G have not started. The approved Phase 5C
 | 12 | Model visualization | Not started |
 | 13 | Study-tool integration, automation, and reporting | Not started |
 
-Authentication, real user identity, project authorization, and actor-backed audit records are not implemented through Phase 5B. They are a hard prerequisite/subphase for Phase 11 completion and must be pulled forward if shared/multi-user deployment is needed earlier. Existing actor UUIDs remain nullable; they are not a substitute for trustworthy audit identity.
+Authentication, real user identity, project authorization, and actor-backed audit records are not implemented through Phase 5C. They are a hard prerequisite/subphase for Phase 11 completion and must be pulled forward if shared/multi-user deployment is needed earlier. Existing actor UUIDs remain nullable; they are not a substitute for trustworthy audit identity.
 
 ETAP / SKM / EasyPower adapters, study automation, results ingestion, and reporting are planned for Phase 13. Protection/settings and operating/study configurations require post-core-Phase-5 design gates before extraction/integration depends on them. None of this is implemented.
 

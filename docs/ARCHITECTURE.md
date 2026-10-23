@@ -39,7 +39,7 @@ Rules that do not change:
 4. The engineering model must not depend on a particular AI provider.
 5. The engineering model must not depend on ETAP, SKM, EasyPower, or any other electrical analysis package.
 
-Study-tool integration, including export/adapters, study execution/automation, results ingestion, and engineering reports, is planned for Phase 13. Short-circuit, coordination, and arc-flash studies consume the verified canonical model downstream. These capabilities are not implemented through Phase 5B. See [ADR-001](../decisions/ADR-001-engineering-model-independence.md).
+Study-tool integration, including export/adapters, study execution/automation, results ingestion, and engineering reports, is planned for Phase 13. Short-circuit, coordination, and arc-flash studies consume the verified canonical model downstream. These capabilities are not implemented through Phase 5C. See [ADR-001](../decisions/ADR-001-engineering-model-independence.md).
 
 ## High-level architecture
 
@@ -162,7 +162,9 @@ The backend is not a monolith. Each worker is a separate process with a narrow j
 - Conflicts are represented and queued for the engineer. They are never silently resolved.
 - Verification vocabulary is `UNVERIFIED`, `AI_EXTRACTED`, `SYSTEM_VALIDATED`, `ENGINEER_REVIEWED`, `ENGINEER_VERIFIED`. These are distinct states, not an automatic promotion pipeline. AI_EXTRACTED must never silently become ENGINEER_VERIFIED.
 
-Planned Phase 5C revision-level `system_frequency` (Hz) and optional common `system_phase_count` belong to the snapshot rooted at ProjectRevision, with no separate EngineeringModel entity. Do not copy them into every equipment attribute row. Equipment-specific values remain explicit; effective-value and mismatch behavior require a Phase 5C specification. Mixed phase systems leave the common count absent. These assumptions are not document evidence.
+Phase 5C revision-level `system_frequency` (canonical Hz as Decimal/NUMERIC) and optional common `system_phase_count` (1 or 3) belong to the snapshot rooted at ProjectRevision, with no separate EngineeringModel entity. Revision creation can copy ACTIVE equipment from its selected base in the same transaction as document inheritance, metadata resolution, and activation. Snapshot rows receive new IDs, retain equipment lineage, and point directly to their immediate base rows. Project then revision locking serializes the clone with model writes.
+
+Revision defaults are not copied into equipment attribute rows. For applicable fields, an explicit PRESENT equipment value takes precedence, then the revision value, then unspecified; disagreement is returned as a deterministic mismatch without overwriting either value or persisting a Phase 10 validation finding. Mixed phase systems leave the common count absent. These assumptions are not document evidence.
 
 Protection functions/settings and operating/study configurations are separate post-core-Phase-5 canonical-domain design gates, not arbitrary equipment attributes. Dedicated decisions must precede implementation and provide targets for extraction and study integration. Canonical design/nameplate values remain distinct from study-adjusted settings; see [ROADMAP.md](ROADMAP.md).
 
@@ -174,7 +176,7 @@ Protection functions/settings and operating/study configurations are separate po
 
 Uploaded documents are confidential engineering information. The platform requires authentication, authorization, project-level access control, authorized object-storage access (signed URLs), encryption in transit, encryption at rest where supported, and audit logging. Object storage is never exposed without authorization.
 
-Auth is not implemented through Phase 5B. Authentication, user identity, project authorization, and actor-backed audit records are a hard prerequisite/subphase for Phase 11 completion; pull them forward if shared/multi-user deployment requires them earlier. Phase 2 still issues object access only through backend-authorized presigned URLs, so project-level authorization can be added at the API later without changing storage. The API is bound to localhost in local development. Do not add a fake users table or fake auth in Phase 1. `created_by` on projects and revisions is a nullable UUID with no foreign key until a users table exists. Project-level access control arrives with authentication, not merely because project rows exist. See [ADR-003](../decisions/ADR-003-project-revision-model.md).
+Auth is not implemented through Phase 5C. Authentication, user identity, project authorization, and actor-backed audit records are a hard prerequisite/subphase for Phase 11 completion; pull them forward if shared/multi-user deployment requires them earlier. Phase 2 still issues object access only through backend-authorized presigned URLs, so project-level authorization can be added at the API later without changing storage. The API is bound to localhost in local development. Do not add a fake users table or fake auth in Phase 1. `created_by` on projects and revisions is a nullable UUID with no foreign key until a users table exists. Project-level access control arrives with authentication, not merely because project rows exist. See [ADR-003](../decisions/ADR-003-project-revision-model.md).
 
 ## Phase 0 scope
 

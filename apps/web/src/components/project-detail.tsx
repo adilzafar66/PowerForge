@@ -120,6 +120,7 @@ export function ProjectDetail({
   // undefined means the user has not chosen, so the server's defaults apply and the key is omitted.
   const [baseChoice, setBaseChoice] = useState<string | undefined>(undefined);
   const [carryChoice, setCarryChoice] = useState<boolean | undefined>(undefined);
+  const [carryModelChoice, setCarryModelChoice] = useState<boolean | undefined>(undefined);
 
   const archived = project.status === "ARCHIVED";
   const readOnly = archived || project.status === "CANCELLED";
@@ -128,12 +129,14 @@ export function ProjectDetail({
   const selectedBaseId = baseChoice ?? activeRevision?.id ?? "";
   const selectedBase = revisions.find((item) => item.id === selectedBaseId) ?? null;
   const carryForward = selectedBase ? (carryChoice ?? true) : false;
+  const carryModelForward = selectedBase ? (carryModelChoice ?? true) : false;
   const baseIsNotActive = selectedBase !== null && selectedBase.id !== activeRevision?.id;
 
   function resetRevisionForm() {
     setNewRevision({ identifier: "", description: "", activate: false });
     setBaseChoice(undefined);
     setCarryChoice(undefined);
+    setCarryModelChoice(undefined);
   }
 
   function revisionCreateInput(): RevisionCreateInput {
@@ -148,9 +151,13 @@ export function ProjectDetail({
     if (selectedBase === null) {
       if (baseChoice !== undefined) {
         input.carry_forward_documents = false;
+        input.carry_forward_model = false;
       }
     } else if (carryChoice !== undefined) {
       input.carry_forward_documents = carryChoice;
+    }
+    if (selectedBase !== null && carryModelChoice !== undefined) {
+      input.carry_forward_model = carryModelChoice;
     }
     return input;
   }
@@ -231,11 +238,18 @@ export function ProjectDetail({
         }));
       }
       const inherited = revision.inherited_document_count ?? 0;
-      setMessage(
+      const inheritedEquipment = revision.inherited_model_equipment_count ?? 0;
+      const carried = [
         inherited > 0
-          ? `Revision ${revision.identifier} created. ${inherited} ${
-              inherited === 1 ? "document" : "documents"
-            } carried forward.`
+          ? `${inherited} ${inherited === 1 ? "document" : "documents"}`
+          : null,
+        inheritedEquipment > 0
+          ? `${inheritedEquipment} equipment ${inheritedEquipment === 1 ? "item" : "items"}`
+          : null,
+      ].filter(Boolean);
+      setMessage(
+        carried.length > 0
+          ? `Revision ${revision.identifier} created. ${carried.join(" and ")} carried forward.`
           : `Revision ${revision.identifier} created.`,
       );
       resetRevisionForm();
@@ -506,6 +520,7 @@ export function ProjectDetail({
                     onChange={(event) => {
                       setBaseChoice(event.target.value);
                       setCarryChoice(undefined);
+                      setCarryModelChoice(undefined);
                     }}
                   >
                     <option value="">None (start fresh)</option>
@@ -532,6 +547,18 @@ export function ProjectDetail({
                   {selectedBase
                     ? `Carry forward documents from Revision ${selectedBase.identifier}`
                     : "Carry forward documents"}
+                </label>
+                <label className="flex items-center gap-2 text-[13px] text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={carryModelForward}
+                    disabled={selectedBase === null}
+                    onChange={(event) => setCarryModelChoice(event.target.checked)}
+                    className="rounded border-slate-300"
+                  />
+                  {selectedBase
+                    ? `Carry forward engineering model from Revision ${selectedBase.identifier}`
+                    : "Carry forward engineering model"}
                 </label>
                 <label className="flex items-center gap-2 text-[13px] text-slate-700">
                   <input

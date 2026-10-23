@@ -24,6 +24,9 @@ from powerforge_api.exceptions import (
     InvalidFileContent,
     InvalidRevisionIdentifier,
     InvalidStatusTransition,
+    InvalidSystemFrequency,
+    InvalidSystemPhaseCount,
+    ModelInheritanceConflict,
     PageNotFound,
     ProcessingNotComplete,
     ProcessingNotRetryableError,
@@ -84,7 +87,15 @@ def http_for(exc: ProjectError) -> HTTPException:
         status_code = _TOO_LARGE
     elif isinstance(exc, UnsupportedDocumentType):
         status_code = status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
-    elif isinstance(exc, InvalidRevisionIdentifier | InvalidBaseRevision | InvalidFileContent):
+    elif isinstance(
+        exc,
+        InvalidRevisionIdentifier
+        | InvalidBaseRevision
+        | InvalidFileContent
+        | InvalidSystemFrequency
+        | InvalidSystemPhaseCount
+        | ModelInheritanceConflict,
+    ):
         status_code = _UNPROCESSABLE
     elif isinstance(exc, StorageUploadFailed | StorageDownloadFailed):
         status_code = status.HTTP_502_BAD_GATEWAY

@@ -60,6 +60,8 @@ const sampleRevision: Revision = {
   created_by: null,
   based_on_revision_id: null,
   based_on_identifier: null,
+  system_frequency: null,
+  system_phase_count: null,
 };
 
 describe("ProjectList", () => {
@@ -227,6 +229,12 @@ describe("Create revision form", () => {
     return screen.getByRole("checkbox", { name: /Carry forward documents/ }) as HTMLInputElement;
   }
 
+  function carryModelBox() {
+    return screen.getByRole("checkbox", {
+      name: /Carry forward engineering model/,
+    }) as HTMLInputElement;
+  }
+
   function mockCreated(extra: Partial<Revision> = {}) {
     return vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
@@ -269,6 +277,8 @@ describe("Create revision form", () => {
     ]);
     expect(carryBox()).toBeChecked();
     expect(carryBox()).toBeEnabled();
+    expect(carryModelBox()).toBeChecked();
+    expect(carryModelBox()).toBeEnabled();
     expect(screen.getByRole("checkbox", { name: "Carry forward documents from Revision REV-1" })).toBe(
       carryBox(),
     );
@@ -281,6 +291,8 @@ describe("Create revision form", () => {
     expect(baseSelect().value).toBe("");
     expect(carryBox()).not.toBeChecked();
     expect(carryBox()).toBeDisabled();
+    expect(carryModelBox()).not.toBeChecked();
+    expect(carryModelBox()).toBeDisabled();
   });
 
   it("disables and unchecks carry forward when None is chosen, and restores the default for a base", async () => {
@@ -323,6 +335,7 @@ describe("Create revision form", () => {
 
     expect(body.based_on_revision_id).toBeNull();
     expect(body.carry_forward_documents).toBe(false);
+    expect(body.carry_forward_model).toBe(false);
   });
 
   it("sends the chosen base, even when it is the ACTIVE one chosen again", async () => {
@@ -347,6 +360,18 @@ describe("Create revision form", () => {
     expect(body.carry_forward_documents).toBe(false);
   });
 
+  it("sends model carry forward independently when the user unchecks it", async () => {
+    const fetchMock = mockCreated();
+    const user = await openForm([sampleRevision]);
+    await user.click(carryModelBox());
+
+    const body = await submit(user, fetchMock);
+
+    expect("based_on_revision_id" in body).toBe(false);
+    expect("carry_forward_documents" in body).toBe(false);
+    expect(body.carry_forward_model).toBe(false);
+  });
+
   it("resets carry forward to its default when the base changes", async () => {
     const user = await openForm([sampleRevision, draft]);
     await user.click(carryBox());
@@ -355,6 +380,7 @@ describe("Create revision form", () => {
     await user.selectOptions(baseSelect(), "Revision REV-2 (Draft)");
 
     expect(carryBox()).toBeChecked();
+    expect(carryModelBox()).toBeChecked();
   });
 
   it("reports how many documents were carried forward", async () => {
@@ -366,6 +392,19 @@ describe("Create revision form", () => {
     await waitFor(() => {
       expect(
         screen.getByText("Revision REV-3 created. 3 documents carried forward."),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("reports how many equipment snapshots were carried forward", async () => {
+    const fetchMock = mockCreated({ inherited_model_equipment_count: 2 });
+    const user = await openForm([sampleRevision]);
+
+    await submit(user, fetchMock);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Revision REV-3 created. 2 equipment items carried forward."),
       ).toBeInTheDocument();
     });
   });

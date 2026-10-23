@@ -193,3 +193,15 @@ class InconsistentEquipment(ProjectError):
 
 class EquipmentRemoved(ProjectError):
     code = "equipment_removed"
+
+
+class ModelInheritanceConflict(ProjectError):
+    code = "model_inheritance_conflict"
+
+
+class InvalidSystemFrequency(ProjectError):
+    code = "invalid_system_frequency"
+
+
+class InvalidSystemPhaseCount(ProjectError):
+    code = "invalid_system_phase_count"

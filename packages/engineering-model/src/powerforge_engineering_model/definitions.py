@@ -103,6 +103,15 @@ class AttributeState:
 
 
 @dataclass(frozen=True, slots=True)
+class EffectiveModelValue:
+    """An explicit equipment value or a revision-level fallback, with mismatch visibility."""
+
+    value: Decimal | int | None
+    source: Literal["EQUIPMENT", "REVISION", "UNSPECIFIED"]
+    mismatch: bool = False
+
+
+@dataclass(frozen=True, slots=True)
 class MissingAlternative:
     alternative: str | None
     attributes: tuple[str, ...]

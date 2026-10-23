@@ -66,10 +66,12 @@ def _revision_response(
     revision: ProjectRevision,
     base_identifier: str | None = None,
     inherited_document_count: int | None = None,
+    inherited_model_equipment_count: int | None = None,
 ) -> RevisionResponse:
     response = RevisionResponse.model_validate(revision)
     response.based_on_identifier = base_identifier
     response.inherited_document_count = inherited_document_count
+    response.inherited_model_equipment_count = inherited_model_equipment_count
     return response
 
 
@@ -204,6 +206,7 @@ def create_revision(
         result.revision,
         service.base_identifier(result.revision),
         result.inherited_document_count,
+        result.inherited_model_equipment_count,
     )
 
 
@@ -244,7 +247,7 @@ def get_revision(
 @router.patch(
     "/api/projects/{project_id}/revisions/{revision_id}",
     response_model=RevisionResponse,
-    summary="Update revision description or identifier",
+    summary="Update revision metadata",
 )
 def update_revision(
     project_id: UUID,
