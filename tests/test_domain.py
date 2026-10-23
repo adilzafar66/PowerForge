@@ -16,6 +16,7 @@ def test_equipment_types_cover_initial_model() -> None:
 def test_verification_states_are_explicit() -> None:
     assert VerificationState.AI_EXTRACTED != VerificationState.ENGINEER_VERIFIED
     assert {state.value for state in VerificationState} == {
+        "UNVERIFIED",
         "AI_EXTRACTED",
         "SYSTEM_VALIDATED",
         "ENGINEER_REVIEWED",

@@ -46,6 +46,7 @@ class InformationState(StrEnum):
 class VerificationState(StrEnum):
     """Never silently promote extracted information to engineer verified."""
 
+    UNVERIFIED = "UNVERIFIED"
     AI_EXTRACTED = "AI_EXTRACTED"
     SYSTEM_VALIDATED = "SYSTEM_VALIDATED"
     ENGINEER_REVIEWED = "ENGINEER_REVIEWED"

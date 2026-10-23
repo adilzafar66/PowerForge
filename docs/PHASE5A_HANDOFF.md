@@ -87,7 +87,7 @@ Result: passed; 17 Python files already formatted. No Python static typechecker 
 - The supplied prompt exists at `docs/prompts/phase-5a_codex.md` (underscore), rather than the hyphenated path in the request.
 - The reference JSON is authoritative for relay `trip_output_operating_time`: its canonical unit is seconds, despite the specification/prompt's milliseconds example. No reference metadata was altered.
 - NONE rows remain reference annotations, not an extra executable rule type.
-- Existing Phase 0 taxonomy and information-state placeholders were superseded as required by Phase 5; repository search found no production consumers needing migration. The existing VerificationState enum is retained; additional persistence-era states are outside this change.
+- Existing Phase 0 taxonomy and information-state placeholders were superseded as required by Phase 5; repository search found no production consumers needing migration. VerificationState includes all five states defined by ADR-007 and the Phase 5 specification, including UNVERIFIED. This is foundational domain vocabulary: Phase 5B can use UNVERIFIED for newly materialized attributes without changing the enum.
 - The supplied prompt, Phase 5 specification, registry artifacts, and ADR-007 were already untracked when work began. They were preserved without edits. Include these authoritative inputs when committing the implementation.
 - No unresolved implementation blocker was found. Decimal conversions intentionally have finite precision; semantic context choices and absent-selector behavior are documented in `ENGINEERING_MODEL.md`.
 
