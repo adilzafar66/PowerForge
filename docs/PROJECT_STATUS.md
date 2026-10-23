@@ -2,8 +2,9 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** 4.5 (document workspace UI)  
-**Next:** Phase 5 (engineering model persistence). Not started
+**Current implemented phase:** 5A — Registry, units, and requirement engine
+
+**Next:** Phase 5B — Core engineering-model persistence. Not started
 
 ## Phase 0 — Architecture and repository setup
 
