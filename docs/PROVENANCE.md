@@ -2,9 +2,11 @@
 
 Every AI-derived value must be traceable to evidence. The provenance module answers “Where did this come from?” at attribute granularity.
 
-## Ownership
+Full Evidence/ExtractionCandidate persistence begins in **Phase 6** and is not implemented through Phase 5B. Phase 5 is evidence-ready only. See [ROADMAP.md](ROADMAP.md) for placement and [EXTRACTION.md](EXTRACTION.md) for the extraction pipeline.
 
-The provenance module (`packages/provenance`) owns:
+## Planned ownership
+
+The provenance module (`packages/provenance`) provides contracts; its planned persistence responsibilities include:
 
 - Source document references
 - Page references
@@ -33,12 +35,12 @@ Phase 2 defines, and implements, what evidence will point at. See [ADR-004](../d
 
 ## Evidence
 
-Conceptual structure:
+Conceptual evidence information, not an approved final schema:
 
 ```
 Evidence
     document_id
-    page_number
+    document_page_id
     bbox
     artifact_id
     extracted_text
@@ -60,25 +62,21 @@ Evidence should also support:
 
 Provenance is not only “this equipment came from document X”. Each attribute can point at different evidence (SLD vs shop drawing vs nameplate).
 
-Confidence is generated from extraction evidence and may later be adjusted by reconciliation. It remains stored with the attribute, not only on the parent entity.
+Phase 6 retains confidence at candidate/evidence granularity, with attribute-level links rather than only equipment-level provenance. Extraction run/provider/model/prompt versions, timestamps, and retry/version history must remain traceable across native-text, OCR, table, and vision inputs. Canonical nullable confidence does not replace this provenance.
+
+Candidates for revision-level `system_frequency` or `system_phase_count` also require evidence. A model-wide assumption or default is not document evidence, and extraction cannot automatically change canonical revision metadata. Later entity resolution, reconciliation, and review determine how candidates relate to canonical data.
 
 ## Source hierarchy
 
 Source types (SLD, shop drawing, nameplate, schedule, photograph, specification) participate in configurable source-priority rules. Provenance records the source type so reconciliation can explain why a value was suggested.
 
-## API
+## Planned evidence access
 
-Engineers retrieve evidence without loading entire files into the model payload:
-
-```
-GET /api/equipment/{id}/evidence
-```
-
-The document viewer uses page images and bounding boxes to highlight the region that produced a value.
+Future revision-scoped evidence access should let engineers inspect source page images and normalized regions without embedding entire files in the model payload. The route contract requires a later specification; no evidence API is implemented yet.
 
 ## Phase 0
 
-Phase 0 defines evidence contracts in `packages/provenance`. Persistence of evidence rows begins when extraction writes candidates (Phase 6) and when the engineering model stores verified attributes (Phase 5+).
+Phase 0 defined evidence contracts in `packages/provenance`. Full Evidence persistence starts in Phase 6 alongside extraction candidates; Phase 5 stores canonical equipment/attributes without document/page references on those rows.
 
 Phase 2 does not create evidence. It creates the immutable `Document` and revision-scoped `RevisionDocument` records that evidence will reference.
 

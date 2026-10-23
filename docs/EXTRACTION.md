@@ -2,7 +2,7 @@
 
 AI extraction proposes candidate engineering data. It does not mutate the verified engineering model.
 
-Phase 0 defines provider interfaces, prompt versioning location, and candidate contracts. It does not call models, run OCR, or interpret SLDs.
+Phase 0 established interfaces and candidate contracts; Phase 4 classification is implemented. Full Evidence/ExtractionCandidate persistence and structured extraction are planned for Phase 6, as described in [ROADMAP.md](ROADMAP.md). They are not implemented through Phase 5B.
 
 ## Principles
 
@@ -15,15 +15,22 @@ Phase 0 defines provider interfaces, prompt versioning location, and candidate c
 ## Pipeline
 
 ```
-AI OUTPUT
-    → SCHEMA VALIDATION
-    → DOMAIN VALIDATION
-    → CANDIDATE RECORD
+Document / DocumentPage
+    → native text / OCR / visual / table inputs
+    → Evidence
+    → ExtractionRun
+    → ExtractionCandidate
+    → schema + canonical-registry validation
+    → candidate records for later entity resolution / reconciliation
 ```
 
-Only candidate records proceed to entity resolution, validation, and reconciliation.
+This is a conceptual traceability flow, not a frozen persistence schema. AI output remains an evidence-linked candidate. Phase 6 owns run metadata, provider/model/prompt versions, retry/versioning semantics, equipment/attribute and schedule/table extraction, OCR/layout where needed, and extraction evaluation/hardening. Candidate keys, types, and units must map to the canonical registry. Confidence is recorded at candidate/evidence level; regions use normalized upright DocumentPage coordinates, as defined in [PROVENANCE.md](PROVENANCE.md).
 
-## Specialized extractors (later phases)
+Candidates proceed to entity resolution (7), reconciliation/conflict management (9), deterministic validation (10), and engineer review (11). They never silently overwrite canonical values or become engineer-verified truth. Extraction may also target approved revision metadata such as `system_frequency` and `system_phase_count`: a title block stating `600 V, 3Ø, 60 Hz` supplies evidence for candidates, not permission to change canonical revision settings.
+
+The proposed 6A–6G slices in [ROADMAP.md](ROADMAP.md) are non-binding. Study-domain/protection extraction requires approved target-domain design first.
+
+## Specialized extractors
 
 | Extractor | Role |
 | --- | --- |
@@ -56,7 +63,7 @@ The engineering application does not care which vendor produced the result. Swap
 
 ## Prompt versioning
 
-Prompts live under `packages/ai/prompts/` (version-controlled). Do not bury large prompts inside random application files.
+Future extraction prompts are planned under `packages/ai/prompts/` (version-controlled). Do not bury large prompts inside random application files.
 
 Examples:
 
@@ -66,7 +73,7 @@ Examples:
 
 The prompt version is stored with the extraction result for reproducibility.
 
-Phase 0 creates the directory and a README. No production prompts yet.
+Phase 0 created that directory and a README. The implemented Phase 4 classification prompts live in their owning classification package, as described below.
 
 ## SLD extraction
 
@@ -85,13 +92,13 @@ SLD PAGE
     → ENGINEER REVIEW
 ```
 
-Preserve the original image and evidence coordinates. The SLD is not the database.
+Preserve the original image and source-page evidence, with regions normalized to the upright DocumentPage. Phase 8 produces component, terminal/connectivity, and topology candidates targeting Phase 5D ModelNode/ModelConnection semantics. The SLD is not the database.
 
 ## Entity resolution
 
 Entity resolution is a first-class module (Phase 7). Signals include tag similarity, type, location, connected equipment, manufacturer, model, rating, voltage, document context, spatial proximity, and surrounding topology.
 
-Output includes `candidate_entity`, `match_probability`, `matching_evidence`, and `conflicting_evidence`. Do not automatically merge low-confidence matches.
+Planned outputs retain candidate identity, match confidence, supporting evidence, and conflicting evidence; exact contracts require a formal specification. The bridge is ExtractionCandidate → candidate physical identity → EquipmentLineage / revision-scoped Equipment. Do not automatically merge low-confidence matches.
 
 ## Phase 4 classification
 
@@ -105,7 +112,7 @@ The provider contract stays vendor-neutral (`ClassificationProvider`). OpenAI is
 
 - Phase 3: document processing renders pages and reads native PDF text. It does not call `OCRProvider` or any classifier
 - Phase 4: classification is complete. Equipment, table, and SLD extractors stay in their own later phases
-- Phase 6: structured document extraction
+- Phase 6: Evidence/candidate persistence and structured equipment/attribute/table extraction, with OCR/layout support as needed
 - Phase 7: entity resolution
 - Phase 8: SLD extraction
-- Phase 9: cross-document reconciliation
+- Phase 9: reconciliation and persistent conflict management; Phase 11 retains human decision/verification authority

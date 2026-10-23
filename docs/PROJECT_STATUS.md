@@ -4,7 +4,9 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 **Current implemented phase:** 5B — Core engineering-model persistence
 
-**Next:** Phase 5C — Revision inheritance. Not started
+**Next:** Phase 5C — Revision model inheritance and revision-level model metadata. Not started
+
+[ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
 ## Phase 0 — Architecture and repository setup
 
@@ -244,6 +246,8 @@ Validation: all **918 Python tests passed** with live integrations on a disposab
 
 ## Later phases
 
+Phase 5A and 5B are implemented; 5C–5G have not started. The approved Phase 5C extension includes optional revision-level `system_frequency` and `system_phase_count`, their inheritance, and effective-value semantics. These are planned metadata on the revision snapshot, not defaults copied into equipment rows; exact design requires a Phase 5C specification. See [ROADMAP.md](ROADMAP.md).
+
 | Phase | Work | Status |
 | --- | --- | --- |
 | 2 | Document management | Complete (2026-10-06) |
@@ -252,12 +256,20 @@ Validation: all **918 Python tests passed** with live integrations on a disposab
 | 4.5 | Document workspace UI | Complete (2026-10-12) |
 | 5A | Registry, units, requirement engine, registry API | Implemented |
 | 5B | Core engineering-model persistence | Implemented |
-| 5C–5G | Engineering-model cloning through hardening | Not started |
-| 6–13 | Extraction through export | Not started |
+| 5C | Revision model inheritance and revision-level model metadata | Next; not started |
+| 5D–5G | Topology persistence, revision-scoped APIs, basic workspace UI, hardening | Not started |
+| 6 | Evidence, candidates, and structured extraction | Not started |
+| 7 | Entity resolution | Not started |
+| 8 | SLD and topology extraction | Not started |
+| 9 | Reconciliation and conflict management | Not started |
+| 10 | Deterministic engineering validation | Not started |
+| 11 | Engineer review, verification, and audit | Not started |
+| 12 | Model visualization | Not started |
+| 13 | Study-tool integration, automation, and reporting | Not started |
 
-Authentication, a users table, and project-level access control are required by the product spec and are **not** part of Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, or Phase 4.5. `created_by` (and Phase 2's `uploaded_by`/`added_by`/`removed_by`) remain nullable until then.
+Authentication, real user identity, project authorization, and actor-backed audit records are not implemented through Phase 5B. They are a hard prerequisite/subphase for Phase 11 completion and must be pulled forward if shared/multi-user deployment is needed earlier. Existing actor UUIDs remain nullable; they are not a substitute for trustworthy audit identity.
 
-ETAP / SKM / EasyPower integration is not part of these phases.
+ETAP / SKM / EasyPower adapters, study automation, results ingestion, and reporting are planned for Phase 13. Protection/settings and operating/study configurations require post-core-Phase-5 design gates before extraction/integration depends on them. None of this is implemented.
 
 ## Technical debt
 

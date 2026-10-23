@@ -2,12 +2,15 @@
 
 Engineering data extraction platform. Electrical engineers upload project documents; PowerForge extracts structured electrical information, reconciles it across sources, and produces a centralized, traceable engineering model. The engineer remains the final authority.
 
-**Current implemented phase:** Phase 4.5 — Document workspace UI (specified in [cursor/phase4.5_specs.txt](cursor/phase4.5_specs.txt), delivered via [docs/PHASE4_5_PR_PLAN.md](docs/PHASE4_5_PR_PLAN.md); no ADR)  
-**Next:** Phase 5 — Engineering model persistence. Not started.
+**Current implemented phase:** Phase 5B — Core engineering-model persistence.
 
-Phase status lives in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Do not treat this README or chat history as the source of truth.
+**Next:** Phase 5C — Revision model inheritance and revision-level model metadata. Not started.
+
+Implementation status is authoritative in [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md). Intended future scope lives in [docs/ROADMAP.md](docs/ROADMAP.md), preserving Phase 0–13 numbering. Do not treat chat history as the source of truth.
 
 Engineers can create projects and revisions, upload PDF and image documents to a revision (stored unchanged in S3-compatible storage, MinIO locally), classify and edit them, remove and restore them per revision, reuse a document from another revision, and have new revisions inherit the previous revision's documents without copying files; see [ADR-004](decisions/ADR-004-document-storage-and-revision-inheritance.md). Phase 3 renders each immutable document into stable pages, an analysis image, a thumbnail, and native PDF text when the page already has a text layer. Phase 4 suggests a document type after that processing completes, and an engineer accepts it or keeps the confirmed type. It does not run OCR, extract equipment, or integrate ETAP/SKM/EasyPower. Phase 0 setup notes remain in [docs/PHASE0_HANDOFF.md](docs/PHASE0_HANDOFF.md).
+
+Phase 5A supplies registry-v1, canonical units, pure requirement evaluation, and the registry API. Phase 5B adds revision-scoped equipment persistence and internal manual authoring services; model inheritance, public equipment CRUD, and the Engineering Model UI remain planned. See [docs/ENGINEERING_MODEL.md](docs/ENGINEERING_MODEL.md).
 
 When you run Compose, uploads go from the browser to the API, so `CORS_ORIGINS` must include the origin you open the web app from, and signed download links use `S3_PUBLIC_ENDPOINT_URL` (`http://localhost:9000`); see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#phase-2-configuration-document-storage).
 

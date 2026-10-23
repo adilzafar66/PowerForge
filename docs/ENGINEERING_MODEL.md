@@ -124,6 +124,22 @@ Removal preserves equipment, lineage, and all attributes, while setting removal 
 
 The neutral `revision_writes` guard locks project FOR SHARE, then revision FOR UPDATE, and refreshes status under those locks. ACTIVE/PAUSED projects with DRAFT/ACTIVE revisions allow writes; ARCHIVED/CANCELLED projects and SUPERSEDED revisions reject them. Reads remain available. Document writes use the same guard and retain their existing error messages. Engineering writes update revision timestamps without upgrading the shared project lock.
 
+## Planned revision-level metadata — Phase 5C
+
+The approved product requirement adds optional `system_frequency` and `system_phase_count` to the engineering-model snapshot rooted at ProjectRevision. They are not implemented. No separate EngineeringModel entity is implied; no Phase 5B migration or registry-v1 change is needed for this documentation update. See [ROADMAP.md](ROADMAP.md).
+
+`system_frequency` expresses common frequency in Hz, for example 50 or 60 Hz, and is optional until known/configured. Conceptually, an explicitly PRESENT equipment frequency is the equipment-specific value; otherwise a configured system frequency supplies the effective value for applicable equipment; otherwise frequency is unavailable. This lookup does not settle override policy: the Phase 5C specification must decide whether disagreement is rejected or deterministically flagged. A mismatch must never be ignored.
+
+`system_phase_count` expresses an optional common count, normally 1 or 3. Set it only when one count legitimately applies across relevant equipment. A meaningful single-/three-phase mixture leaves it null/absent, meaning no single system-wide assumption is asserted. Do not introduce 0, MIXED, or UNKNOWN sentinels without a later approved design. Future effective-value logic may fall back to this common count when equipment phase count is absent; explicit mismatches require validation.
+
+Keep equipment-specific frequency and phase_count registry fields. Do not materialize model defaults into their EquipmentAttribute rows. This avoids duplicate values, mass updates, false provenance, and persistence noise. Explicit values still capture source-stated data, exceptions, mixed phase configurations, and comparisons with revision assumptions. A model-level default is not fabricated document evidence, and changing it must not silently overwrite explicit equipment values.
+
+Phase 5C must formally specify exact persisted names, frequency numeric type, constraints, metadata inheritance/carry-forward behavior, API representation, effective-value resolution, mismatch policy, and writable-revision edit behavior. The approved requirement extends the planned 5C scope; it does not amend ADR-007 or the existing Phase 5 specification by implication. A specification supplement is required, and an ADR supplement/amendment should be assessed if architectural decisions are added.
+
+## Future study domains
+
+The Phase 5 physical equipment/topology model is not a complete study model. Protection functions/settings and operating/study configurations require dedicated post-core-Phase-5 design decisions before extraction or integration depends on their schemas. Phase 5 does not introduce a general ProtectionFunction persistence model. Canonical `LV_BREAKER.trip_rating` and `LV_BREAKER.long_time_pickup` remain equipment/design values and may coexist with separate future study-adjusted settings without being overwritten. These domains must not be added as arbitrary flat equipment attributes; [ROADMAP.md](ROADMAP.md) records the concepts and design gates.
+
 ## Later phases
 
 Phase 5C has not begun. Revision creation still carries forward documents only. No equipment cloning, topology, public equipment CRUD, frontend, AI extraction, evidence/candidates/reconciliation, persisted findings, protection-function model, or exporters were added in Phase 5B. These remain separate responsibilities under ADR-007.

@@ -2,22 +2,23 @@
 
 Document processing is asynchronous. The UI must not wait synchronously for OCR, layout analysis, or extraction.
 
-Phase 0 establishes job infrastructure (Celery + Redis) and storage configuration. Phase 2 adds synchronous upload, validation, immutable storage, and revision-scoped document management (see [Phase 2 scope](#phase-2-scope)). Phase 3 adds asynchronous page rendering and native PDF text (see [Phase 3 scope](#phase-3-scope)). Phase 4 adds AI document classification after a completed processing run (see [Phase 4 scope](#phase-4-scope)). OCR and extraction remain later phases.
+Phase 0 establishes job infrastructure (Celery + Redis) and storage configuration. Phase 2 adds synchronous upload, validation, immutable storage, and revision-scoped document management (see [Phase 2 scope](#phase-2-scope)). Phase 3 adds asynchronous page rendering and native PDF text (see [Phase 3 scope](#phase-3-scope)). Phase 4 adds AI document classification after a completed processing run (see [Phase 4 scope](#phase-4-scope)). Phase 6 will add Evidence/candidate persistence, structured extraction, and OCR/layout/table support where required. SLD interpretation remains Phase 8. See [ROADMAP.md](ROADMAP.md).
 
 ## Pipeline
+
+The complete intended pipeline below includes planned stages; through Phase 5B, document processing/classification are implemented but Evidence/extraction are not. Native text or vision may suffice without OCR/layout. Reconciliation, validation, and review may iterate.
 
 ```
 UPLOAD
     → FILE VALIDATION
-    → DOCUMENT CLASSIFICATION
-    → PDF PROCESSING
-    → PAGE GENERATION
-    → OCR
-    → LAYOUT ANALYSIS
-    → AI EXTRACTION
-    → CANDIDATE DATA
-    → VALIDATION
-    → RECONCILIATION
+    → DOCUMENT PROCESSING / PAGE GENERATION (3)
+    → DOCUMENT CLASSIFICATION (4)
+    → NATIVE TEXT / VISION / OCR / LAYOUT / TABLE INPUTS (6)
+    → EVIDENCE + EXTRACTION RUN (6)
+    → EXTRACTION CANDIDATES + SCHEMA/REGISTRY VALIDATION (6)
+    → ENTITY RESOLUTION (7) / SLD TOPOLOGY CANDIDATES (8)
+    → RECONCILIATION / CONFLICT MANAGEMENT (9)
+    → DETERMINISTIC VALIDATION (10)
     → ENGINEER REVIEW
 ```
 
@@ -65,8 +66,8 @@ It must not contain engineering model logic or electrical calculations.
 
 - PDF parsing
 - Page rendering
-- OCR
-- Text, image, layout, and table extraction
+- Native text and image artifacts (implemented in Phase 3)
+- OCR, layout, and table support where needed (planned Phase 6)
 
 It produces **normalized document artifacts**. Original files are never overwritten.
 
@@ -200,6 +201,10 @@ Do not couple later OCR code to a single vendor. Do not add that code in Phase 3
 | `validation-worker` | 10 | Deterministic validation jobs |
 
 `document-worker` consumes `document_processing`. `extraction-worker` consumes `document_classification`. `validation-worker` stays on the default `celery` queue. None of them consume another worker's queue.
+
+## Phase 6 boundary
+
+Full Evidence/ExtractionCandidate persistence begins in Phase 6. Native text, OCR, vision, and table inputs cite stable Document/DocumentPage identity with normalized upright-page regions. Extraction runs retain provider/model/prompt versions, retries, and confidence at candidate/evidence granularity; see [EXTRACTION.md](EXTRACTION.md) and [PROVENANCE.md](PROVENANCE.md). Outputs remain candidates for later reconciliation/review and cannot silently overwrite canonical equipment values or revision-level `system_frequency`/`system_phase_count`.
 
 ## Artifacts
 

@@ -2,7 +2,7 @@
 
 PowerForge is an engineering data extraction platform. Electrical engineers upload project documents; the system extracts structured electrical information, reconciles it across sources, and produces a centralized, traceable engineering model. The engineer remains the final authority. AI proposes information; it does not silently make engineering decisions.
 
-This document is the entry point for implementers. Read it before changing code. Domain details live in the sibling documents listed below.
+This document is the entry point for implementers. Read it before changing code. Domain details live in the sibling documents listed below. [ROADMAP.md](ROADMAP.md) governs high-level future scope; [PROJECT_STATUS.md](PROJECT_STATUS.md) governs implementation status.
 
 ## Product objective
 
@@ -22,12 +22,14 @@ SOURCE DOCUMENTS
     → AI EXTRACTION
     → CANDIDATE DATA
     → ENTITY RESOLUTION
-    → VALIDATION
-    → RECONCILIATION
+    → RECONCILIATION / CONFLICT MANAGEMENT
+    → DETERMINISTIC VALIDATION
     → ENGINEERING MODEL
     → ENGINEER REVIEW
     → VERIFIED ENGINEERING MODEL
 ```
+
+This describes the intended product flow, not completed functionality. Reconciliation (9), validation (10), and engineer review (11) may iterate. Full Evidence/candidate persistence and extraction begin in Phase 6.
 
 Rules that do not change:
 
@@ -37,7 +39,7 @@ Rules that do not change:
 4. The engineering model must not depend on a particular AI provider.
 5. The engineering model must not depend on ETAP, SKM, EasyPower, or any other electrical analysis package.
 
-Electrical analysis, short-circuit, coordination, arc-flash, and report generation consume the model later. They are out of scope for this application phase. See [ADR-001](../decisions/ADR-001-engineering-model-independence.md).
+Study-tool integration, including export/adapters, study execution/automation, results ingestion, and engineering reports, is planned for Phase 13. Short-circuit, coordination, and arc-flash studies consume the verified canonical model downstream. These capabilities are not implemented through Phase 5B. See [ADR-001](../decisions/ADR-001-engineering-model-independence.md).
 
 ## High-level architecture
 
@@ -155,10 +157,14 @@ The backend is not a monolith. Each worker is a separate process with a narrow j
 ## Data and safety
 
 - Common `Equipment` concept with `equipment_type` and type-specific attributes. Do not require a disconnected schema per type, and do not store the entire model as one JSON blob.
-- Attributes carry value, unit, confidence, source, page, bounding box, extraction method, and verification status.
-- Missing data uses explicit states (`UNKNOWN`, `MISSING`, `NOT_APPLICABLE`, `NOT_EXTRACTED`, `LOW_CONFIDENCE`, `CONFLICTING`, `INFERRED`, `VERIFIED`), not null alone.
+- Phase 5B attributes carry typed values, canonical units, information/verification states, origin, and nullable confidence. Full Evidence/ExtractionCandidate persistence starts in Phase 6; document/page/bounding-box/extraction provenance belongs there, linked at attribute granularity rather than embedded in canonical attribute rows.
+- Information states are `PRESENT`, `UNKNOWN`, `MISSING`, `NOT_APPLICABLE`, `NOT_EXTRACTED`, and `CONFLICTING`. Confidence and origin (including INFERRED) are separate concepts.
 - Conflicts are represented and queued for the engineer. They are never silently resolved.
-- Verification states are explicit: `AI_EXTRACTED` → `SYSTEM_VALIDATED` → `ENGINEER_REVIEWED` → `ENGINEER_VERIFIED`. Never silently promote AI-extracted values.
+- Verification vocabulary is `UNVERIFIED`, `AI_EXTRACTED`, `SYSTEM_VALIDATED`, `ENGINEER_REVIEWED`, `ENGINEER_VERIFIED`. These are distinct states, not an automatic promotion pipeline. AI_EXTRACTED must never silently become ENGINEER_VERIFIED.
+
+Planned Phase 5C revision-level `system_frequency` (Hz) and optional common `system_phase_count` belong to the snapshot rooted at ProjectRevision, with no separate EngineeringModel entity. Do not copy them into every equipment attribute row. Equipment-specific values remain explicit; effective-value and mismatch behavior require a Phase 5C specification. Mixed phase systems leave the common count absent. These assumptions are not document evidence.
+
+Protection functions/settings and operating/study configurations are separate post-core-Phase-5 canonical-domain design gates, not arbitrary equipment attributes. Dedicated decisions must precede implementation and provide targets for extraction and study integration. Canonical design/nameplate values remain distinct from study-adjusted settings; see [ROADMAP.md](ROADMAP.md).
 
 ## Asynchronous processing
 
@@ -168,7 +174,7 @@ The backend is not a monolith. Each worker is a separate process with a narrow j
 
 Uploaded documents are confidential engineering information. The platform requires authentication, authorization, project-level access control, authorized object-storage access (signed URLs), encryption in transit, encryption at rest where supported, and audit logging. Object storage is never exposed without authorization.
 
-Auth is not implemented in Phase 0, Phase 1, Phase 2, Phase 3, or Phase 4. Phase 2 still issues object access only through backend-authorized presigned URLs, so project-level authorization can be added at the API later without changing storage. The API is bound to localhost in local development. Do not add a fake users table or fake auth in Phase 1. `created_by` on projects and revisions is a nullable UUID with no foreign key until a users table exists. Project-level access control arrives with authentication, not merely because project rows exist. See [ADR-003](../decisions/ADR-003-project-revision-model.md).
+Auth is not implemented through Phase 5B. Authentication, user identity, project authorization, and actor-backed audit records are a hard prerequisite/subphase for Phase 11 completion; pull them forward if shared/multi-user deployment requires them earlier. Phase 2 still issues object access only through backend-authorized presigned URLs, so project-level authorization can be added at the API later without changing storage. The API is bound to localhost in local development. Do not add a fake users table or fake auth in Phase 1. `created_by` on projects and revisions is a nullable UUID with no foreign key until a users table exists. Project-level access control arrives with authentication, not merely because project rows exist. See [ADR-003](../decisions/ADR-003-project-revision-model.md).
 
 ## Phase 0 scope
 
@@ -305,6 +311,7 @@ Backend or domain changes, a generic review queue, and the engineering model.
 
 ## Related documents
 
+- [ROADMAP.md](ROADMAP.md) — intended future scope and design gates
 - [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md)
 - [DOCUMENT_PIPELINE.md](DOCUMENT_PIPELINE.md)
 - [EXTRACTION.md](EXTRACTION.md)

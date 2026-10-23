@@ -1250,7 +1250,10 @@ Never expose object storage directly without authorization controls.
 
 Authentication, a users table, and project-level access control are not part of
 Phase 0 or Phase 1. Phase 1 stores nullable `created_by` UUIDs with no foreign
-key. Do not add a fake auth system in those phases.
+key. Do not add a fake auth system in those phases. Real identity, authentication,
+project authorization, and actor-backed audit are now a hard Phase 11 completion
+prerequisite, or must be pulled forward for earlier shared/multi-user deployment;
+see docs/ROADMAP.md.
 
 ============================================================
 31. TESTING
@@ -1322,8 +1325,9 @@ This system is an engineering data extraction and organization tool.
 
 It must not represent AI-generated information as verified engineering information.
 
-Use explicit states:
+Use explicit verification states:
 
+UNVERIFIED
 AI_EXTRACTED
 SYSTEM_VALIDATED
 ENGINEER_REVIEWED
@@ -1336,6 +1340,20 @@ Never silently promote AI-extracted values to verified values.
 ============================================================
 34. DEVELOPMENT PHASES
 ============================================================
+
+Current roadmap authority: docs/ROADMAP.md. Implementation status authority:
+docs/PROJECT_STATUS.md. The original phase outline below is retained as historical
+planning context, not the current roadmap. Numbering remains Phase 0–13, with
+intermediate Phase 4.5 and Phase 5A–5G. Phases 5A/5B are implemented; 5C is next,
+including revision inheritance and approved revision-level system_frequency /
+system_phase_count metadata pending formal specification.
+
+The current roadmap places full Evidence/candidate persistence and OCR/layout
+support in Phase 6, expands Phase 9 conflict management, makes identity/auth and
+full audit prerequisites of Phase 11, and includes study-tool integration,
+automation, results ingestion, and reporting in Phase 13. Protection/settings
+and operating/study configurations require post-core-5 design decisions.
+Accepted ADRs and formal implementation specifications govern implementation.
 
 Implement the application incrementally.
 
@@ -1482,7 +1500,9 @@ Deliver:
 - CSV/Excel export
 - versioned model export
 
-ETAP/SKM/EasyPower integration is explicitly NOT part of these phases.
+Historical exclusion: ETAP/SKM/EasyPower integration was outside the original
+outline. The current docs/ROADMAP.md assigns downstream integration, automation,
+results, and reporting to Phase 13; it remains unimplemented.
 
 ============================================================
 35. CURSOR/CLAUDE DEVELOPMENT RULES

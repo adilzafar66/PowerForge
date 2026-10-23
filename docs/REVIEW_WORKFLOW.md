@@ -1,10 +1,10 @@
 # Review Workflow
 
-The engineer review workflow is central. The AI proposes; the engineer decides. Every action is auditable.
+The engineer review workflow is planned for **Phase 11 — Engineer review, verification, and audit**. The AI proposes; the engineer decides. Full audit/history is a future requirement, not implemented by Phase 5B's nullable actor/timestamp fields. See [ROADMAP.md](ROADMAP.md).
 
 ## Review queue
 
-The queue contains:
+The planned queue contains:
 
 - Low-confidence values
 - Conflicting values
@@ -33,10 +33,12 @@ The engineer must be able to:
 - Edit
 - Merge
 - Split
-- Mark verified
+- Resolve conflict
+- Mark engineer-reviewed
+- Mark engineer-verified
 - Mark unresolved
 
-Every action is recorded in an audit trail (who, when, previous value, new value, evidence considered).
+Phase 11 must record every action in an actor-backed audit trail (who, when, previous value, new value, evidence considered).
 
 ## Conflicts
 
@@ -50,7 +52,9 @@ Example:
 | Shop drawing | 600 A |
 | Nameplate | 600 A |
 
-The system represents a conflict on `ampere_rating` with both values, sources, a **suggested** value (e.g. 600 A from source priority + agreement), confidence of that suggestion, and `PENDING_ENGINEER_REVIEW`.
+Phase 9 must persist both candidate values, supporting/conflicting evidence, configurable source-priority information, agreement/disagreement, suggested resolution, confidence/explanation, and review status. For this conceptual rating example, 600 A may be suggested from source priority and agreement; it is not automatically ENGINEER_VERIFIED. Exact canonical attribute mapping and conflict/review schema require a later specification.
+
+Phase 9 compares sources and preserves conflicts/suggestions; Phase 10 applies deterministic rules and model/study sanity checks; Phase 11 records the engineer decision. These workflows may iterate. Validation does not silently resolve conflicts.
 
 The engineer may:
 
@@ -65,10 +69,18 @@ The engineer may:
 Do not present AI output as verified engineering data.
 
 ```
-AI_EXTRACTED → SYSTEM_VALIDATED → ENGINEER_REVIEWED → ENGINEER_VERIFIED
+UNVERIFIED
+AI_EXTRACTED
+SYSTEM_VALIDATED
+ENGINEER_REVIEWED
+ENGINEER_VERIFIED
 ```
 
-Never silently promote `AI_EXTRACTED` to `ENGINEER_VERIFIED`.
+These are separate verification states, not automatic promotions. AI_EXTRACTED must never silently become ENGINEER_VERIFIED. Manual Phase 5B values are ENGINEER_REVIEWED, not automatically ENGINEER_VERIFIED.
+
+## Identity and authorization prerequisite
+
+Before Phase 11 is complete, authentication, real user identity, project authorization, and actor-backed audit records must support trustworthy verification/history. This is a hard prerequisite/subphase for Phase 11. Pull auth/authorization forward if shared or multi-user deployment requires it earlier. Do not substitute a fake users table or nullable actor IDs for identity, and do not introduce a new top-level phase solely for auth.
 
 ## UI surfaces (Phase 11, scaffolded in later UI phases)
 
