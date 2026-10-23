@@ -10,7 +10,9 @@ from powerforge_engineering_model.enums import (
     AttributeValueType,
     EquipmentType,
     InformationState,
+    LifecycleStatus,
     RequirementStatus,
+    ValueOrigin,
     VerificationState,
 )
 from powerforge_engineering_model.registry import (
@@ -26,6 +28,8 @@ from powerforge_engineering_model.units import normalize_value
 from powerforge_engineering_model.validation import validate_registry
 
 __all__ = [
+    "LifecycleStatus",
+    "ValueOrigin",
     "REGISTRY",
     "AttributeDefinition",
     "AttributeState",

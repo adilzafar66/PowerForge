@@ -11,6 +11,7 @@ dependencies = [
     "celery[redis]>=5.4",
     "powerforge-shared",
     "powerforge-project",
+    "powerforge-persistence",
     "powerforge-document-model",
 ]
 

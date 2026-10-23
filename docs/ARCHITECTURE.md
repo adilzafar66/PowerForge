@@ -99,7 +99,8 @@ Package and service mapping:
 - `packages/project` — project/revision enums and domain schemas
 - `packages/engineering-model` — pure registry-v1 definitions, units, value validation, and requirement evaluation (Phase 5A); no persistence or provider dependencies
 - `packages/document-model` — document vocabulary: classification, origin and status enums, pure file-validation rules, storage-key builder, processing enums, the profile, and artifact key construction (no SQLAlchemy, FastAPI, S3 SDK, Pillow, or PyMuPDF)
-- `packages/document-processing` — shared `ObjectStorage`, the SQLAlchemy models (`Project`, `ProjectRevision`, `Document`, `RevisionDocument`, `DocumentPage`, `DocumentProcessingRun`, `PageArtifact`), page rendering, and `ProcessingService`. The API and `document-worker` both import it. The worker does not import FastAPI
+- `packages/persistence` — neutral SQLAlchemy Base, project/revision mappings, and Phase 5B equipment lineage/equipment/typed-attribute mappings; no document-processing or API dependency.
+- `packages/document-processing` — shared `ObjectStorage`, document-specific SQLAlchemy models (`Document`, `RevisionDocument`, `DocumentPage`, `DocumentProcessingRun`, `PageArtifact`), page rendering, and `ProcessingService`. Base/project/revision imports are compatibility re-exports from persistence. The API and `document-worker` both import it. The worker does not import FastAPI
 - `packages/extraction` — candidate extraction contracts
 - `packages/topology` — graph contracts
 - `packages/validation` — deterministic rule contracts
@@ -134,7 +135,8 @@ See [ADR-002](../decisions/ADR-002-phase-0-technology-stack.md) for why these Ph
 /packages/project
 /packages/engineering-model
 /packages/document-model
-/packages/document-processing   (storage and ORM models; processing service not added yet)
+/packages/persistence           (neutral Base, project/revision and engineering ORM mappings)
+/packages/document-processing   (storage, document ORM mappings, processing service)
 /packages/extraction
 /packages/topology
 /packages/validation

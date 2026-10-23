@@ -2,9 +2,9 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** 5A — Registry, units, and requirement engine
+**Current implemented phase:** 5B — Core engineering-model persistence
 
-**Next:** Phase 5B — Core engineering-model persistence. Not started
+**Next:** Phase 5C — Revision inheritance. Not started
 
 ## Phase 0 — Architecture and repository setup
 
@@ -24,7 +24,7 @@ Decisions: [ADR-003](../decisions/ADR-003-project-revision-model.md)
 Delivered:
 
 - `packages/project` (`powerforge_project`) — status enums and transition helper
-- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0006_document_classification`. `0005_document_processing` adds `document_pages`, `document_processing_runs`, and `page_artifacts`. `0006_document_classification` adds `MIXED_DOCUMENT` and the classification tables.
+- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0007_engineering_model_core`, which adds the Phase 5B equipment tables. `0005_document_processing` adds `document_pages`, `document_processing_runs`, and `page_artifacts`. `0006_document_classification` adds `MIXED_DOCUMENT` and the classification tables.
 - REST API under `/api/projects` and nested revisions (create/list/get/patch + pause/resume/cancel/archive/unarchive + activate)
 - Web UI: `/` project list, `/projects/new`, `/projects/[id]`, revision placeholder, `/status` stack health
 - Backend and frontend tests covering lifecycle, uniqueness, and concurrent activate
@@ -208,7 +208,7 @@ The revision page was not clicked in a browser. No browser tools were available 
 
 ## Phase 5A — Registry, units, and requirement engine
 
-**Status:** Implemented (2026-10-23); Phase 5B has not started.
+**Status:** Implemented (2026-10-23).
 
 Specification: [Phase 5](specs/phase-5-engineering-model.md), scoped by the
 [Phase 5A prompt](prompts/phase-5a_codex.md). Decision: [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md).
@@ -228,6 +228,20 @@ with live integrations against a disposable database, which was removed afterwar
 Ruff and formatting checks passed. Python static typechecking is not configured;
 no frontend changes or frontend checks were made.
 
+## Phase 5B — Core engineering-model persistence
+
+**Status:** Implemented (2026-10-23); Phase 5C has not started.
+
+Specification: [Phase 5B prompt](prompts/phase-5b-codex.md), [Phase 5](specs/phase-5-engineering-model.md), and [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md).
+Implementation, decisions, and validation: [PHASE5B_HANDOFF.md](PHASE5B_HANDOFF.md).
+Usage: [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md).
+
+Migration `0007_engineering_model_core` adds project-owned equipment lineage, revision-scoped equipment, and typed canonical attributes. A neutral persistence package owns Base/project/revision/engineering mappings, with compatibility exports for existing document callers. Internal services atomically materialize registry attributes, normalize manual values, preserve meaningful data during type changes, and soft-remove/restore equipment. Document and engineering writes share project-then-revision locking and lifecycle checks.
+
+Initial attributes use NOT_EXTRACTED / UNVERIFIED with null origin, confidence, and values. Database constraints enforce typed slots, confidence bounds, ownership, and uniqueness. Registry-v1, units, and requirement evaluation remain unchanged. Revision creation still carries forward documents only. No model cloning, topology, public equipment CRUD, or frontend was added.
+
+Validation: all **918 Python tests passed** with live integrations on a disposable database; **473 passed, 445 skipped** without integrations. Ruff, formatting, whitespace, and package dependency checks passed. Exact commands are recorded in the handoff. Tests cover all 20 equipment types, typed values and representative unit conversions, manual states, safe type changes and rollback, soft lifecycle, ownership, real concurrent lifecycle changes, and fresh/data-preserving upgrade/downgrade/re-upgrade.
+
 ## Later phases
 
 | Phase | Work | Status |
@@ -237,7 +251,8 @@ no frontend changes or frontend checks were made.
 | 4 | Document classification | Complete (2026-10-12) |
 | 4.5 | Document workspace UI | Complete (2026-10-12) |
 | 5A | Registry, units, requirement engine, registry API | Implemented |
-| 5B–5G | Engineering model persistence through hardening | Not started |
+| 5B | Core engineering-model persistence | Implemented |
+| 5C–5G | Engineering-model cloning through hardening | Not started |
 | 6–13 | Extraction through export | Not started |
 
 Authentication, a users table, and project-level access control are required by the product spec and are **not** part of Phase 0, Phase 1, Phase 2, Phase 3, Phase 4, or Phase 4.5. `created_by` (and Phase 2's `uploaded_by`/`added_by`/`removed_by`) remain nullable until then.

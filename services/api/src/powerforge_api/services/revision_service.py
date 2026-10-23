@@ -21,12 +21,9 @@ from powerforge_api.exceptions import (
     RevisionProjectMismatch,
 )
 from powerforge_api.schemas.projects import RevisionCreate, RevisionUpdate
-from powerforge_api.services.revision_documents import (
-    assert_project_modifiable,
-    copy_included_associations,
-    lock_revision,
-)
-from powerforge_document_processing.models import Project, ProjectRevision
+from powerforge_api.services.revision_documents import copy_included_associations
+from powerforge_api.services.revision_writes import assert_project_modifiable, lock_revision
+from powerforge_persistence import Project, ProjectRevision
 from powerforge_project import RevisionStatus
 
 logger = logging.getLogger(__name__)
@@ -235,9 +232,7 @@ class RevisionService:
         if revision.status == RevisionStatus.ACTIVE:
             return
         if revision.status == RevisionStatus.SUPERSEDED:
-            raise RevisionNotActivatable(
-                "Superseded revisions cannot be activated"
-            )
+            raise RevisionNotActivatable("Superseded revisions cannot be activated")
 
         current_active = self.session.scalar(
             select(ProjectRevision).where(

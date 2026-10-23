@@ -169,3 +169,27 @@ class UnexpectedIntegrityError(ProjectError):
         message: str = "An unexpected database integrity error occurred",
     ) -> None:
         super().__init__(message)
+
+
+class EquipmentNotFound(ProjectError):
+    code = "equipment_not_found"
+
+
+class EquipmentAttributeNotFound(ProjectError):
+    code = "equipment_attribute_not_found"
+
+
+class EquipmentTypeChangeConflict(ProjectError):
+    code = "equipment_type_change_conflict"
+
+
+class InvalidEquipmentAttributeState(ProjectError):
+    code = "invalid_equipment_attribute_state"
+
+
+class InconsistentEquipment(ProjectError):
+    code = "inconsistent_equipment"
+
+
+class EquipmentRemoved(ProjectError):
+    code = "equipment_removed"

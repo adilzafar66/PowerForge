@@ -14,6 +14,8 @@ ENV PYTHONPATH=/app/services/worker/src
 
 COPY packages/shared /app/packages/shared
 COPY packages/project /app/packages/project
+COPY packages/persistence /app/packages/persistence
+COPY packages/engineering-model /app/packages/engineering-model
 COPY packages/document-model /app/packages/document-model
 COPY packages/document-processing /app/packages/document-processing
 COPY packages/ai /app/packages/ai
@@ -25,6 +27,8 @@ RUN pip install --no-cache-dir --upgrade pip \
         pip install --no-cache-dir \
             -e /app/packages/shared \
             -e /app/packages/project \
+            -e /app/packages/persistence \
+            -e /app/packages/engineering-model \
             -e /app/packages/document-model \
             -e /app/packages/document-processing \
             -e /app/packages/ai \
@@ -35,6 +39,8 @@ RUN pip install --no-cache-dir --upgrade pip \
         pip install --no-cache-dir \
             -e /app/packages/shared \
             -e /app/packages/project \
+            -e /app/packages/persistence \
+            -e /app/packages/engineering-model \
             -e /app/packages/document-model \
             -e /app/packages/document-processing \
             -e /app/packages/document-classification \

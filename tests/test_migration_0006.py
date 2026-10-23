@@ -226,7 +226,7 @@ def _seed_phase3(engine: Engine) -> dict[str, uuid.UUID]:
 
 @pytest.mark.integration
 def test_fresh_upgrade_reaches_0006_with_expected_schema(scratch_url: URL) -> None:
-    _alembic(scratch_url, "upgrade", "head")
+    _alembic(scratch_url, "upgrade", HEAD)
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == HEAD
@@ -280,7 +280,7 @@ def test_upgrade_from_0005_preserves_existing_rows(scratch_url: URL) -> None:
     try:
         assert _version(engine) == PREVIOUS
         seeded = _seed_phase3(engine)
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert _version(engine) == HEAD
         with engine.connect() as connection:
             page_id = connection.execute(
@@ -316,7 +316,7 @@ def test_downgrade_leaves_mixed_document_and_reupgrade_succeeds(scratch_url: URL
     engine = create_engine(scratch_url)
     try:
         seeded = _seed_phase3(engine)
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         _alembic(scratch_url, "downgrade", PREVIOUS)
 
         assert _version(engine) == PREVIOUS
@@ -325,9 +325,7 @@ def test_downgrade_leaves_mixed_document_and_reupgrade_succeeds(scratch_url: URL
         assert _enum_types(engine) == set()
         columns = {column["name"] for column in inspector.get_columns("revision_documents")}
         assert "accepted_classification_prediction_id" not in columns
-        assert "uq_document_pages_id_document_id" not in _constraint_names(
-            engine, "document_pages"
-        )
+        assert "uq_document_pages_id_document_id" not in _constraint_names(engine, "document_pages")
         labels = _enum_labels(engine, "document_classification")
         assert labels.count("MIXED_DOCUMENT") == 1
         with engine.connect() as connection:
@@ -337,7 +335,7 @@ def test_downgrade_leaves_mixed_document_and_reupgrade_succeeds(scratch_url: URL
             ).scalar_one()
         assert page_id == seeded["page_id"]
 
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert _version(engine) == HEAD
         assert _enum_types(engine) == PHASE4_ENUMS
         assert _enum_labels(engine, "document_classification").count("MIXED_DOCUMENT") == 1

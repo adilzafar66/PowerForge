@@ -53,6 +53,18 @@ class VerificationState(StrEnum):
     ENGINEER_VERIFIED = "ENGINEER_VERIFIED"
 
 
+class LifecycleStatus(StrEnum):
+    ACTIVE = "ACTIVE"
+    REMOVED = "REMOVED"
+
+
+class ValueOrigin(StrEnum):
+    MANUAL = "MANUAL"
+    AI_EXTRACTION = "AI_EXTRACTION"
+    INFERRED = "INFERRED"
+    IMPORTED = "IMPORTED"
+
+
 class RequirementRuleType(StrEnum):
     ANY_OF = "ANY_OF"
     ALL_OF = "ALL_OF"

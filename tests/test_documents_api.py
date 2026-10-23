@@ -445,7 +445,7 @@ def test_database_failure_after_the_write_removes_the_object(
     def boom(*_args: Any, **_kwargs: Any) -> None:
         raise RuntimeError("database exploded")
 
-    monkeypatch.setattr(document_service, "lock_revision", boom)
+    monkeypatch.setattr(document_service, "lock_writable_revision", boom)
 
     response = upload(
         ctx["project_id"], ctx["revision_id"], http=TestClient(app, raise_server_exceptions=False)
@@ -465,7 +465,7 @@ def test_failed_cleanup_is_logged_and_does_not_mask_the_original_error(
     def boom(*_args: Any, **_kwargs: Any) -> None:
         raise RuntimeError("database exploded")
 
-    monkeypatch.setattr(document_service, "lock_revision", boom)
+    monkeypatch.setattr(document_service, "lock_writable_revision", boom)
     ctx["storage"].fail_on("delete", StorageError("cannot delete"))
 
     response = upload(

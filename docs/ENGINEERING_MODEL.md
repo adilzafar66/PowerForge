@@ -2,7 +2,7 @@
 
 The canonical engineering model belongs to a project revision. It is independent of documents, AI providers, and analysis software. [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md) and the [Phase 5 specification](specs/phase-5-engineering-model.md) supersede the Phase 0 placeholder taxonomy, JSONB attribute proposal, and combined information/verification states previously described here.
 
-**Implemented: Phase 5A only.** `packages/engineering-model` owns the pure registry, value validation, unit normalization, and requirement evaluation. It has no third-party dependencies. Equipment persistence, revision model inheritance, topology persistence, and the Engineering Model UI have not been implemented.
+**Implemented: Phases 5A and 5B.** `packages/engineering-model` owns the pure registry, value validation, unit normalization, and requirement evaluation, with no third-party dependencies. `packages/persistence` owns revision-scoped equipment storage; the API service layer provides internal manual authoring operations. Revision model inheritance, topology, public equipment CRUD, and the Engineering Model UI have not been implemented. See [PHASE5B_HANDOFF.md](PHASE5B_HANDOFF.md) for implementation and validation details.
 
 ## Registry ownership
 
@@ -30,7 +30,7 @@ Equipment keys use the approved uppercase identifiers, such as `TWO_WINDING_TRAN
 
 ## Required, Critical, and information state
 
-Required means an attribute is unconditionally needed for a minimally useful representation. Critical means missing or incorrect information can materially affect an intended engineering study. Neither flag is derived from the other, and neither imposes database NOT NULL behavior. Incomplete equipment must remain representable in later phases.
+Required means an attribute is unconditionally needed for a minimally useful representation. Critical means missing or incorrect information can materially affect an intended engineering study. Neither flag is derived from the other, and neither imposes database NOT NULL behavior. Incomplete equipment remains representable and can be saved.
 
 Information states are `PRESENT`, `UNKNOWN`, `MISSING`, `NOT_APPLICABLE`, `NOT_EXTRACTED`, and `CONFLICTING`. Verification and origin are separate concepts. The old `LOW_CONFIDENCE`, `INFERRED`, and `VERIFIED` information-state placeholders are removed; no existing production caller used them.
 
@@ -90,12 +90,40 @@ External context accepts strict booleans keyed by these stable rule IDs:
 | VFD | `VFD_OUTPUT_FAULT_DEFINITION` |
 | UPS | `UPS_INVERTER_FAULT_CURRENT` |
 
-Omitted external context returns NOT_EVALUATED, even if the target value exists. True evaluates completeness; false returns NOT_APPLICABLE. Unknown keys and non-boolean context values are rejected to avoid silently ignoring caller mistakes. The full status vocabulary is SATISFIED, UNSATISFIED, NOT_APPLICABLE, and NOT_EVALUATED. Results are not persisted and do not block future incomplete-model saves.
+Omitted external context returns NOT_EVALUATED, even if the target value exists. True evaluates completeness; false returns NOT_APPLICABLE. Unknown keys and non-boolean context values are rejected to avoid silently ignoring caller mistakes. The full status vocabulary is SATISFIED, UNSATISFIED, NOT_APPLICABLE, and NOT_EVALUATED. Results are not persisted and do not block incomplete-model saves.
 
 ## Registry API
 
 `GET /api/engineering-model/registry` returns the registry version, ordered equipment/attributes, flags, enum choices, canonical units, attribute-specific supported input units, typed conditions, requirement rows, and unit families. It has no database dependency, accepts no writes, and has a typed OpenAPI response. Future frontend forms should consume it rather than duplicate the registry in TypeScript.
 
+## Core persistence and service boundary
+
+Migration `0007_engineering_model_core` adds `equipment_lineages`, `equipment`, and `equipment_attributes`. The neutral `powerforge_persistence` package owns the shared SQLAlchemy Base and project/revision mappings; `powerforge_persistence.engineering` owns the three engineering mappings. Existing imports of Base/Project/ProjectRevision from document-processing remain compatibility re-exports of those same objects. Document-specific mappings stay in document-processing. The pure engineering-model package has no ORM imports.
+
+EquipmentLineage provides stable project-owned identity. Equipment is a revision snapshot with a lineage, text equipment type, optional tag/name/description, audit fields, and ACTIVE/REMOVED lifecycle. Tags are deliberately non-unique. A revision can contain each lineage only once. Composite foreign keys enforce project/revision/lineage ownership and attribute ownership; optional inheritance references enforce the same project and forbid self-reference. Phase 5B leaves inheritance references null.
+
+Equipment attributes use separate NUMERIC, BIGINT, TEXT, and BOOLEAN columns. PRESENT requires exactly one compatible slot; every other information state requires all slots null. ENUM uses the text slot with registry validation in the service. Confidence, when present, is between zero and one. Non-finite numerics are rejected. Equipment types, attribute keys, and canonical units are text, validated against registry-v1, rather than database enums. Five closed state/type vocabularies use PostgreSQL enums, including all five verification states starting with UNVERIFIED.
+
+`EngineeringModelService(session)` in `powerforge_api.services.engineering_model_service` implements:
+
+- `create_equipment`, `get_equipment`, and `list_equipment` (ACTIVE by default; filter REMOVED or pass `lifecycle_status=None` for all).
+- `get_equipment_attributes`, returned in registry order.
+- `update_equipment` for tag, name, description, and safe equipment-type changes.
+- `set_attribute` for manual PRESENT, UNKNOWN, MISSING, or NOT_APPLICABLE edits.
+- Idempotent `remove_equipment` and `restore_equipment`.
+
+Every operation takes project and revision IDs; individual operations also take the equipment ID. Writes accept an optional actor UUID and own their transaction, including rollback on failure. Use a dedicated session per unit of work. These are internal Python interfaces, not new HTTP endpoints.
+
+Creation atomically inserts a new lineage, equipment, and exactly the attributes defined by the selected registry type. Equipment starts ACTIVE / MANUAL / ENGINEER_REVIEWED. Every attribute starts NOT_EXTRACTED / UNVERIFIED, with null origin, confidence, inheritance, and value slots, plus the registry's exact value type and canonical unit. Required/Critical flags remain registry metadata and do not prevent creating incomplete equipment.
+
+PRESENT writes reuse Phase 5A normalization, store only the compatible typed slot, and clear the others. State-only edits clear all values and reject supplied values or input units. Manual edits always set MANUAL / ENGINEER_REVIEWED and null confidence; callers cannot supply provenance or verification. INTEGER storage supports signed 64-bit values; engineering numerics use Decimal and unconstrained PostgreSQL NUMERIC precision/scale. Ordinary manual edits cannot set NOT_EXTRACTED or CONFLICTING.
+
+Type changes preserve rows only when key, value type, and canonical unit match the destination; a PRESENT enum value must also be allowed there. Incompatible rows may be discarded only if still NOT_EXTRACTED / UNVERIFIED with no values, origin, confidence, or inherited-from reference. Any meaningful incompatible row rejects the entire transaction, including accompanying metadata edits. New destination attributes receive the initial defaults. No type-change conversion or inference is attempted.
+
+Removal preserves equipment, lineage, and all attributes, while setting removal timestamp/actor. Restore clears removal metadata and preserves values. Restore removed equipment before editing it. Service writes validate the complete materialized attribute set, ownership, types, units, and values; `validate_equipment_consistency()` detects corruption without silently repairing it.
+
+The neutral `revision_writes` guard locks project FOR SHARE, then revision FOR UPDATE, and refreshes status under those locks. ACTIVE/PAUSED projects with DRAFT/ACTIVE revisions allow writes; ARCHIVED/CANCELLED projects and SUPERSEDED revisions reject them. Reads remain available. Document writes use the same guard and retain their existing error messages. Engineering writes update revision timestamps without upgrading the shared project lock.
+
 ## Later phases
 
-ADR-007 defines the future typed relational snapshot rooted at `ProjectRevision`, with stable equipment lineage and separate node/connection topology. Documents, evidence, candidates, reconciliation, and verification remain separate responsibilities. Phase 5A adds no ORM entities, migrations, model cloning, equipment/topology CRUD, frontend, AI extraction, findings tables, protection-function model, or exporters.
+Phase 5C has not begun. Revision creation still carries forward documents only. No equipment cloning, topology, public equipment CRUD, frontend, AI extraction, evidence/candidates/reconciliation, persisted findings, protection-function model, or exporters were added in Phase 5B. These remain separate responsibilities under ADR-007.

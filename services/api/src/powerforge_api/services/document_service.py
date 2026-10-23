@@ -68,9 +68,8 @@ from powerforge_api.services.file_ingest import IngestedUpload, ingest_upload
 from powerforge_api.services.file_inspector import FileInspector, InspectionResult
 from powerforge_api.services.revision_documents import (
     assert_documents_mutable,
-    lock_project_shared,
-    lock_revision,
 )
+from powerforge_api.services.revision_writes import lock_writable_revision
 from powerforge_document_classification.fake import FakeClassificationProvider
 from powerforge_document_classification.service import (
     ClassificationDisabled,
@@ -791,14 +790,12 @@ class DocumentService:
 
     def _lock_for_mutation(self, project_id: uuid.UUID, revision_id: uuid.UUID) -> ProjectRevision:
         """Project FOR SHARE, then revision FOR UPDATE, then the mutability re-check (D11)."""
-        project = lock_project_shared(self.session, project_id)
-        if project is None:
-            raise ProjectNotFound(f"Project {project_id} not found")
-        revision = lock_revision(self.session, project_id, revision_id)
-        if revision is None:
-            raise RevisionNotFound(f"Revision {revision_id} not found")
-        assert_documents_mutable(project, revision)
-        return revision
+        return lock_writable_revision(
+            self.session,
+            project_id,
+            revision_id,
+            read_only_message="Superseded revisions have a read-only document package",
+        )
 
     def _load_association(
         self,

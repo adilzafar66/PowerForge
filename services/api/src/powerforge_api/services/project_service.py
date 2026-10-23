@@ -15,8 +15,8 @@ from powerforge_api.exceptions import (
     ProjectNotFound,
 )
 from powerforge_api.schemas.projects import ProjectCreate, ProjectUpdate
-from powerforge_api.services.revision_documents import assert_project_modifiable
-from powerforge_document_processing.models import Project, ProjectRevision
+from powerforge_api.services.revision_writes import assert_project_modifiable
+from powerforge_persistence import Project, ProjectRevision
 from powerforge_project import ProjectStatus, RevisionStatus, can_transition
 
 
@@ -135,9 +135,7 @@ class ProjectService:
         if project.status == ProjectStatus.ARCHIVED:
             return project
         if not can_transition(project.status, ProjectStatus.ARCHIVED):
-            raise InvalidStatusTransition(
-                f"Cannot archive project from status {project.status}"
-            )
+            raise InvalidStatusTransition(f"Cannot archive project from status {project.status}")
         project.status_before_archive = project.status
         project.status = ProjectStatus.ARCHIVED
         project.archived_at = datetime.now(UTC)
@@ -149,14 +147,10 @@ class ProjectService:
     def unarchive_project(self, project_id: uuid.UUID) -> Project:
         project = self.get_project(project_id)
         if project.status != ProjectStatus.ARCHIVED:
-            raise InvalidStatusTransition(
-                f"Cannot unarchive project with status {project.status}"
-            )
+            raise InvalidStatusTransition(f"Cannot unarchive project with status {project.status}")
         restore_status = project.status_before_archive or ProjectStatus.ACTIVE
         if not can_transition(project.status, restore_status):
-            raise InvalidStatusTransition(
-                f"Cannot unarchive project to status {restore_status}"
-            )
+            raise InvalidStatusTransition(f"Cannot unarchive project to status {restore_status}")
         project.status = restore_status
         project.status_before_archive = None
         project.archived_at = None
@@ -180,13 +174,9 @@ class ProjectService:
         )
         self._reject_if_locked(project)
         if from_statuses is not None and project.status not in from_statuses:
-            raise InvalidStatusTransition(
-                f"Cannot transition from {project.status} to {to_status}"
-            )
+            raise InvalidStatusTransition(f"Cannot transition from {project.status} to {to_status}")
         if not can_transition(project.status, to_status):
-            raise InvalidStatusTransition(
-                f"Cannot transition from {project.status} to {to_status}"
-            )
+            raise InvalidStatusTransition(f"Cannot transition from {project.status} to {to_status}")
         project.status = to_status
         project.updated_at = datetime.now(UTC)
         self.session.commit()
