@@ -1,5 +1,6 @@
 """Focused end-to-end canonical API tests against a disposable PostgreSQL database."""
 
+from decimal import Decimal
 from uuid import UUID, uuid4
 
 import pytest
@@ -8,8 +9,10 @@ from sqlalchemy import event
 
 from powerforge_api.db import get_engine, get_session_factory
 from powerforge_api.main import app
-from powerforge_engineering_model import get_equipment_definition
+from powerforge_engineering_model import ValueOrigin, VerificationState, get_equipment_definition
 from powerforge_persistence import Project, ProjectRevision
+from powerforge_persistence.engineering import Equipment
+from powerforge_persistence.topology import ModelConnection, ModelNode
 from powerforge_project import ProjectStatus, RevisionStatus
 
 client = TestClient(app)
@@ -403,6 +406,29 @@ def test_manual_request_provenance_is_not_writable(model_api):
     assert checked(client.get(f"{base}/equipment/{row['id']}"))["lifecycle_status"] == "ACTIVE"
 
 
+def test_empty_patch_preserves_provenance_and_audit(model_api):
+    owner = equipment(model_api)
+    first, second = node(model_api), node(model_api)
+    edge = connection(model_api, first, second)
+    rows = ((Equipment, owner), (ModelNode, first), (ModelConnection, edge))
+    with get_session_factory()() as session:
+        for model, response in rows:
+            row = session.get(model, UUID(response["id"]))
+            row.origin = ValueOrigin.AI_EXTRACTION
+            row.verification_state = VerificationState.AI_EXTRACTED
+            if model is ModelConnection:
+                row.confidence = Decimal("0.83")
+        session.commit()
+
+    # Compare full canonical responses, including provenance, confidence and audit timestamps.
+    before = {
+        resource: items(model_api, resource) for resource in ("equipment", "nodes", "connections")
+    }
+    for resource, response in (("equipment", owner), ("nodes", first), ("connections", edge)):
+        checked(client.patch(f"{model_api}/{resource}/{response['id']}", json={}), 422)
+    assert {resource: items(model_api, resource) for resource in before} == before
+
+
 def test_path_scoping_and_missing_objects(model_api):
     base = model_api
     parent = base.rsplit("/", 1)[0]
@@ -427,7 +453,8 @@ def test_path_scoping_and_missing_objects(model_api):
         checked(client.post(f"{other}/equipment/{scoped_id}/remove"), 404)
     for resource, identity in (("nodes", first["id"]), ("connections", edge["id"])):
         for scoped_id in (identity, str(uuid4())):
-            checked(client.patch(f"{other}/{resource}/{scoped_id}", json={}), 404)
+            body = {"label": "Edited"} if resource == "nodes" else {"phase_configuration": "ABC"}
+            checked(client.patch(f"{other}/{resource}/{scoped_id}", json=body), 404)
             checked(client.post(f"{other}/{resource}/{scoped_id}/restore"), 404)
     checked(
         client.post(

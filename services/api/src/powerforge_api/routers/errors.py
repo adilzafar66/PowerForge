@@ -108,8 +108,7 @@ def http_for(exc: ProjectError) -> HTTPException:
         | ClassificationNotAcceptable
         | EquipmentRemoved
         | TopologyObjectRemoved
-        | EquipmentTypeChangeConflict
-        | InconsistentEquipment,
+        | EquipmentTypeChangeConflict,
     ):
         status_code = status.HTTP_409_CONFLICT
     elif isinstance(exc, FileTooLarge):
@@ -131,9 +130,11 @@ def http_for(exc: ProjectError) -> HTTPException:
         status_code = _UNPROCESSABLE
     elif isinstance(exc, StorageUploadFailed | StorageDownloadFailed):
         status_code = status.HTTP_502_BAD_GATEWAY
-    elif isinstance(exc, UnexpectedIntegrityError):
+    elif isinstance(exc, UnexpectedIntegrityError | InconsistentEquipment):
         status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     detail: dict[str, str] = {"detail": exc.message, "code": exc.code}
+    if isinstance(exc, InconsistentEquipment):
+        detail["detail"] = "An internal engineering model consistency error occurred"
     if isinstance(exc, DocumentAlreadyInRevision):
         if exc.existing_revision_document_id is not None:
             detail["existing_revision_document_id"] = str(exc.existing_revision_document_id)

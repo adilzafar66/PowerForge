@@ -83,14 +83,16 @@ PATCH uses `model_dump(exclude_unset=True)`: omitted fields remain unchanged. Ex
 
 ## Errors, ownership, and lifecycle integration
 
+Equipment, node, and connection PATCH schemas require at least one explicitly supplied field. An empty `{}` returns 422 before the service runs, preserving existing provenance, confidence, and audit timestamps. Explicit null on a clearable field still counts as a supplied edit. This validation belongs to the API boundary; accepted service semantics are unchanged.
+
 `model_api_errors()` translates known domain input subclasses (unknown equipment/attribute/unit, incompatible unit, invalid attribute/enum value) into `InvalidEngineeringModelInput`, code `invalid_engineering_model_input`, preserving the useful message. Pure packages remain HTTP-independent. It does not catch arbitrary exceptions or registry-definition bugs. Services retain their existing rollback behavior.
 
 | HTTP | Application errors |
 | --- | --- |
 | 404 | Missing/scoped-out Equipment, EquipmentAttribute, ModelNode, ModelConnection, project, or revision |
-| 409 | Removed-object edits, inactive connection endpoints, meaningful equipment type-change conflict, inconsistent equipment state, archived/cancelled projects, superseded revisions |
+| 409 | Removed-object edits, inactive connection endpoints, meaningful equipment type-change conflict, archived/cancelled projects, superseded revisions |
 | 422 | Invalid engineering input (including unknown attribute key), invalid attribute state, invalid topology, request/schema/query validation |
-| 500 | UnexpectedIntegrityError stays generic; programming/configuration errors are not relabeled as input errors |
+| 500 | InconsistentEquipment uses code `inconsistent_equipment` with a generic safe message; UnexpectedIntegrityError stays generic; programming/configuration errors are not relabeled as input errors |
 
 Domain/application errors keep the existing `{"detail": {"detail": "...", "code": "..."}}` envelope. Pydantic validation retains FastAPI's usual 422 error list. Existing InvalidTopology behavior for restoring a terminal whose equipment is removed remains 422; inactive connection endpoints use TopologyObjectRemoved (409). No raw SQL or PostgreSQL error text is exposed.
 
@@ -134,6 +136,15 @@ docker compose exec -T postgres dropdb -U powerforge powerforge_phase5e_20261024
 Initial runs identified two test assumptions to correct: a newly written test referenced a nonexistent BUS frequency attribute, and a historical Phase 5C OpenAPI test forbade the now-required equipment routes. Final runs above include both corrections. No production implementation change was needed to resolve those failures. No frontend checks were run because no frontend files changed; no images were built or deployed.
 
 ## Decisions and remaining concerns
+
+Review follow-up: empty PATCH rejection was verified with all focused API tests:
+
+```sh
+DATABASE_URL=postgresql+psycopg://powerforge:powerforge@localhost:5432/powerforge_phase5e_patch_20261024 RUN_INTEGRATION=1 .venv/bin/pytest tests/test_model_api.py tests/test_model_api_contract.py -q
+# 29 passed, 6 existing dependency warnings, 3.29 seconds.
+```
+
+The additional cases verify pre-service rejection for all three update schemas, explicit-null acceptance, and unchanged persisted AI provenance/confidence/audit state. Ownership tests now submit legitimate edits instead of empty bodies. Ruff, changed-file formatting, and whitespace checks passed. The disposable database was initialized through 0009 and removed afterward; the full-suite results above describe the original Phase 5E validation, not a rerun for this focused schema fix.
 
 - No architectural deviation or persistence redesign. The only service query extension is equipment search; API-only stricter unit-field presence checks distinguish omitted from explicit-null PATCH input.
 - Listings remain unpaginated `items` wrappers as explicitly allowed by the Phase 5E prompt. Bounded listing/pagination is a future performance concern.

@@ -103,7 +103,6 @@ def test_model_http_error_mapping():
             errors.EquipmentRemoved,
             errors.TopologyObjectRemoved,
             errors.EquipmentTypeChangeConflict,
-            errors.InconsistentEquipment,
             errors.ArchivedProject,
             errors.CancelledProject,
             errors.RevisionReadOnly,
@@ -120,6 +119,16 @@ def test_model_http_error_mapping():
             response = http_for(error("safe message"))
             assert response.status_code == status
             assert response.detail == {"code": error.code, "detail": "safe message"}
+
+
+def test_inconsistent_equipment_is_a_safe_server_error():
+    with pytest.raises(HTTPException) as raised, model_api_errors():
+        raise errors.InconsistentEquipment("Internal ownership and registry mismatch details")
+    assert raised.value.status_code == 500
+    assert raised.value.detail == {
+        "code": "inconsistent_equipment",
+        "detail": "An internal engineering model consistency error occurred",
+    }
 
 
 def test_domain_boundary_translates_input_but_not_programming_errors():
@@ -161,3 +170,29 @@ def test_request_validation_precedes_database_work(body):
         assert response.status_code == 422
     finally:
         app.dependency_overrides.pop(get_session, None)
+
+
+@pytest.mark.parametrize("resource", ["equipment", "nodes", "connections"])
+def test_empty_patch_is_rejected_before_service_call(resource):
+    from powerforge_api.db import get_session
+
+    app.dependency_overrides[get_session] = lambda: None
+    try:
+        path = BASE.format(project_id=uuid4(), revision_id=uuid4())
+        response = TestClient(app).patch(f"{path}/{resource}/{uuid4()}", json={})
+        assert response.status_code == 422
+        assert "At least one field must be provided" in response.json()["detail"][0]["msg"]
+    finally:
+        app.dependency_overrides.pop(get_session, None)
+
+
+def test_explicit_null_is_a_supplied_patch_field():
+    from powerforge_api.schemas.model import ConnectionUpdate, EquipmentUpdate, NodeUpdate
+
+    for schema, key in (
+        (EquipmentUpdate, "tag"),
+        (NodeUpdate, "label"),
+        (ConnectionUpdate, "phase_configuration"),
+        (ConnectionUpdate, "nominal_voltage"),
+    ):
+        assert schema.model_validate({key: None}).model_dump(exclude_unset=True) == {key: None}

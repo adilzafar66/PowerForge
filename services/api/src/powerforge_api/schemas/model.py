@@ -34,6 +34,16 @@ class ManualAction(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class ManualUpdate(ManualAction):
+    """An empty PATCH must not be interpreted as a manual review action."""
+
+    @model_validator(mode="after")
+    def require_supplied_field(self) -> Self:
+        if not self.model_fields_set:
+            raise ValueError("At least one field must be provided")
+        return self
+
+
 class EquipmentCreate(ManualAction):
     equipment_type: EquipmentType
     tag: str | None = None
@@ -41,7 +51,7 @@ class EquipmentCreate(ManualAction):
     description: str | None = None
 
 
-class EquipmentUpdate(ManualAction):
+class EquipmentUpdate(ManualUpdate):
     equipment_type: EquipmentType | None = Field(
         default=None, description="Omit to keep type; null is invalid."
     )
@@ -91,7 +101,7 @@ class NodeCreate(ManualAction):
         return self
 
 
-class NodeUpdate(ManualAction):
+class NodeUpdate(ManualUpdate):
     terminal_key: str | None = Field(
         default=None, description="Terminal nodes only. Omit to keep; null/blank is invalid."
     )
@@ -119,7 +129,7 @@ class ConnectionCreate(ManualAction):
     )
 
 
-class ConnectionUpdate(ManualAction):
+class ConnectionUpdate(ManualUpdate):
     from_node_id: UUID | None = None
     to_node_id: UUID | None = None
     connection_kind: ConnectionKind | None = None
