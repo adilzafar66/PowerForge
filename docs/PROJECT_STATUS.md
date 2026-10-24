@@ -2,9 +2,9 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** 5C — Revision model inheritance and revision-level engineering metadata
+**Current implemented phase:** 5D — Canonical topology persistence
 
-**Next:** Phase 5D — Manually authored topology persistence. Not started
+**Next:** Phase 5E — Revision-scoped engineering-model APIs. Not started
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -26,7 +26,7 @@ Decisions: [ADR-003](../decisions/ADR-003-project-revision-model.md)
 Delivered:
 
 - `packages/project` (`powerforge_project`) — status enums and transition helper
-- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0008_revision_model_metadata`, which adds the Phase 5C revision metadata after the Phase 5B equipment tables in `0007_engineering_model_core`. `0005_document_processing` adds `document_pages`, `document_processing_runs`, and `page_artifacts`. `0006_document_classification` adds `MIXED_DOCUMENT` and the classification tables.
+- PostgreSQL tables `projects` and `project_revisions` (Alembic `0002_projects_and_revisions`, `0003_status_before_archive`); Phase 2 migration `0004_documents_and_lineage` adds revision lineage, `documents`, and `revision_documents`. Alembic head is `0009_topology_persistence`, which adds the Phase 5D topology tables after Phase 5C revision metadata in `0008_revision_model_metadata` and Phase 5B equipment tables in `0007_engineering_model_core`. `0005_document_processing` adds `document_pages`, `document_processing_runs`, and `page_artifacts`. `0006_document_classification` adds `MIXED_DOCUMENT` and the classification tables.
 - REST API under `/api/projects` and nested revisions (create/list/get/patch + pause/resume/cancel/archive/unarchive + activate)
 - Web UI: `/` project list, `/projects/new`, `/projects/[id]`, revision placeholder, `/status` stack health
 - Backend and frontend tests covering lifecycle, uniqueness, and concurrent activate
@@ -246,7 +246,7 @@ Validation: all **918 Python tests passed** with live integrations on a disposab
 
 ## Phase 5C — Revision model inheritance and model metadata
 
-**Status:** Implemented (2026-10-23); Phase 5D has not started.
+**Status:** Implemented (2026-10-23).
 
 Specification: [Phase 5C prompt](prompts/phase-5c-codex.md), [Phase 5](specs/phase-5-engineering-model.md), and [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md). Implementation, decisions, and exact validation results: [PHASE5C_HANDOFF.md](PHASE5C_HANDOFF.md).
 
@@ -256,9 +256,21 @@ Clone compatibility is checked against the current immutable registry. Newly add
 
 The existing revision-create UI now exposes only the independent model carry-forward checkbox. No topology, public engineering-model CRUD API, Engineering Model workspace, extraction, evidence, reconciliation, or Phase 5D work was added.
 
+## Phase 5D — Canonical topology persistence
+
+**Status:** Implemented (2026-10-23); Phase 5E has not started.
+
+Specification: [Phase 5D prompt](prompts/phase-5d-codex.md), [Phase 5](specs/phase-5-engineering-model.md), and [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md). Implementation and exact validation commands: [PHASE5D_HANDOFF.md](PHASE5D_HANDOFF.md). Usage and lifecycle semantics: [TOPOLOGY.md](TOPOLOGY.md).
+
+Alembic head `0009_topology_persistence` adds `model_nodes` and `model_connections`, with composite ownership, terminal uniqueness, node-shape, self-loop, canonical-voltage, confidence, lifecycle, and inheritance constraints. The pure topology package replaces the stale BUS placeholder with exactly EQUIPMENT_TERMINAL / ELECTRICAL_NODE. Connections use ELECTRICAL / GROUNDING / OTHER and UNDIRECTED / NOMINAL_FROM_TO.
+
+Internal manual services use the established project-then-revision locks. Equipment/node removal cascades logical connection removal atomically; restoring equipment restores terminals, while restoring nodes never restores connections. Model carry-forward remaps ACTIVE topology after equipment/attributes, preserves immediate-base provenance, and rejects inconsistent active graphs atomically.
+
+Validation: **1,024 Python tests passed** with live integrations against disposable PostgreSQL/MinIO; **496 passed, 528 skipped** offline. Ruff, changed-file formatting, dependency, and whitespace checks passed. No frontend files or public CRUD routes were changed. Phase 5E remains unimplemented.
+
 ## Later phases
 
-Phase 5A through 5C are implemented; 5D–5G have not started. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5D are implemented; 5E–5G have not started. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -269,7 +281,9 @@ Phase 5A through 5C are implemented; 5D–5G have not started. See [ROADMAP.md](
 | 5A | Registry, units, requirement engine, registry API | Implemented |
 | 5B | Core engineering-model persistence | Implemented |
 | 5C | Revision model inheritance and revision-level model metadata | Implemented |
-| 5D–5G | Topology persistence, revision-scoped APIs, basic workspace UI, hardening | Not started |
+| 5D | Canonical topology persistence | Implemented |
+| 5E | Revision-scoped engineering-model APIs | Next; not started |
+| 5F–5G | Basic workspace UI and hardening | Not started |
 | 6 | Evidence, candidates, and structured extraction | Not started |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |
@@ -279,7 +293,7 @@ Phase 5A through 5C are implemented; 5D–5G have not started. See [ROADMAP.md](
 | 12 | Model visualization | Not started |
 | 13 | Study-tool integration, automation, and reporting | Not started |
 
-Authentication, real user identity, project authorization, and actor-backed audit records are not implemented through Phase 5C. They are a hard prerequisite/subphase for Phase 11 completion and must be pulled forward if shared/multi-user deployment is needed earlier. Existing actor UUIDs remain nullable; they are not a substitute for trustworthy audit identity.
+Authentication, real user identity, project authorization, and actor-backed audit records are not implemented through Phase 5D. They are a hard prerequisite/subphase for Phase 11 completion and must be pulled forward if shared/multi-user deployment is needed earlier. Existing actor UUIDs remain nullable; they are not a substitute for trustworthy audit identity.
 
 ETAP / SKM / EasyPower adapters, study automation, results ingestion, and reporting are planned for Phase 13. Protection/settings and operating/study configurations require post-core-Phase-5 design gates before extraction/integration depends on them. None of this is implemented.
 

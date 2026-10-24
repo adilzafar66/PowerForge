@@ -2,7 +2,7 @@
 
 The canonical engineering model belongs to a project revision. It is independent of documents, AI providers, and analysis software. [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md) and the [Phase 5 specification](specs/phase-5-engineering-model.md) supersede the Phase 0 placeholder taxonomy, JSONB attribute proposal, and combined information/verification states previously described here.
 
-**Implemented: Phases 5A through 5C.** `packages/engineering-model` owns the pure registry, value validation, unit normalization, requirement evaluation, and effective model-value semantics, with no third-party dependencies. `packages/persistence` owns revision-scoped equipment storage and revision-level engineering metadata; the API service layer provides internal manual authoring and transactional revision inheritance. Topology, public equipment CRUD, and the Engineering Model workspace have not been implemented. See [PHASE5C_HANDOFF.md](PHASE5C_HANDOFF.md) for implementation and validation details.
+**Implemented: Phases 5A through 5D.** `packages/engineering-model` owns the pure registry, value validation, unit normalization, requirement evaluation, and effective model-value semantics, with no third-party dependencies. `packages/persistence` owns revision-scoped equipment, topology storage, and revision-level engineering metadata; the API service layer provides internal manual authoring and transactional revision inheritance. Public equipment/topology CRUD and the Engineering Model workspace are later phases. See [PHASE5D_HANDOFF.md](PHASE5D_HANDOFF.md) for implementation and validation details.
 
 ## Registry ownership
 
@@ -24,7 +24,7 @@ from powerforge_engineering_model import (
 )
 ```
 
-Equipment keys use the approved uppercase identifiers, such as `TWO_WINDING_TRANSFORMER` and `SYNCHRONOUS_GENERATOR`. Generic Phase 0 keys/aliases are removed. Switchgear, switchboard, panelboard, MCC, and junction box are `BUS.bus_type` choices. A fused disconnect is a `SINGLE_THROW_SWITCH` with associated `FUSE` equipment; a pure junction belongs to future topology.
+Equipment keys use the approved uppercase identifiers, such as `TWO_WINDING_TRANSFORMER` and `SYNCHRONOUS_GENERATOR`. Generic Phase 0 keys/aliases are removed. Switchgear, switchboard, panelboard, MCC, and junction box are `BUS.bus_type` choices. A fused disconnect is a `SINGLE_THROW_SWITCH` with associated `FUSE` equipment; a pure junction is a topology ELECTRICAL_NODE.
 
 `validate_registry()` runs when the API application is constructed. It rejects malformed taxonomy, attributes, units, conditions, references, and alternative groups. The snapshot test also locks exact metadata and the 20/296/44 counts. Once registry-v1 is frozen, semantic changes require a deliberate registry version and migration strategy.
 
@@ -136,10 +136,18 @@ Registry evolution is conservative. Attributes newly present in registry-v1 mate
 
 `resolve_effective_model_value()` supplies the Phase 5C domain rule for applicable frequency and phase-count attributes: an explicit PRESENT equipment value wins, otherwise the revision value is used, otherwise the result is unspecified. When an explicit value differs from the revision value, the returned `mismatch` flag is true. Both values remain unchanged; Phase 5C persists no validation finding. Revision defaults are never materialized into EquipmentAttribute rows and never change their information state or provenance.
 
+## Canonical topology — Phase 5D
+
+Migration `0009_topology_persistence` adds ModelNode and ModelConnection in the neutral persistence layer. Nodes are EQUIPMENT_TERMINAL or ELECTRICAL_NODE; connections reference nodes, with composite ownership foreign keys and no self-loops. Parallel edges are valid. Cables and physical buses remain Equipment. The pure topology package owns the closed kind/direction enums.
+
+The internal TopologyService supports manual node/connection creation, reads, metadata edits/rewiring, and soft lifecycle under the shared writable-revision guard. Equipment removal atomically removes terminals and incident active connections; equipment restore restores terminals only. Node restore also leaves connections removed. Connection restore requires active same-revision endpoints. Nominal voltage uses the accepted Decimal conversion utility and canonical kV.
+
+Model carry-forward now includes ACTIVE nodes and connections after equipment/attributes, remapping every equipment reference and endpoint into the destination. Inheritance pointers reference the actual immediate base; corrupt active topology fails the entire transaction. Revision defaults never populate topology fields, and explicit phase overrides are not rejected. See [TOPOLOGY.md](TOPOLOGY.md).
+
 ## Future study domains
 
 The Phase 5 physical equipment/topology model is not a complete study model. Protection functions/settings and operating/study configurations require dedicated post-core-Phase-5 design decisions before extraction or integration depends on their schemas. Phase 5 does not introduce a general ProtectionFunction persistence model. Canonical `LV_BREAKER.trip_rating` and `LV_BREAKER.long_time_pickup` remain equipment/design values and may coexist with separate future study-adjusted settings without being overwritten. These domains must not be added as arbitrary flat equipment attributes; [ROADMAP.md](ROADMAP.md) records the concepts and design gates.
 
 ## Later phases
 
-Phase 5D has not begun. Phase 5C added only revision model carry-forward, revision-level metadata, its effective-value helper, and the minimal existing revision-create checkbox. No topology, public equipment CRUD, Engineering Model workspace, AI extraction, evidence/candidates/reconciliation, persisted findings, protection-function model, or exporters were added. These remain separate responsibilities under ADR-007.
+Phase 5E has not begun. Phase 5D adds internal topology authoring, lifecycle integration, and graph inheritance. Public engineering-model APIs, the Engineering Model workspace, AI extraction, evidence/candidates/reconciliation, persisted findings, protection-function model, and exporters remain separate responsibilities under ADR-007.

@@ -23,7 +23,7 @@ def _checks(engine) -> set[str]:
 
 @pytest.mark.integration
 def test_fresh_upgrade_has_nullable_metadata_and_constraints(scratch_url) -> None:
-    _alembic(scratch_url, "upgrade", "head")
+    _alembic(scratch_url, "upgrade", HEAD)
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == HEAD
@@ -67,7 +67,7 @@ def test_upgrade_preserves_model_rows_enforces_values_and_round_trips(scratch_ur
                 {"p": ownership.project_id, "r": ownership.revision_id, "e": equipment},
             ).scalar_one()
 
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert _version(engine) == HEAD
         with engine.connect() as connection:
             metadata = connection.execute(
@@ -125,7 +125,7 @@ def test_upgrade_preserves_model_rows_enforces_values_and_round_trips(scratch_ur
                 ).scalar_one()
                 == 1
             )
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert _version(engine) == HEAD
     finally:
         engine.dispose()

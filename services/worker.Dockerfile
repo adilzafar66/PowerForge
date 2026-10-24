@@ -16,6 +16,7 @@ COPY packages/shared /app/packages/shared
 COPY packages/project /app/packages/project
 COPY packages/persistence /app/packages/persistence
 COPY packages/engineering-model /app/packages/engineering-model
+COPY packages/topology /app/packages/topology
 COPY packages/document-model /app/packages/document-model
 COPY packages/document-processing /app/packages/document-processing
 COPY packages/ai /app/packages/ai
@@ -29,6 +30,7 @@ RUN pip install --no-cache-dir --upgrade pip \
             -e /app/packages/project \
             -e /app/packages/persistence \
             -e /app/packages/engineering-model \
+            -e /app/packages/topology \
             -e /app/packages/document-model \
             -e /app/packages/document-processing \
             -e /app/packages/ai \
@@ -41,6 +43,7 @@ RUN pip install --no-cache-dir --upgrade pip \
             -e /app/packages/project \
             -e /app/packages/persistence \
             -e /app/packages/engineering-model \
+            -e /app/packages/topology \
             -e /app/packages/document-model \
             -e /app/packages/document-processing \
             -e /app/packages/document-classification \

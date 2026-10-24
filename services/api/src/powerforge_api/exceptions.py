@@ -205,3 +205,19 @@ class InvalidSystemFrequency(ProjectError):
 
 class InvalidSystemPhaseCount(ProjectError):
     code = "invalid_system_phase_count"
+
+
+class ModelNodeNotFound(ProjectError):
+    code = "model_node_not_found"
+
+
+class ModelConnectionNotFound(ProjectError):
+    code = "model_connection_not_found"
+
+
+class InvalidTopology(ProjectError):
+    code = "invalid_topology"
+
+
+class TopologyObjectRemoved(ProjectError):
+    code = "topology_object_removed"

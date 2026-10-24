@@ -31,6 +31,7 @@ from powerforge_api.services.revision_writes import (
     lock_revision,
     lock_writable_revision,
 )
+from powerforge_api.services.topology_support import topology_constraint_errors
 from powerforge_persistence import Project, ProjectRevision
 from powerforge_project import RevisionStatus
 
@@ -95,6 +96,7 @@ class RevisionService:
         with integrity_guard(
             self.session,
             {
+                **topology_constraint_errors(),
                 "uq_project_revisions_project_id_identifier": DuplicateRevisionIdentifier(
                     f"Revision identifier '{identifier}' already exists on this project"
                 ),

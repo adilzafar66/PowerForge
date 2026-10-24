@@ -1,7 +1,17 @@
 from enum import StrEnum
 
 
-class NodeKind(StrEnum):
-    BUS = "bus"
-    EQUIPMENT_TERMINAL = "equipment_terminal"
-    ELECTRICAL_NODE = "electrical_node"
+class ModelNodeKind(StrEnum):
+    EQUIPMENT_TERMINAL = "EQUIPMENT_TERMINAL"
+    ELECTRICAL_NODE = "ELECTRICAL_NODE"
+
+
+class ConnectionKind(StrEnum):
+    ELECTRICAL = "ELECTRICAL"
+    GROUNDING = "GROUNDING"
+    OTHER = "OTHER"
+
+
+class ConnectionDirection(StrEnum):
+    UNDIRECTED = "UNDIRECTED"
+    NOMINAL_FROM_TO = "NOMINAL_FROM_TO"

@@ -4,7 +4,7 @@ This is the authoritative high-level roadmap for intended future scope. [PROJECT
 
 PowerForge keeps **Phase 0–13: fourteen primary numbered phases**. Phase 4.5 is an intentional intermediate document-workspace UX phase. Phase 5 has slices 5A–5G. Completed phases keep their historical numbering; later phases may have internal slices and design gates without adding top-level numbers. Keep the existing Phase 0–13 numbering and use subphases/gates for newly understood work rather than adding or renumbering top-level phases.
 
-Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5C are implemented; Phase 5D is next and has not started.** Phase 5 as a whole is not complete. Later phases are planned. The accepted foundations are [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md), the [Phase 5 specification](specs/phase-5-engineering-model.md), and the [Phase 5C handoff](PHASE5C_HANDOFF.md).
+Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5D are implemented; Phase 5E is next and has not started.** Phase 5 as a whole is not complete. Later phases are planned. The accepted foundations are [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md), the [Phase 5 specification](specs/phase-5-engineering-model.md), and the [Phase 5D handoff](PHASE5D_HANDOFF.md).
 
 ## Phase map
 
@@ -16,7 +16,7 @@ Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5C are implemented; 
 | 3 | Document processing | Complete; unchanged |
 | 4 | AI document classification | Complete; unchanged |
 | 4.5 | Document workspace UX | Complete; unchanged |
-| 5 | Canonical engineering model | 5A–5C implemented; 5D–5G not started |
+| 5 | Canonical engineering model | 5A–5D implemented; 5E–5G not started |
 | 6 | Evidence, candidates, and structured extraction | Planned |
 | 7 | Entity resolution | Planned |
 | 8 | SLD and topology extraction | Planned |
@@ -35,12 +35,14 @@ Phase 5 models the physical electrical system, independently of documents, AI pr
 | 5A | Registry, canonical units, requirement engine, registry API | Implemented |
 | 5B | Core persistence: EquipmentLineage, Equipment, EquipmentAttribute | Implemented |
 | 5C | Revision model inheritance, `carry_forward_model`, revision-level model metadata and its inheritance | Implemented |
-| 5D | Manually authored topology persistence: ModelNode / ModelConnection | Next; not started |
-| 5E | Revision-scoped engineering-model APIs | Not started |
+| 5D | Manually authored topology persistence: ModelNode / ModelConnection | Implemented |
+| 5E | Revision-scoped engineering-model APIs | Next; not started |
 | 5F | Basic Engineering Model workspace UI | Not started |
 | 5G | Hardening, regression, documentation | Not started |
 
 The implemented registry contains 20 canonical equipment types, 296 attributes, and 44 requirement reference rows; verification vocabulary includes UNVERIFIED. Phase 5B adds typed equipment persistence and manual services without changing registry-v1. See [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md).
+
+Phase 5D adds relational topology nodes/connections, internal manual services, conservative equipment/node/connection lifecycle, and transactional graph cloning/remapping. Cable and physical bus remain Equipment; no automatic terminals are generated. No public topology CRUD, workspace UI, extraction, or graph visualization is implemented. See [TOPOLOGY.md](TOPOLOGY.md).
 
 ### Implemented Phase 5C extension: revision-level model metadata
 

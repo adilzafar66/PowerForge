@@ -1,4 +1,4 @@
-"""Manual revision-scoped canonical authoring; no HTTP, cloning, or topology operations."""
+"""Manual revision-scoped equipment authoring with atomic topology lifecycle cascades."""
 
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -22,6 +22,11 @@ from powerforge_api.exceptions import (
     RevisionNotFound,
 )
 from powerforge_api.services.revision_writes import lock_writable_revision
+from powerforge_api.services.topology_support import (
+    set_equipment_topology_lifecycle,
+    topology_constraint_errors,
+    validate_topology_consistency,
+)
 from powerforge_engineering_model import (
     AttributeDefinition,
     AttributeValueType,
@@ -58,6 +63,7 @@ UNSET = _Unset.VALUE
 def _constraint_errors() -> dict[str, ProjectError]:
     """Only known invariants get a meaningful service error; unknown ones stay generic."""
     return {
+        **topology_constraint_errors(),
         "fk_equipment_revision": RevisionNotFound("Revision not found in this project"),
         "fk_equipment_lineage": InconsistentEquipment("Equipment lineage ownership is invalid"),
         "uq_equipment_revision_lineage": InconsistentEquipment(
@@ -457,6 +463,7 @@ class EngineeringModelService:
     ) -> Equipment:
         with self._mutation(project_id, revision_id, "set_equipment_lifecycle") as revision:
             equipment = self._equipment(project_id, revision_id, equipment_id)
+            validate_topology_consistency(self.session, project_id, revision_id)
             if equipment.lifecycle_status != status:
                 now = datetime.now(UTC)
                 equipment.lifecycle_status = status
@@ -464,4 +471,7 @@ class EngineeringModelService:
                 equipment.removed_by = actor_id if status == LifecycleStatus.REMOVED else None
                 equipment.updated_at = revision.updated_at = now
                 equipment.updated_by = actor_id
+                set_equipment_topology_lifecycle(self.session, equipment, status, actor_id)
+                self.session.flush()
+                validate_topology_consistency(self.session, project_id, revision_id)
         return self.get_equipment(project_id, revision_id, equipment_id)

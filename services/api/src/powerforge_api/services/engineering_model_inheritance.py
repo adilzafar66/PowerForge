@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from powerforge_api.exceptions import ModelInheritanceConflict
+from powerforge_api.services.topology_inheritance import copy_active_topology
 from powerforge_engineering_model import (
     AttributeDefinition,
     AttributeValueType,
@@ -154,6 +155,7 @@ def copy_active_engineering_model(
             .order_by(Equipment.created_at, Equipment.id)
         ).all()
     )
+    equipment_map = {}
     for source_equipment in sources:
         try:
             current = get_equipment_definition(source_equipment.equipment_type)
@@ -196,6 +198,7 @@ def copy_active_engineering_model(
         )
         session.add(destination)
         session.flush()
+        equipment_map[source_equipment.id] = destination.id
         inherited_keys = {row.attribute_key for row in compatible}
         destination.attributes = [
             *[_cloned_attribute(row, destination, actor_id) for row in compatible],
@@ -206,4 +209,5 @@ def copy_active_engineering_model(
             ],
         ]
     session.flush()
+    copy_active_topology(session, source, target, equipment_map, actor_id=actor_id)
     return len(sources)

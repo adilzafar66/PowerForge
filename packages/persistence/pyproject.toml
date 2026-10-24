@@ -7,6 +7,7 @@ dependencies = [
     "sqlalchemy>=2.0.35",
     "powerforge-project",
     "powerforge-engineering-model",
+    "powerforge-topology",
 ]
 
 [build-system]
