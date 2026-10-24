@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from powerforge_api.routers.documents import router as documents_router
 from powerforge_api.routers.engineering_model import router as engineering_model_router
 from powerforge_api.routers.health import router as health_router
+from powerforge_api.routers.model import router as model_router
 from powerforge_api.routers.projects import router as projects_router
 from powerforge_document_processing.storage.factory import get_object_storage
 from powerforge_engineering_model import validate_registry
@@ -49,7 +50,8 @@ def create_app() -> FastAPI:
         description=(
             "Engineering data extraction platform API. "
             "Health/readiness, project and revision management, and revision document "
-            "upload, listing and retrieval."
+            "upload, listing and retrieval. Revision-scoped canonical equipment, attributes, "
+            "nodes and connections with manual authoring and soft lifecycle."
         ),
         lifespan=lifespan,
     )
@@ -64,6 +66,7 @@ def create_app() -> FastAPI:
     application.include_router(projects_router)
     application.include_router(documents_router)
     application.include_router(engineering_model_router)
+    application.include_router(model_router)
     return application
 
 

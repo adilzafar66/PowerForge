@@ -50,6 +50,14 @@ Removed objects are excluded. An active terminal whose equipment cannot be clone
 
 The source and destination are independent snapshots. Revision frequency and common phase count are not copied into topology fields. Phase 5D does not reject a single-phase equipment override in a three-phase model or infer phase/voltage data.
 
+## Public authoring APIs — Phase 5E
+
+Under `/api/projects/{project_id}/revisions/{revision_id}`, `/nodes` and `/connections` support GET lists and POST creates. `/nodes/{node_id}` and `/connections/{connection_id}` support PATCH, with POST `/remove` and `/restore` actions. Creates return 201; the other actions return 200 with canonical state. There are no DELETE or single-object GET routes. See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md) for exact endpoints and request/response contracts.
+
+Lists return `{"items": [...]}` in stable creation-time/ID order. `lifecycle_status` defaults to ACTIVE and also accepts REMOVED or ALL for restoration workflows. Responses include lifecycle, provenance, inheritance, audit metadata, and Decimal connection voltage/confidence as JSON strings. Lists are unpaginated and retain Phase 5D's bulk consistency validation; scalability remains a hardening concern.
+
+Manual bodies reject extra fields and cannot set origin, verification, confidence, inheritance, audit actors, or lifecycle flags. Node creation validates terminal/electrical-node shape; PATCH cannot change kind or equipment ownership. Connection endpoints resolve only within the path project/revision. PATCH omission keeps values; null can clear label/phase text/voltage, and clearing voltage also clears its canonical unit. Supplied voltage units must accompany voltage. Voltage conversion remains in TopologyService. All existing removal/restoration cascades and mutability guards apply through HTTP.
+
 ## Later phases
 
-Phase 5E will expose revision-scoped authoring APIs. Phase 5F supplies the basic Engineering Model workspace. Phase 8 proposes topology from SLD evidence through candidates/reconciliation; Phase 12 visualizes the canonical graph. These workflows, graph algorithms, protection relations, study scenarios, and persistent findings are outside Phase 5D. See [PHASE5D_HANDOFF.md](PHASE5D_HANDOFF.md).
+Phase 5F is next and supplies the basic Engineering Model workspace. Phase 8 proposes topology from SLD evidence through candidates/reconciliation; Phase 12 visualizes the canonical graph. These workflows, graph algorithms, protection relations, study scenarios, and persistent findings remain unimplemented. See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md).

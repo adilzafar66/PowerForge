@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+
 from fastapi import HTTPException, status
 
 from powerforge_api.exceptions import (
@@ -19,14 +22,24 @@ from powerforge_api.exceptions import (
     DocumentRemoved,
     DuplicateProjectNumber,
     DuplicateRevisionIdentifier,
+    EquipmentAttributeNotFound,
+    EquipmentNotFound,
+    EquipmentRemoved,
+    EquipmentTypeChangeConflict,
     FileTooLarge,
+    InconsistentEquipment,
     InvalidBaseRevision,
+    InvalidEngineeringModelInput,
+    InvalidEquipmentAttributeState,
     InvalidFileContent,
     InvalidRevisionIdentifier,
     InvalidStatusTransition,
     InvalidSystemFrequency,
     InvalidSystemPhaseCount,
+    InvalidTopology,
+    ModelConnectionNotFound,
     ModelInheritanceConflict,
+    ModelNodeNotFound,
     PageNotFound,
     ProcessingNotComplete,
     ProcessingNotRetryableError,
@@ -40,8 +53,16 @@ from powerforge_api.exceptions import (
     RevisionReadOnly,
     StorageDownloadFailed,
     StorageUploadFailed,
+    TopologyObjectRemoved,
     UnexpectedIntegrityError,
     UnsupportedDocumentType,
+)
+from powerforge_engineering_model.errors import (
+    IncompatibleUnit,
+    InvalidAttributeValue,
+    UnknownAttribute,
+    UnknownEquipmentType,
+    UnknownUnit,
 )
 
 _UNPROCESSABLE = 422
@@ -59,7 +80,11 @@ def http_for(exc: ProjectError) -> HTTPException:
         | CrossProjectDocumentAccess
         | PageNotFound
         | ClassificationPredictionNotFound
-        | ClassificationRunNotFound,
+        | ClassificationRunNotFound
+        | EquipmentNotFound
+        | EquipmentAttributeNotFound
+        | ModelNodeNotFound
+        | ModelConnectionNotFound,
     ):
         status_code = status.HTTP_404_NOT_FOUND
     elif isinstance(
@@ -80,7 +105,11 @@ def http_for(exc: ProjectError) -> HTTPException:
         | ClassificationInProgressError
         | ClassificationNotRetryableError
         | ClassificationNotComplete
-        | ClassificationNotAcceptable,
+        | ClassificationNotAcceptable
+        | EquipmentRemoved
+        | TopologyObjectRemoved
+        | EquipmentTypeChangeConflict
+        | InconsistentEquipment,
     ):
         status_code = status.HTTP_409_CONFLICT
     elif isinstance(exc, FileTooLarge):
@@ -94,7 +123,10 @@ def http_for(exc: ProjectError) -> HTTPException:
         | InvalidFileContent
         | InvalidSystemFrequency
         | InvalidSystemPhaseCount
-        | ModelInheritanceConflict,
+        | ModelInheritanceConflict
+        | InvalidEngineeringModelInput
+        | InvalidEquipmentAttributeState
+        | InvalidTopology,
     ):
         status_code = _UNPROCESSABLE
     elif isinstance(exc, StorageUploadFailed | StorageDownloadFailed):
@@ -110,3 +142,20 @@ def http_for(exc: ProjectError) -> HTTPException:
     if isinstance(exc, ClassificationInProgressError):
         detail["run_id"] = str(exc.run_id)
     return HTTPException(status_code=status_code, detail=detail)
+
+
+@contextmanager
+def model_api_errors() -> Iterator[None]:
+    """Translate known input failures only; registry-definition bugs remain server errors."""
+    try:
+        yield
+    except ProjectError as exc:
+        raise http_for(exc) from exc
+    except (
+        UnknownEquipmentType,
+        UnknownAttribute,
+        InvalidAttributeValue,
+        UnknownUnit,
+        IncompatibleUnit,
+    ) as exc:
+        raise http_for(InvalidEngineeringModelInput(str(exc))) from exc

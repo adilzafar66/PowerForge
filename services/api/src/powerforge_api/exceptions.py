@@ -221,3 +221,7 @@ class InvalidTopology(ProjectError):
 
 class TopologyObjectRemoved(ProjectError):
     code = "topology_object_removed"
+
+
+class InvalidEngineeringModelInput(ProjectError):
+    code = "invalid_engineering_model_input"

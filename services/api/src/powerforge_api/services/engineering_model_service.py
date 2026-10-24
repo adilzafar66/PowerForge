@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from enum import Enum
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from powerforge_api.db_errors import integrity_guard
@@ -271,6 +271,7 @@ class EngineeringModelService:
         *,
         lifecycle_status: LifecycleStatus | None = LifecycleStatus.ACTIVE,
         equipment_type: EquipmentType | str | None = None,
+        search: str | None = None,
     ) -> list[Equipment]:
         self._require_context(project_id, revision_id)
         stmt = select(Equipment).where(
@@ -283,6 +284,16 @@ class EngineeringModelService:
         if equipment_type is not None:
             stmt = stmt.where(
                 Equipment.equipment_type == get_equipment_definition(equipment_type).key.value
+            )
+        if search is not None and search.strip():
+            # Literal substring search: user '%' and '_' are not SQL wildcards.
+            term = search.strip()
+            stmt = stmt.where(
+                or_(
+                    Equipment.tag.icontains(term, autoescape=True),
+                    Equipment.name.icontains(term, autoescape=True),
+                    Equipment.description.icontains(term, autoescape=True),
+                )
             )
         return list(self.session.scalars(stmt.order_by(Equipment.created_at, Equipment.id)).all())
 

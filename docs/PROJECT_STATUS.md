@@ -2,9 +2,9 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** 5D — Canonical topology persistence
+**Current implemented phase:** 5E — Revision-scoped engineering-model APIs
 
-**Next:** Phase 5E — Revision-scoped engineering-model APIs. Not started
+**Next:** Phase 5F — Basic Engineering Model workspace UI. Not started
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -258,7 +258,7 @@ The existing revision-create UI now exposes only the independent model carry-for
 
 ## Phase 5D — Canonical topology persistence
 
-**Status:** Implemented (2026-10-23); Phase 5E has not started.
+**Status:** Implemented (2026-10-23).
 
 Specification: [Phase 5D prompt](prompts/phase-5d-codex.md), [Phase 5](specs/phase-5-engineering-model.md), and [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md). Implementation and exact validation commands: [PHASE5D_HANDOFF.md](PHASE5D_HANDOFF.md). Usage and lifecycle semantics: [TOPOLOGY.md](TOPOLOGY.md).
 
@@ -266,11 +266,23 @@ Alembic head `0009_topology_persistence` adds `model_nodes` and `model_connectio
 
 Internal manual services use the established project-then-revision locks. Equipment/node removal cascades logical connection removal atomically; restoring equipment restores terminals, while restoring nodes never restores connections. Model carry-forward remaps ACTIVE topology after equipment/attributes, preserves immediate-base provenance, and rejects inconsistent active graphs atomically.
 
-Validation: **1,024 Python tests passed** with live integrations against disposable PostgreSQL/MinIO; **496 passed, 528 skipped** offline. Ruff, changed-file formatting, dependency, and whitespace checks passed. No frontend files or public CRUD routes were changed. Phase 5E remains unimplemented.
+Validation: **1,024 Python tests passed** with live integrations against disposable PostgreSQL/MinIO; **496 passed, 528 skipped** offline. Ruff, changed-file formatting, dependency, and whitespace checks passed. Phase 5D itself changed no frontend files or public CRUD routes.
+
+## Phase 5E — Revision-scoped engineering-model APIs
+
+**Status:** Implemented (2026-10-24); Phase 5F has not started.
+
+Specification: [Phase 5E prompt](prompts/phase-5e-codex.md), [Phase 5](specs/phase-5-engineering-model.md), and [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md). Exact endpoints, schemas, error mapping, and validation commands: [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md).
+
+The dedicated model router exposes revision-scoped Equipment, EquipmentAttribute, ModelNode, and ModelConnection APIs through the accepted services. Strict manual schemas reject forged provenance/audit/inheritance fields; response models retain canonical provenance and lossless Decimal strings. Equipment lists support literal case-insensitive search and type/lifecycle filters without fetching attributes. All resource lists use `items`; lifecycle filters support ACTIVE, REMOVED, and ALL. Attribute order remains registry-defined. Domain validation maps to clean 422 responses, ownership failures to 404, and lifecycle/read-only conflicts to 409.
+
+The APIs preserve unit conversion, independent revision snapshots, incomplete-state saves, duplicate tags, parallel edges, safe type changes, and conservative removal/restoration cascades. No persistence migration was added; Alembic head remains `0009_topology_persistence`. No frontend or worker files changed.
+
+Validation: **1,048 Python tests passed**, no skips, with live integrations against disposable PostgreSQL/MinIO; **501 passed, 547 skipped** offline. The 24 new focused cases cover HTTP contracts, ownership, provenance protection, PATCH semantics, units, lifecycle, error translation, search query behavior, and OpenAPI scope. Ruff, formatting, dependency, and whitespace checks passed.
 
 ## Later phases
 
-Phase 5A through 5D are implemented; 5E–5G have not started. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5E are implemented; 5F–5G have not started. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -282,8 +294,9 @@ Phase 5A through 5D are implemented; 5E–5G have not started. See [ROADMAP.md](
 | 5B | Core engineering-model persistence | Implemented |
 | 5C | Revision model inheritance and revision-level model metadata | Implemented |
 | 5D | Canonical topology persistence | Implemented |
-| 5E | Revision-scoped engineering-model APIs | Next; not started |
-| 5F–5G | Basic workspace UI and hardening | Not started |
+| 5E | Revision-scoped engineering-model APIs | Implemented |
+| 5F | Basic Engineering Model workspace UI | Next; not started |
+| 5G | Hardening, regression, documentation | Not started |
 | 6 | Evidence, candidates, and structured extraction | Not started |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |
@@ -293,7 +306,7 @@ Phase 5A through 5D are implemented; 5E–5G have not started. See [ROADMAP.md](
 | 12 | Model visualization | Not started |
 | 13 | Study-tool integration, automation, and reporting | Not started |
 
-Authentication, real user identity, project authorization, and actor-backed audit records are not implemented through Phase 5D. They are a hard prerequisite/subphase for Phase 11 completion and must be pulled forward if shared/multi-user deployment is needed earlier. Existing actor UUIDs remain nullable; they are not a substitute for trustworthy audit identity.
+Authentication, real user identity, project authorization, and actor-backed audit records are not implemented through Phase 5E. They are a hard prerequisite/subphase for Phase 11 completion and must be pulled forward if shared/multi-user deployment is needed earlier. Existing actor UUIDs remain nullable; they are not a substitute for trustworthy audit identity.
 
 ETAP / SKM / EasyPower adapters, study automation, results ingestion, and reporting are planned for Phase 13. Protection/settings and operating/study configurations require post-core-Phase-5 design gates before extraction/integration depends on them. None of this is implemented.
 

@@ -691,7 +691,7 @@ def test_failure_before_activation_restores_original_active(model_base, monkeypa
 
 
 @pytest.mark.integration
-def test_openapi_exposes_only_phase5c_revision_fields() -> None:
+def test_openapi_preserves_phase5c_revision_fields() -> None:
     schemas = app.openapi()["components"]["schemas"]
     assert {"carry_forward_model", "system_frequency", "system_phase_count"} <= set(
         schemas["RevisionCreate"]["properties"]
@@ -704,10 +704,11 @@ def test_openapi_exposes_only_phase5c_revision_fields() -> None:
         "system_phase_count",
         "inherited_model_equipment_count",
     } <= set(schemas["RevisionResponse"]["properties"])
-    paths = app.openapi()["paths"]
-    assert not any(
-        "equipment" in path for path in paths if path != "/api/engineering-model/registry"
-    )
+    # Phase 5E now exposes separate model routes; revision bodies still own only metadata.
+    for name in ("RevisionCreate", "RevisionUpdate", "RevisionResponse"):
+        assert not {"equipment", "attributes", "nodes", "connections"} & set(
+            schemas[name]["properties"]
+        )
 
 
 @pytest.mark.integration

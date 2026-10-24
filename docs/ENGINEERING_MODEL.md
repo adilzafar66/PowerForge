@@ -2,7 +2,7 @@
 
 The canonical engineering model belongs to a project revision. It is independent of documents, AI providers, and analysis software. [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md) and the [Phase 5 specification](specs/phase-5-engineering-model.md) supersede the Phase 0 placeholder taxonomy, JSONB attribute proposal, and combined information/verification states previously described here.
 
-**Implemented: Phases 5A through 5D.** `packages/engineering-model` owns the pure registry, value validation, unit normalization, requirement evaluation, and effective model-value semantics, with no third-party dependencies. `packages/persistence` owns revision-scoped equipment, topology storage, and revision-level engineering metadata; the API service layer provides internal manual authoring and transactional revision inheritance. Public equipment/topology CRUD and the Engineering Model workspace are later phases. See [PHASE5D_HANDOFF.md](PHASE5D_HANDOFF.md) for implementation and validation details.
+**Implemented: Phases 5A through 5E.** `packages/engineering-model` owns the pure registry, value validation, unit normalization, requirement evaluation, and effective model-value semantics, with no third-party dependencies. `packages/persistence` owns revision-scoped equipment, topology storage, and revision-level engineering metadata. Public revision-scoped APIs expose manual authoring through the accepted services; revision inheritance remains transactional. The Engineering Model workspace belongs to Phase 5F. See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md) for the API contract and validation details.
 
 ## Registry ownership
 
@@ -144,10 +144,27 @@ The internal TopologyService supports manual node/connection creation, reads, me
 
 Model carry-forward now includes ACTIVE nodes and connections after equipment/attributes, remapping every equipment reference and endpoint into the destination. Inheritance pointers reference the actual immediate base; corrupt active topology fails the entire transaction. Revision defaults never populate topology fields, and explicit phase overrides are not rejected. See [TOPOLOGY.md](TOPOLOGY.md).
 
+## Public model APIs — Phase 5E
+
+The dedicated `routers/model.py` exposes resources beneath `/api/projects/{project_id}/revisions/{revision_id}`:
+
+- Equipment: GET/POST `/equipment`, GET/PATCH `/equipment/{equipment_id}`, POST `/equipment/{equipment_id}/remove` and `/restore`.
+- Attributes: GET `/equipment/{equipment_id}/attributes`, PUT `/equipment/{equipment_id}/attributes/{attribute_key}`.
+- Nodes: GET/POST `/nodes`, PATCH `/nodes/{node_id}`, POST `/nodes/{node_id}/remove` and `/restore`.
+- Connections: GET/POST `/connections`, PATCH `/connections/{connection_id}`, POST `/connections/{connection_id}/remove` and `/restore`.
+
+Creates return 201; reads, edits, and lifecycle actions return 200 with explicit canonical response models. Lists return `items` wrappers. Equipment summaries include lineage/provenance and omit nested attributes. Attribute responses expose typed slots, canonical units, information/verification/origin, confidence, and inheritance/audit metadata in registry order. Decimal fields serialize as JSON strings without conversion to float. The read-only registry remains the form metadata source.
+
+Equipment lists support case-insensitive literal substring `search` across tag/name/description, canonical `equipment_type`, and `lifecycle_status=ACTIVE|REMOVED|ALL`. Blank search is ignored. Equipment, node, and connection lists default to ACTIVE and sort by creation time then ID. ALL is only an API query concept. Lists are currently unpaginated; equipment summaries do not load attributes.
+
+Mutation bodies reject extra fields, including forged provenance, verification, confidence, inheritance, audit actors/timestamps, and path ownership. PATCH omission keeps existing values; explicit null clears nullable text and connection voltage, but not type, endpoints, kind, direction, or terminal keys. Attribute PUT accepts PRESENT, UNKNOWN, MISSING, and NOT_APPLICABLE; services retain registry validation/unit normalization, including `600 V -> "0.6" kV`. State-only updates clear typed slots. Incomplete equipment remains saveable.
+
+Services enforce same-project/revision ownership and existing mutability/locking rules. Scoped-out objects return 404, removed/read-only/type-change conflicts return 409, and invalid registry/domain/topology input returns 422. Application errors retain the standard nested detail/code envelope; schema errors use FastAPI's validation response. There is no client actor identity or verification workflow. See the [Phase 5E handoff](PHASE5E_HANDOFF.md) for exact allowlists, error mappings, and lifecycle semantics.
+
 ## Future study domains
 
 The Phase 5 physical equipment/topology model is not a complete study model. Protection functions/settings and operating/study configurations require dedicated post-core-Phase-5 design decisions before extraction or integration depends on their schemas. Phase 5 does not introduce a general ProtectionFunction persistence model. Canonical `LV_BREAKER.trip_rating` and `LV_BREAKER.long_time_pickup` remain equipment/design values and may coexist with separate future study-adjusted settings without being overwritten. These domains must not be added as arbitrary flat equipment attributes; [ROADMAP.md](ROADMAP.md) records the concepts and design gates.
 
 ## Later phases
 
-Phase 5E has not begun. Phase 5D adds internal topology authoring, lifecycle integration, and graph inheritance. Public engineering-model APIs, the Engineering Model workspace, AI extraction, evidence/candidates/reconciliation, persisted findings, protection-function model, and exporters remain separate responsibilities under ADR-007.
+Phase 5F has not begun. Phase 5E exposes canonical manual-authoring APIs without a database migration. The Engineering Model workspace, AI extraction, evidence/candidates/reconciliation, persisted findings, protection-function model, and exporters remain separate responsibilities under ADR-007.
