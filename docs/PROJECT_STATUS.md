@@ -2,9 +2,9 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** 5E — Revision-scoped engineering-model APIs
+**Current implemented phase:** 5F — Basic Engineering Model workspace UI
 
-**Next:** Phase 5F — Basic Engineering Model workspace UI. Not started
+**Next:** Phase 5G — Hardening, regression, documentation. Not started
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -270,7 +270,7 @@ Validation: **1,024 Python tests passed** with live integrations against disposa
 
 ## Phase 5E — Revision-scoped engineering-model APIs
 
-**Status:** Implemented (2026-10-24); Phase 5F has not started.
+**Status:** Implemented (2026-10-24).
 
 Specification: [Phase 5E prompt](prompts/phase-5e-codex.md), [Phase 5](specs/phase-5-engineering-model.md), and [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md). Exact endpoints, schemas, error mapping, and validation commands: [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md).
 
@@ -280,9 +280,21 @@ The APIs preserve unit conversion, independent revision snapshots, incomplete-st
 
 Validation: **1,048 Python tests passed**, no skips, with live integrations against disposable PostgreSQL/MinIO; **501 passed, 547 skipped** offline. The 24 new focused cases cover HTTP contracts, ownership, provenance protection, PATCH semantics, units, lifecycle, error translation, search query behavior, and OpenAPI scope. Ruff, formatting, dependency, and whitespace checks passed.
 
+## Phase 5F — Basic Engineering Model workspace UI
+
+**Status:** Implemented (2026-10-25). Phase 5G has not started.
+
+Specification: [Phase 5F prompt](prompts/phase-5f-codex.md), [Phase 5](specs/phase-5-engineering-model.md), and [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md). Implementation details and validation: [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md).
+
+The revision page now offers Documents (the default) and Engineering Model workspaces. Equipment supports server search/type/lifecycle filters, creation, URL-addressable details, general edits, generic registry-driven attribute editors, terminal management, and removal/restoration. Topology provides electrical-node and connection lists/forms, human endpoint labels, separate parallel connections, and explicit cascade warnings. Registry metadata is cached within the mounted model workspace. Decimal inputs remain strings, state-only attribute saves omit stale values/units, and PATCHes contain only changed fields with explicit null clears.
+
+Read-only revisions remain viewable with mutation controls unavailable. Stale read-only errors lock local editing and refresh revision/canonical state. Existing document behavior and the shared read-only banner remain in place. No backend, API, database migration, worker, or dependency changes were needed.
+
+Validation: frontend lint, typecheck, and production build passed; **242 frontend tests passed** across 15 files, including 29 new model tests. Normal backend regression: **506 passed, 548 skipped**, with six existing warnings. Live integration and browser/manual smoke testing were not performed for this frontend-only change; no browser automation tool was available. Phase 5G hardening and final Phase 5 freeze remain pending.
+
 ## Later phases
 
-Phase 5A through 5E are implemented; 5F–5G have not started. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5F are implemented; 5G is next and has not started. Phase 5 as a whole remains incomplete. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -295,8 +307,8 @@ Phase 5A through 5E are implemented; 5F–5G have not started. See [ROADMAP.md](
 | 5C | Revision model inheritance and revision-level model metadata | Implemented |
 | 5D | Canonical topology persistence | Implemented |
 | 5E | Revision-scoped engineering-model APIs | Implemented |
-| 5F | Basic Engineering Model workspace UI | Next; not started |
-| 5G | Hardening, regression, documentation | Not started |
+| 5F | Basic Engineering Model workspace UI | Implemented |
+| 5G | Hardening, regression, documentation | Next; not started |
 | 6 | Evidence, candidates, and structured extraction | Not started |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |
@@ -306,7 +318,7 @@ Phase 5A through 5E are implemented; 5F–5G have not started. See [ROADMAP.md](
 | 12 | Model visualization | Not started |
 | 13 | Study-tool integration, automation, and reporting | Not started |
 
-Authentication, real user identity, project authorization, and actor-backed audit records are not implemented through Phase 5E. They are a hard prerequisite/subphase for Phase 11 completion and must be pulled forward if shared/multi-user deployment is needed earlier. Existing actor UUIDs remain nullable; they are not a substitute for trustworthy audit identity.
+Authentication, real user identity, project authorization, and actor-backed audit records are not implemented through Phase 5F. They are a hard prerequisite/subphase for Phase 11 completion and must be pulled forward if shared/multi-user deployment is needed earlier. Existing actor UUIDs remain nullable; they are not a substitute for trustworthy audit identity.
 
 ETAP / SKM / EasyPower adapters, study automation, results ingestion, and reporting are planned for Phase 13. Protection/settings and operating/study configurations require post-core-Phase-5 design gates before extraction/integration depends on them. None of this is implemented.
 

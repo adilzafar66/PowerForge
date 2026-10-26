@@ -58,6 +58,14 @@ Lists return `{"items": [...]}` in stable creation-time/ID order. `lifecycle_sta
 
 Manual bodies reject extra fields and cannot set origin, verification, confidence, inheritance, audit actors, or lifecycle flags. Node creation validates terminal/electrical-node shape; PATCH cannot change kind or equipment ownership. Connection endpoints resolve only within the path project/revision. PATCH omission keeps values; null can clear label/phase text/voltage, and clearing voltage also clears its canonical unit. Supplied voltage units must accompany voltage. Voltage conversion remains in TopologyService. All existing removal/restoration cascades and mutability guards apply through HTTP.
 
+## Manual workspace — Phase 5F
+
+The revision Engineering Model workspace provides list/form topology authoring. Equipment detail's Terminals tab filters the revision node list to that equipment; terminal creation and restoration require an active owner. Global Topology manages ELECTRICAL_NODE rows and connections, and directs terminal edits back to Equipment. Nodes and connections support Active/Removed/All views. Parallel connections remain separate rows.
+
+Endpoint labels combine equipment tag/name/type with terminal key or electrical-node labels, using short IDs only to disambiguate duplicates or missing names. Connection forms select distinct active endpoints and expose kind, direction, phase configuration, and decimal-safe nominal voltage. Voltage input units derive from registry unit-family metadata; the server handles conversion. PATCHes include only changed fields, with explicit null clears and no empty updates.
+
+Equipment/node removal confirmations describe incident-connection cascades and conservative restoration. Restoring a connection is unavailable until both endpoints are active. Successful lifecycle changes refresh the relevant lists. Read-only revisions hide mutation actions while retaining list visibility. There is no graph canvas or topology algorithm UI. See [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md).
+
 ## Later phases
 
-Phase 5F is next and supplies the basic Engineering Model workspace. Phase 8 proposes topology from SLD evidence through candidates/reconciliation; Phase 12 visualizes the canonical graph. These workflows, graph algorithms, protection relations, study scenarios, and persistent findings remain unimplemented. See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md).
+Phase 5G hardening remains pending. Phase 8 proposes topology from SLD evidence through candidates/reconciliation; Phase 12 visualizes the canonical graph. These workflows, graph algorithms, protection relations, study scenarios, and persistent findings remain unimplemented. See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md).

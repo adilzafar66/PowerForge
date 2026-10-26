@@ -22,7 +22,7 @@ export function ReadOnlyBanner({
       <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={1.8} />
       <p>
         <span className="font-semibold">Read-only.</span> {reason} Documents can still be viewed,
-        filtered and downloaded.
+        filtered and downloaded. Engineering model data remains viewable.
       </p>
     </div>
   );

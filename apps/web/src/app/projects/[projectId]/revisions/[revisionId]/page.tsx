@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 
 import { AppShell } from "@/components/app-shell";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
-import { RevisionDocuments } from "@/components/revision-documents";
+import { RevisionWorkspace } from "@/components/revision-workspace";
 import { RevisionLineage } from "@/components/revision-lineage";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
@@ -94,7 +94,7 @@ export default async function RevisionPage({
 
           <ReadOnlyBanner project={project} revision={revision} />
           <Suspense fallback={null}>
-            <RevisionDocuments
+            <RevisionWorkspace
               projectId={project.id}
               revisionId={revision.id}
               canMutate={canMutate({ project, revision })}

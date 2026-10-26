@@ -2,7 +2,7 @@
 
 The canonical engineering model belongs to a project revision. It is independent of documents, AI providers, and analysis software. [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md) and the [Phase 5 specification](specs/phase-5-engineering-model.md) supersede the Phase 0 placeholder taxonomy, JSONB attribute proposal, and combined information/verification states previously described here.
 
-**Implemented: Phases 5A through 5E.** `packages/engineering-model` owns the pure registry, value validation, unit normalization, requirement evaluation, and effective model-value semantics, with no third-party dependencies. `packages/persistence` owns revision-scoped equipment, topology storage, and revision-level engineering metadata. Public revision-scoped APIs expose manual authoring through the accepted services; revision inheritance remains transactional. The Engineering Model workspace belongs to Phase 5F. See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md) for the API contract and validation details.
+**Implemented: Phases 5A through 5F.** `packages/engineering-model` owns the pure registry, value validation, unit normalization, requirement evaluation, and effective model-value semantics, with no third-party dependencies. `packages/persistence` owns revision-scoped equipment, topology storage, and revision-level engineering metadata. Public revision-scoped APIs expose manual authoring through the accepted services; revision inheritance remains transactional. Phase 5F exposes manual authoring in the revision Engineering Model workspace; see [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md). See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md) for the API contract and validation details.
 
 ## Registry ownership
 
@@ -94,7 +94,7 @@ Omitted external context returns NOT_EVALUATED, even if the target value exists.
 
 ## Registry API
 
-`GET /api/engineering-model/registry` returns the registry version, ordered equipment/attributes, flags, enum choices, canonical units, attribute-specific supported input units, typed conditions, requirement rows, and unit families. It has no database dependency, accepts no writes, and has a typed OpenAPI response. Future frontend forms should consume it rather than duplicate the registry in TypeScript.
+`GET /api/engineering-model/registry` returns the registry version, ordered equipment/attributes, flags, enum choices, canonical units, attribute-specific supported input units, typed conditions, requirement rows, and unit families. It has no database dependency, accepts no writes, and has a typed OpenAPI response. Phase 5F frontend forms consume this metadata without duplicating the canonical registry in TypeScript.
 
 ## Core persistence and service boundary
 
@@ -161,10 +161,20 @@ Mutation bodies reject extra fields, including forged provenance, verification, 
 
 Services enforce same-project/revision ownership and existing mutability/locking rules. Scoped-out objects return 404, removed/read-only/type-change conflicts return 409, and invalid registry/domain/topology input returns 422. Application errors retain the standard nested detail/code envelope; schema errors use FastAPI's validation response. There is no client actor identity or verification workflow. See the [Phase 5E handoff](PHASE5E_HANDOFF.md) for exact allowlists, error mappings, and lifecycle semantics.
 
+## Revision workspace — Phase 5F
+
+Documents remains the default revision workspace. `?workspace=model` selects Engineering Model; `equipment=<id>` opens its detail Sheet independently of list filters. Switching workspaces clears the other workspace's detail parameter and preserves unrelated query parameters. Registry metadata loads on first model use and remains cached while the model workspace is mounted.
+
+Equipment supports debounced server search, registry type filters, Active/Removed/All views, create, and General/Attributes/Terminals details. General edits PATCH only changed fields; explicit null clears nullable text. An empty PATCH is never sent. Type-change conflicts preserve the form draft; successful changes refresh the materialized attributes.
+
+Attribute forms follow registry order and distinguish Required, Critical, and Conditional metadata without inventing a validation workflow. ENUM choices and input units come from the registry. NUMBER and INTEGER inputs remain strings through submission, BOOLEAN sends a JSON boolean, and TEXT remains text. Unit conversion stays on the server and successful saves adopt canonical responses. PRESENT accepts a value; UNKNOWN/MISSING/NOT_APPLICABLE omit values and units. NOT_EXTRACTED/CONFLICTING remain viewable but cannot be selected as manual targets. Rows save independently and preserve drafts on 422 errors.
+
+Read-only or removed objects remain viewable. Mutation controls respect revision/owner lifecycle; stale read-only responses disable further editing and refresh server state. Removal warns about terminal/connection cascades, and restoration does not silently restore connections. Provenance and verification are displayed without edit controls. See [TOPOLOGY.md](TOPOLOGY.md) and [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md).
+
 ## Future study domains
 
 The Phase 5 physical equipment/topology model is not a complete study model. Protection functions/settings and operating/study configurations require dedicated post-core-Phase-5 design decisions before extraction or integration depends on their schemas. Phase 5 does not introduce a general ProtectionFunction persistence model. Canonical `LV_BREAKER.trip_rating` and `LV_BREAKER.long_time_pickup` remain equipment/design values and may coexist with separate future study-adjusted settings without being overwritten. These domains must not be added as arbitrary flat equipment attributes; [ROADMAP.md](ROADMAP.md) records the concepts and design gates.
 
 ## Later phases
 
-Phase 5F has not begun. Phase 5E exposes canonical manual-authoring APIs without a database migration. The Engineering Model workspace, AI extraction, evidence/candidates/reconciliation, persisted findings, protection-function model, and exporters remain separate responsibilities under ADR-007.
+Phase 5G hardening and final Phase 5 freeze remain pending. AI extraction, evidence/candidates/reconciliation, persisted findings, protection-function model, and exporters remain separate responsibilities under ADR-007.
