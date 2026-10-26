@@ -102,7 +102,7 @@ Run from `apps/web` unless stated otherwise:
 | Command/check | Result |
 | --- | --- |
 | `npm run lint` | Passed; no warnings or errors |
-| `npm test` | 242 passed across 15 files; no failures |
+| `npm test` | 243 passed across 15 files; no failures (rerun 2026-10-26 after the BOOLEAN fix) |
 | `npx tsc --noEmit` | Passed; no errors |
 | `npm run build` | Passed; production build compiled, typechecked and generated all pages |
 | `.venv/bin/pytest -q` from repository root | 506 passed, 548 skipped, 6 existing warnings |
@@ -110,7 +110,7 @@ Run from `apps/web` unless stated otherwise:
 | Browser/manual smoke check | Not performed: no browser automation/manual browser tool was available in the session |
 | Destructive live integration/clean-stack check | Not run; no backend/API Python changed. Normal backend regression was run. Development database was not used for destructive testing |
 
-The 29 new tests comprise 3 API-module tests, 15 editor/workflow cases and 11 workspace/server-page cases. They cover allowlisted requests, explicit null and no-op PATCH protection, precise numeric strings, actual booleans, registry enum/order/badges/units, state-only omissions, 422 draft retention, type-change conflict/success, terminal ownership/lifecycle, node removal refresh, connection create/edit/remove/restore and inactive endpoints, duplicate endpoint rows, debounced response races, filter-independent deep links, missing-object cleanup, registry retry/cache, read-only mutation hiding, stale read-only refresh and banner placement. Existing document/project tests passed unchanged.
+The 30 new tests comprise 3 API-module tests, 16 editor/workflow cases and 11 workspace/server-page cases. The follow-up BOOLEAN regression verifies that selecting PRESENT leaves an unset value unselected, blocks saving without a choice, and submits JSON false only after an explicit False selection. They cover allowlisted requests, explicit null and no-op PATCH protection, precise numeric strings, actual booleans, registry enum/order/badges/units, state-only omissions, 422 draft retention, type-change conflict/success, terminal ownership/lifecycle, node removal refresh, connection create/edit/remove/restore and inactive endpoints, duplicate endpoint rows, debounced response races, filter-independent deep links, missing-object cleanup, registry retry/cache, read-only mutation hiding, stale read-only refresh and banner placement. Existing document/project tests passed unchanged.
 
 ## Dependencies, limitations and remaining scope
 

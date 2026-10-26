@@ -290,7 +290,7 @@ The revision page now offers Documents (the default) and Engineering Model works
 
 Read-only revisions remain viewable with mutation controls unavailable. Stale read-only errors lock local editing and refresh revision/canonical state. Existing document behavior and the shared read-only banner remain in place. No backend, API, database migration, worker, or dependency changes were needed.
 
-Validation: frontend lint, typecheck, and production build passed; **242 frontend tests passed** across 15 files, including 29 new model tests. Normal backend regression: **506 passed, 548 skipped**, with six existing warnings. Live integration and browser/manual smoke testing were not performed for this frontend-only change; no browser automation tool was available. Phase 5G hardening and final Phase 5 freeze remain pending.
+Validation: frontend lint, typecheck, and production build passed; **243 frontend tests passed** across 15 files, including 30 new model tests (suite rerun 2026-10-26 after the BOOLEAN regression fix). Normal backend regression: **506 passed, 548 skipped**, with six existing warnings. Live integration and browser/manual smoke testing were not performed for this frontend-only change; no browser automation tool was available. Phase 5G hardening and final Phase 5 freeze remain pending.
 
 ## Phase 5G — Priority review items
 
