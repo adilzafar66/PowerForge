@@ -292,6 +292,12 @@ Read-only revisions remain viewable with mutation controls unavailable. Stale re
 
 Validation: frontend lint, typecheck, and production build passed; **242 frontend tests passed** across 15 files, including 29 new model tests. Normal backend regression: **506 passed, 548 skipped**, with six existing warnings. Live integration and browser/manual smoke testing were not performed for this frontend-only change; no browser automation tool was available. Phase 5G hardening and final Phase 5 freeze remain pending.
 
+## Phase 5G — Priority review items
+
+**Status:** Not started. These are review requirements for the next phase, not additional Phase 5F implementation.
+
+1. **Canonical INTEGER response precision.** Review this early in 5G. Phase 5F submits integer drafts such as `"9007199254740993"` as exact strings, but the accepted Phase 5E response contract serializes `integer_value` as a JSON number. JavaScript can round an already-persisted BIGINT outside its safe integer range before the editor receives it. This inherited limitation does not block 5F; current practical fields such as counts, poles and phases do not by themselves prove enforced safe bounds. Resolve it by either proving that every canonical INTEGER attribute has enforced safe bounds (including persisted data), or serializing canonical integer values losslessly and updating the frontend response types/decoding accordingly. Add cross-layer regression coverage around the safe-integer boundary: an unsafe value must either be rejected by the proven domain bounds or survive persistence → API response → frontend decoding/display → resubmission exactly. Include `9007199254740993`; submission-only string tests are insufficient.
+
 ## Later phases
 
 Phase 5A through 5F are implemented; 5G is next and has not started. Phase 5 as a whole remains incomplete. See [ROADMAP.md](ROADMAP.md).

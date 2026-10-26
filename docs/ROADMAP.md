@@ -48,6 +48,8 @@ Phase 5E exposes revision-scoped equipment, attribute, node, and connection APIs
 
 Phase 5F adds the revision Engineering Model workspace alongside the default Documents workspace. Registry-driven equipment/attribute forms and explicit terminal/electrical-node/connection authoring use the existing APIs. Decimal-safe inputs, lifecycle warnings, and read-only handling preserve the accepted model semantics. No graph visualization or later-phase workflow is included. See [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md). Phase 5G hardening and final Phase 5 freeze remain pending.
 
+An early Phase 5G priority is canonical INTEGER response precision: either prove enforced safe bounds for all canonical INTEGER attributes, or serialize them losslessly through the API/frontend boundary. The inherited JSON-number limitation does not block 5F. Resolution and cross-layer regression criteria are recorded in [Phase 5G priority review items](PROJECT_STATUS.md#phase-5g--priority-review-items).
+
 ### Implemented Phase 5C extension: revision-level model metadata
 
 `system_frequency` and `system_phase_count` are implemented on the engineering-model snapshot rooted at `ProjectRevision`. No separate EngineeringModel entity was added, and their values are not copied into EquipmentAttribute rows. Equipment-specific registry frequency and phase-count attributes remain unchanged.
