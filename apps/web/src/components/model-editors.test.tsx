@@ -237,6 +237,48 @@ describe("equipment editors", () => {
       );
     }
   });
+  it("requires an explicit False choice for an unset boolean", async () => {
+    const initial = attributes.find((a) => a.attribute_key === "enabled")!;
+    expect(initial.information_state).toBe("NOT_EXTRACTED");
+    expect(initial.boolean_value).toBeNull();
+    vi.mocked(api.setAttribute).mockResolvedValue({
+      ...initial,
+      information_state: "PRESENT",
+      boolean_value: false,
+    });
+    mount(<EquipmentAttributesPanel row={equipment} />);
+    const element = await screen.findByRole("form", { name: "Enabled" });
+    const form = within(element);
+    fireEvent.change(form.getByLabelText("Information state"), {
+      target: { value: "PRESENT" },
+    });
+
+    expect(form.getByLabelText("Value")).toHaveValue("");
+    expect(form.getByRole("option", { name: "Select value" })).toHaveProperty(
+      "selected",
+      true,
+    );
+    const save = form.getByRole("button", { name: "Save attribute" });
+    expect(save).toBeDisabled();
+    fireEvent.click(save);
+    fireEvent.submit(element);
+    expect(api.setAttribute).not.toHaveBeenCalled();
+
+    fireEvent.change(form.getByLabelText("Value"), {
+      target: { value: "false" },
+    });
+    expect(save).toBeEnabled();
+    fireEvent.click(save);
+    await waitFor(() =>
+      expect(api.setAttribute).toHaveBeenCalledExactlyOnceWith(
+        "p",
+        "r",
+        "e1",
+        "enabled",
+        { information_state: "PRESENT", value: false },
+      ),
+    );
+  });
   it("preserves row draft and displays 422 errors", async () => {
     vi.mocked(api.setAttribute).mockRejectedValue(new Error("Invalid value"));
     mount(<EquipmentAttributesPanel row={equipment} />);

@@ -104,9 +104,14 @@ export function AttributeEditor({
       (draft.value !== original.value || draft.unit !== original.unit));
   const numeric =
     definition.value_type === "NUMBER" || definition.value_type === "INTEGER";
+  const needsBooleanChoice =
+    present &&
+    definition.value_type === "BOOLEAN" &&
+    draft.value !== "true" &&
+    draft.value !== "false";
   async function save(event: FormEvent) {
     event.preventDefault();
-    if (!editable || busy || !dirty || !manual) return;
+    if (!editable || busy || !dirty || !manual || needsBooleanChoice) return;
     setBusy(true);
     setError(null);
     setSaved(false);
@@ -172,10 +177,6 @@ export function AttributeEditor({
             setDraft({
               ...draft,
               state: state as InformationState,
-              value:
-                definition.value_type === "BOOLEAN" && !draft.value
-                  ? "false"
-                  : draft.value,
             });
           }}
         >
@@ -277,7 +278,7 @@ export function AttributeEditor({
               busy ||
               !dirty ||
               !manual ||
-              (present && definition.value_type === "BOOLEAN" && !draft.value)
+              needsBooleanChoice
             }
           >
             {busy ? "Saving…" : "Save attribute"}
