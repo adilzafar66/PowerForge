@@ -2,9 +2,9 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** 5F — Basic Engineering Model workspace UI
+**Current implemented phase:** 5G — Hardening and final Phase 5 freeze. Phase 5 complete / frozen
 
-**Next:** Phase 5G — Hardening, regression, documentation. Not started
+**Next:** Phase 6 — Evidence, candidates, and structured extraction. Not started
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -282,7 +282,7 @@ Validation: **1,048 Python tests passed**, no skips, with live integrations agai
 
 ## Phase 5F — Basic Engineering Model workspace UI
 
-**Status:** Implemented (2026-10-25). Phase 5G has not started.
+**Status:** Implemented (2026-10-25).
 
 Specification: [Phase 5F prompt](prompts/phase-5f-codex.md), [Phase 5](specs/phase-5-engineering-model.md), and [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md). Implementation details and validation: [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md).
 
@@ -290,17 +290,25 @@ The revision page now offers Documents (the default) and Engineering Model works
 
 Read-only revisions remain viewable with mutation controls unavailable. Stale read-only errors lock local editing and refresh revision/canonical state. Existing document behavior and the shared read-only banner remain in place. No backend, API, database migration, worker, or dependency changes were needed.
 
-Validation: frontend lint, typecheck, and production build passed; **243 frontend tests passed** across 15 files, including 30 new model tests (suite rerun 2026-10-26 after the BOOLEAN regression fix). Normal backend regression: **506 passed, 548 skipped**, with six existing warnings. Live integration and browser/manual smoke testing were not performed for this frontend-only change; no browser automation tool was available. Phase 5G hardening and final Phase 5 freeze remain pending.
+Validation: frontend lint, typecheck, and production build passed; **243 frontend tests passed** across 15 files, including 30 new model tests (suite rerun 2026-10-26 after the BOOLEAN regression fix). Normal backend regression: **506 passed, 548 skipped**, with six existing warnings. Live integration and browser/manual smoke testing were not performed for this frontend-only change; no browser automation tool was available. Final Phase 5 validation is recorded below.
 
-## Phase 5G — Priority review items
+<a id="phase-5g--priority-review-items"></a>
 
-**Status:** Not started. These are review requirements for the next phase, not additional Phase 5F implementation.
+## Phase 5G — Hardening and final Phase 5 freeze
 
-1. **Canonical INTEGER response precision.** Review this early in 5G. Phase 5F submits integer drafts such as `"9007199254740993"` as exact strings, but the accepted Phase 5E response contract serializes `integer_value` as a JSON number. JavaScript can round an already-persisted BIGINT outside its safe integer range before the editor receives it. This inherited limitation does not block 5F; current practical fields such as counts, poles and phases do not by themselves prove enforced safe bounds. Resolve it by either proving that every canonical INTEGER attribute has enforced safe bounds (including persisted data), or serializing canonical integer values losslessly and updating the frontend response types/decoding accordingly. Add cross-layer regression coverage around the safe-integer boundary: an unsafe value must either be rejected by the proven domain bounds or survive persistence → API response → frontend decoding/display → resubmission exactly. Include `9007199254740993`; submission-only string tests are insufficient.
+**Status:** Implemented (2026-10-26). **Phase 5 is complete and frozen.** Phase 6 is next and has not started.
+
+Specification: [Phase 5G prompt](prompts/phase-5g-codex.md). Requirements mapping, exact commands, review findings, limitations and freeze verdict: [PHASE5G_HANDOFF.md](PHASE5G_HANDOFF.md).
+
+The INTEGER precision debt is resolved: every non-null canonical `integer_value` now serializes as a base-10 JSON string, including small values; Python/domain/BIGINT storage remains integer. Frontend response types retain strings through decoding, display and resubmission. Regression coverage includes `3` and `9007199254740993`, null/state-only behavior, OpenAPI, and HTTP snapshot cloning with typed values and remapped topology. NUMBER precision and explicit BOOLEAN selection remain intact.
+
+The registry-v1 snapshot still matches the authoritative reference (20 types, 296 attributes, 44 requirement rows, 17 unit families). Ownership, mutability, typed persistence, transactional inheritance, independent carry-forward, lifecycle and later-phase boundaries were audited against existing tests. No migration or dependency was added. A local frontend optimization replaces repeated node scans for connection restore eligibility with a set lookup. Measured list SELECT counts stayed constant between 1 and 25 equipment rows: equipment 3, nodes 5, connections 5. Unpaginated lists and whole-revision topology validation remain documented scaling debt.
+
+Validation: **1,057 backend tests passed with live integrations, no skips**; offline **506 passed, 551 skipped**; both reported six existing dependency warnings. **245 frontend tests passed across 16 files**; lint, typecheck, production build, Python lint/changed-file formatting, dependency and whitespace checks passed. An isolated Compose project with fresh volumes migrated from empty to `0009_topology_persistence`; API health/readiness, all three workers, frontend routes, and a real HTTP/JavaScript precision/inheritance/lifecycle scenario passed. The disposable stack was removed after validation. No browser interaction tool was available; this is not a claim of browser/visual smoke coverage.
 
 ## Later phases
 
-Phase 5A through 5F are implemented; 5G is next and has not started. Phase 5 as a whole remains incomplete. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5G are implemented. Phase 5 is complete and frozen; Phase 6 is next and has not started. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -314,8 +322,8 @@ Phase 5A through 5F are implemented; 5G is next and has not started. Phase 5 as 
 | 5D | Canonical topology persistence | Implemented |
 | 5E | Revision-scoped engineering-model APIs | Implemented |
 | 5F | Basic Engineering Model workspace UI | Implemented |
-| 5G | Hardening, regression, documentation | Next; not started |
-| 6 | Evidence, candidates, and structured extraction | Not started |
+| 5G | Hardening, regression, documentation | Implemented; Phase 5 frozen |
+| 6 | Evidence, candidates, and structured extraction | Next; not started |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |
 | 9 | Reconciliation and conflict management | Not started |
@@ -324,7 +332,7 @@ Phase 5A through 5F are implemented; 5G is next and has not started. Phase 5 as 
 | 12 | Model visualization | Not started |
 | 13 | Study-tool integration, automation, and reporting | Not started |
 
-Authentication, real user identity, project authorization, and actor-backed audit records are not implemented through Phase 5F. They are a hard prerequisite/subphase for Phase 11 completion and must be pulled forward if shared/multi-user deployment is needed earlier. Existing actor UUIDs remain nullable; they are not a substitute for trustworthy audit identity.
+Authentication, real user identity, project authorization, and actor-backed audit records are not implemented through Phase 5G. They are a hard prerequisite/subphase for Phase 11 completion and must be pulled forward if shared/multi-user deployment is needed earlier. Existing actor UUIDs remain nullable; they are not a substitute for trustworthy audit identity.
 
 ETAP / SKM / EasyPower adapters, study automation, results ingestion, and reporting are planned for Phase 13. Protection/settings and operating/study configurations require post-core-Phase-5 design gates before extraction/integration depends on them. None of this is implemented.
 

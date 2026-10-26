@@ -92,6 +92,11 @@ ProjectRevision
 
 No additional aggregate layer is introduced between `ProjectRevision` and engineering-model entities.
 
+The accepted Phase 5C extension also stores optional revision-wide `system_frequency`
+(canonical Hz) and `system_phase_count` (1 or 3) on this root. These assumptions
+inherit independently of documents with model carry-forward; they do not populate
+or overwrite equipment attribute rows.
+
 ### Rationale
 
 A separate `EngineeringModel` table would add an extra ownership layer without providing a distinct lifecycle.
@@ -518,7 +523,7 @@ electrode_gap
 → mm
 
 trip_output_operating_time
-→ ms
+→ s
 
 rated_burden
 → VA
@@ -528,6 +533,10 @@ rated_apparent_power
 ```
 
 Canonical values are normalized before persistence.
+
+The relay time example above follows the authoritative registry-v1 JSON. VFD/UPS
+`output_short_circuit_trip_time` uses ms. Family defaults do not change either
+attribute's storage unit.
 
 Raw values and source units extracted from documents will later belong to Evidence/Candidate provenance rather than the canonical attribute row.
 

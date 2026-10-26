@@ -90,6 +90,11 @@ def test_openapi_model_scope_and_allowlists():
         assert definition["additionalProperties"] is False
         assert set(definition["properties"]) == fields
 
+    # Both small and large canonical integers use strings on the wire; null stays null.
+    properties = schema["components"]["schemas"]["AttributeResponse"]["properties"]
+    assert properties["integer_value"]["anyOf"] == [{"type": "string"}, {"type": "null"}]
+    assert [item["type"] for item in properties["numeric_value"]["anyOf"]] == ["string", "null"]
+
 
 def test_model_http_error_mapping():
     groups = {

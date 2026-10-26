@@ -46,8 +46,10 @@ export function TopologyWorkspace() {
     : new Map<string, string>();
   const visible = (row: { lifecycle_status: string }) =>
     lifecycle === "ALL" || row.lifecycle_status === lifecycle;
-  const active = (id: string) =>
-    data?.nodes.some((n) => n.id === id && n.lifecycle_status === "ACTIVE");
+  const activeNodeIds = new Set(
+    data?.nodes.filter((n) => n.lifecycle_status === "ACTIVE").map((n) => n.id),
+  );
+  const active = (id: string) => activeNodeIds.has(id);
   const selectedNode = data?.nodes.find((n) => n.id === nodeEditor);
   const selectedConnection = data?.connections.find(
     (c) => c.id === connectionEditor,

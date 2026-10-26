@@ -11,7 +11,7 @@ from powerforge_api.db import get_engine, get_session_factory
 from powerforge_api.main import app
 from powerforge_engineering_model import ValueOrigin, VerificationState, get_equipment_definition
 from powerforge_persistence import Project, ProjectRevision
-from powerforge_persistence.engineering import Equipment
+from powerforge_persistence.engineering import Equipment, EquipmentAttribute
 from powerforge_persistence.topology import ModelConnection, ModelNode
 from powerforge_project import ProjectStatus, RevisionStatus
 
@@ -185,7 +185,7 @@ def test_attributes_registry_order_normalization_and_safe_type_conflict(model_ap
                 path + "/attributes/phase_count", json={"information_state": "PRESENT", "value": 1}
             )
         )["integer_value"]
-        == 1
+        == "1"
     )
     ups = equipment(model_api, "UPS")
     boolean = f"{model_api}/equipment/{ups['id']}/attributes/static_bypass_available"
@@ -203,8 +203,102 @@ def test_attributes_registry_order_normalization_and_safe_type_conflict(model_ap
                 path + "/attributes/phase_count", json={"information_state": "PRESENT", "value": 1}
             )
         )["integer_value"]
-        == 1
+        == "1"
     )
+
+
+@pytest.mark.parametrize("value", ["3", "9007199254740993"])
+def test_integer_persistence_and_json_round_trip(model_api, value):
+    bus = equipment(model_api)
+    resource = f"equipment/{bus['id']}/attributes"
+    path = f"{model_api}/{resource}/phase_count"
+    initial = next(a for a in items(model_api, resource) if a["attribute_key"] == "phase_count")
+    assert initial["integer_value"] is None
+
+    written = checked(client.put(path, json={"information_state": "PRESENT", "value": value}))
+    assert written["integer_value"] == value
+    with get_session_factory()() as session:
+        persisted = session.get(EquipmentAttribute, UUID(written["id"]))
+        assert type(persisted.integer_value) is int
+        assert persisted.integer_value == int(value)
+
+    read = next(a for a in items(model_api, resource) if a["id"] == written["id"])
+    assert read["integer_value"] == value
+    assert (
+        checked(
+            client.put(path, json={"information_state": "PRESENT", "value": read["integer_value"]})
+        )["integer_value"]
+        == value
+    )
+    assert checked(client.put(path, json={"information_state": "UNKNOWN"}))["integer_value"] is None
+
+
+def test_http_carry_forward_preserves_typed_values_and_remaps_topology(model_api):
+    base = model_api
+    checked(client.patch(base, json={"system_frequency": "60", "system_phase_count": 3}))
+    owner = equipment(base, tag="Snapshot")
+    resource = f"equipment/{owner['id']}/attributes"
+    for key, value in (
+        ("phase_count", "9007199254740993"),
+        ("nominal_voltage", "0.1234567890123456789012345678901234"),
+    ):
+        checked(
+            client.put(
+                f"{base}/{resource}/{key}", json={"information_state": "PRESENT", "value": value}
+            )
+        )
+    terminal = node(base, kind="EQUIPMENT_TERMINAL", equipment_id=owner["id"], terminal_key="LINE")
+    junction = node(base, label="Junction")
+    edge = connection(base, terminal, junction, nominal_voltage="0.6")
+    source_attrs = items(base, resource)
+    revisions_path, source_id = base.rsplit("/", 1)
+    child = checked(
+        client.post(
+            revisions_path,
+            json={
+                "identifier": "child",
+                "based_on_revision_id": source_id,
+                "carry_forward_model": True,
+                "carry_forward_documents": False,
+            },
+        ),
+        201,
+    )
+    assert child["system_frequency"] == "60" and child["system_phase_count"] == 3
+    assert child["inherited_model_equipment_count"] == 1
+    target = f"{revisions_path}/{child['id']}"
+    cloned = items(target, "equipment")[0]
+    assert cloned["id"] != owner["id"] and cloned["lineage_id"] == owner["lineage_id"]
+    assert cloned["inherited_from_equipment_id"] == owner["id"]
+    cloned_resource = f"equipment/{cloned['id']}/attributes"
+    cloned_attrs = items(target, cloned_resource)
+    for source, copied in zip(source_attrs, cloned_attrs, strict=True):
+        assert copied["id"] != source["id"]
+        assert copied["inherited_from_attribute_id"] == source["id"]
+        for key in (
+            "integer_value",
+            "numeric_value",
+            "information_state",
+            "origin",
+            "verification_state",
+        ):
+            assert copied[key] == source[key]
+    nodes = {n["inherited_from_node_id"]: n for n in items(target, "nodes")}
+    assert nodes[terminal["id"]]["equipment_id"] == cloned["id"]
+    copied_edge = items(target, "connections")[0]
+    assert copied_edge["inherited_from_connection_id"] == edge["id"]
+    assert copied_edge["from_node_id"] == nodes[terminal["id"]]["id"] != terminal["id"]
+    assert copied_edge["to_node_id"] == nodes[junction["id"]]["id"] != junction["id"]
+    checked(
+        client.put(
+            f"{target}/{cloned_resource}/phase_count",
+            json={"information_state": "PRESENT", "value": "1"},
+        )
+    )
+    checked(client.post(f"{target}/equipment/{cloned['id']}/remove"))
+    assert items(target, "connections") == []
+    assert items(base, resource) == source_attrs
+    assert items(base, "connections") == [edge]
 
 
 @pytest.mark.parametrize(

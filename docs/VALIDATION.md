@@ -32,7 +32,7 @@ In the planned workflow, validation runs on candidate records after schema valid
 - Required critical attributes for a type are `MISSING` or `NOT_EXTRACTED`.
 - Two equipment rows share an identical tag in the same revision (a finding, not a uniqueness constraint).
 - A configured `system_frequency` disagrees with explicit equipment frequency.
-- A configured `system_phase_count` disagrees with explicit equipment `phase_count`; a meaningful mixed-phase system should not assert a common count. Phase 5C must define effective-value and mismatch policy; Phase 10 adds persistent findings and cross-model checks.
+- A configured `system_phase_count` disagrees with explicit equipment `phase_count`; a meaningful mixed-phase system should not assert a common count. Phase 5C implements effective-value and mismatch policy without changing explicit values; Phase 10 adds persistent findings and cross-model checks.
 
 ## Relationship to other modules
 

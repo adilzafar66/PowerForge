@@ -39,7 +39,7 @@ Rules that do not change:
 4. The engineering model must not depend on a particular AI provider.
 5. The engineering model must not depend on ETAP, SKM, EasyPower, or any other electrical analysis package.
 
-Study-tool integration, including export/adapters, study execution/automation, results ingestion, and engineering reports, is planned for Phase 13. Short-circuit, coordination, and arc-flash studies consume the verified canonical model downstream. These capabilities are not implemented through Phase 5F. See [ADR-001](../decisions/ADR-001-engineering-model-independence.md).
+Study-tool integration, including export/adapters, study execution/automation, results ingestion, and engineering reports, is planned for Phase 13. Short-circuit, coordination, and arc-flash studies consume the verified canonical model downstream. These capabilities are not implemented through Phase 5G. See [ADR-001](../decisions/ADR-001-engineering-model-independence.md).
 
 ## High-level architecture
 
@@ -176,6 +176,8 @@ Revision defaults are not copied into equipment attribute rows. For applicable f
 
 Protection functions/settings and operating/study configurations are separate post-core-Phase-5 canonical-domain design gates, not arbitrary equipment attributes. Dedicated decisions must precede implementation and provide targets for extraction and study integration. Canonical design/nameplate values remain distinct from study-adjusted settings; see [ROADMAP.md](ROADMAP.md).
 
+Phase 5G freezes the completed canonical model without a migration or new aggregate. Canonical attribute INTEGER values remain Python integers/BIGINT internally and serialize consistently as JSON strings (or null); frontend types preserve those strings through reads and edits. Decimal response behavior is unchanged. The registry matches its authoritative snapshot and is frozen; future semantic changes need deliberate versioning and a migration strategy. Full live regression, fresh migration/stack checks and the bounded performance review are recorded in [PHASE5G_HANDOFF.md](PHASE5G_HANDOFF.md). Phase 6 is next, with no Evidence/Candidate persistence or extraction workflow implemented yet.
+
 ## Asynchronous processing
 
 `POST` endpoints that start processing return a `job_id`. The UI polls or subscribes to job status. Every stage has status, job ID, timestamps, error information, and retry capability.
@@ -184,7 +186,7 @@ Protection functions/settings and operating/study configurations are separate po
 
 Uploaded documents are confidential engineering information. The platform requires authentication, authorization, project-level access control, authorized object-storage access (signed URLs), encryption in transit, encryption at rest where supported, and audit logging. Object storage is never exposed without authorization.
 
-Auth is not implemented through Phase 5F. Authentication, user identity, project authorization, and actor-backed audit records are a hard prerequisite/subphase for Phase 11 completion; pull them forward if shared/multi-user deployment requires them earlier. Phase 2 still issues object access only through backend-authorized presigned URLs, so project-level authorization can be added at the API later without changing storage. The API is bound to localhost in local development. Do not add a fake users table or fake auth in Phase 1. `created_by` on projects and revisions is a nullable UUID with no foreign key until a users table exists. Project-level access control arrives with authentication, not merely because project rows exist. See [ADR-003](../decisions/ADR-003-project-revision-model.md).
+Auth is not implemented through Phase 5G. Authentication, user identity, project authorization, and actor-backed audit records are a hard prerequisite/subphase for Phase 11 completion; pull them forward if shared/multi-user deployment requires them earlier. Phase 2 still issues object access only through backend-authorized presigned URLs, so project-level authorization can be added at the API later without changing storage. The API is bound to localhost in local development. Do not add a fake users table or fake auth in Phase 1. `created_by` on projects and revisions is a nullable UUID with no foreign key until a users table exists. Project-level access control arrives with authentication, not merely because project rows exist. See [ADR-003](../decisions/ADR-003-project-revision-model.md).
 
 ## Phase 0 scope
 

@@ -2,7 +2,7 @@
 
 Every AI-derived value must be traceable to evidence. The provenance module answers “Where did this come from?” at attribute granularity.
 
-Full Evidence/ExtractionCandidate persistence begins in **Phase 6** and is not implemented through Phase 5B. Phase 5 is evidence-ready only. See [ROADMAP.md](ROADMAP.md) for placement and [EXTRACTION.md](EXTRACTION.md) for the extraction pipeline.
+Full Evidence/ExtractionCandidate persistence begins in **Phase 6** and is not implemented in Phase 5. Phase 5 is evidence-ready only: canonical rows keep separate information state, origin, verification, nullable confidence, audit fields and inheritance pointers, without document/page shortcuts or verification authority. See [ROADMAP.md](ROADMAP.md) for placement and [EXTRACTION.md](EXTRACTION.md) for the extraction pipeline.
 
 ## Planned ownership
 

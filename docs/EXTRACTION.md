@@ -2,7 +2,7 @@
 
 AI extraction proposes candidate engineering data. It does not mutate the verified engineering model.
 
-Phase 0 established interfaces and candidate contracts; Phase 4 classification is implemented. Full Evidence/ExtractionCandidate persistence and structured extraction are planned for Phase 6, as described in [ROADMAP.md](ROADMAP.md). They are not implemented through Phase 5B.
+Phase 0 established interfaces and candidate contracts; Phase 4 classification is implemented. Full Evidence/ExtractionCandidate persistence and structured extraction are planned for Phase 6, as described in [ROADMAP.md](ROADMAP.md). They are not implemented in Phase 5. The manually authored revision-scoped canonical model is their future target, not an extraction result or a second source of truth.
 
 ## Principles
 

@@ -6,7 +6,15 @@ from enum import StrEnum
 from typing import Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    field_serializer,
+    field_validator,
+    model_validator,
+)
 
 from powerforge_engineering_model import (
     AttributeValueType,
@@ -202,6 +210,11 @@ class AttributeResponse(CanonicalResponse):
     origin: ValueOrigin | None
     confidence: Decimal | None
     inherited_from_attribute_id: UUID | None
+
+    @field_serializer("integer_value", when_used="json")
+    def serialize_integer_value(self, value: int | None) -> str | None:
+        """Keep BIGINT values exact in JSON consumers, including browsers."""
+        return str(value) if value is not None else None
 
 
 class NodeResponse(LifecycleResponse):

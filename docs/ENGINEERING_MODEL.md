@@ -2,7 +2,7 @@
 
 The canonical engineering model belongs to a project revision. It is independent of documents, AI providers, and analysis software. [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md) and the [Phase 5 specification](specs/phase-5-engineering-model.md) supersede the Phase 0 placeholder taxonomy, JSONB attribute proposal, and combined information/verification states previously described here.
 
-**Implemented: Phases 5A through 5F.** `packages/engineering-model` owns the pure registry, value validation, unit normalization, requirement evaluation, and effective model-value semantics, with no third-party dependencies. `packages/persistence` owns revision-scoped equipment, topology storage, and revision-level engineering metadata. Public revision-scoped APIs expose manual authoring through the accepted services; revision inheritance remains transactional. Phase 5F exposes manual authoring in the revision Engineering Model workspace; see [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md). See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md) for the API contract and validation details.
+**Implemented and frozen: Phases 5A through 5G.** `packages/engineering-model` owns the pure registry, value validation, unit normalization, requirement evaluation, and effective model-value semantics, with no third-party dependencies. `packages/persistence` owns revision-scoped equipment, topology storage, and revision-level engineering metadata. Public revision-scoped APIs expose manual authoring through the accepted services; revision inheritance remains transactional. Phase 5F exposes manual authoring in the revision Engineering Model workspace; see [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md). See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md) for the API contract and validation details.
 
 ## Registry ownership
 
@@ -26,7 +26,7 @@ from powerforge_engineering_model import (
 
 Equipment keys use the approved uppercase identifiers, such as `TWO_WINDING_TRANSFORMER` and `SYNCHRONOUS_GENERATOR`. Generic Phase 0 keys/aliases are removed. Switchgear, switchboard, panelboard, MCC, and junction box are `BUS.bus_type` choices. A fused disconnect is a `SINGLE_THROW_SWITCH` with associated `FUSE` equipment; a pure junction is a topology ELECTRICAL_NODE.
 
-`validate_registry()` runs when the API application is constructed. It rejects malformed taxonomy, attributes, units, conditions, references, and alternative groups. The snapshot test also locks exact metadata and the 20/296/44 counts. Once registry-v1 is frozen, semantic changes require a deliberate registry version and migration strategy.
+`validate_registry()` runs when the API application is constructed. It rejects malformed taxonomy, attributes, units, conditions, references, and alternative groups. The snapshot test also locks exact metadata and the 20/296/44 counts. Registry-v1 is frozen at the Phase 5G gate; semantic changes require a deliberate registry version and migration strategy.
 
 ## Required, Critical, and information state
 
@@ -100,7 +100,7 @@ Omitted external context returns NOT_EVALUATED, even if the target value exists.
 
 Migration `0007_engineering_model_core` adds `equipment_lineages`, `equipment`, and `equipment_attributes`. The neutral `powerforge_persistence` package owns the shared SQLAlchemy Base and project/revision mappings; `powerforge_persistence.engineering` owns the three engineering mappings. Existing imports of Base/Project/ProjectRevision from document-processing remain compatibility re-exports of those same objects. Document-specific mappings stay in document-processing. The pure engineering-model package has no ORM imports.
 
-EquipmentLineage provides stable project-owned identity. Equipment is a revision snapshot with a lineage, text equipment type, optional tag/name/description, audit fields, and ACTIVE/REMOVED lifecycle. Tags are deliberately non-unique. A revision can contain each lineage only once. Composite foreign keys enforce project/revision/lineage ownership and attribute ownership; optional inheritance references enforce the same project and forbid self-reference. Phase 5B leaves inheritance references null.
+EquipmentLineage provides stable project-owned identity. Equipment is a revision snapshot with a lineage, text equipment type, optional tag/name/description, audit fields, and ACTIVE/REMOVED lifecycle. Tags are deliberately non-unique. A revision can contain each lineage only once. Composite foreign keys enforce project/revision/lineage ownership and attribute ownership; optional inheritance references enforce the same project and forbid self-reference. New manual rows leave inheritance references null; Phase 5C cloning populates them.
 
 Equipment attributes use separate NUMERIC, BIGINT, TEXT, and BOOLEAN columns. PRESENT requires exactly one compatible slot; every other information state requires all slots null. ENUM uses the text slot with registry validation in the service. Confidence, when present, is between zero and one. Non-finite numerics are rejected. Equipment types, attribute keys, and canonical units are text, validated against registry-v1, rather than database enums. Five closed state/type vocabularies use PostgreSQL enums, including all five verification states starting with UNVERIFIED.
 
@@ -161,13 +161,19 @@ Mutation bodies reject extra fields, including forged provenance, verification, 
 
 Services enforce same-project/revision ownership and existing mutability/locking rules. Scoped-out objects return 404, removed/read-only/type-change conflicts return 409, and invalid registry/domain/topology input returns 422. Application errors retain the standard nested detail/code envelope; schema errors use FastAPI's validation response. There is no client actor identity or verification workflow. See the [Phase 5E handoff](PHASE5E_HANDOFF.md) for exact allowlists, error mappings, and lifecycle semantics.
 
+## Lossless numeric response contract — Phase 5G
+
+Canonical `integer_value` responses are consistently base-10 JSON strings or null, including small integers: `"3"` and `"9007199254740993"`. Domain/ORM values remain Python integers and PostgreSQL BIGINT; only JSON serialization changes. `AttributeResponse` OpenAPI declares string-or-null, and the frontend response type is `string | null`. No JavaScript numeric conversion occurs before display or resubmission. Existing NUMBER/Decimal string serialization remains unchanged. Revision `system_phase_count` still uses the strictly bounded numeric vocabulary 1/3 and is not an attribute slot.
+
+Live persistence/API tests and frontend tests using the real JSON decoder/editor cover small and unsafe-range integers, while the clean-stack HTTP/JavaScript check verifies real response resubmission. Clients of the former numeric `integer_value` response must adopt the string contract. The Phase 5F handoff's limitation is historical and resolved by this change. No new migration, registry bounds, or dependencies were required.
+
 ## Revision workspace — Phase 5F
 
 Documents remains the default revision workspace. `?workspace=model` selects Engineering Model; `equipment=<id>` opens its detail Sheet independently of list filters. Switching workspaces clears the other workspace's detail parameter and preserves unrelated query parameters. Registry metadata loads on first model use and remains cached while the model workspace is mounted.
 
 Equipment supports debounced server search, registry type filters, Active/Removed/All views, create, and General/Attributes/Terminals details. General edits PATCH only changed fields; explicit null clears nullable text. An empty PATCH is never sent. Type-change conflicts preserve the form draft; successful changes refresh the materialized attributes.
 
-Attribute forms follow registry order and distinguish Required, Critical, and Conditional metadata without inventing a validation workflow. ENUM choices and input units come from the registry. NUMBER and INTEGER inputs remain strings through submission, BOOLEAN sends a JSON boolean, and TEXT remains text. Unit conversion stays on the server and successful saves adopt canonical responses. PRESENT accepts a value; UNKNOWN/MISSING/NOT_APPLICABLE omit values and units. NOT_EXTRACTED/CONFLICTING remain viewable but cannot be selected as manual targets. Rows save independently and preserve drafts on 422 errors.
+Attribute forms follow registry order and distinguish Required, Critical, and Conditional metadata without inventing a validation workflow. ENUM choices and input units come from the registry. NUMBER and INTEGER inputs remain strings through submission, BOOLEAN requires an explicit True/False selection and sends a JSON boolean, and TEXT remains text. Unit conversion stays on the server and successful saves adopt canonical responses. PRESENT accepts a value; UNKNOWN/MISSING/NOT_APPLICABLE omit values and units. NOT_EXTRACTED/CONFLICTING remain viewable but cannot be selected as manual targets. Rows save independently and preserve drafts on 422 errors.
 
 Read-only or removed objects remain viewable. Mutation controls respect revision/owner lifecycle; stale read-only responses disable further editing and refresh server state. Removal warns about terminal/connection cascades, and restoration does not silently restore connections. Provenance and verification are displayed without edit controls. See [TOPOLOGY.md](TOPOLOGY.md) and [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md).
 
@@ -177,4 +183,4 @@ The Phase 5 physical equipment/topology model is not a complete study model. Pro
 
 ## Later phases
 
-Phase 5G hardening and final Phase 5 freeze remain pending. AI extraction, evidence/candidates/reconciliation, persisted findings, protection-function model, and exporters remain separate responsibilities under ADR-007.
+Phase 5 is complete and frozen; Phase 6 is next and has not started. See [PHASE5G_HANDOFF.md](PHASE5G_HANDOFF.md) for the completion audit. AI extraction, evidence/candidates/reconciliation, persisted findings, protection-function model, and exporters remain separate responsibilities under ADR-007.

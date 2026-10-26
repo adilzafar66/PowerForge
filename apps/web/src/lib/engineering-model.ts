@@ -80,7 +80,7 @@ export type EquipmentAttribute = Audit & {
   attribute_key: string;
   value_type: ValueType;
   numeric_value: string | null;
-  integer_value: number | null;
+  integer_value: string | null;
   text_value: string | null;
   boolean_value: boolean | null;
   unit: string | null;

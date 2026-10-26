@@ -4,7 +4,7 @@ This is the authoritative high-level roadmap for intended future scope. [PROJECT
 
 PowerForge keeps **Phase 0–13: fourteen primary numbered phases**. Phase 4.5 is an intentional intermediate document-workspace UX phase. Phase 5 has slices 5A–5G. Completed phases keep their historical numbering; later phases may have internal slices and design gates without adding top-level numbers. Keep the existing Phase 0–13 numbering and use subphases/gates for newly understood work rather than adding or renumbering top-level phases.
 
-Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5F are implemented; Phase 5G is next and has not started.** Phase 5 as a whole is not complete. Later phases are planned. The accepted foundations are [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md), the [Phase 5 specification](specs/phase-5-engineering-model.md), and the [Phase 5E handoff](PHASE5E_HANDOFF.md).
+Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5G are implemented; Phase 5 is complete and frozen. Phase 6 is next and has not started.** Later phases are planned. The accepted foundations are [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md), the [Phase 5 specification](specs/phase-5-engineering-model.md), and the [Phase 5G freeze handoff](PHASE5G_HANDOFF.md).
 
 ## Phase map
 
@@ -16,8 +16,8 @@ Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5F are implemented; 
 | 3 | Document processing | Complete; unchanged |
 | 4 | AI document classification | Complete; unchanged |
 | 4.5 | Document workspace UX | Complete; unchanged |
-| 5 | Canonical engineering model | 5A–5F implemented; 5G not started |
-| 6 | Evidence, candidates, and structured extraction | Planned |
+| 5 | Canonical engineering model | Complete / frozen; 5A–5G implemented |
+| 6 | Evidence, candidates, and structured extraction | Next; not started |
 | 7 | Entity resolution | Planned |
 | 8 | SLD and topology extraction | Planned |
 | 9 | Reconciliation and conflict management | Planned |
@@ -38,7 +38,7 @@ Phase 5 models the physical electrical system, independently of documents, AI pr
 | 5D | Manually authored topology persistence: ModelNode / ModelConnection | Implemented |
 | 5E | Revision-scoped engineering-model APIs | Implemented |
 | 5F | Basic Engineering Model workspace UI | Implemented |
-| 5G | Hardening, regression, documentation | Next; not started |
+| 5G | Hardening, regression, documentation | Implemented; Phase 5 frozen |
 
 The implemented registry contains 20 canonical equipment types, 296 attributes, and 44 requirement reference rows; verification vocabulary includes UNVERIFIED. Phase 5B adds typed equipment persistence and manual services without changing registry-v1. See [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md).
 
@@ -46,9 +46,9 @@ Phase 5D adds relational topology nodes/connections, internal manual services, c
 
 Phase 5E exposes revision-scoped equipment, attribute, node, and connection APIs through those services, with strict request allowlists, canonical response contracts, equipment search/type filters, lifecycle filters, and clean domain-error translation. No new migration, frontend, worker, extraction, or graph visualization work was added. Unpaginated listing and bulk topology validation remain future performance concerns. See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md).
 
-Phase 5F adds the revision Engineering Model workspace alongside the default Documents workspace. Registry-driven equipment/attribute forms and explicit terminal/electrical-node/connection authoring use the existing APIs. Decimal-safe inputs, lifecycle warnings, and read-only handling preserve the accepted model semantics. No graph visualization or later-phase workflow is included. See [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md). Phase 5G hardening and final Phase 5 freeze remain pending.
+Phase 5F adds the revision Engineering Model workspace alongside the default Documents workspace. Registry-driven equipment/attribute forms and explicit terminal/electrical-node/connection authoring use the existing APIs. Decimal-safe inputs, lifecycle warnings, and read-only handling preserve the accepted model semantics. No graph visualization or later-phase workflow is included. See [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md).
 
-An early Phase 5G priority is canonical INTEGER response precision: either prove enforced safe bounds for all canonical INTEGER attributes, or serialize them losslessly through the API/frontend boundary. The inherited JSON-number limitation does not block 5F. Resolution and cross-layer regression criteria are recorded in [Phase 5G priority review items](PROJECT_STATUS.md#phase-5g--priority-review-items).
+Phase 5G resolves INTEGER API/browser precision with consistent string responses, verifies registry-v1 and cross-layer invariants, completes full live/offline/frontend regression and isolated clean-stack validation, and freezes Phase 5. The bounded performance review retains unpaginated lists as documented scaling debt. See [PHASE5G_HANDOFF.md](PHASE5G_HANDOFF.md) for evidence and remaining limitations. Phase 6 functionality has not begun.
 
 ### Implemented Phase 5C extension: revision-level model metadata
 
