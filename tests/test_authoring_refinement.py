@@ -223,3 +223,67 @@ def test_editor_reset_and_type_change_share_one_transaction(model_api):
     assert {
         n["terminal_key"] for n in changed["terminals"] if n["lifecycle_status"] == "ACTIVE"
     } == {"END_A", "END_B"}
+
+
+@pytest.mark.parametrize("populated", [False, True])
+def test_child_type_change_uses_attribute_content_not_inheritance_pointer(model_api, populated):
+    source = equipment(model_api, "BUS")
+    source_path = f"{model_api}/equipment/{source['id']}"
+    if populated:
+        checked(
+            client.put(
+                source_path + "/attributes/bus_type",
+                json={
+                    "information_state": "PRESENT",
+                    "value": "SWITCHGEAR",
+                },
+            )
+        )
+    original = checked(client.get(source_path + "/editor"))
+    project_id, revision_id = model_api.split("/")[3], model_api.split("/")[5]
+    child = checked(
+        client.post(
+            f"/api/projects/{project_id}/revisions",
+            json={
+                "identifier": "child",
+                "based_on_revision_id": revision_id,
+                "carry_forward_model": True,
+                "carry_forward_documents": False,
+            },
+        ),
+        201,
+    )
+    base = f"/api/projects/{project_id}/revisions/{child['id']}"
+    clone = items(base, "equipment")[0]
+    path = f"{base}/equipment/{clone['id']}/editor"
+    before = checked(client.get(path))
+    bus_type = next(a for a in before["attributes"] if a["attribute_key"] == "bus_type")
+    original_type = next(a for a in original["attributes"] if a["attribute_key"] == "bus_type")
+    assert bus_type["inherited_from_attribute_id"] == original_type["id"]
+    if not populated:
+        assert bus_type["information_state"] == "NOT_POPULATED"
+        assert bus_type["verification_state"] == "UNVERIFIED"
+        assert all(
+            bus_type[key] is None
+            for key in (
+                "origin",
+                "confidence",
+                "numeric_value",
+                "integer_value",
+                "text_value",
+                "boolean_value",
+            )
+        )
+    response = client.patch(path, json={"general": {"equipment_type": "CABLE", "tag": "Child"}})
+    if populated:
+        checked(response, 409)
+        assert checked(client.get(path)) == before
+    else:
+        saved = checked(response)
+        assert saved["equipment"]["equipment_type"] == "CABLE"
+        assert saved["equipment"]["lineage_id"] == source["lineage_id"]
+        assert "bus_type" not in {a["attribute_key"] for a in saved["attributes"]}
+        assert {
+            n["terminal_key"] for n in saved["terminals"] if n["lifecycle_status"] == "ACTIVE"
+        } == {"END_A", "END_B"}
+    assert checked(client.get(source_path + "/editor")) == original

@@ -147,12 +147,12 @@ def _materialize(
 
 
 def _untouched(row: EquipmentAttribute) -> bool:
+    """Snapshot ancestry does not make an empty placeholder meaningful data."""
     return (
         row.information_state == InformationState.NOT_POPULATED
         and row.verification_state == VerificationState.UNVERIFIED
         and row.origin is None
         and row.confidence is None
-        and row.inherited_from_attribute_id is None
         and all(getattr(row, slot) is None for slot in VALUE_SLOTS)
     )
 
