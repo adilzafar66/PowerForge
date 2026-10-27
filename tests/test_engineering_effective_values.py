@@ -22,12 +22,12 @@ def test_explicit_value_wins_and_reports_frequency_mismatch() -> None:
 
 
 def test_revision_default_applies_without_changing_nonpresent_state() -> None:
-    state = AttributeState(InformationState.NOT_EXTRACTED)
+    state = AttributeState(InformationState.NOT_POPULATED)
     result = resolve_effective_model_value(state, Decimal("60"))
     assert result.value == Decimal("60")
     assert result.source == "REVISION"
     assert not result.mismatch
-    assert state == AttributeState(InformationState.NOT_EXTRACTED)
+    assert state == AttributeState(InformationState.NOT_POPULATED)
 
 
 def test_phase_mismatch_and_unspecified_values_are_observable() -> None:

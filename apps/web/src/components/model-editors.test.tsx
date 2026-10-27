@@ -13,8 +13,7 @@ import {
   type ModelContextValue,
 } from "@/components/model-shared";
 import { EquipmentGeneralPanel } from "@/components/equipment-general-panel";
-import { EquipmentAttributesPanel } from "@/components/equipment-attributes-panel";
-import { EquipmentTerminalsPanel } from "@/components/equipment-terminals-panel";
+import { EquipmentDetailDrawer } from "@/components/equipment-detail-drawer";
 import { ConnectionEditorSheet } from "@/components/connection-editor-sheet";
 import { TopologyWorkspace } from "@/components/topology-workspace";
 import {
@@ -29,6 +28,8 @@ import {
 import * as api from "@/lib/engineering-model";
 vi.mock("@/lib/engineering-model", async (original) => ({
   ...(await original<typeof api>()),
+  getEquipmentEditor: vi.fn(),
+  saveEquipmentEditor: vi.fn(),
   createEquipment: vi.fn(),
   updateEquipment: vi.fn(),
   listAttributes: vi.fn(),
@@ -63,6 +64,16 @@ beforeEach(() => {
     changed: vi.fn(),
     failed: vi.fn(),
   };
+  vi.mocked(api.getEquipmentEditor).mockResolvedValue({
+    equipment,
+    attributes,
+    terminals: [terminal],
+  });
+  vi.mocked(api.saveEquipmentEditor).mockResolvedValue({
+    equipment,
+    attributes,
+    terminals: [terminal],
+  });
   vi.mocked(api.listAttributes).mockResolvedValue(attributes);
   vi.mocked(api.listNodes).mockResolvedValue([terminal, junction]);
   vi.mocked(api.listConnections).mockResolvedValue([
@@ -73,19 +84,39 @@ beforeEach(() => {
   vi.mocked(api.updateEquipment).mockResolvedValue(equipment);
   vi.mocked(api.createEquipment).mockResolvedValue(equipment);
 });
-describe("equipment editors", () => {
-  it("sends only changed text, clears with null and blocks empty saves", async () => {
-    mount(<EquipmentGeneralPanel row={equipment} onSaved={vi.fn()} />);
-    expect(screen.getByRole("button", { name: "Save general" })).toBeDisabled();
+async function editor(tab = "General", onClose = vi.fn()) {
+  const view = mount(
+    <EquipmentDetailDrawer id={equipment.id} onClose={onClose} />,
+  );
+  await screen.findByLabelText("Tag");
+  if (tab !== "General") fireEvent.click(screen.getByText(tab));
+  return view;
+}
+const save = () => screen.getByRole("button", { name: "Save" });
+const group = (name: string) => within(screen.getByRole("group", { name }));
+describe("unified equipment editor", () => {
+  it("sends only changed text and resets the draft from the canonical response", async () => {
+    vi.mocked(api.saveEquipmentEditor).mockResolvedValue({
+      equipment: { ...equipment, tag: null },
+      attributes,
+      terminals: [terminal],
+    });
+    await editor();
+    expect(save()).toBeDisabled();
     fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save general" }));
+    fireEvent.click(save());
     await waitFor(() =>
-      expect(api.updateEquipment).toHaveBeenCalledWith("p", "r", "e1", {
-        tag: null,
-      }),
+      expect(api.saveEquipmentEditor).toHaveBeenCalledExactlyOnceWith(
+        "p",
+        "r",
+        "e1",
+        { general: { tag: null } },
+      ),
     );
+    await waitFor(() => expect(save()).toBeDisabled());
+    expect(api.updateEquipment).not.toHaveBeenCalled();
   });
-  it("creates with registry keys and allows a duplicate-looking tag", async () => {
+  it("creates with registry keys and a duplicate-looking tag", async () => {
     mount(<EquipmentGeneralPanel onSaved={vi.fn()} />);
     fireEvent.change(screen.getByLabelText("Tag"), {
       target: { value: "SWGR-1" },
@@ -100,284 +131,261 @@ describe("equipment editors", () => {
       }),
     );
   });
-  it("preserves draft on type conflict and requests canonical refresh", async () => {
-    vi.mocked(api.updateEquipment).mockRejectedValue(
-      Object.assign(new Error("Meaningful attributes prevent type change"), {
-        status: 409,
-        apiError: {
-          code: "equipment_type_change_conflict",
-          detail: "Meaningful attributes prevent type change",
-        },
-      }),
-    );
-    mount(<EquipmentGeneralPanel row={equipment} onSaved={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText("Equipment Type"), {
-      target: { value: "ALTERNATE" },
+  it("keeps one draft across tabs and submits General, attributes and custom terminals together", async () => {
+    await editor();
+    fireEvent.change(screen.getByLabelText("Tag"), {
+      target: { value: "Changed" },
     });
-    fireEvent.click(screen.getByText("Save general"));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Meaningful attributes",
-    );
-    expect(screen.getByLabelText("Equipment Type")).toHaveValue("ALTERNATE");
-    expect(context.failed).toHaveBeenCalled();
-  });
-  it("renders registry order and independent badges, preserves NUMBER and INTEGER strings", async () => {
-    mount(<EquipmentAttributesPanel row={equipment} />);
-    await screen.findByRole("form", { name: "Rated voltage" });
+    fireEvent.click(screen.getByText("Attributes"));
     expect(
-      screen.getAllByRole("form").map((f) => f.getAttribute("aria-label")),
-    ).toEqual(definitions.map((a) => a.display_name));
-    const voltage = within(screen.getByRole("form", { name: "Rated voltage" }));
+      screen
+        .getAllByRole("group")
+        .filter((e) =>
+          definitions.some(
+            (d) => d.display_name === e.getAttribute("aria-label"),
+          ),
+        )
+        .map((e) => e.getAttribute("aria-label")),
+    ).toEqual(definitions.map((d) => d.display_name));
+    const voltage = group("Rated voltage");
     expect(voltage.getByText("Required")).toBeInTheDocument();
     expect(voltage.queryByText("Critical")).not.toBeInTheDocument();
+    expect(group("Count").getByText("Critical")).toBeInTheDocument();
     expect(
-      within(screen.getByRole("form", { name: "Count" })).getByText("Critical"),
+      group("Operating mode").getByText("Conditional"),
     ).toBeInTheDocument();
-    expect(
-      within(screen.getByRole("form", { name: "Operating mode" })).getByText(
-        "Conditional",
-      ),
-    ).toBeInTheDocument();
-    const precise = "0.1234567890123456789012345678901234";
-    vi.mocked(api.setAttribute).mockResolvedValue({
-      ...attributes[0],
-      information_state: "PRESENT",
-      numeric_value: precise,
-    });
     fireEvent.change(voltage.getByLabelText("Information state"), {
       target: { value: "PRESENT" },
     });
     fireEvent.change(voltage.getByLabelText("Value"), {
-      target: { value: precise },
+      target: { value: "0.1234567890123456789012345678901234" },
     });
     fireEvent.change(voltage.getByLabelText("Input unit"), {
       target: { value: "V" },
     });
-    fireEvent.click(voltage.getByText("Save attribute"));
-    await waitFor(() =>
-      expect(api.setAttribute).toHaveBeenCalledWith("p", "r", "e1", "voltage", {
-        information_state: "PRESENT",
-        value: precise,
-        unit: "V",
-      }),
+    fireEvent.click(screen.getByText("Terminals"));
+    fireEvent.click(screen.getByText("Add Custom Terminal"));
+    const custom = group("Terminal new");
+    fireEvent.change(custom.getByLabelText("Terminal key"), {
+      target: { value: "GROUND" },
+    });
+    fireEvent.click(screen.getByText("General"));
+    expect(screen.getByLabelText("Tag")).toHaveValue("Changed");
+    fireEvent.click(screen.getByText("Attributes"));
+    expect(group("Rated voltage").getByLabelText("Value")).toHaveValue(
+      "0.1234567890123456789012345678901234",
     );
-    const count = within(screen.getByRole("form", { name: "Count" }));
-    fireEvent.change(count.getByLabelText("Information state"), {
-      target: { value: "PRESENT" },
-    });
-    fireEvent.change(count.getByLabelText("Value"), {
-      target: { value: "9007199254740993" },
-    });
-    fireEvent.click(count.getByText("Save attribute"));
+    fireEvent.keyDown(document, { key: "s", ctrlKey: true });
     await waitFor(() =>
-      expect(api.setAttribute).toHaveBeenCalledWith("p", "r", "e1", "count", {
-        information_state: "PRESENT",
-        value: "9007199254740993",
-      }),
-    );
-  });
-  it.each(["UNKNOWN", "MISSING", "NOT_APPLICABLE"] as const)(
-    "saves %s without stale value/unit",
-    async (state) => {
-      vi.mocked(api.listAttributes).mockResolvedValue([
-        {
-          ...attributes[0],
-          information_state: "PRESENT",
-          numeric_value: "600",
-        },
-        ...attributes.slice(1),
-      ]);
-      vi.mocked(api.setAttribute).mockResolvedValue({
-        ...attributes[0],
-        information_state: state,
-      });
-      mount(<EquipmentAttributesPanel row={equipment} />);
-      const form = within(
-        await screen.findByRole("form", { name: "Rated voltage" }),
-      );
-      fireEvent.change(form.getByLabelText("Information state"), {
-        target: { value: state },
-      });
-      expect(form.queryByLabelText("Value")).not.toBeInTheDocument();
-      fireEvent.click(form.getByText("Save attribute"));
-      await waitFor(() =>
-        expect(api.setAttribute).toHaveBeenCalledWith(
-          "p",
-          "r",
-          "e1",
-          "voltage",
-          { information_state: state },
-        ),
-      );
-    },
-  );
-  it("uses registry enum choices, actual booleans and unmodified text", async () => {
-    mount(<EquipmentAttributesPanel row={equipment} />);
-    await screen.findByRole("form", { name: "Enabled" });
-    for (const [label, key, value] of [
-      ["Operating mode", "mode", "CHOICE_B"],
-      ["Enabled", "enabled", "false"],
-      ["Nameplate note", "note", "Original text"],
-    ]) {
-      const form = within(screen.getByRole("form", { name: label }));
-      vi.mocked(api.setAttribute).mockResolvedValue({
-        ...attributes.find((a) => a.attribute_key === key)!,
-        information_state: "PRESENT",
-      });
-      fireEvent.change(form.getByLabelText("Information state"), {
-        target: { value: "PRESENT" },
-      });
-      fireEvent.change(form.getByLabelText("Value"), { target: { value } });
-      fireEvent.click(form.getByText("Save attribute"));
-      await waitFor(() =>
-        expect(api.setAttribute).toHaveBeenCalledWith("p", "r", "e1", key, {
-          information_state: "PRESENT",
-          value: key === "enabled" ? false : value,
-        }),
-      );
-    }
-  });
-  it("requires an explicit False choice for an unset boolean", async () => {
-    const initial = attributes.find((a) => a.attribute_key === "enabled")!;
-    expect(initial.information_state).toBe("NOT_EXTRACTED");
-    expect(initial.boolean_value).toBeNull();
-    vi.mocked(api.setAttribute).mockResolvedValue({
-      ...initial,
-      information_state: "PRESENT",
-      boolean_value: false,
-    });
-    mount(<EquipmentAttributesPanel row={equipment} />);
-    const element = await screen.findByRole("form", { name: "Enabled" });
-    const form = within(element);
-    fireEvent.change(form.getByLabelText("Information state"), {
-      target: { value: "PRESENT" },
-    });
-
-    expect(form.getByLabelText("Value")).toHaveValue("");
-    expect(form.getByRole("option", { name: "Select value" })).toHaveProperty(
-      "selected",
-      true,
-    );
-    const save = form.getByRole("button", { name: "Save attribute" });
-    expect(save).toBeDisabled();
-    fireEvent.click(save);
-    fireEvent.submit(element);
-    expect(api.setAttribute).not.toHaveBeenCalled();
-
-    fireEvent.change(form.getByLabelText("Value"), {
-      target: { value: "false" },
-    });
-    expect(save).toBeEnabled();
-    fireEvent.click(save);
-    await waitFor(() =>
-      expect(api.setAttribute).toHaveBeenCalledExactlyOnceWith(
+      expect(api.saveEquipmentEditor).toHaveBeenCalledExactlyOnceWith(
         "p",
         "r",
         "e1",
-        "enabled",
-        { information_state: "PRESENT", value: false },
+        {
+          general: { tag: "Changed" },
+          attributes: {
+            voltage: {
+              information_state: "PRESENT",
+              value: "0.1234567890123456789012345678901234",
+              unit: "V",
+            },
+          },
+          create_terminals: [{ terminal_key: "GROUND", label: null }],
+        },
       ),
     );
+    expect(api.setAttribute).not.toHaveBeenCalled();
+    expect(api.createTerminal).not.toHaveBeenCalled();
   });
-  it("preserves row draft and displays 422 errors", async () => {
-    vi.mocked(api.setAttribute).mockRejectedValue(new Error("Invalid value"));
-    mount(<EquipmentAttributesPanel row={equipment} />);
-    const form = within(await screen.findByRole("form", { name: "Count" }));
-    fireEvent.change(form.getByLabelText("Information state"), {
+  it.each(["NOT_POPULATED", "MISSING", "NOT_APPLICABLE"] as const)(
+    "saves %s without stale values/units",
+    async (state) => {
+      vi.mocked(api.getEquipmentEditor).mockResolvedValue({
+        equipment,
+        terminals: [],
+        attributes: [
+          {
+            ...attributes[0],
+            information_state: "PRESENT",
+            numeric_value: "600",
+          },
+          ...attributes.slice(1),
+        ],
+      });
+      await editor("Attributes");
+      const field = group("Rated voltage");
+      fireEvent.change(field.getByLabelText("Information state"), {
+        target: { value: state },
+      });
+      expect(field.queryByLabelText("Value")).not.toBeInTheDocument();
+      fireEvent.click(save());
+      await waitFor(() =>
+        expect(api.saveEquipmentEditor).toHaveBeenCalledWith("p", "r", "e1", {
+          attributes: { voltage: { information_state: state } },
+        }),
+      );
+    },
+  );
+  it("requires an explicit False choice for an unset boolean", async () => {
+    await editor("Attributes");
+    const field = group("Enabled");
+    fireEvent.change(field.getByLabelText("Information state"), {
       target: { value: "PRESENT" },
     });
-    fireEvent.change(form.getByLabelText("Value"), {
-      target: { value: "1.5" },
+    expect(field.getByLabelText("Value")).toHaveValue("");
+    expect(field.getByRole("option", { name: "Select value" })).toHaveProperty(
+      "selected",
+      true,
+    );
+    expect(save()).toBeDisabled();
+    fireEvent.click(save());
+    fireEvent.keyDown(document, { key: "s", metaKey: true });
+    expect(api.saveEquipmentEditor).not.toHaveBeenCalled();
+    fireEvent.change(field.getByLabelText("Value"), {
+      target: { value: "false" },
     });
-    fireEvent.click(form.getByText("Save attribute"));
-    await form.findByText("Invalid value");
-    expect(form.getByLabelText("Value")).toHaveValue("1.5");
-  });
-});
-describe("terminals and topology", () => {
-  it("filters terminals by Equipment, adds, edits, warns on remove, and restores", async () => {
-    vi.mocked(api.listNodes).mockResolvedValue([
-      terminal,
-      {
-        ...terminal,
-        id: "other",
-        equipment_id: "other",
-        terminal_key: "OTHER",
-      },
-    ]);
-    const view = mount(<EquipmentTerminalsPanel row={equipment} />);
-    await screen.findByText("LINE · Active");
-    expect(screen.queryByText(/OTHER/)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByText("Add Terminal"));
-    fireEvent.change(screen.getByLabelText(/Terminal key/), {
-      target: { value: "LOAD" },
-    });
-    fireEvent.click(screen.getByText("Create terminal"));
+    expect(save()).toBeEnabled();
+    fireEvent.keyDown(document, { key: "s", metaKey: true });
     await waitFor(() =>
-      expect(api.createTerminal).toHaveBeenCalledWith("p", "r", "e1", {
-        terminal_key: "LOAD",
-        label: null,
-      }),
-    );
-    fireEvent.click(screen.getByText("Edit terminal"));
-    expect(screen.getByText("Save node")).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("Label"), {
-      target: { value: "Input" },
-    });
-    fireEvent.click(screen.getByText("Save node"));
-    await waitFor(() =>
-      expect(api.updateNode).toHaveBeenCalledWith("p", "r", "terminal1", {
-        label: "Input",
-      }),
-    );
-    fireEvent.click(screen.getByText("Remove terminal"));
-    expect(screen.getByRole("dialog")).toHaveTextContent(
-      "active connections incident",
-    );
-    fireEvent.click(
-      within(screen.getByRole("dialog")).getByText("Remove terminal"),
-    );
-    await waitFor(() => expect(api.removeNode).toHaveBeenCalled());
-    view.unmount();
-    vi.mocked(api.listNodes).mockResolvedValue([
-      { ...terminal, lifecycle_status: "REMOVED" },
-    ]);
-    mount(<EquipmentTerminalsPanel row={equipment} />);
-    fireEvent.click(await screen.findByText("Restore terminal"));
-    await waitFor(() => expect(api.restoreNode).toHaveBeenCalled());
-  });
-  it("labels nodes, keeps parallel edges and refreshes connections after node removal", async () => {
-    const view = mount(<TopologyWorkspace />);
-    await screen.findAllByText("Electrical node · junction");
-    expect(screen.getAllByText("SWGR-1 · LINE").length).toBe(3);
-    expect(screen.getAllByText("Edit connection")).toHaveLength(2);
-    fireEvent.click(screen.getByText("Add Electrical Node"));
-    fireEvent.change(screen.getByLabelText("Label"), {
-      target: { value: "Junction" },
-    });
-    fireEvent.click(screen.getByText("Create electrical node"));
-    await waitFor(() =>
-      expect(api.createElectricalNode).toHaveBeenCalledWith(
+      expect(api.saveEquipmentEditor).toHaveBeenCalledExactlyOnceWith(
         "p",
         "r",
-        "Junction",
+        "e1",
+        {
+          attributes: {
+            enabled: { information_state: "PRESENT", value: false },
+          },
+        },
       ),
     );
-    fireEvent.click(screen.getByText("Remove node"));
-    fireEvent.click(
-      within(screen.getByRole("dialog")).getByText("Remove node"),
-    );
-    await waitFor(() => expect(context.changed).toHaveBeenCalled());
-    view.rerender(
-      <ModelContext.Provider value={{ ...context, version: 1 }}>
-        <TopologyWorkspace />
-      </ModelContext.Provider>,
-    );
-    await waitFor(() => expect(api.listConnections).toHaveBeenCalledTimes(2));
   });
-  it("edits and restores electrical nodes, and removes/restores connections only with active endpoints", async () => {
-    const view = mount(<TopologyWorkspace />);
-    fireEvent.click(await screen.findByText("Edit node"));
+  it("uses registry enum choices and unmodified text", async () => {
+    await editor("Attributes");
+    for (const [name, value] of [
+      ["Operating mode", "CHOICE_B"],
+      ["Nameplate note", "Original text"],
+    ]) {
+      const field = group(name);
+      fireEvent.change(field.getByLabelText("Information state"), {
+        target: { value: "PRESENT" },
+      });
+      fireEvent.change(field.getByLabelText("Value"), { target: { value } });
+    }
+    fireEvent.click(save());
+    await waitFor(() =>
+      expect(api.saveEquipmentEditor).toHaveBeenCalledWith("p", "r", "e1", {
+        attributes: {
+          mode: { information_state: "PRESENT", value: "CHOICE_B" },
+          note: { information_state: "PRESENT", value: "Original text" },
+        },
+      }),
+    );
+  });
+  it("preserves draft on a failed save and failed save-and-close", async () => {
+    vi.mocked(api.saveEquipmentEditor).mockRejectedValue(
+      new Error("Meaningful attributes prevent type change"),
+    );
+    const close = vi.fn();
+    await editor("General", close);
+    fireEvent.change(screen.getByLabelText("Equipment Type"), {
+      target: { value: "ALTERNATE" },
+    });
+    fireEvent.click(save());
+    await screen.findByText("Meaningful attributes prevent type change");
+    expect(screen.getByLabelText("Equipment Type")).toHaveValue("ALTERNATE");
+    fireEvent.click(screen.getByText("Close"));
+    fireEvent.click(screen.getByText("Save changes"));
+    await waitFor(() =>
+      expect(api.saveEquipmentEditor).toHaveBeenCalledTimes(2),
+    );
+    expect(close).not.toHaveBeenCalled();
+    expect(context.failed).toHaveBeenCalled();
+  });
+  it("protects dirty close with keep editing, discard, and save choices", async () => {
+    const close = vi.fn();
+    await editor("General", close);
+    fireEvent.change(screen.getByLabelText("Tag"), {
+      target: { value: "Draft" },
+    });
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(
+      screen.getByRole("dialog", { name: "Unsaved changes" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Keep editing"));
+    expect(screen.getByLabelText("Tag")).toHaveValue("Draft");
+    expect(close).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Close"));
+    fireEvent.click(screen.getByText("Discard changes"));
+    expect(close).toHaveBeenCalledOnce();
+    expect(api.saveEquipmentEditor).not.toHaveBeenCalled();
+  });
+  it("closes only after successful save-and-close", async () => {
+    const close = vi.fn();
+    await editor("General", close);
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "New name" },
+    });
+    fireEvent.click(screen.getByText("Close"));
+    fireEvent.click(screen.getByText("Save changes"));
+    await waitFor(() => expect(close).toHaveBeenCalledOnce());
+  });
+  it("keeps custom terminal edits in the draft and protects profile keys", async () => {
+    vi.mocked(api.getEquipmentEditor).mockResolvedValue({
+      equipment,
+      attributes,
+      terminals: [
+        terminal,
+        {
+          ...terminal,
+          id: "profile",
+          terminal_key: "INPUT",
+          managed_by_profile: true,
+        },
+      ],
+    });
+    await editor("Terminals");
+    const profile = group("Terminal INPUT");
+    expect(profile.getByLabelText("Terminal key")).toBeDisabled();
+    expect(profile.queryByText("Remove terminal")).not.toBeInTheDocument();
+    const custom = group("Terminal LINE");
+    fireEvent.change(custom.getByLabelText("Label"), {
+      target: { value: "Custom label" },
+    });
+    fireEvent.click(save());
+    await waitFor(() =>
+      expect(api.saveEquipmentEditor).toHaveBeenCalledWith("p", "r", "e1", {
+        update_terminals: [{ id: terminal.id, label: "Custom label" }],
+      }),
+    );
+  });
+  it.each(["read-only", "removed"])(
+    "disables editing when %s",
+    async (mode) => {
+      context.writable = mode !== "read-only";
+      vi.mocked(api.getEquipmentEditor).mockResolvedValue({
+        equipment: {
+          ...equipment,
+          lifecycle_status: mode === "removed" ? "REMOVED" : "ACTIVE",
+        },
+        attributes,
+        terminals: [terminal],
+      });
+      await editor();
+      expect(save()).toBeDisabled();
+      expect(screen.getByLabelText("Tag")).toBeDisabled();
+      fireEvent.click(screen.getByText("Terminals"));
+      expect(screen.queryByText("Add Custom Terminal")).not.toBeInTheDocument();
+    },
+  );
+});
+describe("topology tables", () => {
+  it("opens node and connection detail editors from rows, retaining parallel edges", async () => {
+    mount(<TopologyWorkspace />);
+    const nodes = await screen.findByRole("table", { name: "Nodes" });
+    fireEvent.click(within(nodes).getByText("Electrical node · junction"));
+    expect(screen.getByRole("dialog")).toHaveTextContent(
+      "Electrical Node details",
+    );
     fireEvent.change(screen.getByLabelText("Label"), {
       target: { value: "Updated junction" },
     });
@@ -387,46 +395,55 @@ describe("terminals and topology", () => {
         label: "Updated junction",
       }),
     );
-    fireEvent.click(screen.getAllByText("Remove connection")[0]);
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+    const connections = screen.getByRole("table", { name: "Connections" });
+    expect(within(connections).getAllByRole("row")).toHaveLength(3);
+    fireEvent.keyDown(within(connections).getAllByRole("row")[1], {
+      key: "Enter",
+    });
+    expect(screen.getByRole("dialog")).toHaveTextContent("Edit Connection");
+    fireEvent.click(screen.getByText("Remove connection"));
     await waitFor(() =>
       expect(api.removeConnection).toHaveBeenCalledWith("p", "r", "c1"),
     );
+  });
+  it("shows managed terminals without rename/removal controls", async () => {
+    vi.mocked(api.listNodes).mockResolvedValue([
+      { ...terminal, managed_by_profile: true },
+      junction,
+    ]);
+    mount(<TopologyWorkspace />);
+    fireEvent.click(
+      within(await screen.findByRole("table", { name: "Nodes" })).getByText(
+        "SWGR-1 · LINE",
+      ),
+    );
+    expect(screen.getByLabelText(/Terminal key/)).toBeDisabled();
+    expect(screen.queryByText("Remove node")).not.toBeInTheDocument();
+  });
+  it("disables connection restore until both endpoints are active", async () => {
+    vi.mocked(api.listConnections).mockResolvedValue([
+      { ...connection, lifecycle_status: "REMOVED" },
+    ]);
     vi.mocked(api.listNodes).mockResolvedValue([
       terminal,
       { ...junction, lifecycle_status: "REMOVED" },
     ]);
-    vi.mocked(api.listConnections).mockResolvedValue([
-      { ...connection, lifecycle_status: "REMOVED" },
-    ]);
-    view.rerender(
-      <ModelContext.Provider value={{ ...context, version: 1 }}>
-        <TopologyWorkspace />
-      </ModelContext.Provider>,
+    mount(<TopologyWorkspace />);
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Lifecycle" })).getByText("All"),
     );
     fireEvent.click(
-      within(screen.getByRole("group", { name: "Lifecycle" })).getByText(
-        "Removed",
-      ),
+      within(
+        await screen.findByRole("table", { name: "Connections" }),
+      ).getByText("SWGR-1 · LINE"),
     );
-    const restore = await screen.findByText("Restore connection");
-    expect(restore).toBeDisabled();
-    fireEvent.click(screen.getByText("Restore node"));
-    await waitFor(() =>
-      expect(api.restoreNode).toHaveBeenCalledWith("p", "r", "junction1"),
-    );
-    vi.mocked(api.listNodes).mockResolvedValue([terminal, junction]);
-    view.rerender(
-      <ModelContext.Provider value={{ ...context, version: 2 }}>
-        <TopologyWorkspace />
-      </ModelContext.Provider>,
-    );
-    await waitFor(() =>
-      expect(screen.getByText("Restore connection")).toBeEnabled(),
-    );
-    fireEvent.click(screen.getByText("Restore connection"));
-    await waitFor(() =>
-      expect(api.restoreConnection).toHaveBeenCalledWith("p", "r", "c1"),
-    );
+    expect(screen.getByText("Restore connection")).toBeDisabled();
+    expect(
+      screen.getByText("Restore endpoint nodes first."),
+    ).toBeInTheDocument();
   });
   it("creates connection with human endpoints and registry units, preserving voltage strings", async () => {
     mount(
@@ -486,30 +503,5 @@ describe("terminals and topology", () => {
         nominal_voltage_unit: null,
       }),
     );
-  });
-  it("hides all mutations while read-only and blocks terminals under removed Equipment", async () => {
-    context.writable = false;
-    const view = mount(
-      <>
-        <EquipmentGeneralPanel row={equipment} onSaved={vi.fn()} />
-        <EquipmentTerminalsPanel row={equipment} />
-        <TopologyWorkspace />
-      </>,
-    );
-    await screen.findByText("LINE · Active");
-    expect(
-      screen.queryByRole("button", {
-        name: /^(Add |Save |Remove |Restore |Edit )/,
-      }),
-    ).not.toBeInTheDocument();
-    view.unmount();
-    context.writable = true;
-    mount(
-      <EquipmentTerminalsPanel
-        row={{ ...equipment, lifecycle_status: "REMOVED" }}
-      />,
-    );
-    await screen.findByText("Restore equipment before changing its terminals.");
-    expect(screen.queryByText("Restore terminal")).not.toBeInTheDocument();
   });
 });

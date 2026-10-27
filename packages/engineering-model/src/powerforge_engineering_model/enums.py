@@ -36,10 +36,9 @@ class AttributeValueType(StrEnum):
 
 class InformationState(StrEnum):
     PRESENT = "PRESENT"
-    UNKNOWN = "UNKNOWN"
     MISSING = "MISSING"
     NOT_APPLICABLE = "NOT_APPLICABLE"
-    NOT_EXTRACTED = "NOT_EXTRACTED"
+    NOT_POPULATED = "NOT_POPULATED"
     CONFLICTING = "CONFLICTING"
 
 

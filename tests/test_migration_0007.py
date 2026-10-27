@@ -37,7 +37,18 @@ def assert_schema(engine) -> None:
             assert actual["nullable"] == column.nullable
             assert actual["type"]._type_affinity == column.type._type_affinity
             if isinstance(column.type, ENUM):
-                assert actual["type"].enums == column.type.enums
+                assert actual["type"].enums == (
+                    [
+                        "PRESENT",
+                        "UNKNOWN",
+                        "MISSING",
+                        "NOT_APPLICABLE",
+                        "NOT_EXTRACTED",
+                        "CONFLICTING",
+                    ]
+                    if column.name == "information_state"
+                    else column.type.enums
+                )
         actual_constraints = {
             item["name"]
             for method in [

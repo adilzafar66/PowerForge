@@ -2,7 +2,7 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** 5G — Hardening and final Phase 5 freeze. Phase 5 complete / frozen
+**Current implemented phase:** Phase 5 authoring refinement — Phase 5 complete / re-frozen
 
 **Next:** Phase 6 — Evidence, candidates, and structured extraction. Not started
 
@@ -306,9 +306,21 @@ The registry-v1 snapshot still matches the authoritative reference (20 types, 29
 
 Validation: **1,057 backend tests passed with live integrations, no skips**; offline **506 passed, 551 skipped**; both reported six existing dependency warnings. **245 frontend tests passed across 16 files**; lint, typecheck, production build, Python lint/changed-file formatting, dependency and whitespace checks passed. An isolated Compose project with fresh volumes migrated from empty to `0009_topology_persistence`; API health/readiness, all three workers, frontend routes, and a real HTTP/JavaScript precision/inheritance/lifecycle scenario passed. The disposable stack was removed after validation. No browser interaction tool was available; this is not a claim of browser/visual smoke coverage.
 
+## Phase 5 authoring refinement
+
+**Status:** Implemented (2026-10-26). **Phase 5 complete / re-frozen. Phase 6 next / not started.**
+
+Authority: [authoring refinement prompt](prompts/phase-5-refinement.md). Decisions, migration behavior, exact commands, validation and debt: [PHASE5_AUTHORING_REFINEMENT_HANDOFF.md](PHASE5_AUTHORING_REFINEMENT_HANDOFF.md).
+
+All 20 equipment types now have code-owned normal terminal profiles, materialized atomically on equipment creation. Profile-managed keys cannot be renamed or independently removed; type reconciliation preserves/adopts matching terminals and rejects removal of connected roles. Custom terminals remain possible. Migration `0010_authoring_refinement` safely backfills existing equipment without changing connection endpoints and replaces attribute information states: NOT_EXTRACTED → NOT_POPULATED, UNKNOWN → MISSING. Reset to NOT_POPULATED clears values/provenance and restores UNVERIFIED. Registry-v1 is unchanged.
+
+The Equipment sheet now owns one draft across General, Attributes and Terminals, with one sticky Save, Ctrl/Cmd+S and Save/Discard/Keep-editing close protection. One editor API call commits the entire draft atomically; failures preserve the draft and roll back all writes. Node/Connection tables open detail/edit sheets. Lossless NUMBER/INTEGER strings, explicit BOOLEAN selection and backend-authoritative read-only rules remain enforced.
+
+Validation: **1,064 backend tests passed with live integrations, no skips**; offline **505 passed, 559 skipped**, with six existing dependency warnings. **248 frontend tests passed across 16 files**; lint, typecheck and production build passed. Python lint/changed-file formatting, dependency and whitespace checks passed. Fresh migration to head and representative pre-refinement data upgrade/downgrade/re-upgrade passed on disposable infrastructure. No actual browser interaction test was performed. No dependency or Phase 6 feature was added.
+
 ## Later phases
 
-Phase 5A through 5G are implemented. Phase 5 is complete and frozen; Phase 6 is next and has not started. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5G and the authoring refinement are implemented. Phase 5 is complete and re-frozen; Phase 6 is next and has not started. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -322,7 +334,8 @@ Phase 5A through 5G are implemented. Phase 5 is complete and frozen; Phase 6 is 
 | 5D | Canonical topology persistence | Implemented |
 | 5E | Revision-scoped engineering-model APIs | Implemented |
 | 5F | Basic Engineering Model workspace UI | Implemented |
-| 5G | Hardening, regression, documentation | Implemented; Phase 5 frozen |
+| 5G | Hardening, regression, documentation | Implemented |
+| 5 refinement | Authoring profiles, states and transactional editor | Implemented; Phase 5 re-frozen |
 | 6 | Evidence, candidates, and structured extraction | Next; not started |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |

@@ -46,7 +46,7 @@ def test_graph_remaps_exact_metadata_and_immediate_base_with_independent_snapsho
     child_ids = (ctx.project_id, child.revision.id)
     nodes = svc.list_nodes(*child_ids)
     edges = svc.list_connections(*child_ids)
-    assert len(nodes) == 4 and len(edges) == 3
+    assert len(nodes) == 7 and len(edges) == 3
     equipment = {
         r.inherited_from_equipment_id: r.id for r in ctx.service.list_equipment(*child_ids)
     }

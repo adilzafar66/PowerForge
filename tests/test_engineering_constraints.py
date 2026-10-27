@@ -40,7 +40,7 @@ def test_typed_slots_enforced_for_every_value_type(
     # Clear the row between cases; tests deliberately use a slot independent of registry metadata.
     reset = (
         "UPDATE equipment_attributes SET numeric_value=NULL, integer_value=NULL, text_value=NULL, "
-        "boolean_value=NULL, information_state='NOT_EXTRACTED', value_type=CAST(:kind AS "
+        "boolean_value=NULL, information_state='NOT_POPULATED', value_type=CAST(:kind AS "
         "model_attribute_value_type) WHERE id=:id"
     )
     ctx.session.execute(text(reset), params)
@@ -77,7 +77,7 @@ def test_typed_slots_enforced_for_every_value_type(
         params,
         "ck_equipment_attributes_typed_value",
     )
-    for state in ["UNKNOWN", "MISSING", "NOT_APPLICABLE", "NOT_EXTRACTED", "CONFLICTING"]:
+    for state in ["MISSING", "NOT_APPLICABLE", "NOT_POPULATED", "CONFLICTING"]:
         rejects(
             ctx.session,
             "UPDATE equipment_attributes SET information_state=CAST(:state AS "

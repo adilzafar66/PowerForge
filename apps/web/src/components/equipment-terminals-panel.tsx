@@ -1,107 +1,100 @@
 "use client";
-
-import { useCallback, useState } from "react";
-import { ModelNodeEditor } from "@/components/model-node-editor";
-import {
-  LoadState,
-  ModelAction,
-  NODE_REMOVE_WARNING,
-  useModel,
-  useModelQuery,
-} from "@/components/model-shared";
+import { useId } from "react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import {
-  listNodes,
-  removeNode,
-  restoreNode,
-  type Equipment,
-} from "@/lib/engineering-model";
+import { Field } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { NODE_REMOVE_WARNING } from "@/components/model-shared";
+import type { TerminalDraft } from "@/lib/equipment-draft";
 
-export function EquipmentTerminalsPanel({ row }: { row: Equipment }) {
-  const { projectId, revisionId, writable, version } = useModel();
-  const [editing, setEditing] = useState<string | null>(null);
-  const load = useCallback(
-    () => listNodes(projectId, revisionId, "ALL"),
-    [projectId, revisionId],
-  );
-  const query = useModelQuery(load, version);
-  const editable = writable && row.lifecycle_status === "ACTIVE";
-  const nodes =
-    query.data?.filter(
-      (n) => n.kind === "EQUIPMENT_TERMINAL" && n.equipment_id === row.id,
-    ) ?? [];
+export function EquipmentTerminalsPanel({
+  terminals,
+  onChange,
+  editable,
+}: {
+  terminals: TerminalDraft[];
+  onChange: (terminals: TerminalDraft[]) => void;
+  editable: boolean;
+}) {
+  const id = useId();
+  const update = (index: number, patch: Partial<TerminalDraft>) =>
+    onChange(terminals.map((n, i) => (i === index ? { ...n, ...patch } : n)));
   return (
     <div className="space-y-4">
-      <LoadState {...query} />
-      {row.lifecycle_status === "REMOVED" && (
-        <p className="text-sm text-slate-500">
-          Restore equipment before changing its terminals.
-        </p>
-      )}
+      <p className="text-sm text-slate-500">
+        Normal terminals are application-managed. Add custom terminals only for
+        exceptional roles such as Ground or Neutral.
+      </p>
       {editable && (
-        <Button onClick={() => setEditing(editing === "new" ? null : "new")}>
-          Add Terminal
+        <Button
+          onClick={() =>
+            onChange([
+              ...terminals,
+              {
+                id: crypto.randomUUID(),
+                terminal_key: "",
+                label: "",
+                lifecycle_status: "ACTIVE",
+                managed_by_profile: false,
+                isNew: true,
+              },
+            ])
+          }
+        >
+          Add Custom Terminal
         </Button>
       )}
-      {editing === "new" && editable && (
-        <ModelNodeEditor
-          equipmentId={row.id}
-          onSaved={() => setEditing(null)}
-        />
-      )}
-      {!query.loading && nodes.length === 0 && (
-        <p className="text-sm text-slate-500">
-          No terminals. Add each terminal explicitly.
-        </p>
-      )}
-      {nodes.map((n) => (
-        <Card key={n.id} className="p-4 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span>
-              {n.terminal_key}
-              {n.label ? ` · ${n.label}` : ""} ·{" "}
-              {n.lifecycle_status === "ACTIVE" ? "Active" : "Removed"}
-            </span>
-            {editable && (
-              <div className="flex gap-2">
-                {n.lifecycle_status === "ACTIVE" && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setEditing(editing === n.id ? null : n.id)}
-                  >
-                    Edit terminal
-                  </Button>
-                )}
-                <ModelAction
-                  label={
-                    n.lifecycle_status === "ACTIVE"
-                      ? "Remove terminal"
-                      : "Restore terminal"
-                  }
-                  warning={
-                    n.lifecycle_status === "ACTIVE"
-                      ? NODE_REMOVE_WARNING
-                      : undefined
-                  }
-                  action={() =>
-                    n.lifecycle_status === "ACTIVE"
-                      ? removeNode(projectId, revisionId, n.id)
-                      : restoreNode(projectId, revisionId, n.id)
-                  }
-                />
-              </div>
-            )}
-          </div>
-          {editing === n.id && editable && n.lifecycle_status === "ACTIVE" && (
-            <ModelNodeEditor
-              key={n.updated_at}
-              row={n}
-              onSaved={() => setEditing(null)}
+      {terminals.map((n, index) => (
+        <section
+          role="group"
+          key={n.id}
+          aria-label={`Terminal ${n.terminal_key || "new"}`}
+          className="space-y-3 rounded-lg border p-4"
+        >
+          <p className="text-sm">
+            {n.managed_by_profile ? "Application-managed" : "Custom"} ·{" "}
+            {n.lifecycle_status === "ACTIVE" ? "Active" : "Removed"}
+          </p>
+          <Field id={`${id}-${index}-key`} label="Terminal key">
+            <Input
+              id={`${id}-${index}-key`}
+              value={n.terminal_key}
+              disabled={
+                !editable ||
+                n.managed_by_profile ||
+                n.lifecycle_status === "REMOVED"
+              }
+              onChange={(e) => update(index, { terminal_key: e.target.value })}
             />
+          </Field>
+          <Field id={`${id}-${index}-label`} label="Label">
+            <Input
+              id={`${id}-${index}-label`}
+              value={n.label}
+              disabled={!editable || n.lifecycle_status === "REMOVED"}
+              onChange={(e) => update(index, { label: e.target.value })}
+            />
+          </Field>
+          {editable && !n.managed_by_profile && (
+            <Button
+              variant="outline"
+              onClick={() =>
+                n.isNew
+                  ? onChange(terminals.filter((t) => t.id !== n.id))
+                  : update(index, {
+                      lifecycle_status:
+                        n.lifecycle_status === "ACTIVE" ? "REMOVED" : "ACTIVE",
+                    })
+              }
+            >
+              {n.lifecycle_status === "ACTIVE"
+                ? "Remove terminal"
+                : "Restore terminal"}
+            </Button>
           )}
-        </Card>
+          {n.lifecycle_status === "REMOVED" && (
+            <p className="text-xs text-slate-500">{NODE_REMOVE_WARNING}</p>
+          )}
+        </section>
       ))}
     </div>
   );

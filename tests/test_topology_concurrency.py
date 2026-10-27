@@ -64,7 +64,7 @@ def test_clone_waits_for_complete_topology_mutation(graph, monkeypatch):
         svc = TopologyService(session)
         nodes = svc.list_nodes(ids[0], child_id)
         edges = svc.list_connections(ids[0], child_id)
-        assert len(nodes) == 3 and len(edges) == 1
+        assert len(nodes) == 6 and len(edges) == 1
         assert node_id not in {n.inherited_from_node_id for n in nodes}
         assert edges[0].from_node_id in {n.id for n in nodes}
         assert edges[0].to_node_id in {n.id for n in nodes}

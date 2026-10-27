@@ -25,6 +25,7 @@ export function ModelNodeEditor({
   onSaved: () => void;
 }) {
   const { projectId, revisionId, writable, changed, failed } = useModel();
+  const editable = writable && (!row || row.lifecycle_status === "ACTIVE");
   const terminal = !!equipmentId || row?.kind === "EQUIPMENT_TERMINAL";
   const [key, setKey] = useState(row?.terminal_key ?? "");
   const [label, setLabel] = useState(row?.label ?? "");
@@ -38,7 +39,7 @@ export function ModelNodeEditor({
     patch.terminal_key = key.trim();
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!writable || busy || (row && !Object.keys(patch).length)) return;
+    if (!editable || busy || (row && !Object.keys(patch).length)) return;
     setBusy(true);
     setError(null);
     try {
@@ -65,7 +66,7 @@ export function ModelNodeEditor({
           <Input
             id={`${id}-key`}
             value={key}
-            disabled={!writable || busy}
+            disabled={!editable || busy || row?.managed_by_profile}
             onChange={(e) => setKey(e.target.value)}
           />
         </Field>
@@ -74,12 +75,12 @@ export function ModelNodeEditor({
         <Input
           id={`${id}-label`}
           value={label}
-          disabled={!writable || busy}
+          disabled={!editable || busy}
           onChange={(e) => setLabel(e.target.value)}
         />
       </Field>
       {error && <ModelNotice>{error}</ModelNotice>}
-      {writable && (
+      {editable && (
         <Button
           type="submit"
           disabled={

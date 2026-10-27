@@ -158,7 +158,7 @@ The backend is not a monolith. Each worker is a separate process with a narrow j
 
 - Common `Equipment` concept with `equipment_type` and type-specific attributes. Do not require a disconnected schema per type, and do not store the entire model as one JSON blob.
 - Phase 5B attributes carry typed values, canonical units, information/verification states, origin, and nullable confidence. Full Evidence/ExtractionCandidate persistence starts in Phase 6; document/page/bounding-box/extraction provenance belongs there, linked at attribute granularity rather than embedded in canonical attribute rows.
-- Information states are `PRESENT`, `UNKNOWN`, `MISSING`, `NOT_APPLICABLE`, `NOT_EXTRACTED`, and `CONFLICTING`. Confidence and origin (including INFERRED) are separate concepts.
+- Information states are `PRESENT`, `MISSING`, `NOT_APPLICABLE`, `NOT_POPULATED`, and `CONFLICTING`. Confidence and origin (including INFERRED) are separate concepts.
 - Conflicts are represented and queued for the engineer. They are never silently resolved.
 - Verification vocabulary is `UNVERIFIED`, `AI_EXTRACTED`, `SYSTEM_VALIDATED`, `ENGINEER_REVIEWED`, `ENGINEER_VERIFIED`. These are distinct states, not an automatic promotion pipeline. AI_EXTRACTED must never silently become ENGINEER_VERIFIED.
 
@@ -343,3 +343,7 @@ Backend or domain changes, a generic review queue, and the engineering model.
 - [PHASE3_PR_PLAN.md](PHASE3_PR_PLAN.md) — Phase 3 pull-request delivery plan
 - [PHASE4_PR_PLAN.md](PHASE4_PR_PLAN.md) — Phase 4 pull-request delivery plan
 - [PHASE4_5_PR_PLAN.md](PHASE4_5_PR_PLAN.md) — Phase 4.5 pull-request delivery plan
+
+### Phase 5 authoring refinement
+
+The post-5G refinement retains the same revision aggregate and frozen registry-v1. Migration 0010 replaces legacy attribute states and adds profile-managed physical terminal roles, safely backfilled without changing connection endpoints. Equipment creation/type changes reconcile these roles atomically. The unified Equipment editor saves General, Attributes and custom terminals in one backend transaction; fine-grained endpoints remain available. Topology uses clickable tables and detail sheets. See [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md), [TOPOLOGY.md](TOPOLOGY.md) and the [refinement handoff](PHASE5_AUTHORING_REFINEMENT_HANDOFF.md). Phase 6 remains unstarted.

@@ -282,7 +282,7 @@ def test_all_or_none(equipment: str, rule: str, targets: tuple) -> None:
         assert results(equipment, {key: state(0)})[rule].status == UNSATISFIED
     assert results(equipment, populated(equipment, targets))[rule].status == SATISFIED
     assert (
-        results(equipment, {key: AttributeState(InformationState.UNKNOWN) for key in targets})[
+        results(equipment, {key: AttributeState(InformationState.MISSING) for key in targets})[
             rule
         ].status
         == NOT_APPLICABLE

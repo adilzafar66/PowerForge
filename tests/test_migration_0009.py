@@ -6,7 +6,6 @@ from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.orm import Session
 
 from engineering_support import seed_revision
-from powerforge_api.services.engineering_model_service import EngineeringModelService
 from powerforge_persistence.topology import ModelConnection, ModelNode
 from test_migration_0006 import _alembic, _version
 from test_migration_0006 import scratch_url as scratch_url
@@ -21,8 +20,12 @@ def assert_schema(engine):
     for model in [ModelNode, ModelConnection]:
         table = model.__table__
         columns = {c["name"]: c for c in inspector.get_columns(table.name)}
-        assert set(columns) == set(table.columns.keys())
+        assert set(columns) == set(table.columns.keys()) - (
+            {"managed_by_profile"} if model is ModelNode else set()
+        )
         for column in table.columns:
+            if column.name == "managed_by_profile":
+                continue
             actual = columns[column.name]
             assert actual["nullable"] == column.nullable
             assert actual["type"]._type_affinity == column.type._type_affinity
@@ -38,7 +41,9 @@ def assert_schema(engine):
             ]
             for item in method(table.name)
         }
-        assert constraints == {c.name for c in table.constraints if c.name}
+        assert constraints == {
+            c.name for c in table.constraints if c.name and c.name != "ck_model_nodes_profile"
+        }
         indexes = {i["name"]: i for i in inspector.get_indexes(table.name)}
         for index in table.indexes:
             assert indexes[index.name]["column_names"] == [c.name for c in index.columns]
@@ -51,7 +56,7 @@ def assert_schema(engine):
 
 
 def test_fresh_topology_schema(scratch_url):
-    _alembic(scratch_url, "upgrade", "head")
+    _alembic(scratch_url, "upgrade", HEAD)
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == HEAD
@@ -66,8 +71,26 @@ def test_topology_upgrade_downgrade_preserves_existing_model(scratch_url):
     try:
         with Session(engine) as session:
             ids = seed_revision(session)
-            equipment = EngineeringModelService(session).create_equipment(*ids, "CABLE")
-            equipment_id = equipment.id
+            lineage_id = session.execute(
+                text("INSERT INTO equipment_lineages(project_id) VALUES (:p) RETURNING id"),
+                {"p": ids[0]},
+            ).scalar_one()
+            equipment_id = session.execute(
+                text(
+                    "INSERT INTO equipment(project_id,revision_id,lineage_id,equipment_type) "
+                    "VALUES (:p,:r,:l,'CABLE') RETURNING id"
+                ),
+                {"p": ids[0], "r": ids[1], "l": lineage_id},
+            ).scalar_one()
+            session.execute(
+                text(
+                    "INSERT INTO "
+                    "equipment_attributes(project_id,revision_id,"
+                    "equipment_id,attribute_key,value_type) VALUES (:p,:r,:e,'length','NUMBER')"
+                ),
+                {"p": ids[0], "r": ids[1], "e": equipment_id},
+            )
+            session.commit()
 
         def existing():
             with engine.connect() as conn:
@@ -85,7 +108,7 @@ def test_topology_upgrade_downgrade_preserves_existing_model(scratch_url):
                 }
 
         before = existing()
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert_schema(engine)
         assert existing() == before
         with engine.begin() as conn:
@@ -121,7 +144,7 @@ def test_topology_upgrade_downgrade_preserves_existing_model(scratch_url):
             not {"model_node_kind", "model_connection_kind", "model_connection_direction"} & enums
         )
         assert {"model_lifecycle_status", "model_value_origin", "model_verification_state"} <= enums
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert existing() == before
         assert _version(engine) == HEAD
         assert_schema(engine)

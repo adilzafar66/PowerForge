@@ -10,17 +10,36 @@ The infrastructure-neutral `packages/topology` exports exactly:
 - `ConnectionKind`: ELECTRICAL, GROUNDING, OTHER.
 - `ConnectionDirection`: UNDIRECTED, NOMINAL_FROM_TO.
 
-The old `NodeKind.BUS` placeholder is removed. A physical bus, switchgear, panelboard, or MCC is BUS Equipment with terminal nodes. A pure connectivity junction is an ELECTRICAL_NODE. CABLE is Equipment with terminals, never a connection kind. No default terminals or connections are generated.
+The old `NodeKind.BUS` placeholder is removed. A physical bus, switchgear, panelboard, or MCC is BUS Equipment with terminal nodes. A pure connectivity junction is an ELECTRICAL_NODE. CABLE is Equipment with terminals, never a connection kind. Equipment creation generates normal terminals from a code-owned profile. No connections are inferred or generated.
 
 Migration `0009_topology_persistence` adds `model_nodes` and `model_connections`. Their ORM mappings live in `powerforge_persistence.topology` on the existing shared Base.
 
-An equipment terminal requires same-project, same-revision equipment and a nonblank terminal key. Keys are trimmed by the service and unique per equipment snapshot, including removed terminals. Electrical nodes have neither equipment nor terminal key. Node kind and equipment ownership are immutable after creation; label and terminal key may be edited.
+An equipment terminal requires same-project, same-revision equipment and a nonblank terminal key. Keys are trimmed by the service and unique per equipment snapshot, including removed terminals. Electrical nodes have neither equipment nor terminal key. Node kind and equipment ownership are immutable after creation; labels may be edited; only custom terminal keys may be edited.
 
 Connections reference two distinct nodes in the same project and revision. Composite foreign keys enforce these ownership rules. Parallel edges are allowed. UNDIRECTED is the default; NOMINAL_FROM_TO gives the stored endpoint order descriptive significance without asserting power-flow direction.
 
 Optional `phase_configuration` is trimmed text; blank becomes null. Optional nominal voltage uses Decimal/NUMERIC, is finite and positive, and is stored with unit `kV`. Value and unit must both be null or both present. Supported voltage inputs use the existing conversion utility, such as 600 V → 0.6 kV. Optional connection confidence is finite and bounded to [0, 1]. Nodes have no confidence column.
 
 Both tables reuse model lifecycle, origin, and verification enums, have timestamps and nullable actor UUIDs, and carry same-project non-self inheritance references. There are no document/page/geometry fields or evidence shortcuts.
+
+## Code-owned terminal profiles
+
+`powerforge_engineering_model.terminal_profiles` is separate from the unchanged registry-v1 attribute metadata. Every equipment type has an explicit profile:
+
+| Equipment | Normal terminal roles |
+| --- | --- |
+| UTILITY_SOURCE, SYNCHRONOUS_GENERATOR | OUTPUT |
+| TWO_WINDING_TRANSFORMER | PRIMARY, SECONDARY |
+| BUS | BUS |
+| LV_BREAKER, HV_BREAKER, RECLOSER, FUSE, SINGLE_THROW_SWITCH, CT, REACTOR, VFD, UPS | INPUT, OUTPUT |
+| DOUBLE_THROW_SWITCH | SOURCE_1, SOURCE_2, COMMON |
+| CABLE | END_A, END_B |
+| INDUCTION_MOTOR, STATIC_LOAD, LUMPED_LOAD, CAPACITOR | INPUT |
+| OVERCURRENT_RELAY | None |
+
+Migration `0010_authoring_refinement` adds non-null `ModelNode.managed_by_profile` (false for custom/electrical nodes), adopts matching existing terminals and backfills missing roles for all equipment, including removed snapshots. Existing IDs, labels, provenance and connection endpoints are retained. Required terminals follow the owner's lifecycle; adopting a removed required terminal on active equipment reactivates that node without restoring any connections.
+
+Equipment creation and type reconciliation run in the same transaction as attributes. Type changes preserve matching profile terminals, adopt matching custom terminals, add newly required roles, and soft-remove obsolete profile roles only if they have no active incident connections. Otherwise the entire change returns 409. Unrelated custom terminals remain unchanged. Obsolete profile terminals keep their IDs/history and managed flag; they cannot be independently restored and are only reactivated if a later type requires that role again. GROUND/NEUTRAL and other exceptional custom roles remain possible. Relay protection functions are not topology terminals.
 
 ## Manual service
 
@@ -35,8 +54,8 @@ Writes take the existing project FOR SHARE then revision FOR UPDATE guard, refre
 | Action | Result in the same transaction |
 | --- | --- |
 | Remove equipment | Soft-remove its active terminals and their active incident connections; retain attributes and unrelated topology |
-| Restore equipment | Restore its existing removed terminals; connections stay removed |
-| Remove node | Soft-remove its active incident connections |
+| Restore equipment | Restore current-profile and custom terminals; obsolete profile terminals and all connections stay removed |
+| Remove node | Soft-remove its active incident connections; required profile terminals cannot be removed independently |
 | Restore node | Restore only the node; terminal equipment must be active |
 | Restore connection | Both endpoints must still be active, same-revision nodes; no endpoint lifecycle changes |
 
@@ -44,7 +63,7 @@ Lifecycle changes preserve origin, verification, and confidence. Helpers partici
 
 ## Revision inheritance
 
-`carry_forward_model=true` clones equipment/attributes, then ACTIVE nodes, then ACTIVE connections. Explicit ID maps remap terminal equipment references and both connection endpoints into the destination revision. Each topology row receives a new ID and audit metadata, preserves its canonical fields and provenance, and points `inherited_from_node_id` or `inherited_from_connection_id` to the corresponding row in the actual immediate base.
+`carry_forward_model=true` clones equipment/attributes, then ACTIVE nodes, then ACTIVE connections. Explicit ID maps remap terminal equipment references and both connection endpoints into the destination revision. Each topology row receives a new ID and audit metadata, preserves its canonical fields, `managed_by_profile` distinction and provenance, and points `inherited_from_node_id` or `inherited_from_connection_id` to the corresponding row in the actual immediate base.
 
 Removed objects are excluded. An active terminal whose equipment cannot be cloned, or an active connection whose endpoint cannot be cloned, causes atomic inheritance failure. No meaningful active edge is silently discarded or linked to source-revision endpoints. Document inheritance, model inheritance, metadata, and optional activation remain one transaction. The public inherited model count still counts equipment only.
 
@@ -60,7 +79,7 @@ Manual bodies reject extra fields and cannot set origin, verification, confidenc
 
 ## Manual workspace — Phase 5F
 
-The revision Engineering Model workspace provides list/form topology authoring. Equipment detail's Terminals tab filters the revision node list to that equipment; terminal creation and restoration require an active owner. Global Topology manages ELECTRICAL_NODE rows and connections, and directs terminal edits back to Equipment. Nodes and connections support Active/Removed/All views. Parallel connections remain separate rows.
+The revision Engineering Model workspace uses clickable Node and Connection tables. Node columns show Node, Type, Equipment / Owner, Terminal and Lifecycle. Connection columns show From, To, Type, Direction, Voltage, Phase and Lifecycle. Rows open detail/edit sheets by click or keyboard, including read-only/removed rows. Electrical-node and connection create actions remain available on writable revisions. Profile terminals show their owner and application-managed role, with no key editing or independent removal. Custom terminals remain editable. Equipment detail's Terminals tab participates in the unified equipment draft and Save. Nodes and connections support Active/Removed/All views; parallel connections remain separate rows.
 
 Endpoint labels combine equipment tag/name/type with terminal key or electrical-node labels, using short IDs only to disambiguate duplicates or missing names. Connection forms select distinct active endpoints and expose kind, direction, phase configuration, and decimal-safe nominal voltage. Voltage input units derive from registry unit-family metadata; the server handles conversion. PATCHes include only changed fields, with explicit null clears and no empty updates.
 
@@ -68,4 +87,4 @@ Equipment/node removal confirmations describe incident-connection cascades and c
 
 ## Later phases
 
-Phase 5G verified lifecycle, ownership and remapping invariants through full live regression and isolated clean-stack validation; Phase 5 is frozen. See [PHASE5G_HANDOFF.md](PHASE5G_HANDOFF.md). Phase 8 proposes topology from SLD evidence through candidates/reconciliation; Phase 12 visualizes the canonical graph. These workflows, graph algorithms, protection relations, study scenarios, and persistent findings remain unimplemented. See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md).
+Phase 5G verified lifecycle, ownership and remapping invariants through full live regression and isolated clean-stack validation; Phase 5 is re-frozen after the authoring refinement. See [PHASE5G_HANDOFF.md](PHASE5G_HANDOFF.md). Phase 8 proposes topology from SLD evidence through candidates/reconciliation; Phase 12 visualizes the canonical graph. These workflows, graph algorithms, protection relations, study scenarios, and persistent findings remain unimplemented. See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md).

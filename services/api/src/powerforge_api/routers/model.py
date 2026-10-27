@@ -17,6 +17,8 @@ from powerforge_api.schemas.model import (
     ConnectionResponse,
     ConnectionUpdate,
     EquipmentCreate,
+    EquipmentEditorResponse,
+    EquipmentEditorUpdate,
     EquipmentListResponse,
     EquipmentResponse,
     EquipmentUpdate,
@@ -28,6 +30,7 @@ from powerforge_api.schemas.model import (
     NodeUpdate,
 )
 from powerforge_api.services.engineering_model_service import EngineeringModelService
+from powerforge_api.services.equipment_editor import editor_snapshot, save_equipment_editor
 from powerforge_api.services.topology_service import TopologyService
 from powerforge_engineering_model import EquipmentType
 from powerforge_topology import ModelNodeKind
@@ -433,3 +436,23 @@ def restore_connection(
                 connection_id,
             )
         )
+
+
+@router.get("/equipment/{equipment_id}/editor", response_model=EquipmentEditorResponse)
+def get_editor(project_id: UUID, revision_id: UUID, equipment_id: UUID, session: SessionDep):
+    with model_api_errors():
+        return EquipmentEditorResponse.model_validate(
+            editor_snapshot(session, project_id, revision_id, equipment_id)
+        )
+
+
+@router.patch("/equipment/{equipment_id}/editor", response_model=EquipmentEditorResponse)
+def save_editor(
+    project_id: UUID,
+    revision_id: UUID,
+    equipment_id: UUID,
+    body: EquipmentEditorUpdate,
+    session: SessionDep,
+):
+    with model_api_errors():
+        return save_equipment_editor(session, project_id, revision_id, equipment_id, body)

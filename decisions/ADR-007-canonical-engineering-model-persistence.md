@@ -402,7 +402,7 @@ When equipment is created, PowerForge creates one `EquipmentAttribute` row for e
 Unpopulated rows begin as:
 
 ```text
-information_state = NOT_EXTRACTED
+information_state = NOT_POPULATED
 verification_state = UNVERIFIED
 origin = null
 confidence = null
@@ -434,12 +434,13 @@ PowerForge must not overload one status field to represent multiple concepts.
 
 ```text
 PRESENT
-UNKNOWN
 MISSING
 NOT_APPLICABLE
-NOT_EXTRACTED
+NOT_POPULATED
 CONFLICTING
 ```
+
+NOT_POPULATED means no canonical value has been populated. MISSING means the value is unavailable or could not be obtained. Manual reset to NOT_POPULATED clears all typed values, origin and confidence, and sets UNVERIFIED. PRESENT, MISSING and NOT_APPLICABLE retain manual provenance/review semantics. CONFLICTING remains reserved for later reconciliation. Migration 0010 maps the former NOT_EXTRACTED to NOT_POPULATED and UNKNOWN to MISSING, removing both legacy enum labels.
 
 ### VerificationState
 
@@ -569,14 +570,13 @@ PowerForge must:
 
 1. preserve attributes that remain semantically compatible;
 2. materialize newly applicable attributes;
-3. automatically discard only incompatible attributes that remain untouched `NOT_EXTRACTED`;
+3. automatically discard only incompatible attributes that remain untouched `NOT_POPULATED`;
 4. reject the type change if incompatible attributes contain meaningful information.
 
 Meaningful information includes:
 
 ```text
 PRESENT
-UNKNOWN
 MISSING
 NOT_APPLICABLE
 CONFLICTING
@@ -606,11 +606,11 @@ EQUIPMENT_TERMINAL
 ELECTRICAL_NODE
 ```
 
-An equipment terminal belongs to a specific equipment snapshot and has a flexible `terminal_key`.
+An equipment terminal belongs to a specific equipment snapshot. Profile terminal keys are system-controlled; custom terminal keys remain flexible.
 
 An electrical node represents a junction/connectivity point and has no equipment owner.
 
-There is no terminal-definition registry in Phase 5.
+The post-5G authoring refinement defines code-owned terminal profiles for every equipment type, separately from registry-v1.
 
 ---
 
@@ -670,7 +670,7 @@ Load terminal
 
 ## 18. Topology is manually authored in Phase 5
 
-Phase 5 persists topology but does not infer it.
+Phase 5 persists topology but does not infer connections. The accepted post-5G authoring refinement adds code-owned terminal profiles separate from registry-v1. Equipment creation materializes those normal physical roles atomically; exceptional custom terminals remain possible. `ModelNode.managed_by_profile` distinguishes system-controlled keys from custom keys. Required profile terminals cannot be renamed or independently removed. Type changes preserve/adopt matching roles, create new roles, and retire obsolete roles only without active connections; otherwise they fail atomically. Carry-forward preserves the distinction. See [TOPOLOGY.md](../docs/TOPOLOGY.md) for the exact profiles.
 
 The following are deferred:
 
@@ -678,7 +678,6 @@ The following are deferred:
 - SLD interpretation;
 - graph visualization;
 - React Flow;
-- automatic terminal creation;
 - automatic engineering connectivity inference.
 
 ---
@@ -695,7 +694,7 @@ Removing equipment:
 Restoring equipment:
 
 1. restores the equipment;
-2. restores its terminal nodes;
+2. restores current-profile and custom terminal nodes, leaving obsolete profile roles removed;
 3. does **not** automatically restore removed connections.
 
 ### Rationale
@@ -1167,3 +1166,7 @@ Each may require a later ADR.
 PowerForge will persist the canonical engineering model as a **revision-scoped, registry-controlled, typed relational snapshot** rooted at `ProjectRevision`, with stable equipment lineage across revisions and explicit node/connection topology.
 
 This structure becomes the canonical engineering foundation for all later extraction, reconciliation, validation, review, visualization, export, and study-generation phases.
+
+## Accepted authoring refinement after Phase 5G
+
+The equipment editor owns one draft across General, Attributes and Terminals with one sticky Save action, Ctrl/Cmd+S, and Save/Discard/Keep-editing dirty-close protection. A revision-scoped editor GET/PATCH returns equipment, attributes and terminals and applies only supplied changes within one locked transaction. Shared services flush without independent commits inside this unit of work; any failure rolls back the complete draft. Existing fine-grained APIs remain compatible except for the explicitly migrated information-state vocabulary. NUMBER and INTEGER responses remain lossless strings. Nodes and connections use clickable tables with detail/edit sheets. No aggregate, registry-v1 metadata or Phase 6 workflow is introduced.

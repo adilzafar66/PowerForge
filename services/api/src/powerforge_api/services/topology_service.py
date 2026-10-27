@@ -29,6 +29,7 @@ from powerforge_api.services.topology_support import (
 )
 from powerforge_engineering_model import LifecycleStatus, ValueOrigin, VerificationState
 from powerforge_engineering_model.errors import EngineeringModelError
+from powerforge_engineering_model.terminal_profiles import terminal_profile
 from powerforge_engineering_model.units import normalize_value
 from powerforge_persistence import Project, ProjectRevision
 from powerforge_persistence.engineering import Equipment
@@ -78,10 +79,11 @@ def _enum(enum_type, value):
 
 
 class TopologyService:
-    """Mutation methods own commit/rollback; use a dedicated session per unit of work."""
+    """Own commit/rollback by default; commit=False joins the editor's outer transaction."""
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, commit: bool = True) -> None:
         self.session = session
+        self._commit = commit
 
     @contextmanager
     def _mutation(self, project_id: UUID, revision_id: UUID, operation: str) -> Iterator[None]:
@@ -93,7 +95,9 @@ class TopologyService:
                 self.session.flush()
                 validate_topology_consistency(self.session, project_id, revision_id)
                 revision.updated_at = datetime.now(UTC)
-                self.session.commit()
+                self.session.flush()
+                if self._commit:
+                    self.session.commit()
         except BaseException:
             self.session.rollback()
             raise
@@ -259,6 +263,8 @@ class TopologyService:
             if terminal_key is not UNSET:
                 if node.kind != ModelNodeKind.EQUIPMENT_TERMINAL:
                     raise InvalidTopology("Electrical nodes cannot acquire a terminal key")
+                if node.managed_by_profile and terminal_key != node.terminal_key:
+                    raise InvalidTopology("Profile-managed terminal keys cannot be changed")
                 node.terminal_key = _text(terminal_key, required=True)
             if label is not UNSET:
                 node.label = _text(label)
@@ -347,10 +353,22 @@ class TopologyService:
             now = datetime.now(UTC)
             if status == LifecycleStatus.ACTIVE:
                 if model is ModelNode and row.kind == ModelNodeKind.EQUIPMENT_TERMINAL:
-                    self._active_equipment(project_id, revision_id, row.equipment_id)
+                    equipment = self._active_equipment(project_id, revision_id, row.equipment_id)
+                    if row.managed_by_profile and row.terminal_key not in terminal_profile(
+                        equipment.equipment_type
+                    ):
+                        raise InvalidTopology(
+                            "Obsolete profile terminal cannot be restored independently"
+                        )
                 elif model is ModelConnection:
                     self._endpoints(project_id, revision_id, row.from_node_id, row.to_node_id)
             elif model is ModelNode:
+                if row.managed_by_profile:
+                    equipment = self.session.get(Equipment, row.equipment_id)
+                    if row.terminal_key in terminal_profile(equipment.equipment_type):
+                        raise InvalidTopology(
+                            "Required profile terminal cannot be removed independently"
+                        )
                 soft_remove_incident_connections(
                     self.session, project_id, revision_id, [row.id], actor_id, now
                 )

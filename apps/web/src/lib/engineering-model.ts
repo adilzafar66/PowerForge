@@ -2,8 +2,9 @@ import { request } from "@/lib/api";
 
 export type Lifecycle = "ACTIVE" | "REMOVED";
 export type LifecycleFilter = Lifecycle | "ALL";
-export type ManualState = "PRESENT" | "UNKNOWN" | "MISSING" | "NOT_APPLICABLE";
-export type InformationState = ManualState | "NOT_EXTRACTED" | "CONFLICTING";
+export type ManualState =
+  "PRESENT" | "NOT_POPULATED" | "MISSING" | "NOT_APPLICABLE";
+export type InformationState = ManualState | "CONFLICTING";
 export type ValueType = "NUMBER" | "INTEGER" | "ENUM" | "BOOLEAN" | "TEXT";
 export type Origin = "MANUAL" | "AI_EXTRACTION" | "INFERRED" | "IMPORTED";
 export type Verification =
@@ -91,6 +92,7 @@ export type EquipmentAttribute = Audit & {
   inherited_from_attribute_id: string | null;
 };
 export type ModelNode = ModelRow & {
+  managed_by_profile: boolean;
   kind: "EQUIPMENT_TERMINAL" | "ELECTRICAL_NODE";
   equipment_id: string | null;
   terminal_key: string | null;
@@ -284,3 +286,30 @@ export function changedText(
       .map(([key, value]) => [key, value === "" ? null : value]),
   );
 }
+
+export type EquipmentSnapshot = {
+  equipment: Equipment;
+  attributes: EquipmentAttribute[];
+  terminals: ModelNode[];
+};
+export type EquipmentEditorInput = {
+  general?: EquipmentPatch;
+  attributes?: Record<string, AttributeInput>;
+  create_terminals?: { terminal_key: string; label: string | null }[];
+  update_terminals?: (NodePatch & { id: string })[];
+  remove_terminals?: string[];
+  restore_terminals?: string[];
+};
+export const getEquipmentEditor = (p: string, r: string, id: string) =>
+  request<EquipmentSnapshot>(`${base(p, r)}/equipment/${id}/editor`);
+export const saveEquipmentEditor = (
+  p: string,
+  r: string,
+  id: string,
+  body: EquipmentEditorInput,
+) =>
+  send<EquipmentSnapshot>(
+    `${base(p, r)}/equipment/${id}/editor`,
+    "PATCH",
+    body,
+  );

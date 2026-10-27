@@ -83,7 +83,7 @@ def test_manual_nodes_connections_scoping_and_safe_edits(graph):
         with pytest.raises(error):
             operation()
     assert g.edges[0].to_node_id == g.junction.id
-    assert len(svc.list_nodes(*ctx.ids)) == 4
+    assert len(svc.list_nodes(*ctx.ids)) == 7
     assert len(svc.list_connections(*ctx.ids)) == 3
 
 

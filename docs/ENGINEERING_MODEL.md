@@ -2,7 +2,7 @@
 
 The canonical engineering model belongs to a project revision. It is independent of documents, AI providers, and analysis software. [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md) and the [Phase 5 specification](specs/phase-5-engineering-model.md) supersede the Phase 0 placeholder taxonomy, JSONB attribute proposal, and combined information/verification states previously described here.
 
-**Implemented and frozen: Phases 5A through 5G.** `packages/engineering-model` owns the pure registry, value validation, unit normalization, requirement evaluation, and effective model-value semantics, with no third-party dependencies. `packages/persistence` owns revision-scoped equipment, topology storage, and revision-level engineering metadata. Public revision-scoped APIs expose manual authoring through the accepted services; revision inheritance remains transactional. Phase 5F exposes manual authoring in the revision Engineering Model workspace; see [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md). See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md) for the API contract and validation details.
+**Implemented: Phases 5A through 5G plus the authoring refinement.** `packages/engineering-model` owns the pure registry, value validation, unit normalization, requirement evaluation, and effective model-value semantics, with no third-party dependencies. `packages/persistence` owns revision-scoped equipment, topology storage, and revision-level engineering metadata. Public revision-scoped APIs expose manual authoring through the accepted services; revision inheritance remains transactional. Phase 5F exposes manual authoring in the revision Engineering Model workspace; see [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md). See [PHASE5E_HANDOFF.md](PHASE5E_HANDOFF.md) for the API contract and validation details.
 
 ## Registry ownership
 
@@ -32,7 +32,7 @@ Equipment keys use the approved uppercase identifiers, such as `TWO_WINDING_TRAN
 
 Required means an attribute is unconditionally needed for a minimally useful representation. Critical means missing or incorrect information can materially affect an intended engineering study. Neither flag is derived from the other, and neither imposes database NOT NULL behavior. Incomplete equipment remains representable and can be saved.
 
-Information states are `PRESENT`, `UNKNOWN`, `MISSING`, `NOT_APPLICABLE`, `NOT_EXTRACTED`, and `CONFLICTING`. Verification and origin are separate concepts. The old `LOW_CONFIDENCE`, `INFERRED`, and `VERIFIED` information-state placeholders are removed; no existing production caller used them.
+Information states are `PRESENT`, `MISSING`, `NOT_APPLICABLE`, `NOT_POPULATED`, and `CONFLICTING`. Verification and origin are separate concepts. The old `LOW_CONFIDENCE`, `INFERRED`, and `VERIFIED` information-state placeholders are removed; no existing production caller used them.
 
 ## Units and value validation
 
@@ -109,16 +109,16 @@ Equipment attributes use separate NUMERIC, BIGINT, TEXT, and BOOLEAN columns. PR
 - `create_equipment`, `get_equipment`, and `list_equipment` (ACTIVE by default; filter REMOVED or pass `lifecycle_status=None` for all).
 - `get_equipment_attributes`, returned in registry order.
 - `update_equipment` for tag, name, description, and safe equipment-type changes.
-- `set_attribute` for manual PRESENT, UNKNOWN, MISSING, or NOT_APPLICABLE edits.
+- `set_attribute` for manual PRESENT, NOT_POPULATED, MISSING, or NOT_APPLICABLE edits.
 - Idempotent `remove_equipment` and `restore_equipment`.
 
 Every operation takes project and revision IDs; individual operations also take the equipment ID. Writes accept an optional actor UUID and own their transaction, including rollback on failure. Use a dedicated session per unit of work. These are internal Python interfaces, not new HTTP endpoints.
 
-Creation atomically inserts a new lineage, equipment, and exactly the attributes defined by the selected registry type. Equipment starts ACTIVE / MANUAL / ENGINEER_REVIEWED. Every attribute starts NOT_EXTRACTED / UNVERIFIED, with null origin, confidence, inheritance, and value slots, plus the registry's exact value type and canonical unit. Required/Critical flags remain registry metadata and do not prevent creating incomplete equipment.
+Creation atomically inserts a new lineage, equipment, exactly the attributes defined by the selected registry type, and its code-owned profile terminals (see [TOPOLOGY.md](TOPOLOGY.md)). Equipment starts ACTIVE / MANUAL / ENGINEER_REVIEWED. Every attribute starts NOT_POPULATED / UNVERIFIED, with null origin, confidence, inheritance, and value slots, plus the registry's exact value type and canonical unit. Required/Critical flags remain registry metadata and do not prevent creating incomplete equipment.
 
-PRESENT writes reuse Phase 5A normalization, store only the compatible typed slot, and clear the others. State-only edits clear all values and reject supplied values or input units. Manual edits always set MANUAL / ENGINEER_REVIEWED and null confidence; callers cannot supply provenance or verification. INTEGER storage supports signed 64-bit values; engineering numerics use Decimal and unconstrained PostgreSQL NUMERIC precision/scale. Ordinary manual edits cannot set NOT_EXTRACTED or CONFLICTING.
+PRESENT writes reuse Phase 5A normalization, store only the compatible typed slot, and clear the others. State-only edits clear all values and reject supplied values or input units. PRESENT, MISSING and NOT_APPLICABLE edits set MANUAL / ENGINEER_REVIEWED and null confidence. Resetting to NOT_POPULATED clears all typed slots, origin and confidence, and sets UNVERIFIED; callers cannot supply provenance or verification. INTEGER storage supports signed 64-bit values; engineering numerics use Decimal and unconstrained PostgreSQL NUMERIC precision/scale. CONFLICTING is not a manual target. NOT_POPULATED means no canonical value has been populated; MISSING means the value is unavailable or could not be obtained.
 
-Type changes preserve rows only when key, value type, and canonical unit match the destination; a PRESENT enum value must also be allowed there. Incompatible rows may be discarded only if still NOT_EXTRACTED / UNVERIFIED with no values, origin, confidence, or inherited-from reference. Any meaningful incompatible row rejects the entire transaction, including accompanying metadata edits. New destination attributes receive the initial defaults. No type-change conversion or inference is attempted.
+Type changes preserve rows only when key, value type, and canonical unit match the destination; a PRESENT enum value must also be allowed there. Incompatible rows may be discarded only if still NOT_POPULATED / UNVERIFIED with no values, origin, confidence, or inherited-from reference. Any meaningful incompatible row rejects the entire transaction, including accompanying metadata edits. New destination attributes receive the initial defaults. No type-change conversion or inference is attempted.
 
 Removal preserves equipment, lineage, and all attributes, while setting removal timestamp/actor. Restore clears removal metadata and preserves values. Restore removed equipment before editing it. Service writes validate the complete materialized attribute set, ownership, types, units, and values; `validate_equipment_consistency()` detects corruption without silently repairing it.
 
@@ -132,7 +132,7 @@ Revision creation accepts `carry_forward_model` independently of document carry-
 
 The same transaction creates the revision, inherits included documents, clones the model, applies revision metadata, and optionally activates the revision. Only ACTIVE equipment is cloned. New equipment and attribute IDs form an independent snapshot, while equipment lineage is retained and `inherited_from_*` points to the exact row in the selected base revision. Canonical values, units, states, origin, verification, and confidence are preserved. Removed equipment is excluded.
 
-Registry evolution is conservative. Attributes newly present in registry-v1 materialize as NOT_EXTRACTED / UNVERIFIED with null values, origin, confidence, and inheritance pointer. Old or incompatible source attributes may be omitted only while still untouched; meaningful incompatible data rejects and rolls back the entire revision creation instead of being coerced or discarded.
+Registry evolution is conservative. Attributes newly present in registry-v1 materialize as NOT_POPULATED / UNVERIFIED with null values, origin, confidence, and inheritance pointer. Old or incompatible source attributes may be omitted only while still untouched; meaningful incompatible data rejects and rolls back the entire revision creation instead of being coerced or discarded.
 
 `resolve_effective_model_value()` supplies the Phase 5C domain rule for applicable frequency and phase-count attributes: an explicit PRESENT equipment value wins, otherwise the revision value is used, otherwise the result is unspecified. When an explicit value differs from the revision value, the returned `mismatch` flag is true. Both values remain unchanged; Phase 5C persists no validation finding. Revision defaults are never materialized into EquipmentAttribute rows and never change their information state or provenance.
 
@@ -140,7 +140,7 @@ Registry evolution is conservative. Attributes newly present in registry-v1 mate
 
 Migration `0009_topology_persistence` adds ModelNode and ModelConnection in the neutral persistence layer. Nodes are EQUIPMENT_TERMINAL or ELECTRICAL_NODE; connections reference nodes, with composite ownership foreign keys and no self-loops. Parallel edges are valid. Cables and physical buses remain Equipment. The pure topology package owns the closed kind/direction enums.
 
-The internal TopologyService supports manual node/connection creation, reads, metadata edits/rewiring, and soft lifecycle under the shared writable-revision guard. Equipment removal atomically removes terminals and incident active connections; equipment restore restores terminals only. Node restore also leaves connections removed. Connection restore requires active same-revision endpoints. Nominal voltage uses the accepted Decimal conversion utility and canonical kV.
+The internal TopologyService supports manual node/connection creation, reads, metadata edits/rewiring, and soft lifecycle under the shared writable-revision guard. Equipment removal atomically removes terminals and incident active connections; equipment restore restores current-profile and custom terminals only; obsolete profile terminals stay removed. Node restore also leaves connections removed. Connection restore requires active same-revision endpoints. Nominal voltage uses the accepted Decimal conversion utility and canonical kV.
 
 Model carry-forward now includes ACTIVE nodes and connections after equipment/attributes, remapping every equipment reference and endpoint into the destination. Inheritance pointers reference the actual immediate base; corrupt active topology fails the entire transaction. Revision defaults never populate topology fields, and explicit phase overrides are not rejected. See [TOPOLOGY.md](TOPOLOGY.md).
 
@@ -157,9 +157,19 @@ Creates return 201; reads, edits, and lifecycle actions return 200 with explicit
 
 Equipment lists support case-insensitive literal substring `search` across tag/name/description, canonical `equipment_type`, and `lifecycle_status=ACTIVE|REMOVED|ALL`. Blank search is ignored. Equipment, node, and connection lists default to ACTIVE and sort by creation time then ID. ALL is only an API query concept. Lists are currently unpaginated; equipment summaries do not load attributes.
 
-Mutation bodies reject extra fields, including forged provenance, verification, confidence, inheritance, audit actors/timestamps, and path ownership. PATCH omission keeps existing values; explicit null clears nullable text and connection voltage, but not type, endpoints, kind, direction, or terminal keys. Attribute PUT accepts PRESENT, UNKNOWN, MISSING, and NOT_APPLICABLE; services retain registry validation/unit normalization, including `600 V -> "0.6" kV`. State-only updates clear typed slots. Incomplete equipment remains saveable.
+Mutation bodies reject extra fields, including forged provenance, verification, confidence, inheritance, audit actors/timestamps, and path ownership. PATCH omission keeps existing values; explicit null clears nullable text and connection voltage, but not type, endpoints, kind, direction, or terminal keys. Attribute PUT accepts PRESENT, NOT_POPULATED, MISSING, and NOT_APPLICABLE; services retain registry validation/unit normalization, including `600 V -> "0.6" kV`. State-only updates clear typed slots. Incomplete equipment remains saveable.
 
 Services enforce same-project/revision ownership and existing mutability/locking rules. Scoped-out objects return 404, removed/read-only/type-change conflicts return 409, and invalid registry/domain/topology input returns 422. Application errors retain the standard nested detail/code envelope; schema errors use FastAPI's validation response. There is no client actor identity or verification workflow. See the [Phase 5E handoff](PHASE5E_HANDOFF.md) for exact allowlists, error mappings, and lifecycle semantics.
+
+## Transactional equipment editor — authoring refinement
+
+`GET /equipment/{equipment_id}/editor` returns `{equipment, attributes, terminals}`. The corresponding PATCH accepts optional `general`, keyed `attributes`, `create_terminals`, `update_terminals`, `remove_terminals` and `restore_terminals` changes. Empty requests, forged metadata, duplicate terminal operations and terminal IDs outside the edited equipment are rejected. Existing fine-grained APIs remain available.
+
+A single writable-revision transaction applies the entire draft. Shared service methods flush under the outer unit of work without committing independently; any failure rolls back general fields, attributes, terminals and topology cascades together. Explicit resets run before type reconciliation so a reset can make an old incompatible attribute discardable; remaining attribute and terminal edits are validated against the resulting equipment type. The response contains fresh canonical values, with NUMBER/INTEGER still lossless strings.
+
+The Equipment sheet owns one draft across General, Attributes and Terminals. Its sticky top-right Save button and Ctrl/Cmd+S invoke the same operation. No per-field or per-terminal saves remain. Save is disabled while unchanged, invalid, busy, read-only or removed. Closing a dirty sheet offers Save changes, Discard changes and Keep editing; save failure retains the sheet and draft. Browser unload also warns about unsaved changes. Lifecycle actions are disabled while the editor is dirty. Changing equipment type retains the current attribute draft until Save reconciles it; destination fields appear in the canonical response after successful Save.
+
+Migration `0010_authoring_refinement` replaces the database enum, mapping the former NOT_EXTRACTED to NOT_POPULATED and UNKNOWN to MISSING, and backfills profile terminals. Historical handoffs and registry-v1 remain unchanged. See [PHASE5_AUTHORING_REFINEMENT_HANDOFF.md](PHASE5_AUTHORING_REFINEMENT_HANDOFF.md).
 
 ## Lossless numeric response contract — Phase 5G
 
@@ -171,9 +181,9 @@ Live persistence/API tests and frontend tests using the real JSON decoder/editor
 
 Documents remains the default revision workspace. `?workspace=model` selects Engineering Model; `equipment=<id>` opens its detail Sheet independently of list filters. Switching workspaces clears the other workspace's detail parameter and preserves unrelated query parameters. Registry metadata loads on first model use and remains cached while the model workspace is mounted.
 
-Equipment supports debounced server search, registry type filters, Active/Removed/All views, create, and General/Attributes/Terminals details. General edits PATCH only changed fields; explicit null clears nullable text. An empty PATCH is never sent. Type-change conflicts preserve the form draft; successful changes refresh the materialized attributes.
+Equipment supports debounced server search, registry type filters, Active/Removed/All views, create, and General/Attributes/Terminals details. The unified editor PATCHes only changed fields; explicit null clears nullable text. An empty PATCH is never sent. Type-change conflicts preserve the form draft; successful changes refresh the materialized attributes.
 
-Attribute forms follow registry order and distinguish Required, Critical, and Conditional metadata without inventing a validation workflow. ENUM choices and input units come from the registry. NUMBER and INTEGER inputs remain strings through submission, BOOLEAN requires an explicit True/False selection and sends a JSON boolean, and TEXT remains text. Unit conversion stays on the server and successful saves adopt canonical responses. PRESENT accepts a value; UNKNOWN/MISSING/NOT_APPLICABLE omit values and units. NOT_EXTRACTED/CONFLICTING remain viewable but cannot be selected as manual targets. Rows save independently and preserve drafts on 422 errors.
+Attribute forms follow registry order and distinguish Required, Critical, and Conditional metadata without inventing a validation workflow. ENUM choices and input units come from the registry. NUMBER and INTEGER inputs remain strings through submission, BOOLEAN requires an explicit True/False selection and sends a JSON boolean, and TEXT remains text. Unit conversion stays on the server and successful saves adopt canonical responses. PRESENT accepts a value; NOT_POPULATED/MISSING/NOT_APPLICABLE omit values and units. CONFLICTING is viewable but cannot be selected as a manual target. Attribute edits join the equipment-wide draft and preserve it on errors.
 
 Read-only or removed objects remain viewable. Mutation controls respect revision/owner lifecycle; stale read-only responses disable further editing and refresh server state. Removal warns about terminal/connection cascades, and restoration does not silently restore connections. Provenance and verification are displayed without edit controls. See [TOPOLOGY.md](TOPOLOGY.md) and [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md).
 
@@ -183,4 +193,4 @@ The Phase 5 physical equipment/topology model is not a complete study model. Pro
 
 ## Later phases
 
-Phase 5 is complete and frozen; Phase 6 is next and has not started. See [PHASE5G_HANDOFF.md](PHASE5G_HANDOFF.md) for the completion audit. AI extraction, evidence/candidates/reconciliation, persisted findings, protection-function model, and exporters remain separate responsibilities under ADR-007.
+Phase 5 is complete and re-frozen; Phase 6 is next and has not started. See [PHASE5G_HANDOFF.md](PHASE5G_HANDOFF.md) for the completion audit. AI extraction, evidence/candidates/reconciliation, persisted findings, protection-function model, and exporters remain separate responsibilities under ADR-007.

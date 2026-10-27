@@ -45,6 +45,7 @@ def copy_active_topology(
             kind=row.kind,
             equipment_id=equipment_id,
             terminal_key=row.terminal_key,
+            managed_by_profile=row.managed_by_profile,
             label=row.label,
             origin=row.origin,
             verification_state=row.verification_state,

@@ -135,21 +135,26 @@ export function ModelSheet({
   title,
   onClose,
   children,
+  actions,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  actions?: ReactNode;
 }) {
   const id = useId();
   return (
     <Sheet labelledBy={id} onClose={onClose} className="md:max-w-[42rem]">
-      <header className="flex items-center justify-between gap-3 border-b border-slate-100 p-5">
+      <header className="sticky top-0 z-10 flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 bg-white p-5">
         <h2 id={id} className="text-lg font-semibold">
           {title}
         </h2>
-        <Button variant="ghost" onClick={onClose}>
-          Close
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          {actions}
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+        </div>
       </header>
       <div className="overflow-y-auto p-5 space-y-5">{children}</div>
     </Sheet>

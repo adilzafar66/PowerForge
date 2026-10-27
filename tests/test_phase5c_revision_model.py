@@ -510,7 +510,7 @@ def test_registry_new_attribute_is_materialized_without_touching_source(
     child = _revision(model_base["project_id"], "evolved").json()
     [destination] = _equipment(child["id"])
     marker = next(row for row in destination.attributes if row.attribute_key == "future_marker")
-    assert marker.information_state == InformationState.NOT_EXTRACTED
+    assert marker.information_state == InformationState.NOT_POPULATED
     assert marker.verification_state == VerificationState.UNVERIFIED
     assert marker.origin is marker.confidence is marker.inherited_from_attribute_id is None
     [source] = [row for row in _equipment(model_base["base"]["id"]) if row.tag == "BUS-1"]
@@ -529,7 +529,7 @@ def _extra_source_attribute(model_base, *, meaningful: bool) -> None:
                 value_type=AttributeValueType.TEXT,
                 text_value="keep" if meaningful else None,
                 information_state=(
-                    InformationState.PRESENT if meaningful else InformationState.NOT_EXTRACTED
+                    InformationState.PRESENT if meaningful else InformationState.NOT_POPULATED
                 ),
                 verification_state=(
                     VerificationState.ENGINEER_REVIEWED

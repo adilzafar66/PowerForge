@@ -97,7 +97,7 @@ def test_creation_materializes_exact_registry_and_defaults(
             definition.value_type,
             definition.canonical_unit,
         )
-        assert row.information_state == InformationState.NOT_EXTRACTED
+        assert row.information_state == InformationState.NOT_POPULATED
         assert row.verification_state == VerificationState.UNVERIFIED
         assert row.origin is row.confidence is row.inherited_from_attribute_id is None
         assert row.created_by == row.updated_by == actor
@@ -179,9 +179,7 @@ def test_present_values_normalize_and_persist_in_correct_slots(
     assert row.confidence is None and row.updated_by == actor
 
 
-@pytest.mark.parametrize(
-    "state", [InformationState.UNKNOWN, InformationState.MISSING, InformationState.NOT_APPLICABLE]
-)
+@pytest.mark.parametrize("state", [InformationState.MISSING, InformationState.NOT_APPLICABLE])
 def test_manual_state_only_clears_value_keeps_canonical_unit(engineering_context, state) -> None:
     ctx = engineering_context
     eq = ctx.service.create_equipment(*ctx.ids, "BUS")
@@ -204,7 +202,8 @@ def test_manual_edit_validation_and_metadata_allowlist(engineering_context) -> N
     ctx = engineering_context
     eq = ctx.service.create_equipment(*ctx.ids, "BUS")
     for state in [
-        InformationState.NOT_EXTRACTED,
+        "NOT_EXTRACTED",
+        "UNKNOWN",
         InformationState.CONFLICTING,
         "ENGINEER_VERIFIED",
     ]:
@@ -349,7 +348,7 @@ def test_type_change_preserves_compatible_rows_and_materializes_destination(
     assert set(rows) == {a.key for a in get_equipment_definition("LV_BREAKER").attributes}
     assert rows["manufacturer"].id == preserved_id and rows["manufacturer"].text_value == "Acme"
     assert ctx.session.get(EquipmentAttribute, old["bus_type"]) is None
-    assert rows["trip_rating"].information_state == InformationState.NOT_EXTRACTED
+    assert rows["trip_rating"].information_state == InformationState.NOT_POPULATED
     assert rows["trip_rating"].verification_state == VerificationState.UNVERIFIED
 
 
@@ -357,7 +356,6 @@ def test_type_change_preserves_compatible_rows_and_materializes_destination(
     "state",
     [
         InformationState.PRESENT,
-        InformationState.UNKNOWN,
         InformationState.MISSING,
         InformationState.NOT_APPLICABLE,
         InformationState.CONFLICTING,
@@ -421,7 +419,7 @@ def test_type_change_cannot_reinterpret_units_or_invalid_enum(engineering_contex
     )
     with pytest.raises(EquipmentTypeChangeConflict):
         ctx.service.update_equipment(*ctx.ids, eq.id, equipment_type="HV_BREAKER")
-    ctx.service.set_attribute(*ctx.ids, eq.id, "breaker_type", InformationState.UNKNOWN)
+    ctx.service.set_attribute(*ctx.ids, eq.id, "breaker_type", InformationState.MISSING)
     changed = ctx.service.update_equipment(*ctx.ids, eq.id, equipment_type="HV_BREAKER")
     assert next(r for r in changed.attributes if r.attribute_key == "standard").text_value == "ANSI"
 
@@ -453,7 +451,7 @@ def test_type_change_replaces_untouched_same_key_with_different_unit(engineering
     changed = ctx.service.update_equipment(*ctx.ids, eq.id, equipment_type="UTILITY_SOURCE")
     row = next(r for r in changed.attributes if r.attribute_key == "zero_sequence_reactance")
     assert row.id != old_id and row.unit == "Ω"
-    assert row.information_state == InformationState.NOT_EXTRACTED
+    assert row.information_state == InformationState.NOT_POPULATED
     assert ctx.session.get(EquipmentAttribute, old_id) is None
 
 

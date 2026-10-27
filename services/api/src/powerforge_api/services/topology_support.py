@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from powerforge_api.exceptions import InvalidTopology
 from powerforge_engineering_model import LifecycleStatus, ValueOrigin, VerificationState
+from powerforge_engineering_model.terminal_profiles import terminal_profile
 from powerforge_persistence.engineering import Equipment
 from powerforge_persistence.topology import ModelConnection, ModelNode
 from powerforge_topology import ConnectionDirection, ConnectionKind, ModelNodeKind
@@ -190,4 +191,10 @@ def set_equipment_topology_lifecycle(
             now,
         )
     for node in nodes:
+        if (
+            status == LifecycleStatus.ACTIVE
+            and node.managed_by_profile
+            and node.terminal_key not in terminal_profile(equipment.equipment_type)
+        ):
+            continue
         set_lifecycle(node, status, actor_id, now)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useId, useState, type ReactNode, type FormEvent } from "react";
 import {
   ModelNotice,
   ModelSelect,
@@ -27,15 +27,18 @@ export function ConnectionEditorSheet({
   nodes,
   labels,
   onClose,
+  children,
 }: {
   row?: ModelConnection;
   nodes: ModelNode[];
   labels: Map<string, string>;
   onClose: () => void;
+  children?: ReactNode;
 }) {
   const { projectId, revisionId, registry, writable, changed, failed } =
     useModel();
   const id = useId();
+  const editable = writable && (!row || row.lifecycle_status === "ACTIVE");
   const voltageFamily = registry.unit_families.find(
     (f) => f.family.toLowerCase() === "voltage",
   );
@@ -84,7 +87,7 @@ export function ConnectionEditorSheet({
     );
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!writable || busy || !valid || (row && !Object.keys(patch).length))
+    if (!editable || busy || !valid || (row && !Object.keys(patch).length))
       return;
     setBusy(true);
     setError(null);
@@ -119,33 +122,41 @@ export function ConnectionEditorSheet({
       title={row ? "Edit Connection" : "Add Connection"}
       onClose={onClose}
     >
+      {children}
       <form onSubmit={save} className="space-y-4">
         {(["from_node_id", "to_node_id"] as const).map((key, i) => (
           <ModelSelect
             key={key}
             label={i === 0 ? "From Node" : "To Node"}
             value={draft[key]}
-            disabled={!writable || busy}
+            disabled={!editable || busy}
             onChange={(value) => setDraft({ ...draft, [key]: value })}
           >
             <option value="">Select active node</option>
-            {activeNodes.map((n) => (
-              <option
-                key={n.id}
-                value={n.id}
-                disabled={
-                  n.id === draft[i === 0 ? "to_node_id" : "from_node_id"]
-                }
-              >
-                {labels.get(n.id)}
-              </option>
-            ))}
+            {nodes
+              .filter(
+                (n) =>
+                  n.lifecycle_status === "ACTIVE" ||
+                  n.id === row?.from_node_id ||
+                  n.id === row?.to_node_id,
+              )
+              .map((n) => (
+                <option
+                  key={n.id}
+                  value={n.id}
+                  disabled={
+                    n.id === draft[i === 0 ? "to_node_id" : "from_node_id"]
+                  }
+                >
+                  {labels.get(n.id)}
+                </option>
+              ))}
           </ModelSelect>
         ))}
         <ModelSelect
           label="Connection Kind"
           value={draft.connection_kind}
-          disabled={!writable || busy}
+          disabled={!editable || busy}
           onChange={(v) =>
             setDraft({ ...draft, connection_kind: v as ConnectionKind })
           }
@@ -157,7 +168,7 @@ export function ConnectionEditorSheet({
         <ModelSelect
           label="Direction"
           value={draft.direction}
-          disabled={!writable || busy}
+          disabled={!editable || busy}
           onChange={(v) => setDraft({ ...draft, direction: v as Direction })}
         >
           <option value="UNDIRECTED">Undirected</option>
@@ -167,7 +178,7 @@ export function ConnectionEditorSheet({
           <Input
             id={`${id}-phase`}
             value={draft.phase_configuration}
-            disabled={!writable || busy}
+            disabled={!editable || busy}
             onChange={(e) =>
               setDraft({ ...draft, phase_configuration: e.target.value })
             }
@@ -178,7 +189,7 @@ export function ConnectionEditorSheet({
             id={`${id}-voltage`}
             inputMode="decimal"
             value={draft.nominal_voltage}
-            disabled={!writable || busy}
+            disabled={!editable || busy}
             onChange={(e) =>
               setDraft({ ...draft, nominal_voltage: e.target.value })
             }
@@ -188,7 +199,7 @@ export function ConnectionEditorSheet({
           <ModelSelect
             label="Voltage Input Unit"
             value={draft.nominal_voltage_unit}
-            disabled={!writable || busy}
+            disabled={!editable || busy}
             onChange={(v) => setDraft({ ...draft, nominal_voltage_unit: v })}
           >
             {voltageFamily?.supported_input_units.map((unit) => (
@@ -203,7 +214,7 @@ export function ConnectionEditorSheet({
           order, not calculated power flow.
         </p>
         {error && <ModelNotice>{error}</ModelNotice>}
-        {writable && (
+        {editable && (
           <Button
             type="submit"
             disabled={busy || !valid || (!!row && !Object.keys(patch).length)}

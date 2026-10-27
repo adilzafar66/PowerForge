@@ -141,7 +141,7 @@ def test_attributes_registry_order_normalization_and_safe_type_conflict(model_ap
         a.key for a in get_equipment_definition("BUS").attributes
     ]
     assert all(
-        a["information_state"] == "NOT_EXTRACTED"
+        a["information_state"] == "NOT_POPULATED"
         and a["verification_state"] == "UNVERIFIED"
         and a["origin"] is None
         for a in attrs
@@ -160,7 +160,7 @@ def test_attributes_registry_order_normalization_and_safe_type_conflict(model_ap
         ]
         == precise
     )
-    for state in ("UNKNOWN", "MISSING", "NOT_APPLICABLE"):
+    for state in ("MISSING", "NOT_APPLICABLE"):
         changed = checked(client.put(voltage, json={"information_state": state}))
         assert changed["information_state"] == state
         assert all(
@@ -230,7 +230,7 @@ def test_integer_persistence_and_json_round_trip(model_api, value):
         )["integer_value"]
         == value
     )
-    assert checked(client.put(path, json={"information_state": "UNKNOWN"}))["integer_value"] is None
+    assert checked(client.put(path, json={"information_state": "MISSING"}))["integer_value"] is None
 
 
 def test_http_carry_forward_preserves_typed_values_and_remaps_topology(model_api):
@@ -310,8 +310,9 @@ def test_http_carry_forward_preserves_typed_values_and_remaps_topology(model_api
         ("bus_type", {"information_state": "PRESENT", "value": "INVALID"}),
         ("phase_count", {"information_state": "PRESENT", "value": 1.5}),
         ("phase_count", {"information_state": "PRESENT", "value": False}),
-        ("invented", {"information_state": "UNKNOWN"}),
+        ("invented", {"information_state": "MISSING"}),
         ("nominal_voltage", {"information_state": "NOT_EXTRACTED"}),
+        ("nominal_voltage", {"information_state": "UNKNOWN"}),
         ("nominal_voltage", {"information_state": "CONFLICTING"}),
         ("nominal_voltage", {"information_state": "MISSING", "value": 600}),
     ],
@@ -386,9 +387,9 @@ def test_topology_contract_rewire_voltage_and_lifecycle_cascades(model_api):
     assert items(base, "connections") == []
     assert len(items(base, "connections", lifecycle_status="REMOVED")) == 2
     assert len(items(base, "connections", lifecycle_status="ALL")) == 2
-    assert len(items(base, "nodes")) == 2
+    assert len(items(base, "nodes")) == 3
     assert [r["id"] for r in items(base, "nodes", lifecycle_status="REMOVED")] == [terminal["id"]]
-    assert len(items(base, "nodes", lifecycle_status="ALL")) == 3
+    assert len(items(base, "nodes", lifecycle_status="ALL")) == 4
     checked(client.post(path + "/restore"), 409)
     checked(client.patch(terminal_path, json={"label": "blocked"}), 409)
     checked(client.patch(path, json={"direction": "UNDIRECTED"}), 409)
@@ -402,7 +403,7 @@ def test_topology_contract_rewire_voltage_and_lifecycle_cascades(model_api):
     assert items(base, "connections") == []
     checked(client.post(terminal_path + "/restore"), 422)
     checked(client.post(equipment_path + "/restore"))
-    assert len(items(base, "nodes")) == 3 and items(base, "connections") == []
+    assert len(items(base, "nodes")) == 4 and items(base, "connections") == []
 
 
 def test_topology_invalid_shapes_and_patch_nulls(model_api):
@@ -464,22 +465,22 @@ def test_manual_request_provenance_is_not_writable(model_api):
         (
             "put",
             f"/equipment/{row['id']}/attributes/nominal_voltage",
-            {"information_state": "UNKNOWN", "verification_state": "ENGINEER_VERIFIED"},
+            {"information_state": "MISSING", "verification_state": "ENGINEER_VERIFIED"},
         ),
         (
             "put",
             f"/equipment/{row['id']}/attributes/nominal_voltage",
-            {"information_state": "UNKNOWN", "confidence": 0.99},
+            {"information_state": "MISSING", "confidence": 0.99},
         ),
         (
             "put",
             f"/equipment/{row['id']}/attributes/nominal_voltage",
-            {"information_state": "UNKNOWN", "origin": "AI_EXTRACTION"},
+            {"information_state": "MISSING", "origin": "AI_EXTRACTION"},
         ),
         (
             "put",
             f"/equipment/{row['id']}/attributes/nominal_voltage",
-            {"information_state": "UNKNOWN", "inherited_from_attribute_id": str(uuid4())},
+            {"information_state": "MISSING", "inherited_from_attribute_id": str(uuid4())},
         ),
         ("post", "/nodes", {"kind": "ELECTRICAL_NODE", "origin": "IMPORTED"}),
         ("patch", f"/nodes/{first['id']}", {"verification_state": "ENGINEER_VERIFIED"}),
@@ -540,7 +541,7 @@ def test_path_scoping_and_missing_objects(model_api):
         checked(
             client.put(
                 f"{other}/equipment/{scoped_id}/attributes/nominal_voltage",
-                json={"information_state": "UNKNOWN"},
+                json={"information_state": "MISSING"},
             ),
             404,
         )
@@ -602,5 +603,6 @@ def test_readonly_errors_propagate_and_historical_reads_remain(
     )
     assert result["detail"]["code"] == code
     assert len(items(model_api, "equipment")) == 1
-    assert items(model_api, "nodes") == []
+    assert len(items(model_api, "nodes")) == 1
+    assert items(model_api, "nodes")[0]["managed_by_profile"]
     assert checked(client.get(f"{model_api}/equipment/{row['id']}"))["tag"] is None

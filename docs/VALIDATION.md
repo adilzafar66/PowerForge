@@ -29,7 +29,7 @@ In the planned workflow, validation runs on candidate records after schema valid
 - A breaker rating is not a number, or has an impossible unit.
 - Primary and secondary voltages on a transformer are identical in a way that contradicts nameplate evidence (flag, do not auto-fix).
 - A connection joins equipment in different, incompatible voltage classes without a transformer.
-- Required critical attributes for a type are `MISSING` or `NOT_EXTRACTED`.
+- Required critical attributes for a type are `MISSING` or `NOT_POPULATED`.
 - Two equipment rows share an identical tag in the same revision (a finding, not a uniqueness constraint).
 - A configured `system_frequency` disagrees with explicit equipment frequency.
 - A configured `system_phase_count` disagrees with explicit equipment `phase_count`; a meaningful mixed-phase system should not assert a common count. Phase 5C implements effective-value and mismatch policy without changing explicit values; Phase 10 adds persistent findings and cross-model checks.

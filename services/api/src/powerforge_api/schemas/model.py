@@ -78,7 +78,7 @@ class EquipmentUpdate(ManualUpdate):
 class AttributeUpdate(ManualAction):
     information_state: Literal[
         InformationState.PRESENT,
-        InformationState.UNKNOWN,
+        InformationState.NOT_POPULATED,
         InformationState.MISSING,
         InformationState.NOT_APPLICABLE,
     ]
@@ -218,6 +218,7 @@ class AttributeResponse(CanonicalResponse):
 
 
 class NodeResponse(LifecycleResponse):
+    managed_by_profile: bool
     kind: ModelNodeKind
     equipment_id: UUID | None
     terminal_key: str | None
@@ -251,3 +252,49 @@ class NodeListResponse(BaseModel):
 
 class ConnectionListResponse(BaseModel):
     items: list[ConnectionResponse]
+
+
+class TerminalCreate(ManualAction):
+    terminal_key: str = Field(min_length=1)
+    label: str | None = None
+
+
+class TerminalEdit(NodeUpdate):
+    id: UUID
+
+    @model_validator(mode="after")
+    def require_edit(self) -> Self:
+        if not self.model_fields_set - {"id"}:
+            raise ValueError("Terminal edit must include changed fields")
+        return self
+
+
+class EquipmentEditorUpdate(ManualAction):
+    general: EquipmentUpdate | None = None
+    attributes: dict[str, AttributeUpdate] = Field(default_factory=dict)
+    create_terminals: list[TerminalCreate] = Field(default_factory=list)
+    update_terminals: list[TerminalEdit] = Field(default_factory=list)
+    remove_terminals: list[UUID] = Field(default_factory=list)
+    restore_terminals: list[UUID] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def require_changes(self) -> Self:
+        if not (
+            self.general
+            or self.attributes
+            or self.create_terminals
+            or self.update_terminals
+            or self.remove_terminals
+            or self.restore_terminals
+        ):
+            raise ValueError("At least one change must be provided")
+        ids = [t.id for t in self.update_terminals] + self.remove_terminals + self.restore_terminals
+        if len(ids) != len(set(ids)):
+            raise ValueError("A terminal may appear in only one operation")
+        return self
+
+
+class EquipmentEditorResponse(BaseModel):
+    equipment: EquipmentResponse
+    attributes: list[AttributeResponse]
+    terminals: list[NodeResponse]

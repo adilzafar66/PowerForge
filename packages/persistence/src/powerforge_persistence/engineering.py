@@ -218,7 +218,7 @@ class EquipmentAttribute(Base):
     boolean_value: Mapped[bool | None] = mapped_column(Boolean)
     unit: Mapped[str | None] = mapped_column(Text)
     information_state: Mapped[InformationState] = mapped_column(
-        information_state_enum, server_default=text("'NOT_EXTRACTED'::model_information_state")
+        information_state_enum, server_default=text("'NOT_POPULATED'::model_information_state")
     )
     verification_state: Mapped[VerificationState] = mapped_column(
         verification_state_enum, server_default=text("'UNVERIFIED'::model_verification_state")

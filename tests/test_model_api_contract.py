@@ -27,6 +27,7 @@ def test_openapi_model_scope_and_allowlists():
     expected = {
         "/equipment": {"get", "post"},
         "/equipment/{equipment_id}": {"get", "patch"},
+        "/equipment/{equipment_id}/editor": {"get", "patch"},
         "/equipment/{equipment_id}/remove": {"post"},
         "/equipment/{equipment_id}/restore": {"post"},
         "/equipment/{equipment_id}/attributes": {"get"},

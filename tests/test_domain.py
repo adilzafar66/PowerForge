@@ -25,8 +25,14 @@ def test_verification_states_are_explicit() -> None:
 
 
 def test_information_states_are_not_only_null() -> None:
-    assert InformationState.MISSING != InformationState.UNKNOWN
-    assert InformationState.NOT_EXTRACTED in InformationState
+    assert set(InformationState.__members__) == {
+        "PRESENT",
+        "MISSING",
+        "NOT_APPLICABLE",
+        "NOT_POPULATED",
+        "CONFLICTING",
+    }
+    assert InformationState.NOT_POPULATED in InformationState
 
 
 def test_document_classifications_include_unknown() -> None:

@@ -11,6 +11,8 @@
 This specification must be read together with ADR-007: Canonical Engineering Model Persistence, which is authoritative for the underlying Phase 5 persistence architecture and architectural decisions.
 ---
 
+> **Approved post-5G amendment:** [Phase 5 authoring refinement](../prompts/phase-5-refinement.md) supersedes this original specification for information-state vocabulary, automatic terminal profiles, unified transactional Equipment saving, and Node/Connection table UX. Current behavior is described in [ENGINEERING_MODEL.md](../ENGINEERING_MODEL.md) and [TOPOLOGY.md](../TOPOLOGY.md). Registry-v1 remains unchanged. The original phased specification below records the accepted baseline.
+
 ## 1. Purpose
 
 Phase 5 introduces the first persistent, revision-scoped **canonical engineering model** in PowerForge.

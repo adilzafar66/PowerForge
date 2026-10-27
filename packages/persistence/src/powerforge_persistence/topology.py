@@ -5,6 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKeyConstraint,
@@ -101,6 +102,9 @@ class ModelNode(_TopologySnapshot, Base):
             name="ck_model_nodes_shape",
         ),
         CheckConstraint(
+            "NOT managed_by_profile OR kind = 'EQUIPMENT_TERMINAL'", name="ck_model_nodes_profile"
+        ),
+        CheckConstraint(
             "inherited_from_node_id IS NULL OR inherited_from_node_id <> id",
             name="ck_model_nodes_inherited_not_self",
         ),
@@ -113,6 +117,7 @@ class ModelNode(_TopologySnapshot, Base):
         Index("ix_model_nodes_equipment", "equipment_id"),
         Index("ix_model_nodes_inherited_from", "inherited_from_node_id"),
     )
+    managed_by_profile: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     kind: Mapped[ModelNodeKind] = mapped_column(node_kind_enum)
     equipment_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
     terminal_key: Mapped[str | None] = mapped_column(Text)

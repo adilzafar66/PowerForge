@@ -38,8 +38,8 @@ vi.mock("@/lib/engineering-model", async (original) => ({
   ...(await original<typeof api>()),
   getEngineeringRegistry: vi.fn(),
   listEquipment: vi.fn(),
-  getEquipment: vi.fn(),
-  updateEquipment: vi.fn(),
+  getEquipmentEditor: vi.fn(),
+  saveEquipmentEditor: vi.fn(),
   removeEquipment: vi.fn(),
   restoreEquipment: vi.fn(),
   listAttributes: vi.fn(),
@@ -69,7 +69,11 @@ beforeEach(() => {
   nav.search = "";
   vi.mocked(api.getEngineeringRegistry).mockResolvedValue(registry);
   vi.mocked(api.listEquipment).mockResolvedValue([equipment]);
-  vi.mocked(api.getEquipment).mockResolvedValue(equipment);
+  vi.mocked(api.getEquipmentEditor).mockResolvedValue({
+    equipment,
+    attributes,
+    terminals: [],
+  });
   vi.mocked(api.listAttributes).mockResolvedValue(attributes);
 });
 describe("revision model workspace", () => {
@@ -181,7 +185,7 @@ describe("revision model workspace", () => {
     vi.mocked(api.listEquipment).mockResolvedValue([]);
     render(<RevisionWorkspace {...props} />);
     await screen.findByLabelText("Tag");
-    expect(api.getEquipment).toHaveBeenCalledWith("p", "r", "e1");
+    expect(api.getEquipmentEditor).toHaveBeenCalledWith("p", "r", "e1");
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(nav.replace).toHaveBeenLastCalledWith(
       "/projects/p/revisions/r?workspace=model&keep=1",
@@ -190,7 +194,7 @@ describe("revision model workspace", () => {
   });
   it("clears a missing equipment deep link and shows the safe message", async () => {
     nav.search = "workspace=model&equipment=missing";
-    vi.mocked(api.getEquipment).mockRejectedValue(
+    vi.mocked(api.getEquipmentEditor).mockRejectedValue(
       Object.assign(new Error("Equipment not found"), {
         status: 404,
         apiError: {
@@ -222,18 +226,23 @@ describe("revision model workspace", () => {
   });
   it("shows Restore for removed equipment and confirms cascade consequences for active removal", async () => {
     nav.search = "workspace=model&equipment=e1";
-    vi.mocked(api.getEquipment).mockResolvedValue({
-      ...equipment,
-      lifecycle_status: "REMOVED",
+    vi.mocked(api.getEquipmentEditor).mockResolvedValue({
+      equipment: { ...equipment, lifecycle_status: "REMOVED" },
+      attributes,
+      terminals: [],
     });
     const view = render(<RevisionWorkspace {...props} />);
     fireEvent.click(await screen.findByText("Restore equipment"));
     await waitFor(() =>
       expect(api.restoreEquipment).toHaveBeenCalledWith("p", "r", "e1"),
     );
-    expect(screen.queryByText("Save general")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     view.unmount();
-    vi.mocked(api.getEquipment).mockResolvedValue(equipment);
+    vi.mocked(api.getEquipmentEditor).mockResolvedValue({
+      equipment,
+      attributes,
+      terminals: [],
+    });
     render(<RevisionWorkspace {...props} />);
     fireEvent.click(await screen.findByText("Remove equipment"));
     const dialog = screen.getByRole("dialog", { name: "Remove equipment?" });
@@ -246,35 +255,40 @@ describe("revision model workspace", () => {
   });
   it("refreshes attributes after a successful type change", async () => {
     nav.search = "workspace=model&equipment=e1";
-    vi.mocked(api.updateEquipment).mockImplementation(async () => {
+    vi.mocked(api.saveEquipmentEditor).mockImplementation(async () => {
       const changed = {
         ...equipment,
         equipment_type: "ALTERNATE",
         updated_at: "2026-02-01",
       };
-      vi.mocked(api.getEquipment).mockResolvedValue(changed);
-      return changed;
+      const result = { equipment: changed, attributes: [], terminals: [] };
+      vi.mocked(api.getEquipmentEditor).mockResolvedValue(result);
+      return result;
     });
     render(<RevisionWorkspace {...props} />);
     await screen.findByLabelText("Tag");
     fireEvent.click(screen.getByText("Attributes"));
-    await screen.findByRole("form", { name: "Rated voltage" });
+    await screen.findByRole("group", { name: "Rated voltage" });
     fireEvent.click(screen.getByText("General"));
     fireEvent.change(screen.getByLabelText("Equipment Type"), {
       target: { value: "ALTERNATE" },
     });
-    fireEvent.click(screen.getByText("Save general"));
-    await waitFor(() => expect(api.updateEquipment).toHaveBeenCalled());
-    await screen.findByText("Alternate Device", { selector: "span" });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(api.saveEquipmentEditor).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(screen.getByLabelText("Equipment Type")).toHaveValue("ALTERNATE"),
+    );
     fireEvent.click(screen.getByText("Attributes"));
-    await waitFor(() => expect(api.listAttributes).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(api.getEquipmentEditor).toHaveBeenCalledTimes(2),
+    );
     expect(
-      screen.queryByRole("form", { name: "Rated voltage" }),
+      screen.queryByRole("group", { name: "Rated voltage" }),
     ).not.toBeInTheDocument();
   });
   it("locks locally and refreshes after a stale read-only response", async () => {
     nav.search = "workspace=model&equipment=e1";
-    vi.mocked(api.updateEquipment).mockRejectedValue(
+    vi.mocked(api.saveEquipmentEditor).mockRejectedValue(
       Object.assign(new Error("Revision is read-only"), {
         status: 409,
         apiError: {
@@ -288,12 +302,12 @@ describe("revision model workspace", () => {
     fireEvent.change(screen.getByLabelText("Tag"), {
       target: { value: "Changed" },
     });
-    fireEvent.click(screen.getByText("Save general"));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await screen.findByText(
       "This revision is read-only. Further edits are unavailable.",
     );
     expect(nav.refresh).toHaveBeenCalled();
-    expect(screen.queryByText("Save general")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     expect(screen.queryByText("Add Equipment")).not.toBeInTheDocument();
     await waitFor(() => expect(api.listEquipment).toHaveBeenCalledTimes(2));
   });

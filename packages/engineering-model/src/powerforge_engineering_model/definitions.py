@@ -96,7 +96,7 @@ class RegistryDefinition:
 
 @dataclass(frozen=True, slots=True)
 class AttributeState:
-    """Values are canonical (already normalized); omitted keys are NOT_EXTRACTED."""
+    """Values are canonical (already normalized); omitted keys are NOT_POPULATED."""
 
     information_state: InformationState
     value: AttributeValue | None = None

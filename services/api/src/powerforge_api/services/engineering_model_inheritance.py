@@ -34,7 +34,7 @@ SLOT_BY_TYPE = {
 
 def _untouched_placeholder(row: EquipmentAttribute) -> bool:
     return (
-        row.information_state == InformationState.NOT_EXTRACTED
+        row.information_state == InformationState.NOT_POPULATED
         and row.verification_state == VerificationState.UNVERIFIED
         and row.origin is None
         and row.confidence is None
@@ -54,7 +54,7 @@ def _fresh_attribute(
         attribute_key=definition.key,
         value_type=definition.value_type,
         unit=definition.canonical_unit,
-        information_state=InformationState.NOT_EXTRACTED,
+        information_state=InformationState.NOT_POPULATED,
         verification_state=VerificationState.UNVERIFIED,
         origin=None,
         confidence=None,

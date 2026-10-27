@@ -1,155 +1,46 @@
 "use client";
-
-import { useCallback, useId, useState, type FormEvent } from "react";
-import {
-  LoadState,
-  ModelNotice,
-  ModelSelect,
-  useModel,
-  useModelQuery,
-} from "@/components/model-shared";
-import { Button } from "@/components/ui/button";
+import { useId } from "react";
+import { ModelSelect } from "@/components/model-shared";
 import { Card } from "@/components/ui/card";
 import { Chip } from "@/components/ui/chip";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { apiErrorOf } from "@/lib/api";
-import {
-  listAttributes,
-  setAttribute,
-  type AttributeDefinition,
-  type Equipment,
-  type EquipmentAttribute,
-  type InformationState,
-  type ManualState,
+import type {
+  AttributeDefinition,
+  EquipmentAttribute,
+  InformationState,
+  ManualState,
 } from "@/lib/engineering-model";
+import type { AttributeDraft } from "@/lib/equipment-draft";
 
 const states: { value: ManualState; label: string }[] = [
+  { value: "NOT_POPULATED", label: "Not populated" },
   { value: "PRESENT", label: "Present" },
-  { value: "UNKNOWN", label: "Unknown" },
   { value: "MISSING", label: "Missing" },
   { value: "NOT_APPLICABLE", label: "Not applicable" },
 ];
-function draftOf(row: EquipmentAttribute) {
-  const value =
-    row.numeric_value ??
-    row.integer_value ??
-    row.text_value ??
-    row.boolean_value;
-  return {
-    state: row.information_state,
-    value: value == null ? "" : String(value),
-    unit: row.unit ?? "",
-  };
-}
-export function EquipmentAttributesPanel({ row }: { row: Equipment }) {
-  const { projectId, revisionId, registry, version } = useModel();
-  const load = useCallback(
-    () => listAttributes(projectId, revisionId, row.id),
-    [projectId, revisionId, row.id],
-  );
-  const query = useModelQuery(load, `${row.equipment_type}:${version}`);
-  const definition = registry.equipment_types.find(
-    (t) => t.key === row.equipment_type,
-  );
-  return (
-    <div className="space-y-4">
-      <LoadState {...query} />
-      {!query.loading &&
-        query.data &&
-        definition?.attributes.map((attr) => {
-          const persisted = query.data!.find(
-            (a) => a.attribute_key === attr.key,
-          );
-          return persisted ? (
-            <AttributeEditor
-              key={`${persisted.id}:${persisted.updated_at}`}
-              definition={attr}
-              initial={persisted}
-              active={row.lifecycle_status === "ACTIVE"}
-            />
-          ) : (
-            <ModelNotice key={attr.key}>
-              {attr.display_name} is unavailable. Reload equipment before
-              editing.
-            </ModelNotice>
-          );
-        })}
-    </div>
-  );
-}
 export function AttributeEditor({
   definition,
   initial,
-  active,
+  draft,
+  setDraft,
+  editable,
 }: {
   definition: AttributeDefinition;
   initial: EquipmentAttribute;
-  active: boolean;
+  draft: AttributeDraft;
+  setDraft: (draft: AttributeDraft) => void;
+  editable: boolean;
 }) {
-  const { projectId, revisionId, writable, failed } = useModel();
-  const [row, setRow] = useState(initial);
-  const [draft, setDraft] = useState(draftOf(initial));
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
   const id = useId();
-  const editable = writable && active;
-  const original = draftOf(row);
   const present = draft.state === "PRESENT";
   const manual = states.some((s) => s.value === draft.state);
-  const dirty =
-    draft.state !== original.state ||
-    (present &&
-      (draft.value !== original.value || draft.unit !== original.unit));
   const numeric =
     definition.value_type === "NUMBER" || definition.value_type === "INTEGER";
-  const needsBooleanChoice =
-    present &&
-    definition.value_type === "BOOLEAN" &&
-    draft.value !== "true" &&
-    draft.value !== "false";
-  async function save(event: FormEvent) {
-    event.preventDefault();
-    if (!editable || busy || !dirty || !manual || needsBooleanChoice) return;
-    setBusy(true);
-    setError(null);
-    setSaved(false);
-    try {
-      const result = await setAttribute(
-        projectId,
-        revisionId,
-        row.equipment_id,
-        row.attribute_key,
-        {
-          information_state: draft.state as ManualState,
-          ...(present
-            ? {
-                value:
-                  definition.value_type === "BOOLEAN"
-                    ? draft.value === "true"
-                    : numeric
-                      ? draft.value.trim()
-                      : draft.value,
-                ...(numeric && draft.unit ? { unit: draft.unit } : {}),
-              }
-            : {}),
-        },
-      );
-      setRow(result);
-      setDraft(draftOf(result));
-      setSaved(true);
-    } catch (err) {
-      setError(apiErrorOf(err).detail);
-      failed(err);
-    } finally {
-      setBusy(false);
-    }
-  }
   return (
     <Card className="p-4">
-      <form
-        onSubmit={save}
+      <section
+        role="group"
         className="space-y-3"
         aria-label={definition.display_name}
       >
@@ -171,9 +62,8 @@ export function AttributeEditor({
         <ModelSelect
           label="Information state"
           value={draft.state}
-          disabled={!editable || busy}
+          disabled={!editable}
           onChange={(state) => {
-            setSaved(false);
             setDraft({
               ...draft,
               state: state as InformationState,
@@ -182,9 +72,7 @@ export function AttributeEditor({
         >
           {!manual && (
             <option value={draft.state} disabled>
-              {draft.state === "NOT_EXTRACTED"
-                ? "Not extracted"
-                : "Conflicting"}
+              Conflicting
             </option>
           )}
           {states.map((s) => (
@@ -200,7 +88,7 @@ export function AttributeEditor({
               <ModelSelect
                 label="Value"
                 value={draft.value}
-                disabled={!editable || busy}
+                disabled={!editable}
                 onChange={(value) => setDraft({ ...draft, value })}
               >
                 <option value="" disabled>
@@ -224,7 +112,7 @@ export function AttributeEditor({
                 <Input
                   id={id}
                   value={draft.value}
-                  disabled={!editable || busy}
+                  disabled={!editable}
                   inputMode={
                     numeric
                       ? definition.value_type === "INTEGER"
@@ -242,7 +130,7 @@ export function AttributeEditor({
               <ModelSelect
                 label="Input unit"
                 value={draft.unit}
-                disabled={!editable || busy}
+                disabled={!editable}
                 onChange={(unit) => setDraft({ ...draft, unit })}
               >
                 {definition.supported_input_units.map((unit) => (
@@ -261,30 +149,12 @@ export function AttributeEditor({
           </>
         )}
         <p className="text-xs text-slate-500">
-          {row.origin ?? "No origin"} · {row.verification_state}
-          {row.confidence != null ? ` · Confidence ${row.confidence}` : ""}
+          {initial.origin ?? "No origin"} · {initial.verification_state}
+          {initial.confidence != null
+            ? ` · Confidence ${initial.confidence}`
+            : ""}
         </p>
-        {error && <ModelNotice>{error}</ModelNotice>}
-        {saved && (
-          <p role="status" className="text-sm text-slate-600">
-            Saved.
-          </p>
-        )}
-        {editable && (
-          <Button
-            type="submit"
-            size="sm"
-            disabled={
-              busy ||
-              !dirty ||
-              !manual ||
-              needsBooleanChoice
-            }
-          >
-            {busy ? "Saving…" : "Save attribute"}
-          </Button>
-        )}
-      </form>
+      </section>
     </Card>
   );
 }

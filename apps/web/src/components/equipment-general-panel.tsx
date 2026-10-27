@@ -6,54 +6,35 @@ import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { apiErrorOf } from "@/lib/api";
-import {
-  changedText,
-  createEquipment,
-  updateEquipment,
-  type Equipment,
-  type EquipmentPatch,
-} from "@/lib/engineering-model";
+import { createEquipment, type Equipment } from "@/lib/engineering-model";
 
 export function EquipmentGeneralPanel({
-  row,
   onSaved,
 }: {
-  row?: Equipment;
   onSaved: (row: Equipment) => void;
 }) {
   const { projectId, revisionId, registry, writable, changed, failed } =
     useModel();
   const id = useId();
-  const [type, setType] = useState(
-    row?.equipment_type ?? registry.equipment_types[0]?.key ?? "",
-  );
+  const [type, setType] = useState(registry.equipment_types[0]?.key ?? "");
   const [draft, setDraft] = useState({
-    tag: row?.tag ?? "",
-    name: row?.name ?? "",
-    description: row?.description ?? "",
+    tag: "",
+    name: "",
+    description: "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const editable = writable && (!row || row.lifecycle_status === "ACTIVE");
-  const patch: EquipmentPatch = row
-    ? changedText(
-        { tag: row.tag, name: row.name, description: row.description },
-        draft,
-      )
-    : draft;
-  if (!row || type !== row.equipment_type) patch.equipment_type = type;
+  const editable = writable;
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!editable || saving || !Object.keys(patch).length) return;
+    if (!editable || saving) return;
     setSaving(true);
     setError(null);
     try {
-      const saved = row
-        ? await updateEquipment(projectId, revisionId, row.id, patch)
-        : await createEquipment(projectId, revisionId, {
-            ...draft,
-            equipment_type: type,
-          });
+      const saved = await createEquipment(projectId, revisionId, {
+        ...draft,
+        equipment_type: type,
+      });
       changed();
       onSaved(saved);
     } catch (err) {
@@ -102,11 +83,8 @@ export function EquipmentGeneralPanel({
       ))}
       {error && <ModelNotice>{error}</ModelNotice>}
       {editable && (
-        <Button
-          type="submit"
-          disabled={saving || !type || !Object.keys(patch).length}
-        >
-          {saving ? "Saving…" : row ? "Save general" : "Create Equipment"}
+        <Button type="submit" disabled={saving || !type}>
+          {saving ? "Saving…" : "Create Equipment"}
         </Button>
       )}
     </form>

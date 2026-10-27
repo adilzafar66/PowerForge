@@ -22,6 +22,7 @@ from powerforge_api.exceptions import (
     RevisionNotFound,
 )
 from powerforge_api.services.revision_writes import lock_writable_revision
+from powerforge_api.services.terminal_profiles import reconcile_terminals
 from powerforge_api.services.topology_support import (
     set_equipment_topology_lifecycle,
     topology_constraint_errors,
@@ -135,7 +136,7 @@ def _materialize(
         attribute_key=definition.key,
         value_type=definition.value_type,
         unit=definition.canonical_unit,
-        information_state=InformationState.NOT_EXTRACTED,
+        information_state=InformationState.NOT_POPULATED,
         verification_state=VerificationState.UNVERIFIED,
         origin=None,
         confidence=None,
@@ -147,7 +148,7 @@ def _materialize(
 
 def _untouched(row: EquipmentAttribute) -> bool:
     return (
-        row.information_state == InformationState.NOT_EXTRACTED
+        row.information_state == InformationState.NOT_POPULATED
         and row.verification_state == VerificationState.UNVERIFIED
         and row.origin is None
         and row.confidence is None
@@ -160,10 +161,12 @@ class EngineeringModelService:
     """Owns commits and rolls back the session on every failed mutation, like document services.
 
     Use a dedicated session per unit of work. Returned ORM rows belong to that session.
+    commit=False participates in the editor's outer transaction and flushes only.
     """
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, commit: bool = True) -> None:
         self.session = session
+        self._commit = commit
 
     @contextmanager
     def _mutation(
@@ -173,7 +176,9 @@ class EngineeringModelService:
             with integrity_guard(self.session, _constraint_errors(), operation=operation):
                 revision = lock_writable_revision(self.session, project_id, revision_id)
                 yield revision
-                self.session.commit()
+                self.session.flush()
+                if self._commit:
+                    self.session.commit()
         except BaseException:
             self.session.rollback()
             raise
@@ -256,6 +261,7 @@ class EngineeringModelService:
             equipment.attributes = [
                 _materialize(equipment, attr, actor_id) for attr in definition.attributes
             ]
+            reconcile_terminals(self.session, equipment, actor_id)
             validate_equipment_consistency(equipment)
             revision.updated_at = datetime.now(UTC)
         return self.get_equipment(project_id, revision_id, equipment.id)
@@ -341,6 +347,7 @@ class EngineeringModelService:
         new = get_equipment_definition(destination)
         if old.key == new.key:
             return
+        reconcile_terminals(self.session, equipment, actor_id, destination=new.key)
         definitions = {attr.key: attr for attr in new.attributes}
         keep, discard, conflicts = [], [], []
         for row in equipment.attributes:
@@ -366,8 +373,8 @@ class EngineeringModelService:
             raise EquipmentTypeChangeConflict(
                 "Type change would discard meaningful attributes: " + ", ".join(sorted(conflicts))
             )
-        # All conflicts are checked before any mutation. Flush deletes before inserting a
-        # replacement with the same key, so the unique constraint remains immediate.
+        # Attribute conflicts are checked before replacement. Profile changes share this
+        # transaction and roll back on conflict. Flush deletes before reusing a unique key.
         for row in discard:
             self.session.delete(row)
         self.session.flush()
@@ -397,7 +404,7 @@ class EngineeringModelService:
             definition = get_attribute_definition(equipment.equipment_type, attribute_key)
             if not isinstance(information_state, InformationState) or information_state not in (
                 InformationState.PRESENT,
-                InformationState.UNKNOWN,
+                InformationState.NOT_POPULATED,
                 InformationState.MISSING,
                 InformationState.NOT_APPLICABLE,
             ):
@@ -428,8 +435,11 @@ class EngineeringModelService:
             row.value_type = definition.value_type
             row.unit = definition.canonical_unit
             row.information_state = information_state
-            row.origin = ValueOrigin.MANUAL
-            row.verification_state = VerificationState.ENGINEER_REVIEWED
+            empty = information_state == InformationState.NOT_POPULATED
+            row.origin = None if empty else ValueOrigin.MANUAL
+            row.verification_state = (
+                VerificationState.UNVERIFIED if empty else VerificationState.ENGINEER_REVIEWED
+            )
             row.confidence = None
             row.updated_at = equipment.updated_at = revision.updated_at = datetime.now(UTC)
             row.updated_by = equipment.updated_by = actor_id

@@ -8,7 +8,7 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
-import { EquipmentAttributesPanel } from "@/components/equipment-attributes-panel";
+import { EquipmentDetailDrawer } from "@/components/equipment-detail-drawer";
 import { ModelContext } from "@/components/model-shared";
 import {
   attributes,
@@ -32,11 +32,21 @@ it.each(["3", "9007199254740993"])(
       .mockResolvedValueOnce(
         new Response(
           JSON.stringify({
-            items: attributes.map((a) => (a.id === row.id ? row : a)),
+            equipment,
+            terminals: [],
+            attributes: attributes.map((a) => (a.id === row.id ? row : a)),
           }),
         ),
       )
-      .mockResolvedValueOnce(new Response(JSON.stringify(row)));
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            equipment,
+            terminals: [],
+            attributes: attributes.map((a) => (a.id === row.id ? row : a)),
+          }),
+        ),
+      );
     render(
       <ModelContext.Provider
         value={{
@@ -49,23 +59,25 @@ it.each(["3", "9007199254740993"])(
           failed: vi.fn(),
         }}
       >
-        <EquipmentAttributesPanel row={equipment} />
+        <EquipmentDetailDrawer id={equipment.id} onClose={vi.fn()} />
       </ModelContext.Provider>,
     );
-    const form = within(await screen.findByRole("form", { name: "Count" }));
+    fireEvent.click(await screen.findByText("Attributes"));
+    const form = within(await screen.findByRole("group", { name: "Count" }));
     const input = form.getByLabelText("Value");
     expect(input).toHaveValue(value);
-    expect(form.getByText("Save attribute")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     // A whitespace edit exercises trimming/resubmission without changing the integer.
     fireEvent.change(input, { target: { value: `${value} ` } });
-    fireEvent.click(form.getByText("Save attribute"));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-    expect(fetch.mock.calls[1][1]?.method).toBe("PUT");
+    expect(fetch.mock.calls[1][1]?.method).toBe("PATCH");
     expect(JSON.parse(fetch.mock.calls[1][1]?.body as string)).toEqual({
-      information_state: "PRESENT",
-      value,
+      attributes: { count: { information_state: "PRESENT", value } },
     });
-    await form.findByText("Saved.");
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled(),
+    );
     expect(input).toHaveValue(value);
   },
 );

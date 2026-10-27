@@ -29,7 +29,7 @@ describe("engineering model API", () => {
         unit: "V",
       },
       { information_state: "PRESENT", value: false },
-      { information_state: "UNKNOWN" },
+      { information_state: "MISSING" },
     ];
     for (const body of bodies) {
       await model.setAttribute("p", "r", "e", "rating", body);
