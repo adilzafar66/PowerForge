@@ -14,10 +14,12 @@ export function RevisionWorkspace(props: {
   const params = useSearchParams();
   const router = useRouter();
   const path = usePathname();
+  const overview = params.get("view") === "overview";
   const model = params.get("workspace") === "model";
   const [visited, setVisited] = useState(model);
   function change(value: string) {
     const next = new URLSearchParams(params.toString());
+    next.delete("view");
     if (value === "model") {
       setVisited(true);
       next.set("workspace", "model");
@@ -28,6 +30,13 @@ export function RevisionWorkspace(props: {
     }
     router.replace(`${path}${next.size ? `?${next}` : ""}`, { scroll: false });
   }
+  if (overview)
+    return (
+      <p className="text-sm text-muted">
+        Use Documents, Equipment, or Topology in the navigation to open this
+        revision’s workspace.
+      </p>
+    );
   return (
     <>
       <SegmentedControl

@@ -1,0 +1,29 @@
+/* PowerForge UX prototype tokens, for design reference; not production code. */
+:root {
+  --pf-canvas: #F6F8FA;
+  --pf-surface: #FFFFFF;
+  --pf-sidebar: #FFFFFF;
+  --pf-border: #DBE3EA;
+  --pf-soft: #F0F3F6;
+  --pf-text-primary: #182638;
+  --pf-text-secondary: #526477;
+  --pf-text-tertiary: #8597A8;
+  --pf-action: #24557A;
+  --pf-action-hover: #193E5B;
+  --pf-action-tint: #E6EEF4;
+  --pf-option-hover: #F5F8FA;
+  --pf-option-selected-hover: #D6E3ED;
+  --pf-positive: #0F766E;
+  --pf-positive-tint: #E9F6F2;
+  --pf-warning: #8D621D;
+  --pf-warning-tint: #FFF4DD;
+  --pf-danger: #AA3541;
+  --pf-danger-tint: #FFF0F1;
+  --pf-ring: #4F86AF;
+  --pf-radius-sm: 7px;
+  --pf-radius-md: 9px;
+  --pf-radius-lg: 12px;
+  --pf-sidebar-width: 236px;
+  --pf-transition-fast: 150ms;
+  --pf-transition-normal: 220ms;
+}

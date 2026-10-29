@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useRef, useState, type ChangeEvent, type DragEvent } from "react";
 import { UploadCloud } from "lucide-react";
 
@@ -23,7 +25,12 @@ type Props = {
   onReadOnly?: (message: string) => void;
 };
 
-export function DocumentUpload({ projectId, revisionId, onUploaded, onReadOnly }: Props) {
+export function DocumentUpload({
+  projectId,
+  revisionId,
+  onUploaded,
+  onReadOnly,
+}: Props) {
   const { items, add, retry, remove, clearFinished } = useUploadQueue({
     projectId,
     revisionId,
@@ -63,7 +70,9 @@ export function DocumentUpload({ projectId, revisionId, onUploaded, onReadOnly }
         onDrop={onDrop}
         className={cn(
           "flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-dashed px-6 py-5 transition-colors",
-          dragging ? "border-blue-400 bg-blue-50/60" : "border-slate-200 bg-white",
+          dragging
+            ? "border-blue-400 bg-blue-50/60"
+            : "border-slate-200 bg-white",
         )}
       >
         <div className="flex items-center gap-3">
@@ -75,18 +84,18 @@ export function DocumentUpload({ projectId, revisionId, onUploaded, onReadOnly }
               Drag files here or choose files
             </p>
             <p className="mt-0.5 text-[12px] text-slate-400">
-              PDF, PNG, JPEG or TIFF, up to {formatFileSize(MAX_UPLOAD_BYTES)} each. Files upload
-              independently.
+              PDF, PNG, JPEG or TIFF, up to {formatFileSize(MAX_UPLOAD_BYTES)}{" "}
+              each. Files upload independently.
             </p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-[12.5px] text-slate-500">
             Document type for this batch
-            <select
+            <Select
               aria-label="Document type for this batch"
               value={documentType}
-              onChange={(event) => setDocumentType(event.target.value as DocumentType)}
+              onValueChange={(value) => setDocumentType(value as DocumentType)}
               className={cn(fieldClassName, "w-auto py-1.5 text-[12.5px]")}
             >
               {DOCUMENT_TYPE_OPTIONS.map((option) => (
@@ -94,7 +103,7 @@ export function DocumentUpload({ projectId, revisionId, onUploaded, onReadOnly }
                   {option.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <Button type="button" onClick={() => inputRef.current?.click()}>
             Upload Documents
@@ -113,7 +122,10 @@ export function DocumentUpload({ projectId, revisionId, onUploaded, onReadOnly }
 
       {items.length > 0 ? (
         <div className="mt-3">
-          <ul aria-live="polite" className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+          <ul
+            aria-live="polite"
+            className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white"
+          >
             {items.map((item) => (
               <UploadRow
                 key={item.id}
@@ -159,7 +171,9 @@ function UploadRow({
     <li className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2.5 text-[13px]">
       <div className="min-w-0 flex-1">
         <p className="font-medium break-all text-slate-800">{name}</p>
-        <p className="text-[12px] text-slate-400">{formatFileSize(item.file.size)}</p>
+        <p className="text-[12px] text-slate-400">
+          {formatFileSize(item.file.size)}
+        </p>
         {item.status === "failed" && item.error ? (
           <p className="mt-0.5 text-[12px] text-red-600">{item.error}</p>
         ) : null}
@@ -178,7 +192,10 @@ function UploadRow({
           aria-valuenow={item.progress}
           className="h-1.5 w-32 overflow-hidden rounded-full bg-slate-100"
         >
-          <div className="h-full bg-blue-500 transition-all" style={{ width: `${item.progress}%` }} />
+          <div
+            className="h-full bg-blue-500 transition-all"
+            style={{ width: `${item.progress}%` }}
+          />
         </div>
       ) : null}
       <span
@@ -186,7 +203,8 @@ function UploadRow({
           "w-20 text-[12px] font-semibold",
           item.status === "done" && "text-emerald-700",
           item.status === "failed" && "text-red-600",
-          (item.status === "queued" || item.status === "uploading") && "text-slate-500",
+          (item.status === "queued" || item.status === "uploading") &&
+            "text-slate-500",
         )}
       >
         {STATUS_LABELS[item.status]}

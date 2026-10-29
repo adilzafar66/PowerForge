@@ -1,17 +1,22 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
-import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionHeader } from "@/components/ui/section-header";
-import { createProject, createRevision, parseEngineerNames } from "@/lib/projects";
+import {
+  createProject,
+  createRevision,
+  parseEngineerNames,
+} from "@/lib/projects";
 
 export function CreateProjectForm() {
   const router = useRouter();
@@ -34,12 +39,16 @@ export function CreateProjectForm() {
         project_address: emptyToNull(String(form.get("project_address") ?? "")),
         project_scope: emptyToNull(String(form.get("project_scope") ?? "")),
         description: emptyToNull(String(form.get("description") ?? "")),
-        engineer_names: parseEngineerNames(String(form.get("engineer_names") ?? "")),
+        engineer_names: parseEngineerNames(
+          String(form.get("engineer_names") ?? ""),
+        ),
       });
       if (createRevisionToo && revisionIdentifier.trim()) {
         await createRevision(project.id, {
           identifier: revisionIdentifier.trim(),
-          description: emptyToNull(String(form.get("revision_description") ?? "")),
+          description: emptyToNull(
+            String(form.get("revision_description") ?? ""),
+          ),
           activate: activateRevision,
         });
       }
@@ -52,13 +61,7 @@ export function CreateProjectForm() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-8 py-8">
-      <Breadcrumb
-        items={[
-          { label: "Projects", href: "/" },
-          { label: "New Project" },
-        ]}
-      />
+    <div className="mx-auto max-w-2xl px-4 py-6 md:px-8 md:py-8">
       <PageHeader
         title="Create Project"
         description="Project number and name are required. A revision is optional."
@@ -88,7 +91,11 @@ export function CreateProjectForm() {
               </Field>
             </div>
             <Field id="client_name" label="Client / Owner">
-              <Input id="client_name" name="client_name" placeholder="Acme Energy LLC" />
+              <Input
+                id="client_name"
+                name="client_name"
+                placeholder="Acme Energy LLC"
+              />
             </Field>
             <Field id="project_address" label="Site Address">
               <Input
@@ -125,15 +132,18 @@ export function CreateProjectForm() {
         <Card className="p-5">
           <SectionHeader>Team</SectionHeader>
           <Field id="engineer_names" label="Engineers (comma-separated)">
-            <Input id="engineer_names" name="engineer_names" placeholder="J. Smith, A. Patel" />
+            <Input
+              id="engineer_names"
+              name="engineer_names"
+              placeholder="J. Smith, A. Patel"
+            />
           </Field>
         </Card>
 
         <Card className="p-5">
           <SectionHeader>First Revision</SectionHeader>
           <label className="flex items-center gap-2 text-[13.5px] text-slate-700">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={createRevisionToo}
               onChange={(event) => setCreateRevisionToo(event.target.checked)}
               className="rounded border-slate-300"
@@ -142,11 +152,17 @@ export function CreateProjectForm() {
           </label>
           {createRevisionToo ? (
             <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
-              <Field id="revision_identifier" label="Revision Identifier" required>
+              <Field
+                id="revision_identifier"
+                label="Revision Identifier"
+                required
+              >
                 <Input
                   id="revision_identifier"
                   value={revisionIdentifier}
-                  onChange={(event) => setRevisionIdentifier(event.target.value)}
+                  onChange={(event) =>
+                    setRevisionIdentifier(event.target.value)
+                  }
                   required={createRevisionToo}
                 />
               </Field>
@@ -154,10 +170,11 @@ export function CreateProjectForm() {
                 <Input id="revision_description" name="revision_description" />
               </Field>
               <label className="flex items-center gap-2 text-[13.5px] text-slate-700">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={activateRevision}
-                  onChange={(event) => setActivateRevision(event.target.checked)}
+                  onChange={(event) =>
+                    setActivateRevision(event.target.checked)
+                  }
                   className="rounded border-slate-300"
                 />
                 Activate this revision

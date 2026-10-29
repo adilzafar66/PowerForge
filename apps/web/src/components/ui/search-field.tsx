@@ -27,7 +27,7 @@ export function SearchField({
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={onKeyDown}
         placeholder={placeholder}
-        className="w-72 py-2 pr-3 pl-8 text-[13px]"
+        className="w-full max-w-72 py-2 pr-3 pl-8 text-[13px]"
         aria-label="Search"
       />
     </div>

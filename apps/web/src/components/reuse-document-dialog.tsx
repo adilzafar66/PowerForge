@@ -1,5 +1,9 @@
 "use client";
 
+import { Checkbox } from "@/components/ui/checkbox";
+
+import { Select } from "@/components/ui/select";
+
 import { useEffect, useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -101,7 +105,9 @@ export function ReuseDocumentDialog({
           return;
         }
         setSourceDocs(source);
-        setPresent(new Map(current.map((row) => [row.document.id, row.status])));
+        setPresent(
+          new Map(current.map((row) => [row.document.id, row.status])),
+        );
       })
       .catch((err) => {
         if (!cancelled) {
@@ -114,7 +120,9 @@ export function ReuseDocumentDialog({
     };
   }, [projectId, revisionId, sourceId]);
 
-  const sourceRevision = revisions?.find((revision) => revision.id === sourceId);
+  const sourceRevision = revisions?.find(
+    (revision) => revision.id === sourceId,
+  );
 
   function reasonUnavailable(row: RevisionDocument): string | null {
     if (results.get(row.id)?.kind === "added") {
@@ -154,7 +162,9 @@ export function ReuseDocumentDialog({
     for (let index = 0; index < queue.length; index += 1) {
       const row = queue[index];
       try {
-        await reuseDocument(projectId, revisionId, { source_revision_document_id: row.id });
+        await reuseDocument(projectId, revisionId, {
+          source_revision_document_id: row.id,
+        });
         next.set(row.id, { kind: "added" });
         addedIds.add(row.id);
         changed += 1;
@@ -163,7 +173,10 @@ export function ReuseDocumentDialog({
         if (isReadOnlyErrorCode(code)) {
           next.set(row.id, { kind: "failed", message: detail });
           for (const unsent of queue.slice(index + 1)) {
-            next.set(unsent.id, { kind: "not_sent", message: "Not added. " + detail });
+            next.set(unsent.id, {
+              kind: "not_sent",
+              message: "Not added. " + detail,
+            });
           }
           setResults(new Map(next));
           setAdding(false);
@@ -175,14 +188,17 @@ export function ReuseDocumentDialog({
           kind: "failed",
           message: detail,
           restoreId:
-            code === "document_already_in_revision" && error?.existing_status === "REMOVED"
+            code === "document_already_in_revision" &&
+            error?.existing_status === "REMOVED"
               ? error.existing_revision_document_id
               : undefined,
         });
       }
     }
     setResults(next);
-    setSelected((current) => new Set([...current].filter((id) => !addedIds.has(id))));
+    setSelected(
+      (current) => new Set([...current].filter((id) => !addedIds.has(id))),
+    );
     setAdding(false);
     onChanged(changed);
   }
@@ -190,17 +206,26 @@ export function ReuseDocumentDialog({
   async function restoreExisting(row: RevisionDocument, existingId: string) {
     try {
       await restoreDocument(projectId, revisionId, existingId);
-      setResults((current) => new Map(current).set(row.id, { kind: "restored" }));
-      setPresent((current) => new Map(current).set(row.document.id, "INCLUDED"));
+      setResults((current) =>
+        new Map(current).set(row.id, { kind: "restored" }),
+      );
+      setPresent((current) =>
+        new Map(current).set(row.document.id, "INCLUDED"),
+      );
       onChanged(1);
     } catch (err) {
       setResults((current) =>
-        new Map(current).set(row.id, { kind: "failed", message: apiErrorOf(err).detail }),
+        new Map(current).set(row.id, {
+          kind: "failed",
+          message: apiErrorOf(err).detail,
+        }),
       );
     }
   }
 
-  const selectable = (sourceDocs ?? []).filter((row) => !reasonUnavailable(row));
+  const selectable = (sourceDocs ?? []).filter(
+    (row) => !reasonUnavailable(row),
+  );
   const selectedCount = selectable.filter((row) => selected.has(row.id)).length;
 
   return (
@@ -216,12 +241,16 @@ export function ReuseDocumentDialog({
         className="flex max-h-[90vh] w-[640px] flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_24px_48px_rgba(0,0,0,0.12),0_4px_8px_rgba(0,0,0,0.06)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 id={titleId} className="mb-1 text-[16px] font-semibold text-slate-900">
+        <h2
+          id={titleId}
+          className="mb-1 text-[16px] font-semibold text-slate-900"
+        >
           Add from another revision
         </h2>
         <p className="mb-4 text-[13px] text-slate-500">
-          Pick documents from another revision of this project. The file is shared, not copied, and
-          its details are copied so you can edit them here.
+          Pick documents from another revision of this project. The file is
+          shared, not copied, and its details are copied so you can edit them
+          here.
         </p>
 
         {revisions === null && !loadError ? (
@@ -229,17 +258,19 @@ export function ReuseDocumentDialog({
         ) : null}
 
         {revisions && revisions.length === 0 ? (
-          <p className="text-[13px] text-slate-500">This project has no other revisions.</p>
+          <p className="text-[13px] text-slate-500">
+            This project has no other revisions.
+          </p>
         ) : null}
 
         {revisions && revisions.length > 0 ? (
           <>
             <label className="mb-3 flex items-center gap-2 text-[12.5px] font-medium text-slate-600">
               Source revision
-              <select
+              <Select
                 aria-label="Source revision"
                 value={sourceId}
-                onChange={(event) => setSourceId(event.target.value)}
+                onValueChange={(value) => setSourceId(value)}
                 disabled={adding}
                 className={cn(fieldClassName, "w-auto py-1.5 text-[13px]")}
               >
@@ -248,7 +279,7 @@ export function ReuseDocumentDialog({
                     {`Revision ${revision.identifier} (${REVISION_STATUS_STYLES[revision.status].label})`}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
 
             {loadError ? (
@@ -259,10 +290,13 @@ export function ReuseDocumentDialog({
 
             <div className="min-h-[80px] flex-1 overflow-y-auto rounded-xl border border-slate-200">
               {sourceDocs === null ? (
-                <p className="px-4 py-6 text-[13px] text-slate-400">Loading documents…</p>
+                <p className="px-4 py-6 text-[13px] text-slate-400">
+                  Loading documents…
+                </p>
               ) : sourceDocs.length === 0 ? (
                 <p className="px-4 py-6 text-[13px] text-slate-400">
-                  No included documents in Revision {sourceRevision?.identifier}.
+                  No included documents in Revision {sourceRevision?.identifier}
+                  .
                 </p>
               ) : (
                 <ul className="divide-y divide-slate-100">
@@ -275,7 +309,9 @@ export function ReuseDocumentDialog({
                       result={results.get(row.id)}
                       disabled={adding}
                       onToggle={() => toggle(row.id)}
-                      onRestore={(existingId) => void restoreExisting(row, existingId)}
+                      onRestore={(existingId) =>
+                        void restoreExisting(row, existingId)
+                      }
                     />
                   ))}
                 </ul>
@@ -329,8 +365,7 @@ function SourceRow({
   const name = row.document.original_filename;
   return (
     <li className="flex items-start gap-3 px-4 py-2.5 text-[13px]">
-      <input
-        type="checkbox"
+      <Checkbox
         aria-label={`Select ${name}`}
         checked={checked}
         disabled={disabled || !!unavailable}
@@ -338,13 +373,21 @@ function SourceRow({
         className="mt-1"
       />
       <div className="min-w-0 flex-1">
-        <p className={cn("font-medium break-all", unavailable ? "text-slate-400" : "text-slate-800")}>
+        <p
+          className={cn(
+            "font-medium break-all",
+            unavailable ? "text-slate-400" : "text-slate-800",
+          )}
+        >
           {name}
         </p>
         <p className="text-[12px] text-slate-400">
-          {documentTypeLabel(row.document_type)} · {formatFileSize(row.document.size_bytes)}
+          {documentTypeLabel(row.document_type)} ·{" "}
+          {formatFileSize(row.document.size_bytes)}
         </p>
-        {unavailable && result?.kind !== "added" && result?.kind !== "restored" ? (
+        {unavailable &&
+        result?.kind !== "added" &&
+        result?.kind !== "restored" ? (
           <p className="mt-0.5 text-[12px] text-slate-500">{unavailable}</p>
         ) : null}
         {result?.kind === "added" ? (

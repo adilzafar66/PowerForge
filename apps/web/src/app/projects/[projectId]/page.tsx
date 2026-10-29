@@ -18,7 +18,7 @@ export default async function ProjectDetailPage({
       listRevisions(projectId, true),
     ]);
     return (
-      <AppShell active="projects">
+      <AppShell project={project} revisions={revisions}>
         <ProjectDetail initialProject={project} initialRevisions={revisions} />
       </AppShell>
     );

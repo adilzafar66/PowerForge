@@ -3,7 +3,10 @@
 import { useEffect, useId, useState } from "react";
 import { X } from "lucide-react";
 
-import { DocumentOverflowMenu, type DocumentMenuHandlers } from "@/components/document-overflow-menu";
+import {
+  DocumentOverflowMenu,
+  type DocumentMenuHandlers,
+} from "@/components/document-overflow-menu";
 import { DocumentOverview } from "@/components/document-overview";
 import { Sheet } from "@/components/ui/sheet";
 import {
@@ -88,13 +91,18 @@ export function DocumentDetailDrawer({
   }
 
   return (
-    <Sheet onClose={onClose} labelledBy={titleId}>
+    <Sheet modal={false} onClose={onClose} labelledBy={titleId}>
       <header className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
         <div className="min-w-0">
-          <h2 id={titleId} className="truncate text-[16px] font-semibold text-slate-900">
+          <h2
+            id={titleId}
+            className="truncate text-[16px] font-semibold text-slate-900"
+          >
             {file.original_filename}
           </h2>
-          <p className="mt-0.5 text-[12.5px] text-slate-500">{headerFacts.join(" · ")}</p>
+          <p className="mt-0.5 text-[12.5px] text-slate-500">
+            {headerFacts.join(" · ")}
+          </p>
         </div>
         <div className="flex items-center gap-1">
           <DocumentOverflowMenu

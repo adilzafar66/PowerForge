@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import {
   createContext,
   useContext,
@@ -119,15 +121,15 @@ export function ModelSelect({
   const id = useId();
   return (
     <Field id={id} label={label}>
-      <select
+      <Select
         id={id}
         className={fieldClassName}
         value={value}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
+        onValueChange={(value) => onChange(value)}
       >
         {children}
-      </select>
+      </Select>
     </Field>
   );
 }

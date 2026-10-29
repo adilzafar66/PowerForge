@@ -1,6 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Select } from "@/components/ui/select";
+
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { Button } from "@/components/ui/button";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
@@ -20,7 +29,10 @@ import {
 } from "@/lib/document-presentation";
 import { cn } from "@/lib/utils";
 
-const PROCESSING_OPTIONS: { value: ProcessingRunStatus | "NONE" | ""; label: string }[] = [
+const PROCESSING_OPTIONS: {
+  value: ProcessingRunStatus | "NONE" | "";
+  label: string;
+}[] = [
   { value: "", label: "All processing states" },
   { value: "NONE", label: "Not started" },
   { value: "PENDING", label: "Pending" },
@@ -29,7 +41,10 @@ const PROCESSING_OPTIONS: { value: ProcessingRunStatus | "NONE" | ""; label: str
   { value: "FAILED", label: "Failed" },
 ];
 
-const CLASSIFICATION_OPTIONS: { value: ClassificationAttemptState | ""; label: string }[] = [
+const CLASSIFICATION_OPTIONS: {
+  value: ClassificationAttemptState | "";
+  label: string;
+}[] = [
   { value: "", label: "All classification states" },
   { value: "disabled", label: "AI classification disabled" },
   { value: "not_classified", label: "Not classified" },
@@ -39,9 +54,15 @@ const CLASSIFICATION_OPTIONS: { value: ClassificationAttemptState | ""; label: s
   { value: "failed", label: "Failed" },
 ];
 
-export function activeAdvancedFilterCount(filters: AdvancedDocumentFilters): number {
-  return [filters.type, filters.origin, filters.processing, filters.classification].filter(Boolean)
-    .length;
+export function activeAdvancedFilterCount(
+  filters: AdvancedDocumentFilters,
+): number {
+  return [
+    filters.type,
+    filters.origin,
+    filters.processing,
+    filters.classification,
+  ].filter(Boolean).length;
 }
 
 export function AddDocumentsMenu({
@@ -88,7 +109,9 @@ export function DocumentWorkspaceToolbar({
         <h2 className="text-[15px] font-semibold text-slate-900">
           Documents{documentCount === null ? "" : ` ${documentCount}`}
         </h2>
-        {canMutate ? <AddDocumentsMenu onUpload={onUpload} onReuse={onReuse} /> : null}
+        {canMutate ? (
+          <AddDocumentsMenu onUpload={onUpload} onReuse={onReuse} />
+        ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <SearchField
@@ -119,7 +142,11 @@ export function DocumentQuickViews({
       onChange={onChange}
       options={[
         { value: "all", label: "All", count: counts.all },
-        { value: "needs_review", label: "Needs Review", count: counts.needsReview },
+        {
+          value: "needs_review",
+          label: "Needs Review",
+          count: counts.needsReview,
+        },
         { value: "issues", label: "Issues", count: counts.issues },
         { value: "removed", label: "Removed", count: counts.removed },
       ]}
@@ -192,7 +219,10 @@ export function DocumentFiltersPopover({
               label="Document type"
               value={filters.type}
               onChange={(type) =>
-                onChange({ ...filters, type: type as AdvancedDocumentFilters["type"] })
+                onChange({
+                  ...filters,
+                  type: type as AdvancedDocumentFilters["type"],
+                })
               }
             >
               <option value="">All types</option>
@@ -207,7 +237,10 @@ export function DocumentFiltersPopover({
               label="Origin"
               value={filters.origin}
               onChange={(origin) =>
-                onChange({ ...filters, origin: origin as AdvancedDocumentFilters["origin"] })
+                onChange({
+                  ...filters,
+                  origin: origin as AdvancedDocumentFilters["origin"],
+                })
               }
             >
               <option value="">All origins</option>
@@ -221,7 +254,8 @@ export function DocumentFiltersPopover({
               onChange={(processing) =>
                 onChange({
                   ...filters,
-                  processing: processing as AdvancedDocumentFilters["processing"],
+                  processing:
+                    processing as AdvancedDocumentFilters["processing"],
                 })
               }
             >
@@ -238,7 +272,8 @@ export function DocumentFiltersPopover({
               onChange={(classification) =>
                 onChange({
                   ...filters,
-                  classification: classification as AdvancedDocumentFilters["classification"],
+                  classification:
+                    classification as AdvancedDocumentFilters["classification"],
                 })
               }
             >
@@ -276,16 +311,19 @@ function FilterSelect({
   children: ReactNode;
 }) {
   return (
-    <label htmlFor={id} className="flex flex-col gap-1 text-[12px] font-medium text-slate-500">
+    <label
+      htmlFor={id}
+      className="flex flex-col gap-1 text-[12px] font-medium text-slate-500"
+    >
       {label}
-      <select
+      <Select
         id={id}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onValueChange={(value) => onChange(value)}
         className={cn(fieldClassName, "py-2 text-[13px]")}
       >
         {children}
-      </select>
+      </Select>
     </label>
   );
 }

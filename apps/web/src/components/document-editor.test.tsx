@@ -1,3 +1,4 @@
+import { selectOption } from "@/components/ui/control-test-helpers";
 /** @vitest-environment jsdom */
 import React from "react";
 import { render, screen } from "@testing-library/react";
@@ -134,7 +135,7 @@ describe("DocumentEditor", () => {
     update.mockResolvedValue(saved);
     const props = setup(makeRow());
 
-    await user.selectOptions(screen.getByLabelText("Document type"), "CABLE_SCHEDULE");
+    await selectOption(screen.getByLabelText("Document type"), "CABLE_SCHEDULE");
     await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(update).toHaveBeenCalledTimes(1);

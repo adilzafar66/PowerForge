@@ -1,3 +1,4 @@
+import { selectOption } from "@/components/ui/control-test-helpers";
 /** @vitest-environment jsdom */
 import React from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -211,7 +212,7 @@ describe("RevisionDocuments rows", () => {
     expect(screen.queryByText("Clear filters")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Filters" }));
-    await user.selectOptions(screen.getByLabelText("Origin"), "INHERITED");
+    await selectOption(screen.getByLabelText("Origin"), "INHERITED");
     expect(await screen.findByText("No documents match your filters.")).toBeInTheDocument();
 
     await user.click(screen.getAllByRole("button", { name: "Clear filters" })[0]);
@@ -321,10 +322,10 @@ describe("RevisionDocuments filters", () => {
     await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
 
     await user.click(screen.getByRole("button", { name: "Filters" }));
-    await user.selectOptions(screen.getByLabelText("Document type"), "CABLE_SCHEDULE");
-    await user.selectOptions(screen.getByLabelText("Origin"), "INHERITED");
-    await user.selectOptions(screen.getByLabelText("Processing state"), "COMPLETED");
-    await user.selectOptions(screen.getByLabelText("Classification state"), "ready");
+    await selectOption(screen.getByLabelText("Document type"), "CABLE_SCHEDULE");
+    await selectOption(screen.getByLabelText("Origin"), "INHERITED");
+    await selectOption(screen.getByLabelText("Processing state"), "COMPLETED");
+    await selectOption(screen.getByLabelText("Classification state"), "ready");
 
     expect(screen.getByRole("button", { name: "Filters (4)" })).toBeInTheDocument();
     expect(screen.queryByText("local.pdf")).toBeNull();
@@ -1144,7 +1145,7 @@ describe("AI classification drawer", () => {
     renderWorkspace(true);
     const drawer = await openDrawer(user, "a.pdf");
     await user.click(within(drawer).getByRole("button", { name: "Change type" }));
-    await user.selectOptions(within(drawer).getByLabelText("Document type"), "PANEL_SCHEDULE");
+    await selectOption(within(drawer).getByLabelText("Document type"), "PANEL_SCHEDULE");
     list.mockResolvedValueOnce([makeRow({ name: "a.pdf", document_type: "PANEL_SCHEDULE" })]);
     await user.click(within(drawer).getByRole("button", { name: "Save type" }));
 

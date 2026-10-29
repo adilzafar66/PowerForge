@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import { useEffect, useId, useState, type ReactNode } from "react";
 
 import { changedFields } from "@/components/document-editor";
@@ -61,19 +63,24 @@ export function DocumentTypeSection({
       <h3 className="mb-2 text-[11px] font-bold tracking-widest text-slate-400 uppercase">
         Confirmed type
       </h3>
-      <p className="text-[13.5px] font-medium text-slate-800">{documentTypeLabel(row.document_type)}</p>
+      <p className="text-[13.5px] font-medium text-slate-800">
+        {documentTypeLabel(row.document_type)}
+      </p>
       {editable ? (
         <div className="mt-2">
           {open ? (
             <div className="space-y-2">
-              <label htmlFor={selectId} className="block text-[12.5px] font-medium text-slate-600">
+              <label
+                htmlFor={selectId}
+                className="block text-[12.5px] font-medium text-slate-600"
+              >
                 Document type
               </label>
-              <select
+              <Select
                 id={selectId}
                 value={type}
                 disabled={saving}
-                onChange={(event) => setType(event.target.value as DocumentType)}
+                onValueChange={(value) => setType(value as DocumentType)}
                 className={cn(fieldClassName, "py-2")}
               >
                 {DOCUMENT_TYPE_OPTIONS.map((option) => (
@@ -81,7 +88,7 @@ export function DocumentTypeSection({
                     {option.label}
                   </option>
                 ))}
-              </select>
+              </Select>
               <Button
                 type="button"
                 size="sm"
@@ -92,7 +99,12 @@ export function DocumentTypeSection({
               </Button>
             </div>
           ) : (
-            <Button type="button" variant="secondary" size="sm" onClick={onOpen}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onOpen}
+            >
               Change type
             </Button>
           )}
@@ -223,7 +235,12 @@ export function DocumentMetadataPanel({
       ) : null}
       {editable ? (
         <div className="mt-3">
-          <Button type="button" size="sm" disabled={!dirty || saving} onClick={() => void save()}>
+          <Button
+            type="button"
+            size="sm"
+            disabled={!dirty || saving}
+            onClick={() => void save()}
+          >
             {saving ? "Saving…" : "Save changes"}
           </Button>
         </div>
@@ -243,7 +260,10 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={htmlFor} className="mb-1 block text-[12.5px] font-medium text-slate-600">
+      <label
+        htmlFor={htmlFor}
+        className="mb-1 block text-[12.5px] font-medium text-slate-600"
+      >
         {label}
       </label>
       {children}

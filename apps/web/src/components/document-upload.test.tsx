@@ -1,3 +1,4 @@
+import { selectOption } from "@/components/ui/control-test-helpers";
 /** @vitest-environment jsdom */
 import React from "react";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -211,9 +212,8 @@ describe("DocumentUpload queue", () => {
 
 describe("DocumentUpload batch document type", () => {
   it("sends the chosen type for every file in the batch", async () => {
-    const user = userEvent.setup();
     renderUpload();
-    await user.selectOptions(
+    await selectOption(
       screen.getByLabelText("Document type for this batch"),
       "SINGLE_LINE_DIAGRAM",
     );

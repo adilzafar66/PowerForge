@@ -4,7 +4,9 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 **Current implemented phase:** Phase 5 authoring refinement — Phase 5 complete / re-frozen
 
-**Next:** Phase 6 — Evidence, candidates, and structured extraction. Not started
+**UI redesign:** UI-A — Design system and app shell implemented. Next UI milestone: UI-B. See [UI_A_HANDOFF.md](UI_A_HANDOFF.md).
+
+**Next engineering phase:** Phase 6 — Evidence, candidates, and structured extraction. Not started
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 

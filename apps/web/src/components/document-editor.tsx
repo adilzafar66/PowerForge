@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/ui/select";
+
 import Link from "next/link";
 import { useEffect, useId, useState, type ReactNode } from "react";
 
@@ -98,7 +100,12 @@ export function DocumentEditor({
     setSaving(true);
     setError(null);
     try {
-      const updated = await updateDocument(projectId, revisionId, row.id, changes);
+      const updated = await updateDocument(
+        projectId,
+        revisionId,
+        row.id,
+        changes,
+      );
       onSaved(updated);
     } catch (err) {
       if (onMutationError(err)) {
@@ -125,10 +132,15 @@ export function DocumentEditor({
         className="max-h-[90vh] w-[560px] overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_24px_48px_rgba(0,0,0,0.12),0_4px_8px_rgba(0,0,0,0.06)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 id={titleId} className="mb-1 text-[16px] font-semibold text-slate-900">
+        <h2
+          id={titleId}
+          className="mb-1 text-[16px] font-semibold text-slate-900"
+        >
           {editable ? "Edit document details" : "Document details"}
         </h2>
-        <p className="mb-4 text-[13px] break-all text-slate-500">{file.original_filename}</p>
+        <p className="mb-4 text-[13px] break-all text-slate-500">
+          {file.original_filename}
+        </p>
 
         {!editable ? (
           <p className="mb-4 text-[12.5px] text-slate-500">
@@ -149,7 +161,8 @@ export function DocumentEditor({
           <Fact label="Added to revision">{formatDateShort(row.added_at)}</Fact>
           <Fact label="Origin">
             {originLabel(row.origin)}
-            {row.origin === "INHERITED" && row.inherited_from_revision_identifier ? (
+            {row.origin === "INHERITED" &&
+            row.inherited_from_revision_identifier ? (
               <>
                 {" from "}
                 {row.inherited_from_revision_id ? (
@@ -169,11 +182,11 @@ export function DocumentEditor({
 
         <div className="space-y-3.5">
           <Field label="Document type" htmlFor={`${titleId}-type`}>
-            <select
+            <Select
               id={`${titleId}-type`}
               value={type}
               disabled={!editable || saving}
-              onChange={(event) => setType(event.target.value as DocumentType)}
+              onValueChange={(value) => setType(value as DocumentType)}
               className={cn(fieldClassName, "py-2")}
             >
               {DOCUMENT_TYPE_OPTIONS.map((option) => (
@@ -181,7 +194,7 @@ export function DocumentEditor({
                   {option.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Document number" htmlFor={`${titleId}-number`}>
             <Input
@@ -225,7 +238,11 @@ export function DocumentEditor({
             {editable ? "Cancel" : "Close"}
           </Button>
           {editable ? (
-            <Button type="button" disabled={!dirty || saving} onClick={() => void save()}>
+            <Button
+              type="button"
+              disabled={!dirty || saving}
+              onClick={() => void save()}
+            >
               {saving ? "Saving…" : "Save changes"}
             </Button>
           ) : null}
@@ -255,7 +272,10 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={htmlFor} className="mb-1 block text-[12.5px] font-medium text-slate-600">
+      <label
+        htmlFor={htmlFor}
+        className="mb-1 block text-[12.5px] font-medium text-slate-600"
+      >
         {label}
       </label>
       {children}

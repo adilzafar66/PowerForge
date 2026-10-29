@@ -1,3 +1,4 @@
+import { changeField } from "@/components/ui/control-test-helpers";
 /** @vitest-environment jsdom */
 import React from "react";
 import {
@@ -48,6 +49,7 @@ vi.mock("@/lib/projects", async (original) => ({
   ...(await original<typeof import("@/lib/projects")>()),
   getProject: vi.fn(),
   getRevision: vi.fn(),
+  listRevisions: vi.fn().mockResolvedValue([]),
 }));
 import { RevisionWorkspace } from "@/components/revision-workspace";
 import RevisionPage from "@/app/projects/[projectId]/revisions/[revisionId]/page";
@@ -60,6 +62,7 @@ import * as api from "@/lib/engineering-model";
 import {
   getProject,
   getRevision,
+  listRevisions,
   type Project,
   type Revision,
 } from "@/lib/projects";
@@ -67,6 +70,7 @@ const props = { projectId: "p", revisionId: "r", canMutate: true };
 beforeEach(() => {
   vi.resetAllMocks();
   nav.search = "";
+  vi.mocked(listRevisions).mockResolvedValue([]);
   vi.mocked(api.getEngineeringRegistry).mockResolvedValue(registry);
   vi.mocked(api.listEquipment).mockResolvedValue([equipment]);
   vi.mocked(api.getEquipmentEditor).mockResolvedValue({
@@ -92,6 +96,9 @@ describe("revision model workspace", () => {
     nav.search = "keep=yes&workspace=model&equipment=e1";
     view.rerender(<RevisionWorkspace {...props} />);
     await screen.findByLabelText("Tag");
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    nav.search = "keep=yes&workspace=model";
+    view.rerender(<RevisionWorkspace {...props} />);
     fireEvent.click(
       within(
         screen.getByRole("group", { name: "Revision workspace" }),
@@ -112,12 +119,14 @@ describe("revision model workspace", () => {
     nav.search = "workspace=model";
     render(<RevisionWorkspace {...props} />);
     await screen.findByText("SWGR-1");
+    fireEvent.keyDown(screen.getByLabelText("Equipment type filter"), {
+      key: "ArrowDown",
+    });
     expect(
-      within(screen.getByLabelText("Equipment type filter")).getByText(
-        "Registry Device",
-      ),
-    ).toHaveValue("TEST_DEVICE");
-    fireEvent.change(screen.getByLabelText("Equipment type filter"), {
+      screen.getByRole("option", { name: "Registry Device" }),
+    ).toHaveAttribute("data-value", "TEST_DEVICE");
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+    await changeField(screen.getByLabelText("Equipment type filter"), {
       target: { value: "ALTERNATE" },
     });
     fireEvent.click(
@@ -162,7 +171,7 @@ describe("revision model workspace", () => {
     );
     render(<RevisionWorkspace {...props} />);
     await screen.findByText("Initial");
-    fireEvent.change(screen.getByRole("textbox", { name: "Search" }), {
+    await changeField(screen.getByRole("textbox", { name: "Search" }), {
       target: { value: "old" },
     });
     expect(api.listEquipment).toHaveBeenCalledTimes(1);
@@ -173,7 +182,7 @@ describe("revision model workspace", () => {
         expect.objectContaining({ search: "old" }),
       ),
     );
-    fireEvent.change(screen.getByRole("textbox", { name: "Search" }), {
+    await changeField(screen.getByRole("textbox", { name: "Search" }), {
       target: { value: "latest" },
     });
     await screen.findByText("latest");
@@ -270,13 +279,15 @@ describe("revision model workspace", () => {
     fireEvent.click(screen.getByText("Attributes"));
     await screen.findByRole("group", { name: "Rated voltage" });
     fireEvent.click(screen.getByText("General"));
-    fireEvent.change(screen.getByLabelText("Equipment Type"), {
+    await changeField(screen.getByLabelText("Equipment Type"), {
       target: { value: "ALTERNATE" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() => expect(api.saveEquipmentEditor).toHaveBeenCalled());
     await waitFor(() =>
-      expect(screen.getByLabelText("Equipment Type")).toHaveValue("ALTERNATE"),
+      expect(screen.getByLabelText("Equipment Type")).toHaveTextContent(
+        "Alternate",
+      ),
     );
     fireEvent.click(screen.getByText("Attributes"));
     await waitFor(() =>
@@ -299,7 +310,7 @@ describe("revision model workspace", () => {
     );
     render(<RevisionWorkspace {...props} />);
     await screen.findByLabelText("Tag");
-    fireEvent.change(screen.getByLabelText("Tag"), {
+    await changeField(screen.getByLabelText("Tag"), {
       target: { value: "Changed" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));

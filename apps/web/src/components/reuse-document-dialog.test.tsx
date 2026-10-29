@@ -1,6 +1,7 @@
+import { selectOption } from "@/components/ui/control-test-helpers";
 /** @vitest-environment jsdom */
 import React from "react";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -90,8 +91,8 @@ describe("ReuseDocumentDialog", () => {
   it("lists other revisions only, with status labels", async () => {
     setup({});
     const select = await screen.findByLabelText("Source revision");
-    const labels = within(select)
-      .getAllByRole("option")
+    await userEvent.setup().click(select);
+    const labels = screen.getAllByRole("option")
       .map((option) => option.textContent);
     expect(labels).toEqual(["Revision B (Superseded)", "Revision A (Superseded)"]);
   });
@@ -213,7 +214,7 @@ describe("ReuseDocumentDialog", () => {
     await user.click(screen.getByRole("checkbox", { name: "Select a.pdf" }));
     expect(screen.getByRole("button", { name: "Add 1 document" })).toBeEnabled();
 
-    await user.selectOptions(screen.getByLabelText("Source revision"), "r-1");
+    await selectOption(screen.getByLabelText("Source revision"), "r-1");
     await screen.findByText("z.pdf");
     expect(screen.getByRole("button", { name: "Add 0 documents" })).toBeDisabled();
   });

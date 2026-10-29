@@ -1,3 +1,4 @@
+import { changeField } from "@/components/ui/control-test-helpers";
 /** @vitest-environment jsdom */
 import React from "react";
 import {
@@ -103,7 +104,7 @@ describe("unified equipment editor", () => {
     });
     await editor();
     expect(save()).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("Tag"), { target: { value: "" } });
+    await changeField(screen.getByLabelText("Tag"), { target: { value: "" } });
     fireEvent.click(save());
     await waitFor(() =>
       expect(api.saveEquipmentEditor).toHaveBeenCalledExactlyOnceWith(
@@ -118,7 +119,7 @@ describe("unified equipment editor", () => {
   });
   it("creates with registry keys and a duplicate-looking tag", async () => {
     mount(<EquipmentGeneralPanel onSaved={vi.fn()} />);
-    fireEvent.change(screen.getByLabelText("Tag"), {
+    await changeField(screen.getByLabelText("Tag"), {
       target: { value: "SWGR-1" },
     });
     fireEvent.click(screen.getByText("Create Equipment"));
@@ -133,7 +134,7 @@ describe("unified equipment editor", () => {
   });
   it("keeps one draft across tabs and submits General, attributes and custom terminals together", async () => {
     await editor();
-    fireEvent.change(screen.getByLabelText("Tag"), {
+    await changeField(screen.getByLabelText("Tag"), {
       target: { value: "Changed" },
     });
     fireEvent.click(screen.getByText("Attributes"));
@@ -154,19 +155,19 @@ describe("unified equipment editor", () => {
     expect(
       group("Operating mode").getByText("Conditional"),
     ).toBeInTheDocument();
-    fireEvent.change(voltage.getByLabelText("Information state"), {
+    await changeField(voltage.getByLabelText("Information state"), {
       target: { value: "PRESENT" },
     });
-    fireEvent.change(voltage.getByLabelText("Value"), {
+    await changeField(voltage.getByLabelText("Value"), {
       target: { value: "0.1234567890123456789012345678901234" },
     });
-    fireEvent.change(voltage.getByLabelText("Input unit"), {
+    await changeField(voltage.getByLabelText("Input unit"), {
       target: { value: "V" },
     });
     fireEvent.click(screen.getByText("Terminals"));
     fireEvent.click(screen.getByText("Add Custom Terminal"));
     const custom = group("Terminal new");
-    fireEvent.change(custom.getByLabelText("Terminal key"), {
+    await changeField(custom.getByLabelText("Terminal key"), {
       target: { value: "GROUND" },
     });
     fireEvent.click(screen.getByText("General"));
@@ -214,7 +215,7 @@ describe("unified equipment editor", () => {
       });
       await editor("Attributes");
       const field = group("Rated voltage");
-      fireEvent.change(field.getByLabelText("Information state"), {
+      await changeField(field.getByLabelText("Information state"), {
         target: { value: state },
       });
       expect(field.queryByLabelText("Value")).not.toBeInTheDocument();
@@ -229,23 +230,21 @@ describe("unified equipment editor", () => {
   it("requires an explicit False choice for an unset boolean", async () => {
     await editor("Attributes");
     const field = group("Enabled");
-    fireEvent.change(field.getByLabelText("Information state"), {
+    await changeField(field.getByLabelText("Information state"), {
       target: { value: "PRESENT" },
     });
-    expect(field.getByLabelText("Value")).toHaveValue("");
-    expect(field.getByRole("option", { name: "Select value" })).toHaveProperty(
-      "selected",
-      true,
-    );
+    expect(field.getByLabelText("Value")).toHaveTextContent("Select value");
     expect(save()).toBeDisabled();
     fireEvent.click(save());
     fireEvent.keyDown(document, { key: "s", metaKey: true });
     expect(api.saveEquipmentEditor).not.toHaveBeenCalled();
-    fireEvent.change(field.getByLabelText("Value"), {
+    await changeField(field.getByLabelText("Value"), {
       target: { value: "false" },
     });
     expect(save()).toBeEnabled();
+
     fireEvent.keyDown(document, { key: "s", metaKey: true });
+
     await waitFor(() =>
       expect(api.saveEquipmentEditor).toHaveBeenCalledExactlyOnceWith(
         "p",
@@ -266,10 +265,10 @@ describe("unified equipment editor", () => {
       ["Nameplate note", "Original text"],
     ]) {
       const field = group(name);
-      fireEvent.change(field.getByLabelText("Information state"), {
+      await changeField(field.getByLabelText("Information state"), {
         target: { value: "PRESENT" },
       });
-      fireEvent.change(field.getByLabelText("Value"), { target: { value } });
+      await changeField(field.getByLabelText("Value"), { target: { value } });
     }
     fireEvent.click(save());
     await waitFor(() =>
@@ -287,12 +286,14 @@ describe("unified equipment editor", () => {
     );
     const close = vi.fn();
     await editor("General", close);
-    fireEvent.change(screen.getByLabelText("Equipment Type"), {
+    await changeField(screen.getByLabelText("Equipment Type"), {
       target: { value: "ALTERNATE" },
     });
     fireEvent.click(save());
     await screen.findByText("Meaningful attributes prevent type change");
-    expect(screen.getByLabelText("Equipment Type")).toHaveValue("ALTERNATE");
+    expect(screen.getByLabelText("Equipment Type")).toHaveTextContent(
+      "Alternate",
+    );
     fireEvent.click(screen.getByText("Close"));
     fireEvent.click(screen.getByText("Save changes"));
     await waitFor(() =>
@@ -304,7 +305,7 @@ describe("unified equipment editor", () => {
   it("protects dirty close with keep editing, discard, and save choices", async () => {
     const close = vi.fn();
     await editor("General", close);
-    fireEvent.change(screen.getByLabelText("Tag"), {
+    await changeField(screen.getByLabelText("Tag"), {
       target: { value: "Draft" },
     });
     fireEvent.keyDown(document, { key: "Escape" });
@@ -322,7 +323,7 @@ describe("unified equipment editor", () => {
   it("closes only after successful save-and-close", async () => {
     const close = vi.fn();
     await editor("General", close);
-    fireEvent.change(screen.getByLabelText("Name"), {
+    await changeField(screen.getByLabelText("Name"), {
       target: { value: "New name" },
     });
     fireEvent.click(screen.getByText("Close"));
@@ -348,7 +349,7 @@ describe("unified equipment editor", () => {
     expect(profile.getByLabelText("Terminal key")).toBeDisabled();
     expect(profile.queryByText("Remove terminal")).not.toBeInTheDocument();
     const custom = group("Terminal LINE");
-    fireEvent.change(custom.getByLabelText("Label"), {
+    await changeField(custom.getByLabelText("Label"), {
       target: { value: "Custom label" },
     });
     fireEvent.click(save());
@@ -386,7 +387,7 @@ describe("topology tables", () => {
     expect(screen.getByRole("dialog")).toHaveTextContent(
       "Electrical Node details",
     );
-    fireEvent.change(screen.getByLabelText("Label"), {
+    await changeField(screen.getByLabelText("Label"), {
       target: { value: "Updated junction" },
     });
     fireEvent.click(screen.getByText("Save node"));
@@ -453,22 +454,26 @@ describe("topology tables", () => {
         onClose={vi.fn()}
       />,
     );
-    fireEvent.change(screen.getByLabelText("From Node"), {
+    await changeField(screen.getByLabelText("From Node"), {
       target: { value: terminal.id },
     });
-    fireEvent.change(screen.getByLabelText("To Node"), {
+    await changeField(screen.getByLabelText("To Node"), {
       target: { value: junction.id },
     });
+    fireEvent.keyDown(screen.getByLabelText("To Node"), { key: "ArrowDown" });
     expect(
-      within(screen.getByLabelText("To Node")).getByText("SWGR-1 · LINE"),
-    ).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("Nominal Voltage"), {
+      screen.getByRole("option", { name: "SWGR-1 · LINE" }),
+    ).toHaveAttribute("aria-disabled", "true");
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+    await changeField(screen.getByLabelText("Nominal Voltage"), {
       target: { value: "600.12345678901234567890123456789" },
     });
-    expect(
-      within(screen.getByLabelText("Voltage Input Unit")).getByText("MV"),
-    ).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Voltage Input Unit"), {
+    fireEvent.keyDown(screen.getByLabelText("Voltage Input Unit"), {
+      key: "ArrowDown",
+    });
+    expect(screen.getByRole("option", { name: "MV" })).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+    await changeField(screen.getByLabelText("Voltage Input Unit"), {
       target: { value: "V" },
     });
     fireEvent.click(screen.getByText("Create connection"));
@@ -493,7 +498,7 @@ describe("topology tables", () => {
       />,
     );
     expect(screen.getByText("Save connection")).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("Nominal Voltage"), {
+    await changeField(screen.getByLabelText("Nominal Voltage"), {
       target: { value: "" },
     });
     fireEvent.click(screen.getByText("Save connection"));

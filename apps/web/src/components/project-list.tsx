@@ -21,7 +21,11 @@ import {
 
 type StatusFilter = ProjectStatus | "ALL";
 
-export function ProjectList({ initialProjects }: { initialProjects: Project[] }) {
+export function ProjectList({
+  initialProjects,
+}: {
+  initialProjects: Project[];
+}) {
   const router = useRouter();
   const [projects, setProjects] = useState(initialProjects);
   const [search, setSearch] = useState("");
@@ -40,7 +44,8 @@ export function ProjectList({ initialProjects }: { initialProjects: Project[] })
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return projects.filter((project) => {
-      const matchStatus = statusFilter === "ALL" || project.status === statusFilter;
+      const matchStatus =
+        statusFilter === "ALL" || project.status === statusFilter;
       const matchSearch =
         !query ||
         project.project_number.toLowerCase().includes(query) ||
@@ -65,7 +70,7 @@ export function ProjectList({ initialProjects }: { initialProjects: Project[] })
   }
 
   return (
-    <div className="mx-auto max-w-screen-xl px-8 py-8">
+    <div className="w-full min-w-0 px-4 py-6 md:px-8 md:py-8">
       <PageHeader
         title="Projects"
         description={`${projects.length} projects in workspace`}
@@ -90,13 +95,35 @@ export function ProjectList({ initialProjects }: { initialProjects: Project[] })
           onChange={setStatusFilter}
           options={[
             { value: "ALL", label: "All", count: statusCounts.ALL ?? 0 },
-            { value: "ACTIVE", label: "Active", count: statusCounts.ACTIVE ?? 0 },
-            { value: "PAUSED", label: "Paused", count: statusCounts.PAUSED ?? 0 },
-            { value: "CANCELLED", label: "Cancelled", count: statusCounts.CANCELLED ?? 0 },
-            { value: "ARCHIVED", label: "Archived", count: statusCounts.ARCHIVED ?? 0 },
+            {
+              value: "ACTIVE",
+              label: "Active",
+              count: statusCounts.ACTIVE ?? 0,
+            },
+            {
+              value: "PAUSED",
+              label: "Paused",
+              count: statusCounts.PAUSED ?? 0,
+            },
+            {
+              value: "CANCELLED",
+              label: "Cancelled",
+              count: statusCounts.CANCELLED ?? 0,
+            },
+            {
+              value: "ARCHIVED",
+              label: "Archived",
+              count: statusCounts.ARCHIVED ?? 0,
+            },
           ]}
         />
-        <Button type="button" variant="ghost" size="sm" disabled={loading} onClick={() => void refresh()}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          disabled={loading}
+          onClick={() => void refresh()}
+        >
           {loading ? "Refreshing…" : "Refresh"}
         </Button>
       </div>
@@ -105,7 +132,7 @@ export function ProjectList({ initialProjects }: { initialProjects: Project[] })
 
       <Card className="overflow-hidden">
         <table className="w-full text-[13.5px]">
-          <thead>
+          <thead className="bg-soft">
             <tr className="border-b border-slate-100">
               <th className="w-36 px-5 py-3 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase">
                 Number
@@ -164,7 +191,9 @@ export function ProjectList({ initialProjects }: { initialProjects: Project[] })
                   }`}
                 >
                   <td className="px-5 py-3.5">
-                    <Mono className="tracking-tight text-slate-400">{project.project_number}</Mono>
+                    <Mono className="tracking-tight text-slate-400">
+                      {project.project_number}
+                    </Mono>
                   </td>
                   <td className="px-4 py-3.5">
                     <span className="font-semibold text-slate-900 transition-colors group-hover:text-accent">
@@ -181,7 +210,9 @@ export function ProjectList({ initialProjects }: { initialProjects: Project[] })
                   </td>
                   <td className="hidden px-4 py-3.5 xl:table-cell">
                     {project.active_revision_identifier ? (
-                      <Mono className="text-slate-400">{project.active_revision_identifier}</Mono>
+                      <Mono className="text-slate-400">
+                        {project.active_revision_identifier}
+                      </Mono>
                     ) : (
                       <span className="text-slate-300">—</span>
                     )}
@@ -193,7 +224,10 @@ export function ProjectList({ initialProjects }: { initialProjects: Project[] })
                     {formatDateShort(project.updated_at)}
                   </td>
                   <td className="px-3 py-3.5 text-slate-300 transition-colors group-hover:text-accent">
-                    <ChevronRight className="h-[13px] w-[13px]" strokeWidth={1.8} />
+                    <ChevronRight
+                      className="h-[13px] w-[13px]"
+                      strokeWidth={1.8}
+                    />
                   </td>
                 </tr>
               ))

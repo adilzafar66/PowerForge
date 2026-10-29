@@ -24,7 +24,10 @@ export function SegmentedControl<T extends string>({
     <div
       role={label ? "group" : undefined}
       aria-label={label}
-      className={cn("flex items-center gap-0.5 rounded-lg bg-slate-100 p-0.5", className)}
+      className={cn(
+        "flex flex-wrap items-center gap-0.5 rounded-lg bg-slate-100 p-0.5",
+        className,
+      )}
     >
       {options.map((option) => {
         const active = value === option.value;
@@ -33,10 +36,11 @@ export function SegmentedControl<T extends string>({
             key={option.value}
             type="button"
             onClick={() => onChange(option.value)}
+            aria-pressed={active}
             className={cn(
-              "cursor-pointer rounded-md px-3 py-1 text-[12px] font-semibold transition-all",
+              "cursor-pointer rounded-md px-3 py-1 text-[12px] font-semibold transition-colors",
               active
-                ? "bg-white text-slate-800 shadow-[0_1px_2px_rgba(0,0,0,0.08)]"
+                ? "bg-panel text-accent"
                 : "text-slate-500 hover:text-slate-700",
             )}
           >

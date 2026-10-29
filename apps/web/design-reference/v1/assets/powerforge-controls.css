@@ -1,0 +1,44 @@
+/* PowerForge UX-9.1 — custom selection control specimens. Native input state is preserved. */
+.pf-select-host{position:relative;display:inline-block;vertical-align:middle;min-width:0;max-width:100%;width:100%;flex-shrink:1}
+.pf-select-native{display:none!important}
+.pf-select-trigger{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:40px;padding:9px 12px;border:1px solid var(--pf-border,#DBE3EA);border-radius:8px;background:var(--pf-surface,#fff);color:var(--pf-text-primary,#182638);font:inherit;font-size:12px;font-weight:600;line-height:1.4;text-align:left;box-shadow:0 1px 1px rgba(24,38,56,.025);cursor:pointer;transition:border-color 150ms,background-color 150ms,box-shadow 150ms}
+.pf-select-trigger:hover:not(:disabled){border-color:#AFC1D0;background:#FBFCFD}
+.pf-select-trigger[aria-expanded="true"]{border-color:var(--pf-action,#24557A);box-shadow:0 0 0 3px rgba(36,85,122,.10)}
+.pf-select-trigger:focus-visible{outline:3px solid var(--pf-ring,#4F86AF);outline-offset:2px}
+.pf-select-trigger:disabled{opacity:.55;cursor:not-allowed;background:var(--pf-soft,#F0F3F6)}
+.pf-select-value{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.pf-select-chevron{width:15px;height:15px;flex:none;transition:transform 160ms;color:var(--pf-text-secondary,#526477)}
+.pf-select-trigger[aria-expanded="true"] .pf-select-chevron{transform:rotate(180deg)}
+.pf-select-menu{position:fixed;z-index:10020;min-width:100px;max-height:min(288px,60vh);overflow:auto;padding:5px;list-style:none;margin:0;border:1px solid #CEDAE4;border-radius:10px;background:var(--pf-surface,#fff);box-shadow:0 14px 36px rgba(24,38,56,.14),0 2px 8px rgba(24,38,56,.07);animation:pf-select-in 150ms ease-out;overscroll-behavior:contain}
+.pf-select-option{padding:9px 32px 9px 11px;border-radius:6px;min-height:36px;display:flex;align-items:center;position:relative;white-space:normal;font-size:12px;font-weight:550;color:var(--pf-text-primary,#182638);cursor:pointer;transition:background-color 150ms ease,color 150ms ease}
+/* Option states: unselected hover is neutral, selected always retains blue tint. */
+.pf-select-option:not([aria-disabled="true"]):not([aria-selected="true"]):is(:hover,[data-active="true"]){background:var(--pf-option-hover,#F5F8FA);color:var(--pf-text-primary,#182638)}
+.pf-select-option[aria-selected="true"]{background:var(--pf-action-tint,#E6EEF4);color:var(--pf-action,#24557A);font-weight:750}
+.pf-select-option[aria-selected="true"]:not([aria-disabled="true"]):hover{background:var(--pf-option-selected-hover,#D6E3ED)}
+.pf-select-option[aria-selected="true"]:after{content:'✓';position:absolute;right:12px;font-size:15px;font-weight:800;color:var(--pf-action,#24557A)}
+.pf-select-option[aria-disabled="true"]{color:var(--pf-text-tertiary,#8597A8);cursor:not-allowed;opacity:.6}
+.pf-select-option:not([aria-selected="true"]):not([aria-disabled="true"]):active{background:#EAF1F5}
+.pf-select-option[aria-selected="true"]:not([aria-disabled="true"]):active{background:#CCDDE9}
+/* Retain actual native checkbox input: label clicking, focus, forms and checked/indeterminate states work. */
+input[type="checkbox"]:not(.pf-no-theme){-webkit-appearance:none;appearance:none;display:inline-grid;place-content:center;flex:none;vertical-align:middle;width:18px;height:18px;margin:0;border:1.5px solid #A9BBCA;border-radius:5px;background:#fff;cursor:pointer;transition:background-color 150ms,border-color 150ms,box-shadow 150ms;position:relative}
+input[type="checkbox"]:not(.pf-no-theme):hover:not(:disabled){border-color:var(--pf-action,#24557A);box-shadow:0 0 0 3px rgba(36,85,122,.07)}
+input[type="checkbox"]:not(.pf-no-theme):checked,input[type="checkbox"]:not(.pf-no-theme):indeterminate{border-color:var(--pf-action,#24557A);background:var(--pf-action,#24557A)}
+input[type="checkbox"]:not(.pf-no-theme):checked:after{content:'';width:9px;height:5px;border-left:2px solid white;border-bottom:2px solid white;transform:rotate(-45deg) translate(1px,-1px)}
+input[type="checkbox"]:not(.pf-no-theme):indeterminate:after{content:'';width:9px;height:2px;border-radius:2px;background:white}
+input[type="checkbox"]:not(.pf-no-theme):focus-visible{outline:3px solid var(--pf-ring,#4F86AF);outline-offset:3px}
+input[type="checkbox"]:not(.pf-no-theme):disabled{background:#F2F5F7;border-color:#D9E1E8;cursor:not-allowed;opacity:.7}
+input[type="checkbox"]:not(.pf-no-theme):disabled:checked{background:#A8B8C6;border-color:#A8B8C6}
+label:has(input[type="checkbox"]:disabled){cursor:not-allowed;opacity:.65}
+.pf-choice-row{display:flex;align-items:center;gap:10px;min-height:34px;padding:6px 0;font-size:12px;color:var(--pf-text-primary,#182638);cursor:pointer}
+.pf-choice-row .pf-choice-description{color:var(--pf-text-secondary,#526477);font-size:11px}
+.pf-choice-group{display:grid;gap:3px}
+.pf-example-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+.pf-control-example{min-width:0}
+.pf-control-example label.pf-caption{display:block;margin-bottom:6px;font-size:12px;font-weight:700;color:var(--pf-text-secondary,#526477)}
+.pf-demo-result{margin-top:10px;color:var(--pf-text-secondary,#526477);font-size:11px}
+@keyframes pf-select-in{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+@media (max-width:760px){.pf-example-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.pf-select-option{transition:none}.pf-select-menu{animation:none}.pf-select-chevron,input[type="checkbox"]:not(.pf-no-theme){transition:none}}
+body.manual-reduce-motion .pf-select-option{transition:none}
+body.manual-reduce-motion .pf-select-menu{animation:none}
+body.manual-reduce-motion .pf-select-chevron,body.manual-reduce-motion input[type="checkbox"]:not(.pf-no-theme){transition:none}

@@ -1,6 +1,7 @@
+import { selectOption } from "@/components/ui/control-test-helpers";
 /** @vitest-environment jsdom */
 import React from "react";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -222,7 +223,7 @@ describe("Create revision form", () => {
   }
 
   function baseSelect() {
-    return screen.getByLabelText("Based on") as HTMLSelectElement;
+    return screen.getByLabelText("Based on") as HTMLButtonElement;
   }
 
   function carryBox() {
@@ -264,10 +265,10 @@ describe("Create revision form", () => {
   it("defaults to the ACTIVE revision with carry forward checked and no note", async () => {
     await openForm([sampleRevision, draft, superseded]);
 
-    expect(baseSelect().value).toBe(sampleRevision.id);
+    expect(baseSelect()).toHaveTextContent("Revision REV-1 (Active)");
+    await userEvent.setup().click(baseSelect());
     expect(
-      within(baseSelect())
-        .getAllByRole("option")
+      screen.getAllByRole("option")
         .map((option) => option.textContent),
     ).toEqual([
       "None (start fresh)",
@@ -275,6 +276,7 @@ describe("Create revision form", () => {
       "Revision REV-2 (Draft)",
       "Revision REV-0 (Superseded)",
     ]);
+    await userEvent.setup().keyboard("{Escape}");
     expect(carryBox()).toBeChecked();
     expect(carryBox()).toBeEnabled();
     expect(carryModelBox()).toBeChecked();
@@ -288,7 +290,7 @@ describe("Create revision form", () => {
   it("selects None and disables carry forward when there is no ACTIVE revision", async () => {
     await openForm([draft, superseded]);
 
-    expect(baseSelect().value).toBe("");
+    expect(baseSelect()).toHaveTextContent("None (start fresh)");
     expect(carryBox()).not.toBeChecked();
     expect(carryBox()).toBeDisabled();
     expect(carryModelBox()).not.toBeChecked();
@@ -296,24 +298,24 @@ describe("Create revision form", () => {
   });
 
   it("disables and unchecks carry forward when None is chosen, and restores the default for a base", async () => {
-    const user = await openForm([sampleRevision, draft]);
+    await openForm([sampleRevision, draft]);
 
-    await user.selectOptions(baseSelect(), "None (start fresh)");
+    await selectOption(baseSelect(), "None (start fresh)");
     expect(carryBox()).not.toBeChecked();
     expect(carryBox()).toBeDisabled();
 
-    await user.selectOptions(baseSelect(), "Revision REV-2 (Draft)");
+    await selectOption(baseSelect(), "Revision REV-2 (Draft)");
     expect(carryBox()).toBeEnabled();
     expect(carryBox()).toBeChecked();
   });
 
   it("shows a note when the base is not the ACTIVE revision", async () => {
-    const user = await openForm([sampleRevision, draft, superseded]);
+    await openForm([sampleRevision, draft, superseded]);
 
-    await user.selectOptions(baseSelect(), "Revision REV-0 (Superseded)");
+    await selectOption(baseSelect(), "Revision REV-0 (Superseded)");
     expect(screen.getByText("Based on a revision other than the active one.")).toBeInTheDocument();
 
-    await user.selectOptions(baseSelect(), "Revision REV-1 (Active)");
+    await selectOption(baseSelect(), "Revision REV-1 (Active)");
     expect(screen.queryByText(/other than the active one/i)).toBeNull();
   });
 
@@ -329,7 +331,7 @@ describe("Create revision form", () => {
   it("sends an explicit null base and no carry forward when None is chosen", async () => {
     const fetchMock = mockCreated();
     const user = await openForm([sampleRevision]);
-    await user.selectOptions(baseSelect(), "None (start fresh)");
+    await selectOption(baseSelect(), "None (start fresh)");
 
     const body = await submit(user, fetchMock);
 
@@ -341,7 +343,7 @@ describe("Create revision form", () => {
   it("sends the chosen base, even when it is the ACTIVE one chosen again", async () => {
     const fetchMock = mockCreated();
     const user = await openForm([sampleRevision, draft]);
-    await user.selectOptions(baseSelect(), "Revision REV-2 (Draft)");
+    await selectOption(baseSelect(), "Revision REV-2 (Draft)");
 
     const body = await submit(user, fetchMock);
 
@@ -377,7 +379,7 @@ describe("Create revision form", () => {
     await user.click(carryBox());
     expect(carryBox()).not.toBeChecked();
 
-    await user.selectOptions(baseSelect(), "Revision REV-2 (Draft)");
+    await selectOption(baseSelect(), "Revision REV-2 (Draft)");
 
     expect(carryBox()).toBeChecked();
     expect(carryModelBox()).toBeChecked();

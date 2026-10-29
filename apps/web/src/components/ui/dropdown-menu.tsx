@@ -1,15 +1,8 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import * as Menu from "@radix-ui/react-dropdown-menu";
 import { ChevronDown, MoreVertical } from "lucide-react";
-
+import { Fragment, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export type DropdownMenuItem = {
@@ -36,113 +29,61 @@ export function DropdownMenu({
   disabled?: boolean;
   className?: string;
   triggerClassName?: string;
-  /** Visible text trigger. Icon menus omit this and keep the overflow button. */
   triggerLabel?: string;
 }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-  const menuId = useId();
-  const visibleItems = items.filter(Boolean);
-
-  const close = useCallback(() => setOpen(false), []);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    function onPointerDown(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
-        close();
-      }
-    }
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        close();
-      }
-    }
-
-    document.addEventListener("mousedown", onPointerDown);
-    document.addEventListener("keydown", onKeyDown, true);
-    return () => {
-      document.removeEventListener("mousedown", onPointerDown);
-      document.removeEventListener("keydown", onKeyDown, true);
-    };
-  }, [open, close]);
-
-  if (visibleItems.length === 0) {
-    return null;
-  }
-
+  if (!items.length) return null;
   return (
-    <div ref={rootRef} className={cn("relative inline-flex", className)}>
-      <button
-        type="button"
-        aria-label={triggerLabel ? undefined : label}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={menuId}
-        disabled={disabled}
-        onClick={() => setOpen((value) => !value)}
-        className={cn(
-          triggerLabel
-            ? "inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-[13px] font-medium text-slate-700 shadow-[0_1px_2px_rgba(0,0,0,0.06)] hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40"
-            : "inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition-colors hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-40",
-          triggerClassName,
-        )}
-      >
-        {triggerLabel ? (
-          <>
-            {triggerLabel}
-            <ChevronDown className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
-          </>
-        ) : (
-          <MoreVertical className="h-5 w-5" strokeWidth={2} />
-        )}
-      </button>
-
-      {open ? (
-        <div
-          id={menuId}
-          role="menu"
-          aria-label={label}
+    <span className={cn("inline-flex", className)}>
+      <Menu.Root modal={false}>
+        <Menu.Trigger
+          disabled={disabled}
+          aria-label={triggerLabel ? undefined : label}
           className={cn(
-            "absolute top-full z-50 mt-1.5 min-w-[180px] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-[0_12px_28px_rgba(0,0,0,0.12),0_2px_6px_rgba(0,0,0,0.06)]",
-            align === "right" ? "right-0" : "left-0",
+            "inline-flex min-h-8 min-w-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg text-muted transition-colors hover:bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40",
+            triggerLabel &&
+              "min-h-10 border border-border bg-panel px-3 text-[13px] font-medium",
+            triggerClassName,
           )}
         >
-          {visibleItems.map((item) => (
-            <div key={item.id}>
-              {item.separatorBefore ? (
-                <div className="my-1 border-t border-slate-100" role="separator" />
-              ) : null}
-              <button
-                type="button"
-                role="menuitem"
-                disabled={item.disabled}
-                onClick={() => {
-                  if (item.disabled) {
-                    return;
-                  }
-                  item.onSelect();
-                  close();
-                }}
-                className={cn(
-                  "flex w-full cursor-pointer items-center px-3 py-2 text-left text-[13px] font-medium transition-colors focus-visible:bg-slate-50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40",
-                  item.destructive
-                    ? "text-red-600 hover:bg-red-50"
-                    : "text-slate-700 hover:bg-slate-50",
+          {triggerLabel ? (
+            <>
+              {triggerLabel}
+              <ChevronDown aria-hidden className="h-3.5 w-3.5" />
+            </>
+          ) : (
+            <MoreVertical aria-hidden className="h-5 w-5" />
+          )}
+        </Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Content
+            aria-label={label}
+            align={align === "right" ? "end" : "start"}
+            sideOffset={6}
+            collisionPadding={12}
+            className="z-[80] min-w-[180px] max-w-[calc(100vw-24px)] rounded-[10px] border border-border bg-panel p-1 shadow-lg"
+          >
+            {items.map((item) => (
+              <Fragment key={item.id}>
+                {item.separatorBefore && (
+                  <Menu.Separator className="my-1 border-t border-border" />
                 )}
-              >
-                {item.label}
-              </button>
-            </div>
-          ))}
-        </div>
-      ) : null}
-    </div>
+                <Menu.Item
+                  disabled={item.disabled}
+                  onSelect={item.onSelect}
+                  className={cn(
+                    "flex min-h-9 cursor-pointer items-center rounded-md px-3 py-2 text-[13px] font-medium outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-40",
+                    item.destructive
+                      ? "text-danger data-[highlighted]:bg-danger-tint"
+                      : "text-ink data-[highlighted]:bg-soft",
+                  )}
+                >
+                  {item.label}
+                </Menu.Item>
+              </Fragment>
+            ))}
+          </Menu.Content>
+        </Menu.Portal>
+      </Menu.Root>
+    </span>
   );
 }

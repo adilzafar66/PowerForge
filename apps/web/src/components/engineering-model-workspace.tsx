@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EquipmentWorkspace } from "@/components/equipment-workspace";
 import { TopologyWorkspace } from "@/components/topology-workspace";
 import {
@@ -28,7 +28,16 @@ export function EngineeringModelWorkspace({
 }) {
   const router = useRouter();
   const registry = useModelQuery(getEngineeringRegistry);
-  const [view, setView] = useState("equipment");
+  const params = useSearchParams();
+  const path = usePathname();
+  const view = params.get("view") === "topology" ? "topology" : "equipment";
+  function setView(value: string) {
+    const next = new URLSearchParams(params.toString());
+    next.set("workspace", "model");
+    next.set("view", value);
+    if (value === "topology") next.delete("equipment");
+    router.replace(`${path}?${next}`, { scroll: false });
+  }
   const [locked, setLocked] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [version, setVersion] = useState(0);

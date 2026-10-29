@@ -14,14 +14,23 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("mb-7 flex items-center justify-between gap-4", className)}>
+    <div
+      className={cn(
+        "mb-7 flex flex-wrap items-center justify-between gap-4",
+        className,
+      )}
+    >
       <div>
-        <h1 className="text-[21px] font-bold tracking-tight text-slate-900">{title}</h1>
+        <h1 className="text-[29px] font-bold tracking-tight text-slate-900">
+          {title}
+        </h1>
         {description ? (
           <p className="mt-0.5 text-[13px] text-slate-400">{description}</p>
         ) : null}
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      {actions ? (
+        <div className="flex shrink-0 items-center gap-2">{actions}</div>
+      ) : null}
     </div>
   );
 }

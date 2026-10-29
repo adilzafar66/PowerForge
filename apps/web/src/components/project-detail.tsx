@@ -1,17 +1,25 @@
 "use client";
 
+import { AppShell } from "@/components/app-shell";
+
+import { Checkbox } from "@/components/ui/checkbox";
+
+import { Select } from "@/components/ui/select";
+
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChipList } from "@/components/ui/chip";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { DropdownMenu, type DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  type DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea, fieldClassName } from "@/components/ui/input";
 import { MetaRow } from "@/components/ui/meta-row";
@@ -32,7 +40,8 @@ import {
 } from "@/lib/projects";
 import { REVISION_STATUS_STYLES } from "@/lib/status-styles";
 
-type ConfirmableAction = "pause" | "resume" | "cancel" | "archive" | "unarchive";
+type ConfirmableAction =
+  "pause" | "resume" | "cancel" | "archive" | "unarchive";
 
 const ACTION_COPY: Record<
   Exclude<ConfirmableAction, "unarchive">,
@@ -70,7 +79,8 @@ function unarchiveCopy(restoreStatus: ProjectStatus | null): {
   if (target === "CANCELLED") {
     return {
       title: "Unarchive project?",
-      message: "Unarchive restores this project to Cancelled. It will stay read-only.",
+      message:
+        "Unarchive restores this project to Cancelled. It will stay read-only.",
       confirmLabel: "Unarchive",
     };
   }
@@ -103,7 +113,9 @@ export function ProjectDetail({
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [showAddRevision, setShowAddRevision] = useState(false);
-  const [confirmAction, setConfirmAction] = useState<ConfirmableAction | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmableAction | null>(
+    null,
+  );
   const [editForm, setEditForm] = useState({
     project_name: initialProject.project_name,
     client_name: initialProject.client_name ?? "",
@@ -119,18 +131,25 @@ export function ProjectDetail({
   });
   // undefined means the user has not chosen, so the server's defaults apply and the key is omitted.
   const [baseChoice, setBaseChoice] = useState<string | undefined>(undefined);
-  const [carryChoice, setCarryChoice] = useState<boolean | undefined>(undefined);
-  const [carryModelChoice, setCarryModelChoice] = useState<boolean | undefined>(undefined);
+  const [carryChoice, setCarryChoice] = useState<boolean | undefined>(
+    undefined,
+  );
+  const [carryModelChoice, setCarryModelChoice] = useState<boolean | undefined>(
+    undefined,
+  );
 
   const archived = project.status === "ARCHIVED";
   const readOnly = archived || project.status === "CANCELLED";
-  const activeRevision = revisions.find((item) => item.status === "ACTIVE") ?? null;
+  const activeRevision =
+    revisions.find((item) => item.status === "ACTIVE") ?? null;
   // "" stands for "None (start fresh)".
   const selectedBaseId = baseChoice ?? activeRevision?.id ?? "";
-  const selectedBase = revisions.find((item) => item.id === selectedBaseId) ?? null;
+  const selectedBase =
+    revisions.find((item) => item.id === selectedBaseId) ?? null;
   const carryForward = selectedBase ? (carryChoice ?? true) : false;
   const carryModelForward = selectedBase ? (carryModelChoice ?? true) : false;
-  const baseIsNotActive = selectedBase !== null && selectedBase.id !== activeRevision?.id;
+  const baseIsNotActive =
+    selectedBase !== null && selectedBase.id !== activeRevision?.id;
 
   function resetRevisionForm() {
     setNewRevision({ identifier: "", description: "", activate: false });
@@ -169,7 +188,10 @@ export function ProjectDetail({
     if (!activeRevision) {
       return true;
     }
-    return new Date(revision.created_at).getTime() > new Date(activeRevision.created_at).getTime();
+    return (
+      new Date(revision.created_at).getTime() >
+      new Date(activeRevision.created_at).getTime()
+    );
   }
 
   async function runAction(action: ConfirmableAction) {
@@ -256,7 +278,9 @@ export function ProjectDetail({
       setShowAddRevision(false);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create revision");
+      setError(
+        err instanceof Error ? err.message : "Could not create revision",
+      );
     } finally {
       setBusy(false);
     }
@@ -286,20 +310,19 @@ export function ProjectDetail({
       setMessage(`Revision ${activated.identifier} is now ACTIVE.`);
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not activate revision");
+      setError(
+        err instanceof Error ? err.message : "Could not activate revision",
+      );
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="mx-auto max-w-screen-lg px-8 py-8">
-      <Breadcrumb
-        items={[
-          { label: "Projects", href: "/" },
-          { label: project.project_name },
-        ]}
-      />
+    <div className="w-full min-w-0 px-4 py-6 md:px-8 md:py-8">
+      <AppShell project={project} revisions={revisions}>
+        {null}
+      </AppShell>
 
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
@@ -307,7 +330,7 @@ export function ProjectDetail({
             <Mono className="text-slate-400">{project.project_number}</Mono>
             <Badge status={project.status} />
           </div>
-          <h1 className="text-[22px] leading-tight font-bold tracking-tight text-slate-900">
+          <h1 className="text-[29px] leading-tight font-bold tracking-tight text-slate-900">
             {project.project_name}
           </h1>
           <p className="mt-1 text-[14px] font-medium text-slate-500">
@@ -336,25 +359,35 @@ export function ProjectDetail({
       ) : null}
 
       {error ? <p className="mb-4 text-[13px] text-red-600">{error}</p> : null}
-      {message ? <p className="mb-4 text-[13px] text-emerald-600">{message}</p> : null}
+      {message ? (
+        <p className="mb-4 text-[13px] text-emerald-600">{message}</p>
+      ) : null}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           {!editing || readOnly ? (
             <Card className="divide-y divide-slate-100">
               <MetaRow label="Address">
-                {project.project_address || <span className="text-slate-300">—</span>}
+                {project.project_address || (
+                  <span className="text-slate-300">—</span>
+                )}
               </MetaRow>
               <MetaRow label="Scope">
-                {project.project_scope || <span className="text-slate-300">—</span>}
+                {project.project_scope || (
+                  <span className="text-slate-300">—</span>
+                )}
               </MetaRow>
               <MetaRow label="Description">
-                {project.description || <span className="text-slate-300">—</span>}
+                {project.description || (
+                  <span className="text-slate-300">—</span>
+                )}
               </MetaRow>
               <MetaRow label="Engineers">
                 <ChipList items={project.engineer_names} />
               </MetaRow>
-              <MetaRow label="Updated">{formatDateShort(project.updated_at)}</MetaRow>
+              <MetaRow label="Updated">
+                {formatDateShort(project.updated_at)}
+              </MetaRow>
             </Card>
           ) : (
             <Card className="space-y-4 p-5">
@@ -464,7 +497,7 @@ export function ProjectDetail({
             </Card>
           )}
 
-          <Card className="overflow-hidden">
+          <Card id="revisions" className="scroll-mt-6 overflow-hidden">
             <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
               <p className="text-[13px] font-bold tracking-wider text-slate-700 uppercase">
                 Revision History
@@ -513,12 +546,12 @@ export function ProjectDetail({
                   </Field>
                 </div>
                 <Field id="base-revision" label="Based on">
-                  <select
+                  <Select
                     id="base-revision"
                     className={fieldClassName}
                     value={selectedBaseId}
-                    onChange={(event) => {
-                      setBaseChoice(event.target.value);
+                    onValueChange={(value) => {
+                      setBaseChoice(value);
                       setCarryChoice(undefined);
                       setCarryModelChoice(undefined);
                     }}
@@ -529,7 +562,7 @@ export function ProjectDetail({
                         {`Revision ${item.identifier} (${REVISION_STATUS_STYLES[item.status].label})`}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </Field>
                 {baseIsNotActive ? (
                   <p className="text-[12px] text-slate-500">
@@ -537,8 +570,7 @@ export function ProjectDetail({
                   </p>
                 ) : null}
                 <label className="flex items-center gap-2 text-[13px] text-slate-700">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={carryForward}
                     disabled={selectedBase === null}
                     onChange={(event) => setCarryChoice(event.target.checked)}
@@ -549,11 +581,12 @@ export function ProjectDetail({
                     : "Carry forward documents"}
                 </label>
                 <label className="flex items-center gap-2 text-[13px] text-slate-700">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={carryModelForward}
                     disabled={selectedBase === null}
-                    onChange={(event) => setCarryModelChoice(event.target.checked)}
+                    onChange={(event) =>
+                      setCarryModelChoice(event.target.checked)
+                    }
                     className="rounded border-slate-300"
                   />
                   {selectedBase
@@ -561,8 +594,7 @@ export function ProjectDetail({
                     : "Carry forward engineering model"}
                 </label>
                 <label className="flex items-center gap-2 text-[13px] text-slate-700">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={newRevision.activate}
                     onChange={(event) =>
                       setNewRevision((current) => ({
@@ -608,12 +640,12 @@ export function ProjectDetail({
 
             {revisions.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-12">
-                <span className="text-[22px] opacity-20">◫</span>
+                <span className="text-[29px] opacity-20">◫</span>
                 <p className="text-[13px] text-slate-400">No revisions yet.</p>
               </div>
             ) : (
               <table className="w-full text-[13px]">
-                <thead>
+                <thead className="bg-soft">
                   <tr className="border-b border-slate-100">
                     <th className="w-20 px-5 py-2.5 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase">
                       Rev
@@ -639,7 +671,9 @@ export function ProjectDetail({
                       }`}
                     >
                       <td className="px-5 py-3">
-                        <Mono className="font-semibold text-slate-400">{revision.identifier}</Mono>
+                        <Mono className="font-semibold text-slate-400">
+                          {revision.identifier}
+                        </Mono>
                       </td>
                       <td className="px-4 py-3">
                         <Link
@@ -673,7 +707,9 @@ export function ProjectDetail({
                             </Button>
                           ) : null}
                           <Button asChild variant="ghost" size="sm">
-                            <Link href={`/projects/${project.id}/revisions/${revision.id}`}>
+                            <Link
+                              href={`/projects/${project.id}/revisions/${revision.id}`}
+                            >
                               Open →
                             </Link>
                           </Button>
@@ -687,16 +723,18 @@ export function ProjectDetail({
           </Card>
 
           <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-8 text-center">
-            <p className="text-[14px] font-semibold text-slate-600">Future sections</p>
+            <p className="text-[14px] font-semibold text-slate-600">
+              Future sections
+            </p>
             <p className="mt-1 text-[13px] text-slate-400">
-              Documents, Engineering Model, Extraction, SLD, Studies, and Reports arrive in later
-              phases.
+              Documents, Engineering Model, Extraction, SLD, Studies, and
+              Reports arrive in later phases.
             </p>
           </div>
         </div>
 
         <div className="space-y-4">
-          <Card className="overflow-hidden">
+          <Card id="revisions" className="scroll-mt-6 overflow-hidden">
             <div className="border-b border-slate-100 px-4 py-3">
               <p className="text-[11px] font-bold tracking-widest text-slate-400 uppercase">
                 Active Revision
@@ -706,7 +744,9 @@ export function ProjectDetail({
               {activeRevision ? (
                 <div>
                   <div className="mb-1 flex items-center gap-2">
-                    <Mono className="font-semibold text-accent">{activeRevision.identifier}</Mono>
+                    <Mono className="font-semibold text-accent">
+                      {activeRevision.identifier}
+                    </Mono>
                     <Badge status="ACTIVE" kind="revision" />
                   </div>
                   <p className="text-[13.5px] font-semibold text-slate-800">
@@ -722,7 +762,7 @@ export function ProjectDetail({
             </div>
           </Card>
 
-          <Card className="overflow-hidden">
+          <Card id="revisions" className="scroll-mt-6 overflow-hidden">
             <div className="border-b border-slate-100 px-4 py-3">
               <p className="text-[11px] font-bold tracking-widest text-slate-400 uppercase">
                 Revisions
@@ -730,22 +770,33 @@ export function ProjectDetail({
             </div>
             <div className="space-y-2.5 px-4 py-3">
               {(["ACTIVE", "DRAFT", "SUPERSEDED"] as const).map((status) => {
-                const count = revisions.filter((item) => item.status === status).length;
+                const count = revisions.filter(
+                  (item) => item.status === status,
+                ).length;
                 const style = REVISION_STATUS_STYLES[status];
                 return (
-                  <div key={status} className="flex items-center justify-between">
+                  <div
+                    key={status}
+                    className="flex items-center justify-between"
+                  >
                     <span
                       className={`flex items-center gap-1.5 text-[12.5px] font-medium ${style.text}`}
                     >
-                      <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+                      <span
+                        className={`h-1.5 w-1.5 rounded-full ${style.dot}`}
+                      />
                       {style.label}
                     </span>
-                    <span className="text-[12.5px] font-semibold text-slate-400">{count}</span>
+                    <span className="text-[12.5px] font-semibold text-slate-400">
+                      {count}
+                    </span>
                   </div>
                 );
               })}
               {revisions.length === 0 ? (
-                <p className="text-[12.5px] text-slate-400">No revisions yet.</p>
+                <p className="text-[12.5px] text-slate-400">
+                  No revisions yet.
+                </p>
               ) : null}
             </div>
           </Card>
@@ -844,5 +895,12 @@ function ProjectActionsMenu({
     });
   }
 
-  return <DropdownMenu items={items} label="Project actions" align="right" disabled={busy} />;
+  return (
+    <DropdownMenu
+      items={items}
+      label="Project actions"
+      align="right"
+      disabled={busy}
+    />
+  );
 }

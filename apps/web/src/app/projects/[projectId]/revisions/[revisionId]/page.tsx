@@ -8,11 +8,15 @@ import { ReadOnlyBanner } from "@/components/read-only-banner";
 import { RevisionWorkspace } from "@/components/revision-workspace";
 import { RevisionLineage } from "@/components/revision-lineage";
 import { Badge } from "@/components/ui/badge";
-import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Card } from "@/components/ui/card";
 import { Mono } from "@/components/ui/mono";
 import { canMutate } from "@/lib/documents";
-import { formatDateShort, getProject, getRevision } from "@/lib/projects";
+import {
+  formatDateShort,
+  getProject,
+  getRevision,
+  listRevisions,
+} from "@/lib/projects";
 
 export const dynamic = "force-dynamic";
 
@@ -23,22 +27,15 @@ export default async function RevisionPage({
 }) {
   const { projectId, revisionId } = await params;
   try {
-    const [project, revision] = await Promise.all([
+    const [project, revision, revisions] = await Promise.all([
       getProject(projectId, true),
       getRevision(projectId, revisionId, true),
+      listRevisions(projectId, true),
     ]);
 
     return (
-      <AppShell active="projects">
-        <div className="mx-auto max-w-screen-lg px-8 py-8">
-          <Breadcrumb
-            items={[
-              { label: "Projects", href: "/" },
-              { label: project.project_name, href: `/projects/${project.id}` },
-              { label: revision.identifier },
-            ]}
-          />
-
+      <AppShell project={project} revision={revision} revisions={revisions}>
+        <div className="w-full min-w-0 px-4 py-6 md:px-8 md:py-8">
           <div className="mb-7 flex items-start justify-between gap-4">
             <div>
               <div className="mb-1.5 flex items-center gap-2.5">
@@ -47,10 +44,12 @@ export default async function RevisionPage({
                 <Mono className="text-slate-400">{revision.identifier}</Mono>
                 <Badge status={revision.status} kind="revision" />
               </div>
-              <h1 className="text-[22px] font-bold tracking-tight text-slate-900">
+              <h1 className="text-[29px] font-bold tracking-tight text-slate-900">
                 {revision.description || revision.identifier}
               </h1>
-              <p className="mt-1 text-[14px] font-medium text-slate-500">{project.project_name}</p>
+              <p className="mt-1 text-[14px] font-medium text-slate-500">
+                {project.project_name}
+              </p>
               {revision.based_on_revision_id ? (
                 <RevisionLineage
                   basedOnIdentifier={revision.based_on_identifier}
@@ -73,7 +72,9 @@ export default async function RevisionPage({
               <p className="mb-2 text-[11px] font-bold tracking-widest text-slate-400 uppercase">
                 Notes
               </p>
-              <p className="text-[13.5px] leading-relaxed text-slate-700">{revision.description}</p>
+              <p className="text-[13.5px] leading-relaxed text-slate-700">
+                {revision.description}
+              </p>
             </Card>
           ) : null}
 
@@ -81,13 +82,18 @@ export default async function RevisionPage({
             {[
               { label: "Created By", value: revision.created_by || "—" },
               { label: "Created", value: formatDateShort(revision.created_at) },
-              { label: "Last Updated", value: formatDateShort(revision.updated_at) },
+              {
+                label: "Last Updated",
+                value: formatDateShort(revision.updated_at),
+              },
             ].map(({ label, value }) => (
               <Card key={label} className="px-4 py-3.5">
                 <p className="mb-1.5 text-[11px] font-bold tracking-widest text-slate-400 uppercase">
                   {label}
                 </p>
-                <p className="text-[14px] font-semibold text-slate-700">{value}</p>
+                <p className="text-[14px] font-semibold text-slate-700">
+                  {value}
+                </p>
               </Card>
             ))}
           </div>

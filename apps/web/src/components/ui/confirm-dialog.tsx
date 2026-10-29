@@ -1,5 +1,7 @@
 "use client";
 
+import * as Dialog from "@radix-ui/react-dialog";
+import { useRef } from "react";
 import { Button } from "@/components/ui/button";
 
 export function ConfirmDialog({
@@ -17,32 +19,46 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const previous = useRef<HTMLElement | null>(null);
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/25 backdrop-blur-[2px]"
-      onClick={onCancel}
-      role="presentation"
+    <Dialog.Root
+      open
+      onOpenChange={(open) => {
+        if (!open) onCancel();
+      }}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        className="w-[400px] rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_24px_48px_rgba(0,0,0,0.12),0_4px_8px_rgba(0,0,0,0.06)]"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2 id="confirm-dialog-title" className="mb-2 text-[16px] font-semibold text-slate-900">
-          {title}
-        </h2>
-        <p className="mb-5 text-[13.5px] leading-relaxed text-slate-500">{message}</p>
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="button" variant={danger ? "danger" : "primary"} onClick={onConfirm}>
-            {confirmLabel}
-          </Button>
-        </div>
-      </div>
-    </div>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[60] bg-ink/25" />
+        <Dialog.Content
+          onOpenAutoFocus={() => {
+            previous.current = document.activeElement as HTMLElement;
+          }}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            previous.current?.focus();
+          }}
+          className="fixed top-1/2 left-1/2 z-[70] w-[calc(100%-32px)] max-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-panel p-6 shadow-xl"
+        >
+          <Dialog.Title className="mb-2 text-base font-semibold text-ink">
+            {title}
+          </Dialog.Title>
+          <Dialog.Description className="mb-5 text-[13.5px] leading-relaxed text-muted">
+            {message}
+          </Dialog.Description>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant={danger ? "danger" : "primary"}
+              onClick={onConfirm}
+            >
+              {confirmLabel}
+            </Button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
