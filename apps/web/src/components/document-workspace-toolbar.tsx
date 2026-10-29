@@ -163,6 +163,7 @@ export function DocumentFiltersPopover({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const insideMouseEvents = useRef(new WeakSet<Event>());
   const typeId = useId();
   const originId = useId();
   const processingId = useId();
@@ -176,13 +177,16 @@ export function DocumentFiltersPopover({
     }
 
     function onPointerDown(event: MouseEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) {
+      if (
+        !insideMouseEvents.current.has(event) &&
+        !rootRef.current?.contains(event.target as Node)
+      ) {
         close();
       }
     }
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !event.defaultPrevented) {
         close();
       }
     }
@@ -196,7 +200,15 @@ export function DocumentFiltersPopover({
   }, [open, close]);
 
   return (
-    <div ref={rootRef} className="relative">
+    <div
+      ref={rootRef}
+      className="relative"
+      // React capture follows portal ownership, unlike DOM contains(). Record
+      // the native event so a select option survives through pointer release.
+      onMouseDownCapture={(event) =>
+        insideMouseEvents.current.add(event.nativeEvent)
+      }
+    >
       <Button
         type="button"
         variant="secondary"

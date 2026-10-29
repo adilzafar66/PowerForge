@@ -30,9 +30,11 @@ Navigation preserves unrelated query parameters. Revision switching retains the 
 
 Added `@radix-ui/react-select` 2.4.1, `@radix-ui/react-dialog` 1.3.1 and `@radix-ui/react-dropdown-menu` 2.2.1, with lockfile updates. This Select version supports empty-valued options directly, so UI values need no domain-facing sentinels or conversions. Checkbox uses a styled native input.
 
+Document filter outside-click handling follows React portal ownership, so selecting a portalled option does not unmount the Filters popover. A nested Select consumes its first Escape before the popover closes. Regression tests and read-only Chrome checks cover mouse-down/up selection, keyboard selection and nested Escape.
+
 Validation:
 
-- 259 frontend tests passing, including existing canonical editing, exact-number, boolean-choice, lifecycle/read-only and dirty-draft regressions. Added control and navigation tests; native-select tests now exercise real portalled controls.
+- 261 frontend tests passing, including existing canonical editing, exact-number, boolean-choice, lifecycle/read-only and dirty-draft regressions. Added control and navigation tests; native-select tests now exercise real portalled controls.
 - ESLint and TypeScript checks pass.
 - Production build passes.
 - Read-only Chrome checks pass for dropdown colors/checkmarks, keyboard selection and Escape, focus restoration, modal focus trapping, reduced motion, mobile navigation, widths 1440/1024/768/390 and 200% CSS zoom. No application writes or browser page errors occurred. The alternate local frontend port used a browser-only CORS proxy; backend configuration was unchanged.
