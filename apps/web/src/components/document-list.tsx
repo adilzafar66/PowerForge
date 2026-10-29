@@ -8,6 +8,7 @@ import { DocumentState } from "@/components/document-state";
 import { AddDocumentsMenu } from "@/components/document-workspace-toolbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { revisionTable, revisionRowClass, revisionPrimaryClass } from "@/components/ui/revision-table";
 import {
   confidenceBandLabel,
   documentTypeLabel,
@@ -17,7 +18,7 @@ import {
 import { formatDateShort } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 
-const TH = "px-4 py-3 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase";
+const TH = revisionTable.header;
 
 function secondaryFacts(row: RevisionDocument, projectId: string): ReactNode[] {
   const facts: ReactNode[] = [];
@@ -122,19 +123,11 @@ function DocumentRow({
           onOpen(row);
         }
       }}
-      className={cn(
-        "cursor-pointer flex flex-col gap-1 px-4 py-3 outline-none hover:bg-slate-50 focus-visible:bg-slate-50 md:table-row md:px-0 md:py-0",
-        !first && "border-t border-slate-100",
-        selected && "bg-blue-50 hover:bg-blue-50",
-        removed && !selected && "bg-slate-50/60",
-      )}
+      className={revisionRowClass(first, selected, removed)}
     >
-      <td className="block px-0 py-0 md:table-cell md:px-5 md:py-3.5">
+      <td className={revisionTable.primaryCell}>
         <p
-          className={cn(
-            "font-semibold break-all",
-            removed ? "text-slate-400 line-through" : "text-slate-900",
-          )}
+          className={revisionPrimaryClass(removed)}
         >
           {row.document.original_filename}
         </p>
@@ -147,13 +140,13 @@ function DocumentRow({
           ))}
         </p>
       </td>
-      <td className="block px-0 py-0 md:table-cell md:px-4 md:py-3.5">
+      <td className={revisionTable.cell}>
         <TypeCell row={row} />
       </td>
-      <td className="block px-0 py-0 md:table-cell md:px-4 md:py-3.5">
+      <td className={revisionTable.cell}>
         <DocumentState row={row} />
       </td>
-      <td className="block px-0 py-0 text-right md:table-cell md:px-4 md:py-3.5">
+      <td className={revisionTable.actionsCell}>
         <DocumentOverflowMenu
           row={row}
           projectId={projectId}
@@ -199,9 +192,9 @@ export function DocumentList({
 }) {
   return (
     <Card>
-      <table className="block w-full text-[13.5px] md:table">
-        <thead className="hidden md:table-header-group">
-          <tr className="border-b border-slate-100">
+      <table className={revisionTable.table}>
+        <thead className={revisionTable.head}>
+          <tr className={revisionTable.headerRow}>
             <th className={cn(TH, "px-5")}>Document</th>
             <th className={TH}>Type</th>
             <th className={TH}>State</th>

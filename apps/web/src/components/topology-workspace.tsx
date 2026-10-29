@@ -15,6 +15,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
+  revisionTable,
+  revisionRowClass,
+  revisionPrimaryClass,
+  ModelLifecycleState,
+} from "@/components/ui/revision-table";
+import { cn } from "@/lib/utils";
+import {
   equipmentLabel,
   listConnections,
   listEquipment,
@@ -50,6 +57,8 @@ export function TopologyWorkspace() {
   );
   const visible = (row: { lifecycle_status: string }) =>
     lifecycle === "ALL" || row.lifecycle_status === lifecycle;
+  const visibleNodes = data?.nodes.filter(visible) ?? [];
+  const visibleConnections = data?.connections.filter(visible) ?? [];
   const activeNodeIds = new Set(
     data?.nodes.filter((n) => n.lifecycle_status === "ACTIVE").map((n) => n.id),
   );
@@ -59,14 +68,14 @@ export function TopologyWorkspace() {
     (c) => c.id === connectionEditor,
   );
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <LifecycleControl value={lifecycle} onChange={setLifecycle} />
       <LoadState {...query} />
       {data && (
         <>
           <section className="space-y-3" aria-label="Topology nodes">
-            <div className="flex flex-wrap justify-between gap-3">
-              <h2 className="font-semibold">Nodes</h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-semibold">Nodes {visibleNodes.length}</h2>
               {writable && (
                 <Button onClick={() => setNodeEditor("new")}>
                   Add Electrical Node
@@ -77,153 +86,278 @@ export function TopologyWorkspace() {
               Manage equipment terminals from Equipment details. Restoring a
               node never restores its old connections.
             </p>
-            {data.nodes.filter(visible).length === 0 && (
-              <Card className="p-5 text-sm text-slate-500">
-                No nodes match this view.
+            {visibleNodes.length === 0 && (
+              <Card className={revisionTable.empty}>
+                {lifecycle === "ACTIVE"
+                  ? "No active nodes in this revision. Equipment provides its normal terminals; add an electrical node for a junction."
+                  : "No nodes match this lifecycle filter."}
               </Card>
             )}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm" aria-label="Nodes">
-                <thead>
-                  <tr>
-                    {[
-                      "Node",
-                      "Type",
-                      "Equipment / Owner",
-                      "Terminal",
-                      "Lifecycle",
-                    ].map((h) => (
-                      <th key={h} className="p-3">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.nodes.filter(visible).map((n) => (
-                    <tr
-                      key={n.id}
-                      tabIndex={0}
-                      className="cursor-pointer border-t hover:bg-slate-50 focus:bg-slate-50"
-                      onClick={() => setNodeEditor(n.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setNodeEditor(n.id);
-                        }
-                      }}
-                    >
-                      <td className="p-3">
-                        <button onClick={() => setNodeEditor(n.id)}>
-                          {labels.get(n.id)}
-                        </button>
-                      </td>
-                      <td className="p-3">
-                        {n.kind === "ELECTRICAL_NODE"
-                          ? "Electrical node"
-                          : "Equipment terminal"}
-                      </td>
-                      <td className="p-3">
-                        {n.equipment_id
-                          ? (ownerLabels.get(n.equipment_id) ??
-                            "Unavailable equipment")
-                          : "—"}
-                      </td>
-                      <td className="p-3">
-                        {n.terminal_key ?? "—"}
-                        {n.managed_by_profile && (
-                          <span className="block text-xs text-slate-500">
-                            Application-managed
-                          </span>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        {n.lifecycle_status === "ACTIVE" ? "Active" : "Removed"}
-                      </td>
+            {visibleNodes.length > 0 && (
+              <Card className="overflow-x-auto">
+                <table className={revisionTable.table} aria-label="Nodes">
+                  <thead className={revisionTable.head}>
+                    <tr className={revisionTable.headerRow}>
+                      {[
+                        "Node",
+                        "Type",
+                        "Equipment / Owner",
+                        "Terminal",
+                        "State",
+                        "Actions",
+                      ].map((h, index) => (
+                        <th
+                          key={h}
+                          scope="col"
+                          className={cn(
+                            revisionTable.header,
+                            index === 0 && "px-5",
+                            h === "Actions" && "text-right",
+                          )}
+                        >
+                          {h}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody
+                    className={cn(
+                      "text-slate-700",
+                      query.loading && "opacity-60",
+                    )}
+                  >
+                    {visibleNodes.map((n, index) => (
+                      <tr
+                        key={n.id}
+                        tabIndex={0}
+                        aria-selected={n.id === nodeEditor}
+                        className={revisionRowClass(
+                          index === 0,
+                          n.id === nodeEditor,
+                          n.lifecycle_status === "REMOVED",
+                        )}
+                        onClick={(event) => {
+                          event.currentTarget.focus();
+                          setNodeEditor(n.id);
+                        }}
+                        onKeyDown={(e) => {
+                          if (
+                            e.target === e.currentTarget &&
+                            (e.key === "Enter" || e.key === " ")
+                          ) {
+                            e.preventDefault();
+                            setNodeEditor(n.id);
+                          }
+                        }}
+                      >
+                        <td className={revisionTable.primaryCell}>
+                          <div
+                            className={revisionPrimaryClass(
+                              n.lifecycle_status === "REMOVED",
+                            )}
+                          >
+                            {labels.get(n.id)}
+                          </div>
+                        </td>
+                        <td className={revisionTable.cell}>
+                          {n.kind === "ELECTRICAL_NODE"
+                            ? "Electrical node"
+                            : "Equipment terminal"}
+                        </td>
+                        <td className={revisionTable.cell}>
+                          <span className="mr-2 text-xs text-slate-500 md:hidden">
+                            Equipment / Owner
+                          </span>
+                          {n.equipment_id
+                            ? (ownerLabels.get(n.equipment_id) ??
+                              "Unavailable equipment")
+                            : "—"}
+                        </td>
+                        <td className={revisionTable.cell}>
+                          <span className="mr-2 text-xs text-slate-500 md:hidden">
+                            Terminal
+                          </span>
+                          {n.terminal_key ?? "—"}
+                          {n.managed_by_profile && (
+                            <span
+                              className={cn("block", revisionTable.secondary)}
+                            >
+                              Application-managed
+                            </span>
+                          )}
+                        </td>
+                        <td className={revisionTable.cell}>
+                          <ModelLifecycleState
+                            removed={n.lifecycle_status === "REMOVED"}
+                          />
+                        </td>
+                        <td className={revisionTable.actionsCell}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setNodeEditor(n.id);
+                            }}
+                          >
+                            Open
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Card>
+            )}
           </section>
           <section className="space-y-3" aria-label="Topology connections">
-            <div className="flex flex-wrap justify-between gap-3">
-              <h2 className="font-semibold">Connections</h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-semibold">
+                Connections {visibleConnections.length}
+              </h2>
               {writable && (
                 <Button onClick={() => setConnectionEditor("new")}>
                   Add Connection
                 </Button>
               )}
             </div>
-            {data.connections.filter(visible).length === 0 && (
-              <Card className="p-5 text-sm text-slate-500">
-                No connections match this view.
+            {visibleConnections.length === 0 && (
+              <Card className={revisionTable.empty}>
+                {lifecycle === "ACTIVE"
+                  ? "No active connections in this revision. Add a connection between two active nodes."
+                  : "No connections match this lifecycle filter."}
               </Card>
             )}
-            <div className="overflow-x-auto">
-              <table
-                className="w-full text-left text-sm"
-                aria-label="Connections"
-              >
-                <thead>
-                  <tr>
-                    {[
-                      "From",
-                      "To",
-                      "Type",
-                      "Direction",
-                      "Voltage",
-                      "Phase",
-                      "Lifecycle",
-                    ].map((h) => (
-                      <th key={h} className="p-3">
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.connections.filter(visible).map((c) => (
-                    <tr
-                      key={c.id}
-                      tabIndex={0}
-                      className="cursor-pointer border-t hover:bg-slate-50 focus:bg-slate-50"
-                      onClick={() => setConnectionEditor(c.id)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setConnectionEditor(c.id);
-                        }
-                      }}
-                    >
-                      <td className="p-3">
-                        <button onClick={() => setConnectionEditor(c.id)}>
-                          {labels.get(c.from_node_id) ?? "Unavailable node"}
-                        </button>
-                      </td>
-                      <td className="p-3">
-                        {labels.get(c.to_node_id) ?? "Unavailable node"}
-                      </td>
-                      <td className="p-3">{c.connection_kind}</td>
-                      <td className="p-3">
-                        {c.direction === "UNDIRECTED"
-                          ? "Undirected"
-                          : "Nominal from → to"}
-                      </td>
-                      <td className="p-3">
-                        {c.nominal_voltage == null
-                          ? "—"
-                          : `${c.nominal_voltage} ${c.nominal_voltage_unit}`}
-                      </td>
-                      <td className="p-3">{c.phase_configuration ?? "—"}</td>
-                      <td className="p-3">
-                        {c.lifecycle_status === "ACTIVE" ? "Active" : "Removed"}
-                      </td>
+            {visibleConnections.length > 0 && (
+              <Card className="overflow-x-auto">
+                <table className={revisionTable.table} aria-label="Connections">
+                  <thead className={revisionTable.head}>
+                    <tr className={revisionTable.headerRow}>
+                      {[
+                        "From",
+                        "To",
+                        "Type",
+                        "Direction",
+                        "Voltage",
+                        "Phase",
+                        "State",
+                        "Actions",
+                      ].map((h, index) => (
+                        <th
+                          key={h}
+                          scope="col"
+                          className={cn(
+                            revisionTable.header,
+                            index === 0 && "px-5",
+                            h === "Actions" && "text-right",
+                          )}
+                        >
+                          {h}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody
+                    className={cn(
+                      "text-slate-700",
+                      query.loading && "opacity-60",
+                    )}
+                  >
+                    {visibleConnections.map((c, index) => (
+                      <tr
+                        key={c.id}
+                        tabIndex={0}
+                        aria-selected={c.id === connectionEditor}
+                        className={revisionRowClass(
+                          index === 0,
+                          c.id === connectionEditor,
+                          c.lifecycle_status === "REMOVED",
+                        )}
+                        onClick={(event) => {
+                          event.currentTarget.focus();
+                          setConnectionEditor(c.id);
+                        }}
+                        onKeyDown={(e) => {
+                          if (
+                            e.target === e.currentTarget &&
+                            (e.key === "Enter" || e.key === " ")
+                          ) {
+                            e.preventDefault();
+                            setConnectionEditor(c.id);
+                          }
+                        }}
+                      >
+                        <td className={revisionTable.primaryCell}>
+                          <span className="mr-2 text-xs text-slate-500 md:hidden">
+                            From
+                          </span>
+                          <span
+                            className={revisionPrimaryClass(
+                              c.lifecycle_status === "REMOVED",
+                            )}
+                          >
+                            {labels.get(c.from_node_id) ?? "Unavailable node"}
+                          </span>
+                        </td>
+                        <td className={revisionTable.cell}>
+                          <span className="mr-2 text-xs text-slate-500 md:hidden">
+                            To
+                          </span>
+                          <span
+                            className={revisionPrimaryClass(
+                              c.lifecycle_status === "REMOVED",
+                            )}
+                          >
+                            {labels.get(c.to_node_id) ?? "Unavailable node"}
+                          </span>
+                        </td>
+                        <td className={revisionTable.cell}>
+                          <span className="capitalize">
+                            {c.connection_kind.toLowerCase()}
+                          </span>
+                        </td>
+                        <td className={revisionTable.cell}>
+                          {c.direction === "UNDIRECTED"
+                            ? "Undirected"
+                            : "Nominal from → to"}
+                        </td>
+                        <td className={revisionTable.cell}>
+                          <span className="mr-2 text-xs text-slate-500 md:hidden">
+                            Voltage
+                          </span>
+                          {c.nominal_voltage == null
+                            ? "—"
+                            : `${c.nominal_voltage} ${c.nominal_voltage_unit}`}
+                        </td>
+                        <td className={revisionTable.cell}>
+                          <span className="mr-2 text-xs text-slate-500 md:hidden">
+                            Phase
+                          </span>
+                          {c.phase_configuration ?? "—"}
+                        </td>
+                        <td className={revisionTable.cell}>
+                          <ModelLifecycleState
+                            removed={c.lifecycle_status === "REMOVED"}
+                          />
+                        </td>
+                        <td className={revisionTable.actionsCell}>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setConnectionEditor(c.id);
+                            }}
+                          >
+                            Open
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Card>
+            )}
           </section>
           {nodeEditor && (nodeEditor !== "new" || writable) && (
             <ModelSheet

@@ -14,7 +14,13 @@ import {
 } from "@/components/model-shared";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Chip } from "@/components/ui/chip";
+import {
+  revisionTable,
+  revisionRowClass,
+  revisionPrimaryClass,
+  ModelLifecycleState,
+} from "@/components/ui/revision-table";
+import { cn } from "@/lib/utils";
 import { SearchField } from "@/components/ui/search-field";
 import {
   equipmentLabel,
@@ -95,7 +101,7 @@ export function EquipmentWorkspace({ active }: { active: boolean }) {
       </div>
       <LoadState {...rows} />
       {!rows.loading && rows.data?.length === 0 && (
-        <Card className="p-6 text-sm text-slate-500">
+        <Card className={revisionTable.empty}>
           {search
             ? "No equipment matches your search."
             : type || lifecycle !== "ACTIVE"
@@ -104,22 +110,39 @@ export function EquipmentWorkspace({ active }: { active: boolean }) {
         </Card>
       )}
       {!!rows.data?.length && (
-        <Card className="overflow-hidden">
-          <table className="block w-full text-left text-sm md:table">
-            <thead className="hidden bg-slate-50 text-xs text-slate-500 md:table-header-group">
-              <tr>
-                <th className="p-4">Equipment</th>
-                <th className="p-4">Type</th>
-                <th className="p-4">State</th>
-                <th className="p-4">Actions</th>
+        <Card className="overflow-x-auto">
+          <table className={revisionTable.table}>
+            <thead className={revisionTable.head}>
+              <tr className={revisionTable.headerRow}>
+                <th scope="col" className={cn(revisionTable.header, "px-5")}>
+                  Equipment
+                </th>
+                <th scope="col" className={revisionTable.header}>
+                  Type
+                </th>
+                <th scope="col" className={revisionTable.header}>
+                  State
+                </th>
+                <th
+                  scope="col"
+                  className={cn(revisionTable.header, "text-right")}
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
-            <tbody className="block md:table-row-group">
-              {rows.data.map((row) => (
+            <tbody
+              className={cn("text-slate-700", rows.loading && "opacity-60")}
+            >
+              {rows.data.map((row, index) => (
                 <tr
                   key={row.id}
                   tabIndex={0}
-                  onClick={() => select(row.id)}
+                  aria-selected={row.id === selected}
+                  onClick={(event) => {
+                    event.currentTarget.focus();
+                    select(row.id);
+                  }}
                   onKeyDown={(e) => {
                     if (
                       e.target === e.currentTarget &&
@@ -129,26 +152,34 @@ export function EquipmentWorkspace({ active }: { active: boolean }) {
                       select(row.id);
                     }
                   }}
-                  className={`block cursor-pointer border-t border-slate-100 hover:bg-slate-50 focus-visible:outline-blue-500 md:table-row ${row.lifecycle_status === "REMOVED" ? "text-slate-400" : "text-slate-700"}`}
+                  className={revisionRowClass(
+                    index === 0,
+                    row.id === selected,
+                    row.lifecycle_status === "REMOVED",
+                  )}
                 >
-                  <td className="block p-4 md:table-cell">
-                    <div className="font-semibold">
+                  <td className={revisionTable.primaryCell}>
+                    <div
+                      className={revisionPrimaryClass(
+                        row.lifecycle_status === "REMOVED",
+                      )}
+                    >
                       {equipmentLabel(row, registry)}
                     </div>
-                    <div className="text-xs">
+                    <div className={revisionTable.secondary}>
                       {row.name !== row.tag ? row.name : null}
                       {row.description ? ` · ${row.description}` : ""}
                     </div>
                   </td>
-                  <td className="block px-4 pb-2 md:table-cell md:p-4">
+                  <td className={revisionTable.cell}>
                     {typeLabel(registry, row.equipment_type)}
                   </td>
-                  <td className="block px-4 pb-2 md:table-cell md:p-4">
-                    <Chip>
-                      {row.lifecycle_status === "ACTIVE" ? "Active" : "Removed"}
-                    </Chip>
+                  <td className={revisionTable.cell}>
+                    <ModelLifecycleState
+                      removed={row.lifecycle_status === "REMOVED"}
+                    />
                   </td>
-                  <td className="block px-4 pb-4 md:table-cell md:p-4">
+                  <td className={revisionTable.actionsCell}>
                     <Button
                       size="sm"
                       variant="ghost"
