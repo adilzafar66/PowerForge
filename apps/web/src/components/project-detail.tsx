@@ -1,49 +1,37 @@
 "use client";
-
+import {
+  WorkspaceCard,
+  WorkspaceCardBody,
+  WorkspaceDetails,
+} from "@/components/ui/workspace-patterns";
+import Link from "next/link";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { keys } from "@/lib/query-keys";
-import { AsyncState } from "@/components/ui/async-state";
 import { AppShell } from "@/components/app-shell";
-
-import { Checkbox } from "@/components/ui/checkbox";
-
-import { Select } from "@/components/ui/select";
-
-import Link from "next/link";
-import { FormEvent, useState } from "react";
-import { Lock, Plus } from "lucide-react";
-
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { ChipList } from "@/components/ui/chip";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { AsyncState } from "@/components/ui/async-state";
 import {
-  DropdownMenu,
-  type DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { Field } from "@/components/ui/field";
-import { Input, Textarea, fieldClassName } from "@/components/ui/input";
-import { MetaRow } from "@/components/ui/meta-row";
-import { Mono } from "@/components/ui/mono";
-import { RevisionLineage } from "@/components/revision-lineage";
-import { SectionHeader } from "@/components/ui/section-header";
+  WorkspaceButton as Button,
+  WorkspaceHeader,
+  WorkspaceCardHeader,
+  WorkspaceStatus,
+  WorkspaceStats,
+} from "@/components/ui-c-workspace";
+import { ChevronRight, Pencil, Plus, Pause, Play } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { ProjectEditor } from "@/components/project-editor";
+import { RevisionCreateSheet } from "@/components/revision-create-sheet";
+import { RevisionsRegister } from "@/components/revisions-register";
 import {
   getProject,
   listRevisions,
-  activateRevision,
-  createRevision,
-  formatDateShort,
-  parseEngineerNames,
   projectAction,
-  updateProject,
+  formatDateShort,
   type Project,
-  type ProjectStatus,
   type Revision,
-  type RevisionCreateInput,
+  type ProjectStatus,
 } from "@/lib/projects";
-import { REVISION_STATUS_STYLES } from "@/lib/status-styles";
-
+import { revisionHref } from "@/lib/workspace-navigation";
 type ConfirmableAction =
   "pause" | "resume" | "cancel" | "archive" | "unarchive";
 
@@ -53,7 +41,7 @@ const ACTION_COPY: Record<
 > = {
   pause: {
     title: "Pause project?",
-    message: "Paused projects cannot be edited until resumed.",
+    message: "Pause active work on this project? Its records remain editable.",
     confirmLabel: "Pause",
   },
   resume: {
@@ -105,118 +93,40 @@ function unarchiveCopy(restoreStatus: ProjectStatus | null): {
 export function ProjectDetail({
   initialProject,
   initialRevisions,
+  revisionsPage = false,
 }: {
   initialProject: Project;
   initialRevisions: Revision[];
+  revisionsPage?: boolean;
 }) {
   const client = useQueryClient();
-  const projectQuery = useQuery({
+  const pq = useQuery({
     queryKey: keys.project(initialProject.id),
     queryFn: () => getProject(initialProject.id),
     initialData: initialProject,
   });
-  const revisionsQuery = useQuery({
+  const rq = useQuery({
     queryKey: keys.revisions(initialProject.id),
     queryFn: () => listRevisions(initialProject.id),
     initialData: initialRevisions,
   });
-  const project = projectQuery.data;
-  const revisions = revisionsQuery.data;
-  const setProject = (value: Project | ((current: Project) => Project)) =>
-    client.setQueryData<Project>(keys.project(project.id), (old) =>
-      typeof value === "function" ? value(old ?? project) : value,
-    );
-  const setRevisions = (value: (current: Revision[]) => Revision[]) =>
-    client.setQueryData<Revision[]>(keys.revisions(project.id), (old) =>
-      value(old ?? revisions),
-    );
+  const project = pq.data,
+    revisions = rq.data;
+  const setProject = (value: Project) =>
+    client.setQueryData(keys.project(project.id), value);
+  const [editing, setEditing] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [showAddRevision, setShowAddRevision] = useState(false);
   const [confirmAction, setConfirmAction] = useState<ConfirmableAction | null>(
     null,
   );
-  const [editForm, setEditForm] = useState({
-    project_name: initialProject.project_name,
-    client_name: initialProject.client_name ?? "",
-    project_address: initialProject.project_address ?? "",
-    project_scope: initialProject.project_scope ?? "",
-    description: initialProject.description ?? "",
-    engineer_names: initialProject.engineer_names.join(", "),
-  });
-  const [newRevision, setNewRevision] = useState({
-    identifier: "",
-    description: "",
-    activate: false,
-  });
-  // undefined means the user has not chosen, so the server's defaults apply and the key is omitted.
-  const [baseChoice, setBaseChoice] = useState<string | undefined>(undefined);
-  const [carryChoice, setCarryChoice] = useState<boolean | undefined>(
-    undefined,
-  );
-  const [carryModelChoice, setCarryModelChoice] = useState<boolean | undefined>(
-    undefined,
-  );
-
-  const archived = project.status === "ARCHIVED";
-  const readOnly = archived || project.status === "CANCELLED";
-  const activeRevision =
-    revisions.find((item) => item.status === "ACTIVE") ?? null;
-  // "" stands for "None (start fresh)".
-  const selectedBaseId = baseChoice ?? activeRevision?.id ?? "";
-  const selectedBase =
-    revisions.find((item) => item.id === selectedBaseId) ?? null;
-  const carryForward = selectedBase ? (carryChoice ?? true) : false;
-  const carryModelForward = selectedBase ? (carryModelChoice ?? true) : false;
-  const baseIsNotActive =
-    selectedBase !== null && selectedBase.id !== activeRevision?.id;
-
-  function resetRevisionForm() {
-    setNewRevision({ identifier: "", description: "", activate: false });
-    setBaseChoice(undefined);
-    setCarryChoice(undefined);
-    setCarryModelChoice(undefined);
-  }
-
-  function revisionCreateInput(): RevisionCreateInput {
-    const input: RevisionCreateInput = {
-      identifier: newRevision.identifier.trim(),
-      description: emptyToNull(newRevision.description),
-      activate: newRevision.activate,
-    };
-    if (baseChoice !== undefined) {
-      input.based_on_revision_id = baseChoice === "" ? null : baseChoice;
-    }
-    if (selectedBase === null) {
-      if (baseChoice !== undefined) {
-        input.carry_forward_documents = false;
-        input.carry_forward_model = false;
-      }
-    } else if (carryChoice !== undefined) {
-      input.carry_forward_documents = carryChoice;
-    }
-    if (selectedBase !== null && carryModelChoice !== undefined) {
-      input.carry_forward_model = carryModelChoice;
-    }
-    return input;
-  }
-
-  function canActivate(revision: Revision): boolean {
-    if (readOnly || revision.status !== "DRAFT") {
-      return false;
-    }
-    if (!activeRevision) {
-      return true;
-    }
-    return (
-      new Date(revision.created_at).getTime() >
-      new Date(activeRevision.created_at).getTime()
-    );
-  }
-
+  const readOnly =
+    project.status === "ARCHIVED" || project.status === "CANCELLED";
+  const active = revisions.find((r) => r.status === "ACTIVE");
   async function runAction(action: ConfirmableAction) {
+    setConfirmAction(null);
     setBusy(true);
     setError(null);
     setMessage(null);
@@ -232,721 +142,375 @@ export function ProjectDetail({
     }
   }
 
-  async function onSaveMetadata(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-    try {
-      const updated = await updateProject(project.id, {
-        project_name: editForm.project_name,
-        client_name: emptyToNull(editForm.client_name),
-        project_address: emptyToNull(editForm.project_address),
-        project_scope: emptyToNull(editForm.project_scope),
-        description: emptyToNull(editForm.description),
-        engineer_names: parseEngineerNames(editForm.engineer_names),
-      });
-      setProject(updated);
-      setEditing(false);
-      setMessage("Project updated.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Update failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function onCreateRevision() {
-    if (!newRevision.identifier.trim()) {
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-    try {
-      const revision = await createRevision(project.id, revisionCreateInput());
-      setRevisions((current) => {
-        const next = current.map((item) =>
-          revision.status === "ACTIVE" && item.status === "ACTIVE"
-            ? { ...item, status: "SUPERSEDED" as const }
-            : item,
-        );
-        return [revision, ...next.filter((item) => item.id !== revision.id)];
-      });
-      if (revision.status === "ACTIVE") {
-        setProject((current) => ({
-          ...current,
-          active_revision_identifier: revision.identifier,
-        }));
-      }
-      const inherited = revision.inherited_document_count ?? 0;
-      const inheritedEquipment = revision.inherited_model_equipment_count ?? 0;
-      const carried = [
-        inherited > 0
-          ? `${inherited} ${inherited === 1 ? "document" : "documents"}`
-          : null,
-        inheritedEquipment > 0
-          ? `${inheritedEquipment} equipment ${inheritedEquipment === 1 ? "item" : "items"}`
-          : null,
-      ].filter(Boolean);
-      setMessage(
-        carried.length > 0
-          ? `Revision ${revision.identifier} created. ${carried.join(" and ")} carried forward.`
-          : `Revision ${revision.identifier} created.`,
-      );
-      resetRevisionForm();
-      setShowAddRevision(false);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not create revision",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function onActivate(revisionId: string) {
-    setBusy(true);
-    setError(null);
-    setMessage(null);
-    try {
-      const activated = await activateRevision(project.id, revisionId);
-      setRevisions((current) =>
-        current.map((item) => {
-          if (item.id === activated.id) {
-            return activated;
-          }
-          if (item.status === "ACTIVE") {
-            return { ...item, status: "SUPERSEDED" };
-          }
-          return item;
-        }),
-      );
-      setProject((current) => ({
-        ...current,
-        active_revision_identifier: activated.identifier,
-      }));
-      setMessage(`Revision ${activated.identifier} is now ACTIVE.`);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Could not activate revision",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
+  const overviewHref = (id: string) =>
+    revisionHref(project.id, id, undefined, "", "overview");
+  const revisionsHref = `/projects/${project.id}/revisions`;
+  const lifecycleActions: ConfirmableAction[] =
+    project.status === "ACTIVE"
+      ? ["pause", "cancel", "archive"]
+      : project.status === "PAUSED"
+        ? ["resume", "cancel", "archive"]
+        : project.status === "CANCELLED"
+          ? ["archive"]
+          : ["unarchive"];
   return (
-    <div className="w-full min-w-0 px-4 py-6 md:px-8 md:py-8">
-      <AppShell project={project} revisions={revisions}>
-        {null}
-      </AppShell>
-
-      <AsyncState
-        refreshing={projectQuery.isFetching || revisionsQuery.isFetching}
-        error={projectQuery.error || revisionsQuery.error}
-        retry={() => {
-          void projectQuery.refetch();
-          void revisionsQuery.refetch();
-        }}
-      />
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <div className="mb-1.5 flex items-center gap-2.5">
-            <Mono className="text-slate-400">{project.project_number}</Mono>
-            <Badge status={project.status} />
-          </div>
-          <h1 className="text-[29px] leading-tight font-bold tracking-tight text-slate-900">
-            {project.project_name}
-          </h1>
-          <p className="mt-1 text-[14px] font-medium text-slate-500">
-            {project.client_name || "No client set"}
-          </p>
-        </div>
-        <div className="pt-1">
-          <ProjectActionsMenu
-            editing={editing}
-            busy={busy}
-            readOnly={readOnly}
-            status={project.status}
-            onEdit={() => {
-              if (!editing)
-                setEditForm({
-                  project_name: project.project_name,
-                  client_name: project.client_name ?? "",
-                  project_address: project.project_address ?? "",
-                  project_scope: project.project_scope ?? "",
-                  description: project.description ?? "",
-                  engineer_names: project.engineer_names.join(", "),
-                });
-              setEditing((value) => !value);
-            }}
-            onAction={setConfirmAction}
-          />
-        </div>
-      </div>
-
-      {readOnly ? (
-        <div className="mb-5 flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-[13px] font-medium text-slate-500">
-          <span className="text-slate-400">
-            <Lock className="h-[13px] w-[13px]" strokeWidth={1.5} />
-          </span>
-          This project is {project.status.toLowerCase()} and is read-only.
-        </div>
-      ) : null}
-
-      {error ? (
-        <p role="alert" className="pf-feedback mb-4 text-[13px] text-red-600">
-          {error}
-        </p>
-      ) : null}
-      {message ? (
-        <p
-          role="status"
-          className="pf-feedback mb-4 text-[13px] text-emerald-600"
-        >
-          {message}
-        </p>
-      ) : null}
-
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
-          {!editing || readOnly ? (
-            <Card className="divide-y divide-slate-100">
-              <MetaRow label="Address">
-                {project.project_address || (
-                  <span className="text-slate-300">—</span>
-                )}
-              </MetaRow>
-              <MetaRow label="Scope">
-                {project.project_scope || (
-                  <span className="text-slate-300">—</span>
-                )}
-              </MetaRow>
-              <MetaRow label="Description">
-                {project.description || (
-                  <span className="text-slate-300">—</span>
-                )}
-              </MetaRow>
-              <MetaRow label="Engineers">
-                <ChipList items={project.engineer_names} />
-              </MetaRow>
-              <MetaRow label="Updated">
-                {formatDateShort(project.updated_at)}
-              </MetaRow>
-            </Card>
-          ) : (
-            <Card className="space-y-4 p-5">
-              <SectionHeader>Editing Project</SectionHeader>
-              <form onSubmit={onSaveMetadata} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <Field id="project_name" label="Project Name" required>
-                    <Input
-                      id="project_name"
-                      value={editForm.project_name}
-                      onChange={(event) =>
-                        setEditForm((current) => ({
-                          ...current,
-                          project_name: event.target.value,
-                        }))
-                      }
-                      required
-                    />
-                  </Field>
-                  <Field id="client_name" label="Client / Owner">
-                    <Input
-                      id="client_name"
-                      value={editForm.client_name}
-                      onChange={(event) =>
-                        setEditForm((current) => ({
-                          ...current,
-                          client_name: event.target.value,
-                        }))
-                      }
-                    />
-                  </Field>
-                </div>
-                <Field id="project_address" label="Site Address">
-                  <Input
-                    id="project_address"
-                    value={editForm.project_address}
-                    onChange={(event) =>
-                      setEditForm((current) => ({
-                        ...current,
-                        project_address: event.target.value,
-                      }))
-                    }
-                  />
-                </Field>
-                <Field id="project_scope" label="Scope Summary">
-                  <Textarea
-                    id="project_scope"
-                    value={editForm.project_scope}
-                    onChange={(event) =>
-                      setEditForm((current) => ({
-                        ...current,
-                        project_scope: event.target.value,
-                      }))
-                    }
-                    rows={2}
-                  />
-                </Field>
-                <Field id="description" label="Description">
-                  <Textarea
-                    id="description"
-                    value={editForm.description}
-                    onChange={(event) =>
-                      setEditForm((current) => ({
-                        ...current,
-                        description: event.target.value,
-                      }))
-                    }
-                    rows={3}
-                  />
-                </Field>
-                <Field id="engineer_names" label="Engineers (comma-separated)">
-                  <Input
-                    id="engineer_names"
-                    value={editForm.engineer_names}
-                    onChange={(event) =>
-                      setEditForm((current) => ({
-                        ...current,
-                        engineer_names: event.target.value,
-                      }))
-                    }
-                  />
-                </Field>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditing(false);
-                      setEditForm({
-                        project_name: project.project_name,
-                        client_name: project.client_name ?? "",
-                        project_address: project.project_address ?? "",
-                        project_scope: project.project_scope ?? "",
-                        description: project.description ?? "",
-                        engineer_names: project.engineer_names.join(", "),
-                      });
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" size="sm" disabled={busy}>
-                    Save Changes
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          )}
-
-          <Card id="revisions" className="scroll-mt-6 overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
-              <p className="text-[13px] font-bold tracking-wider text-slate-700 uppercase">
-                Revision History
-              </p>
-              {!readOnly ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowAddRevision((value) => !value)}
-                >
-                  <Plus className="h-[13px] w-[13px]" strokeWidth={2} />
-                  Add Revision
-                </Button>
-              ) : null}
-            </div>
-
-            {showAddRevision && !readOnly ? (
-              <div className="space-y-3 border-b border-slate-100 bg-slate-50/80 px-5 py-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <Field id="identifier" label="Revision Identifier" required>
-                    <Input
-                      id="identifier"
-                      value={newRevision.identifier}
-                      onChange={(event) =>
-                        setNewRevision((current) => ({
-                          ...current,
-                          identifier: event.target.value,
-                        }))
-                      }
-                      placeholder="Rev D"
-                    />
-                  </Field>
-                  <Field id="rev-description" label="Description">
-                    <Input
-                      id="rev-description"
-                      value={newRevision.description}
-                      onChange={(event) =>
-                        setNewRevision((current) => ({
-                          ...current,
-                          description: event.target.value,
-                        }))
-                      }
-                      placeholder="90% Design"
-                    />
-                  </Field>
-                </div>
-                <Field id="base-revision" label="Based on">
-                  <Select
-                    id="base-revision"
-                    className={fieldClassName}
-                    value={selectedBaseId}
-                    onValueChange={(value) => {
-                      setBaseChoice(value);
-                      setCarryChoice(undefined);
-                      setCarryModelChoice(undefined);
-                    }}
-                  >
-                    <option value="">None (start fresh)</option>
-                    {revisions.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {`Revision ${item.identifier} (${REVISION_STATUS_STYLES[item.status].label})`}
-                      </option>
-                    ))}
-                  </Select>
-                </Field>
-                {baseIsNotActive ? (
-                  <p className="text-[12px] text-slate-500">
-                    Based on a revision other than the active one.
-                  </p>
-                ) : null}
-                <label className="flex items-center gap-2 text-[13px] text-slate-700">
-                  <Checkbox
-                    checked={carryForward}
-                    disabled={selectedBase === null}
-                    onChange={(event) => setCarryChoice(event.target.checked)}
-                    className="rounded border-slate-300"
-                  />
-                  {selectedBase
-                    ? `Carry forward documents from Revision ${selectedBase.identifier}`
-                    : "Carry forward documents"}
-                </label>
-                <label className="flex items-center gap-2 text-[13px] text-slate-700">
-                  <Checkbox
-                    checked={carryModelForward}
-                    disabled={selectedBase === null}
-                    onChange={(event) =>
-                      setCarryModelChoice(event.target.checked)
-                    }
-                    className="rounded border-slate-300"
-                  />
-                  {selectedBase
-                    ? `Carry forward engineering model from Revision ${selectedBase.identifier}`
-                    : "Carry forward engineering model"}
-                </label>
-                <label className="flex items-center gap-2 text-[13px] text-slate-700">
-                  <Checkbox
-                    checked={newRevision.activate}
-                    onChange={(event) =>
-                      setNewRevision((current) => ({
-                        ...current,
-                        activate: event.target.checked,
-                      }))
-                    }
-                    className="rounded border-slate-300"
-                  />
-                  Activate on create
-                </label>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      resetRevisionForm();
-                      setShowAddRevision(false);
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={busy || !newRevision.identifier.trim()}
-                    onClick={() => void onCreateRevision()}
-                  >
-                    Add
-                  </Button>
-                </div>
-              </div>
-            ) : null}
-
-            {readOnly ? (
-              <p className="px-5 py-4 text-[13px] text-slate-500">
-                {archived
-                  ? "Archived projects cannot receive new revisions. Unarchive to continue work."
-                  : "Cancelled projects cannot be edited or receive new revisions."}
-              </p>
-            ) : null}
-
-            {revisions.length === 0 ? (
-              <div className="flex flex-col items-center gap-2 py-12">
-                <span className="text-[29px] opacity-20">◫</span>
-                <p className="text-[13px] text-slate-400">No revisions yet.</p>
-              </div>
+    <AppShell project={project} revisions={revisions}>
+      <div className="ui-c">
+        <WorkspaceHeader
+          title={revisionsPage ? "Revisions" : project.project_name}
+          subtitle={
+            revisionsPage
+              ? `Review and manage the revision history for ${project.project_name}.`
+              : `Project ${project.project_number} · ${project.client_name || "Client not specified"}`
+          }
+          actions={
+            revisionsPage ? (
+              <Button
+                variant="primary"
+                disabled={readOnly || busy}
+                onClick={() => setCreating(true)}
+              >
+                <Plus />
+                New revision
+              </Button>
             ) : (
-              <table className="w-full text-[13px]">
-                <thead className="bg-soft">
-                  <tr className="border-b border-slate-100">
-                    <th className="w-20 px-5 py-2.5 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-                      Rev
-                    </th>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-                      Description
-                    </th>
-                    <th className="w-28 px-4 py-2.5 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-                      Status
-                    </th>
-                    <th className="w-28 px-4 py-2.5 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-                      Updated
-                    </th>
-                    <th className="w-32" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {revisions.map((revision, index) => (
-                    <tr
-                      key={revision.id}
-                      className={`group transition-colors hover:bg-blue-50/40 ${
-                        index !== 0 ? "border-t border-slate-100" : ""
-                      }`}
-                    >
-                      <td className="px-5 py-3">
-                        <Mono className="font-semibold text-slate-400">
-                          {revision.identifier}
-                        </Mono>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/projects/${project.id}/revisions/${revision.id}`}
-                          className="text-left font-semibold text-slate-800 transition-colors hover:text-accent"
+              <>
+                <Button asChild>
+                  <Link href={revisionsHref}>View revisions</Link>
+                </Button>
+                {active && (
+                  <Button asChild variant="primary">
+                    <Link href={overviewHref(active.id)}>
+                      <ChevronRight />
+                      Open active revision
+                    </Link>
+                  </Button>
+                )}
+              </>
+            )
+          }
+        />
+        <div className="ui-c-content">
+          <AsyncState
+            refreshing={pq.isFetching || rq.isFetching}
+            error={pq.error || rq.error}
+            retry={() => {
+              void pq.refetch();
+              void rq.refetch();
+            }}
+          />
+          {error && (
+            <p role="alert" className="ui-c-note mb-4 text-red-700">
+              {error}
+            </p>
+          )}
+          {message && (
+            <p role="status" className="ui-c-note mb-4">
+              {message}
+            </p>
+          )}
+          {readOnly && (
+            <p role="status" className="ui-c-note mb-4">
+              This project is {project.status.toLowerCase()} and is read-only.
+            </p>
+          )}
+          {revisionsPage ? (
+            <>
+              <WorkspaceCard as="div">
+                <RevisionsRegister
+                  projectId={project.id}
+                  revisions={revisions}
+                  filterable
+                />
+              </WorkspaceCard>
+              <p className="ui-c-note mt-[18px]">
+                <strong>Revision lifecycle:</strong> Draft revisions may be
+                activated if eligible. Activating a newer draft supersedes the
+                previously active revision. Historical revisions remain
+                available for inspection.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="ui-c-meta">
+                <WorkspaceStatus status={project.status} />
+                <span className="font-mono">{project.project_number}</span>
+                <span>·</span>
+                <span>Updated {formatDateShort(project.updated_at)}</span>
+              </div>
+              <section className="ui-c-section" aria-label="Project details">
+                <h2 className="ui-c-section-title">Project details</h2>
+                <div className="ui-c-columns ui-c-project-columns">
+                  <WorkspaceCard>
+                    <WorkspaceCardHeader
+                      title="Project Information"
+                      subtitle="Client, location, technical scope and engineers"
+                      actions={
+                        <Button
+                          size="sm"
+                          disabled={readOnly || busy}
+                          onClick={() => setEditing(true)}
                         >
-                          {revision.description || revision.identifier}
-                        </Link>
-                        <RevisionLineage
-                          basedOnIdentifier={revision.based_on_identifier}
-                          className="mt-0.5 block"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge status={revision.status} kind="revision" />
-                      </td>
-                      <td className="px-4 py-3 text-[12px] text-slate-400">
-                        {formatDateShort(revision.updated_at)}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-                          {canActivate(revision) ? (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              disabled={busy}
-                              onClick={() => void onActivate(revision.id)}
-                            >
-                              Activate
-                            </Button>
-                          ) : null}
-                          <Button asChild variant="ghost" size="sm">
+                          <Pencil />
+                          Edit details
+                        </Button>
+                      }
+                    />
+                    <WorkspaceCardBody>
+                      <WorkspaceDetails
+                        variant="project"
+                        items={[
+                          {
+                            label: "Project Number",
+                            value: project.project_number,
+                            mono: true,
+                          },
+                          {
+                            label: "Project Name",
+                            value: project.project_name,
+                          },
+                          {
+                            label: "Client / Owner",
+                            value: project.client_name || "—",
+                          },
+                          {
+                            label: "Site Address",
+                            value: project.project_address || "—",
+                          },
+                          {
+                            label: "Scope Summary",
+                            value: project.project_scope || "—",
+                          },
+                          {
+                            label: "Project Description",
+                            value: project.description || "—",
+                          },
+                          {
+                            label: "Engineers",
+                            value: project.engineer_names.join(", ") || "—",
+                          },
+                        ]}
+                      />
+                    </WorkspaceCardBody>
+                  </WorkspaceCard>
+                  <aside className="ui-c-stack">
+                    <WorkspaceCard spacing="rail">
+                      <h2>Project lifecycle</h2>
+                      <p>
+                        Status: <WorkspaceStatus status={project.status} />
+                      </p>
+                      <p>
+                        Changing the status is separate from editing project
+                        details.
+                      </p>
+                      <div className="ui-c-actions mt-4">
+                        {lifecycleActions.map((action) => (
+                          <Button
+                            key={action}
+                            size="sm"
+                            variant={action === "cancel" ? "danger" : "outline"}
+                            disabled={busy}
+                            onClick={() => setConfirmAction(action)}
+                          >
+                            {action === "pause" ? (
+                              <Pause />
+                            ) : action === "resume" ? (
+                              <Play />
+                            ) : null}
+                            {action.charAt(0).toUpperCase() + action.slice(1)}
+                          </Button>
+                        ))}
+                      </div>
+                      {busy && <p role="status">Updating project…</p>}
+                    </WorkspaceCard>
+                    <WorkspaceCard spacing="rail">
+                      <h2>Project summary</h2>
+                      <dl className="ui-c-summary">
+                        <dt>Project number</dt>
+                        <dd className="font-mono">{project.project_number}</dd>
+                        <dt>Revision count</dt>
+                        <dd>{revisions.length}</dd>
+                        <dt>Last updated</dt>
+                        <dd>{formatDateShort(project.updated_at)}</dd>
+                      </dl>
+                    </WorkspaceCard>
+                  </aside>
+                </div>
+              </section>
+              <section className="ui-c-section" aria-label="Revision activity">
+                <h2 className="ui-c-section-title">Revision activity</h2>
+                <div className="ui-c-columns ui-c-project-columns">
+                  <div className="ui-c-stack">
+                    <WorkspaceCard spacing="work">
+                      <div className="ui-c-work-head">
+                        <div>
+                          <span className="ui-c-overline">Current work</span>
+                          <h2>
+                            {active
+                              ? `Continue with ${active.identifier}`
+                              : "No active revision"}
+                          </h2>
+                          <p>
+                            {active
+                              ? `${active.description || "Active revision"} · Ready for document review and engineering model work.`
+                              : "Create or activate a revision to begin engineering work."}
+                          </p>
+                        </div>
+                        {active && <WorkspaceStatus status={active.status} />}
+                      </div>
+                      <WorkspaceStats
+                        action={
+                          <Button asChild variant="primary">
                             <Link
-                              href={`/projects/${project.id}/revisions/${revision.id}`}
+                              href={
+                                active
+                                  ? revisionHref(
+                                      project.id,
+                                      active.id,
+                                      undefined,
+                                      "",
+                                      "documents",
+                                    )
+                                  : revisionsHref
+                              }
                             >
-                              Open →
+                              {active ? "Open workspace" : "Manage revisions"}
+                              <ChevronRight />
                             </Link>
                           </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </Card>
-
-          <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white p-8 text-center">
-            <p className="text-[14px] font-semibold text-slate-600">
-              Future sections
-            </p>
-            <p className="mt-1 text-[13px] text-slate-400">
-              Documents, Engineering Model, Extraction, SLD, Studies, and
-              Reports arrive in later phases.
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <Card id="revisions" className="scroll-mt-6 overflow-hidden">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <p className="text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-                Active Revision
-              </p>
-            </div>
-            <div className="px-4 py-3">
-              {activeRevision ? (
-                <div>
-                  <div className="mb-1 flex items-center gap-2">
-                    <Mono className="font-semibold text-accent">
-                      {activeRevision.identifier}
-                    </Mono>
-                    <Badge status="ACTIVE" kind="revision" />
-                  </div>
-                  <p className="text-[13.5px] font-semibold text-slate-800">
-                    {activeRevision.description || activeRevision.identifier}
-                  </p>
-                  <p className="mt-1 text-[12px] text-slate-400">
-                    Updated {formatDateShort(activeRevision.updated_at)}
-                  </p>
-                </div>
-              ) : (
-                <p className="text-[13px] text-slate-400">No active revision</p>
-              )}
-            </div>
-          </Card>
-
-          <Card id="revisions" className="scroll-mt-6 overflow-hidden">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <p className="text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-                Revisions
-              </p>
-            </div>
-            <div className="space-y-2.5 px-4 py-3">
-              {(["ACTIVE", "DRAFT", "SUPERSEDED"] as const).map((status) => {
-                const count = revisions.filter(
-                  (item) => item.status === status,
-                ).length;
-                const style = REVISION_STATUS_STYLES[status];
-                return (
-                  <div
-                    key={status}
-                    className="flex items-center justify-between"
-                  >
-                    <span
-                      className={`flex items-center gap-1.5 text-[12.5px] font-medium ${style.text}`}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${style.dot}`}
+                        }
                       />
-                      {style.label}
-                    </span>
-                    <span className="text-[12.5px] font-semibold text-slate-400">
-                      {count}
-                    </span>
+                    </WorkspaceCard>
+                    <WorkspaceCard>
+                      <WorkspaceCardHeader
+                        title="Revision history"
+                        subtitle="Recent revisions for this project"
+                        actions={
+                          <Button asChild size="sm">
+                            <Link href={revisionsHref}>
+                              All revisions
+                              <ChevronRight />
+                            </Link>
+                          </Button>
+                        }
+                      />
+                      {revisions.length ? (
+                        [...revisions]
+                          .sort(
+                            (a, b) =>
+                              Date.parse(b.created_at) -
+                              Date.parse(a.created_at),
+                          )
+                          .map((rev) => (
+                            <Link
+                              key={rev.id}
+                              href={overviewHref(rev.id)}
+                              className="ui-c-history-row"
+                            >
+                              <span>
+                                <strong>
+                                  {rev.identifier} ·{" "}
+                                  {rev.description || "Revision"}
+                                </strong>
+                                <small>
+                                  {rev.based_on_revision_id
+                                    ? `Based on ${revisions.find((r) => r.id === rev.based_on_revision_id)?.identifier ?? rev.based_on_identifier ?? "source revision"} · `
+                                    : ""}
+                                  Updated {formatDateShort(rev.updated_at)}
+                                </small>
+                              </span>
+                              <span className="ui-c-actions">
+                                <WorkspaceStatus status={rev.status} />
+                                <ChevronRight size={14} />
+                              </span>
+                            </Link>
+                          ))
+                      ) : (
+                        <p className="ui-c-pad ui-c-subtitle">
+                          No revisions yet. Create a revision to begin
+                          engineering work.
+                        </p>
+                      )}
+                    </WorkspaceCard>
                   </div>
-                );
-              })}
-              {revisions.length === 0 ? (
-                <p className="text-[12.5px] text-slate-400">
-                  No revisions yet.
-                </p>
-              ) : null}
-            </div>
-          </Card>
+                  <aside>
+                    <WorkspaceCard spacing="rail">
+                      <span className="ui-c-overline">Active revision</span>
+                      {active ? (
+                        <>
+                          <div className="my-3 font-mono text-[22px] font-bold">
+                            {active.identifier}
+                          </div>
+                          <WorkspaceStatus status={active.status} />
+                          <p className="!my-3">{active.description || "—"}</p>
+                          <div className="flex justify-between border-t border-border pt-3 text-xs">
+                            <span className="text-muted">Updated</span>
+                            <strong>
+                              {formatDateShort(active.updated_at)}
+                            </strong>
+                          </div>
+                          <Button
+                            asChild
+                            size="sm"
+                            className="mt-[17px] w-full"
+                          >
+                            <Link href={overviewHref(active.id)}>
+                              View revision details
+                              <ChevronRight />
+                            </Link>
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <p>There is no active revision.</p>
+                          <Button asChild size="sm">
+                            <Link href={revisionsHref}>
+                              View revisions
+                              <ChevronRight />
+                            </Link>
+                          </Button>
+                        </>
+                      )}
+                    </WorkspaceCard>
+                  </aside>
+                </div>
+              </section>
+              <p className="ui-c-help">
+                Workspace counts are not provided by revision metadata. Open a
+                workspace to inspect its records.
+              </p>
+            </>
+          )}
         </div>
+        {editing && (
+          <ProjectEditor
+            project={project}
+            onClose={() => setEditing(false)}
+            onSaved={() => {
+              setEditing(false);
+              setMessage("Project updated.");
+            }}
+          />
+        )}
+        {creating && (
+          <RevisionCreateSheet
+            project={project}
+            revisions={revisions}
+            onClose={() => setCreating(false)}
+            setMessage={setMessage}
+          />
+        )}
+        {confirmAction && (
+          <ConfirmDialog
+            className="ui-c-dialog"
+            {...(confirmAction === "unarchive"
+              ? unarchiveCopy(project.status_before_archive)
+              : ACTION_COPY[confirmAction])}
+            onConfirm={() => void runAction(confirmAction)}
+            onCancel={() => setConfirmAction(null)}
+          />
+        )}
       </div>
-
-      {confirmAction ? (
-        <ConfirmDialog
-          {...(confirmAction === "unarchive"
-            ? unarchiveCopy(project.status_before_archive)
-            : ACTION_COPY[confirmAction])}
-          onConfirm={() => void runAction(confirmAction)}
-          onCancel={() => setConfirmAction(null)}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-function emptyToNull(value: string): string | null {
-  const trimmed = value.trim();
-  return trimmed ? trimmed : null;
-}
-
-function ProjectActionsMenu({
-  editing,
-  busy,
-  readOnly,
-  status,
-  onEdit,
-  onAction,
-}: {
-  editing: boolean;
-  busy: boolean;
-  readOnly: boolean;
-  status: ProjectStatus;
-  onEdit: () => void;
-  onAction: (action: ConfirmableAction) => void;
-}) {
-  const items: DropdownMenuItem[] = [];
-
-  if (!readOnly) {
-    items.push({
-      id: "edit",
-      label: editing ? "Close editor" : "Edit",
-      onSelect: onEdit,
-      disabled: busy,
-    });
-  }
-
-  if (status === "ACTIVE") {
-    items.push({
-      id: "pause",
-      label: "Pause",
-      onSelect: () => onAction("pause"),
-      disabled: busy,
-      separatorBefore: items.length > 0,
-    });
-  }
-
-  if (status === "PAUSED") {
-    items.push({
-      id: "resume",
-      label: "Resume",
-      onSelect: () => onAction("resume"),
-      disabled: busy,
-      separatorBefore: items.length > 0,
-    });
-  }
-
-  if (status === "ACTIVE" || status === "PAUSED") {
-    items.push({
-      id: "cancel",
-      label: "Cancel",
-      onSelect: () => onAction("cancel"),
-      disabled: busy,
-      destructive: true,
-    });
-  }
-
-  if (status !== "ARCHIVED") {
-    items.push({
-      id: "archive",
-      label: "Archive",
-      onSelect: () => onAction("archive"),
-      disabled: busy,
-      separatorBefore: true,
-    });
-  } else {
-    items.push({
-      id: "unarchive",
-      label: "Unarchive",
-      onSelect: () => onAction("unarchive"),
-      disabled: busy,
-      separatorBefore: items.length > 0,
-    });
-  }
-
-  return (
-    <DropdownMenu
-      items={items}
-      label="Project actions"
-      align="right"
-      disabled={busy}
-    />
+    </AppShell>
   );
 }

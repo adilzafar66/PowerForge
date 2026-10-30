@@ -1,0 +1,92 @@
+/* Shared workspace tokens extend UI-A's palette without changing its values.
+   Preserve distinct approved shades rather than rounding them to a nearby color.
+   CSS custom properties cannot be used in media queries; breakpoints stay literal. */
+:root {
+  --pf-border-row: #ebeff3;
+  --pf-border-history: #e8edf1;
+  --pf-border-item: #e9eef2;
+  --pf-status-draft: #7858ab;
+  --pf-status-draft-tint: #f2eefb;
+  --pf-status-paused: #89651b;
+  --pf-status-cancelled: #a73c4d;
+  --pf-action-destructive: #b03147;
+  --pf-action-destructive-border: #e8bfc7;
+  --pf-action-destructive-hover: #fff3f4;
+  --pf-surface-note: #f9fafb;
+  --pf-tab-hover: #e2e9ee;
+  --pf-tab-selected-border: #d1e1ed;
+  --pf-table-heading: #f7f9fa;
+  --pf-table-row-hover: #fafbfc;
+  --pf-timeline-line: #d7e0e7;
+  --pf-timeline-ring: #acc0cf;
+  --pf-tip-border: #cfe0ea;
+  --pf-tip-surface: #f4f8fb;
+  --pf-editor-hint-surface: #f4f7fa;
+  --pf-overlay-workspace: rgba(24, 38, 56, 0.4);
+  --pf-shadow-tab: 0 1px 3px #1b385018;
+  --pf-shadow-drawer: -12px 0 42px #18263821;
+  --pf-shadow-dialog: 0 18px 60px #1826382b;
+
+  --pf-radius-control: 8px;
+  --pf-radius-tip: 10px;
+  --pf-radius-dialog: 13px;
+  --pf-radius-pill: 30px;
+  --pf-type-overline: 10px;
+  --pf-type-caption: 11px;
+  --pf-type-label: 12px;
+  --pf-type-body: 13px;
+  --pf-type-section: 15px;
+  --pf-type-editor-compact: 18px;
+  --pf-type-subheading: 19px;
+  --pf-type-editor: 20px;
+  --pf-type-title-mobile: 23px;
+  --pf-type-title: 27px;
+  --pf-type-micro: 10.5px;
+  --pf-type-hint: 11.5px;
+
+  /* Exact reference spacing scale, shared by forms, cards, tables and editors. */
+  --pf-space-4: 4px;
+  --pf-space-5: 5px;
+  --pf-space-6: 6px;
+  --pf-space-8: 8px;
+  --pf-space-10: 10px;
+  --pf-space-12: 12px;
+  --pf-space-13: 13px;
+  --pf-space-14: 14px;
+  --pf-space-15: 15px;
+  --pf-space-16: 16px;
+  --pf-space-17: 17px;
+  --pf-space-18: 18px;
+  --pf-space-19: 19px;
+  --pf-space-20: 20px;
+  --pf-space-22: 22px;
+  --pf-space-24: 24px;
+  --pf-space-25: 25px;
+  --pf-space-27: 27px;
+  --pf-space-29: 29px;
+  --pf-space-30: 30px;
+  --pf-space-32: 32px;
+  --pf-space-34: 34px;
+  --pf-space-50: 50px;
+  --pf-space-64: 64px;
+
+  --pf-control-height-action: 37px;
+  --pf-control-height-compact: 31px;
+  --pf-control-height-search: 39px;
+  --pf-control-height-input: 41px;
+  --pf-workspace-content-max: 1390px;
+  --pf-workspace-header-max: 1300px;
+  --pf-workspace-rail: 330px;
+  --pf-workspace-project-rail: 310px;
+  --pf-workspace-form-rail: 296px;
+  --pf-detail-label-width: 165px;
+  --pf-detail-project-label-width: 180px;
+  --pf-detail-mobile-label-width: 128px;
+  --pf-drawer-width: 500px;
+  --pf-drawer-project-width: 540px;
+  --pf-dialog-width: 440px;
+  --pf-motion-overlay: 180ms;
+  --pf-motion-content: 190ms;
+  --pf-motion-drawer: 230ms;
+  --pf-ease-drawer: cubic-bezier(0.2, 0.8, 0.2, 1);
+}

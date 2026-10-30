@@ -1,20 +1,19 @@
 "use client";
+import { WorkspaceCard } from "@/components/ui/workspace-patterns";
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Plus } from "lucide-react";
+import { Plus, Search, RefreshCw, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { keys } from "@/lib/query-keys";
 import { AsyncState } from "@/components/ui/async-state";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Mono } from "@/components/ui/mono";
-import { PageHeader } from "@/components/ui/page-header";
-import { SearchField } from "@/components/ui/search-field";
-import { SegmentedControl } from "@/components/ui/segmented-control";
+import {
+  WorkspaceButton as Button,
+  WorkspaceHeader,
+  WorkspaceStatus,
+} from "@/components/ui-c-workspace";
 import {
   formatDateShort,
   listProjects,
@@ -69,175 +68,180 @@ export function ProjectList({
   }
 
   return (
-    <div className="w-full min-w-0 px-4 py-6 md:px-8 md:py-8">
-      <PageHeader
+    <div className="ui-c">
+      <WorkspaceHeader
         title="Projects"
-        description={`${projects.length} projects in workspace`}
+        subtitle={`${projects.length} projects in workspace`}
         actions={
-          <Button asChild>
+          <Button asChild variant="primary">
             <Link href="/projects/new">
-              <Plus className="h-[13px] w-[13px]" strokeWidth={2} />
+              <Plus />
               New Project
             </Link>
           </Button>
         }
       />
-
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <SearchField
-          value={search}
-          onChange={setSearch}
-          placeholder="Search by number, name, client, or address…"
+      <div className="ui-c-content !pt-[30px]">
+        <AsyncState
+          pending={query.isPending}
+          error={query.error}
+          retry={refresh}
         />
-        <SegmentedControl
-          value={statusFilter}
-          onChange={setStatusFilter}
-          options={[
-            { value: "ALL", label: "All", count: statusCounts.ALL ?? 0 },
-            {
-              value: "ACTIVE",
-              label: "Active",
-              count: statusCounts.ACTIVE ?? 0,
-            },
-            {
-              value: "PAUSED",
-              label: "Paused",
-              count: statusCounts.PAUSED ?? 0,
-            },
-            {
-              value: "CANCELLED",
-              label: "Cancelled",
-              count: statusCounts.CANCELLED ?? 0,
-            },
-            {
-              value: "ARCHIVED",
-              label: "Archived",
-              count: statusCounts.ARCHIVED ?? 0,
-            },
-          ]}
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          disabled={loading}
-          onClick={() => void refresh()}
-        >
-          {loading ? "Refreshing…" : "Refresh"}
-        </Button>
-      </div>
-
-      <AsyncState
-        pending={query.isPending}
-        error={query.error}
-        retry={refresh}
-      />
-
-      <Card className="overflow-hidden">
-        <table className="w-full text-[13.5px]">
-          <thead className="bg-soft">
-            <tr className="border-b border-slate-100">
-              <th className="w-36 px-5 py-3 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-                Number
-              </th>
-              <th className="px-4 py-3 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-                Project
-              </th>
-              <th className="w-44 px-4 py-3 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-                Client
-              </th>
-              <th className="hidden w-40 px-4 py-3 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase xl:table-cell">
-                Active Rev.
-              </th>
-              <th className="w-28 px-4 py-3 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-                Status
-              </th>
-              <th className="hidden w-32 px-4 py-3 text-left text-[11px] font-bold tracking-widest text-slate-400 uppercase lg:table-cell">
-                Updated
-              </th>
-              <th className="w-10" />
-            </tr>
-          </thead>
-          <tbody>
-            {!query.data ? null : filtered.length === 0 ? (
-              <tr>
-                <td colSpan={7}>
-                  <div className="flex flex-col items-center gap-2 py-20">
-                    <span className="text-[28px] opacity-20">◎</span>
-                    <p className="text-[13.5px] font-medium text-slate-400">
-                      {projects.length === 0
-                        ? "No projects yet. Create the first project to begin."
-                        : "No projects match your filter."}
-                    </p>
-                    {projects.length > 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSearch("");
-                          setStatusFilter("ALL");
-                        }}
-                        className="mt-1 cursor-pointer text-[12.5px] text-accent hover:underline"
-                      >
-                        Clear filters
-                      </button>
-                    ) : null}
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              filtered.map((project, index) => (
-                <tr
-                  key={project.id}
-                  onClick={() => router.push(`/projects/${project.id}`)}
-                  className={`group cursor-pointer transition-colors hover:bg-blue-50/50 ${
-                    index !== 0 ? "border-t border-slate-100" : ""
-                  }`}
-                >
-                  <td className="px-5 py-3.5">
-                    <Mono className="tracking-tight text-slate-400">
-                      {project.project_number}
-                    </Mono>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span className="font-semibold text-slate-900 transition-colors group-hover:text-accent">
-                      {project.project_name}
+        <WorkspaceCard as="div">
+          <div className="ui-c-toolbar">
+            <div className="ui-c-toolbar-controls">
+              <label className="flex min-h-[41px] items-center gap-[10px] rounded-lg border border-border bg-[#F9FBFC] px-[13px]">
+                <Search size={16} className="text-muted" />
+                <input
+                  className="min-h-[39px] w-[245px] max-w-full border-0 bg-transparent text-xs outline-none"
+                  aria-label="Search projects"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search number, name, client, or address"
+                />
+              </label>
+              <div
+                className="ui-c-tabs ui-c-project-tabs"
+                role="group"
+                aria-label="Project status"
+              >
+                {(
+                  ["ALL", "ACTIVE", "PAUSED", "CANCELLED", "ARCHIVED"] as const
+                ).map((value) => (
+                  <button
+                    type="button"
+                    key={value}
+                    aria-pressed={statusFilter === value}
+                    onClick={() => setStatusFilter(value)}
+                  >
+                    {value === "ALL"
+                      ? "All"
+                      : value.charAt(0) + value.slice(1).toLowerCase()}{" "}
+                    <span className="ml-1 opacity-70">
+                      {statusCounts[value] ?? 0}
                     </span>
-                    {project.project_address ? (
-                      <p className="mt-0.5 max-w-xs truncate text-[12px] text-slate-400">
-                        {project.project_address}
-                      </p>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3.5 font-medium text-slate-600">
-                    {project.client_name || "—"}
-                  </td>
-                  <td className="hidden px-4 py-3.5 xl:table-cell">
-                    {project.active_revision_identifier ? (
-                      <Mono className="text-slate-400">
-                        {project.active_revision_identifier}
-                      </Mono>
-                    ) : (
-                      <span className="text-slate-300">—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <Badge status={project.status} />
-                  </td>
-                  <td className="hidden px-4 py-3.5 text-[12.5px] text-slate-400 lg:table-cell">
-                    {formatDateShort(project.updated_at)}
-                  </td>
-                  <td className="px-3 py-3.5 text-slate-300 transition-colors group-hover:text-accent">
-                    <ChevronRight
-                      className="h-[13px] w-[13px]"
-                      strokeWidth={1.8}
-                    />
-                  </td>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Button size="sm" disabled={loading} onClick={() => void refresh()}>
+              <RefreshCw />
+              {loading ? "Refreshing…" : "Refresh"}
+            </Button>
+          </div>
+          <div className="ui-c-table-scroll">
+            <table className="ui-c-table ui-c-project-table">
+              <colgroup>
+                {["12%", "33%", "14%", "13%", "14%", "12%", "2%"].map(
+                  (width, index) => (
+                    <col key={index} style={{ width }} />
+                  ),
+                )}
+              </colgroup>
+              <thead>
+                <tr>
+                  {[
+                    "Number",
+                    "Project",
+                    "Client",
+                    "Active Rev.",
+                    "Status",
+                    "Updated",
+                    "",
+                  ].map((label) => (
+                    <th key={label} scope="col">
+                      {label}
+                    </th>
+                  ))}
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </Card>
+              </thead>
+              <tbody>
+                {filtered.map((project) => (
+                  <tr
+                    key={project.id}
+                    tabIndex={0}
+                    aria-label={`Open ${project.project_name}`}
+                    onKeyDown={(e) => {
+                      if (
+                        e.target === e.currentTarget &&
+                        (e.key === "Enter" || e.key === " ")
+                      ) {
+                        e.preventDefault();
+                        router.push(`/projects/${project.id}`);
+                      }
+                    }}
+                    onClick={(e) => {
+                      if (!(e.target as HTMLElement).closest("a"))
+                        router.push(`/projects/${project.id}`);
+                    }}
+                  >
+                    <td className="font-mono !text-[11px]">
+                      {project.project_number}
+                    </td>
+                    <td>
+                      <Link
+                        className="project-name"
+                        href={`/projects/${project.id}`}
+                      >
+                        {project.project_name}
+                      </Link>
+                      <small>
+                        {project.project_address || "No address specified"}
+                      </small>
+                    </td>
+                    <td>{project.client_name || "—"}</td>
+                    <td className="font-mono !text-[11px]">
+                      {project.active_revision_identifier || "—"}
+                    </td>
+                    <td>
+                      <WorkspaceStatus status={project.status} />
+                    </td>
+                    <td className="whitespace-nowrap">
+                      {formatDateShort(project.updated_at)}
+                    </td>
+                    <td>
+                      <ChevronRight size={14} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {query.data && filtered.length === 0 && (
+            <div className="px-6 py-[70px] text-center">
+              <h2 className="mb-2 text-lg font-bold">
+                {projects.length ? "No matching projects" : "No projects yet"}
+              </h2>
+              <p className="text-xs text-muted">
+                {projects.length
+                  ? "Try a different search or status filter."
+                  : "Create the first project to begin."}
+              </p>
+              {projects.length > 0 && (
+                <Button
+                  className="mt-4"
+                  onClick={() => {
+                    setSearch("");
+                    setStatusFilter("ALL");
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          )}
+          <div className="ui-c-table-footer">
+            <span>
+              Showing {filtered.length} of {projects.length} projects
+            </span>
+            <span>Project register</span>
+          </div>
+        </WorkspaceCard>
+        <p className="ui-c-help">
+          Select a project to view its overview and edit its metadata. Status
+          filters and search update immediately.
+        </p>
+      </div>
     </div>
   );
 }

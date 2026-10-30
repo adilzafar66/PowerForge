@@ -58,7 +58,14 @@ export function AppFrame({ children }: { children: ReactNode }) {
           ? "topology"
           : "equipment"
         : "documents";
-  const projectRevisions = !revisionId && params.get("section") === "revisions";
+  const projectRevisions =
+    !revisionId &&
+    (pathname === `/projects/${projectId}/revisions` ||
+      params.get("section") === "revisions");
+  const uiC =
+    pathname === "/" ||
+    pathname === "/projects/new" ||
+    (!!projectId && (!revisionId || destination === "overview"));
   const currentLabel =
     pathname === "/status"
       ? "System Status"
@@ -141,7 +148,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
             )}
             {navLink(
               "Revisions",
-              `/projects/${projectId}?section=revisions#revisions`,
+              `/projects/${projectId}/revisions`,
               projectRevisions,
               GitBranch,
             )}
@@ -180,7 +187,13 @@ export function AppFrame({ children }: { children: ReactNode }) {
                 onValueChange={(id) => {
                   setMobileOpen(false);
                   router.push(
-                    revisionHref(project.id, id, revisionId, params.toString()),
+                    revisionHref(
+                      project.id,
+                      id,
+                      revisionId,
+                      params.toString(),
+                      revisionId ? undefined : "overview",
+                    ),
                   );
                 }}
               >
@@ -243,7 +256,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
   );
   return (
     <ShellContextPublisher.Provider value={setContext}>
-      <div className="flex min-h-screen bg-canvas">
+      <div className={`flex min-h-screen bg-canvas ${uiC ? "ui-c-shell" : ""}`}>
         <a
           href="#main-content"
           className="sr-only fixed top-2 left-2 z-[100] rounded bg-panel p-3 focus:not-sr-only"
@@ -254,7 +267,9 @@ export function AppFrame({ children }: { children: ReactNode }) {
           {navigation}
         </aside>
         <div className="min-w-0 flex-1">
-          <header className="flex min-h-16 items-center gap-3 border-b border-border bg-panel px-4 md:px-8">
+          <header
+            className={`flex items-center gap-3 border-b border-border bg-panel px-4 ${uiC ? "min-h-[66px] md:px-[43px]" : "min-h-16 md:px-8"}`}
+          >
             <Dialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
               <Dialog.Trigger asChild>
                 <Button
@@ -300,13 +315,33 @@ export function AppFrame({ children }: { children: ReactNode }) {
                     href={`/projects/${project.id}`}
                     className="max-w-60 truncate hover:text-accent"
                     title={project.project_name}
+                    aria-current={
+                      uiC && !revisionId && !projectRevisions
+                        ? "page"
+                        : undefined
+                    }
                   >
-                    {project.project_number} · {project.project_name}
+                    {uiC
+                      ? project.project_name
+                      : `${project.project_number} · ${project.project_name}`}
+                  </Link>
+                  {(!uiC || projectRevisions || revisionId) && (
+                    <ChevronRight aria-hidden className="h-3 w-3" />
+                  )}
+                </>
+              )}
+              {uiC && revisionId && (
+                <>
+                  <Link
+                    href={`/projects/${projectId}/revisions`}
+                    className="hover:text-accent"
+                  >
+                    Revisions
                   </Link>
                   <ChevronRight aria-hidden className="h-3 w-3" />
                 </>
               )}
-              {revisionId && revision && (
+              {revisionId && revision && !uiC && (
                 <>
                   <Link
                     href={href("overview")}
@@ -317,10 +352,23 @@ export function AppFrame({ children }: { children: ReactNode }) {
                   <ChevronRight aria-hidden className="h-3 w-3" />
                 </>
               )}
-              <span aria-current="page" className="font-medium text-ink">
-                {currentLabel}
-              </span>
+              {!(uiC && project && !revisionId && !projectRevisions) && (
+                <span aria-current="page" className="font-medium text-ink">
+                  {uiC && revisionId && revision
+                    ? revision.identifier
+                    : currentLabel}
+                </span>
+              )}
             </nav>
+            {uiC && project && (
+              <span
+                className={`ui-c-status ${project.status} ml-auto hidden sm:inline-flex`}
+              >
+                {project.status.charAt(0) +
+                  project.status.slice(1).toLowerCase()}{" "}
+                project
+              </span>
+            )}
           </header>
           <main
             id="main-content"

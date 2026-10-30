@@ -1,21 +1,21 @@
 # PowerForge UI/UX Design Handoff for Codex
 
-## Design autonomy and non-prescriptive references (v1.12)
+## Visual fidelity and implementation autonomy (v1.12)
 
-**Treat the prototypes as UX inspiration, not pixel-perfect deliverables or a checklist of UI widgets.** Codex has discretion to reorganize sections, refine layouts and spacing, reuse existing production components, simplify navigation, remove redundant controls, and improve the user experience when it better fits PowerForge architecture. Do not add a control merely because the prototype displays one. Keep useful functionality, not ornamental redundancy.
+**Treat the prototypes and corresponding preview images as the primary visual and layout specifications, not just inspiration.** The implemented screens should match their structure, element placement and order, proportions, widths, spacing, alignment, typography hierarchy, colors, borders, controls, and visual states as closely as reasonably possible. Codex must not independently redesign, rearrange, simplify, add, or remove visible UI because it believes another design is better or a control is redundant. Deviate only when required by actual backend behavior, real data, permissions, accessibility, responsiveness, or unavoidable technical constraints; minimize and document such deviations. **Codex has autonomy over nonvisual implementation** (React component structure, hooks, routing integration, data/state management, API calls, tests, and performance), provided those choices preserve the intended UI.
 
-**Keep the font family already used by the production app.** Fonts visible in prototype HTML are example styling, not a mandate to change fonts. The source of truth for current application architecture, routing, server state, API contracts, engineering invariants and access control is the repository at implementation time.
+**Keep the font family already used by the production app.** Fonts visible in prototype HTML are example styling, not a mandate to change fonts; preserve the reference typography hierarchy and density with the existing fonts. The source of truth for current application architecture, routing, server state, API contracts, engineering invariants and access control is the repository at implementation time.
 
 The prototype's mock project/revision counts, status actions, cross-file links, and view transitions are illustrative only. They are not requirements to copy into production and do not override existing behavior.
 
 ## Priority and source hierarchy
 
 1. **Engineering behavior:** The actual PowerForge repository on `main`, with Phase 5 canonical-model rules, atomic equipment editor endpoint, terminal-profile and revision protections. Existing behavior wins over any simplified mock interaction.
-2. **Optional visual reference:** Figma **Option A**, [App Shell + Equipment List](https://www.figma.com/design/YEcVV661Evf26gqMgrolCk?node-id=2-34), and existing application conventions. The React application may reasonably differ.
-3. **Non-prescriptive interaction references:** The HTML prototypes in `prototypes/`; their patterns and interactions may be adapted, consolidated, or simplified for the architecture.
-4. **Optional token examples:** `design-tokens.css` shows a proposed palette and dimensions; prefer established project tokens when appropriate.
+2. **Primary visual authority:** The current HTML prototypes in `prototypes/` and their matching `previews/*.png`. Match the approved layouts, styling, controls and screen hierarchy closely while using real application data.
+3. **Visual tokens and states:** `design-tokens.css`, `UX9_DESIGN_SYSTEM_SPEC.md`, and `assets/powerforge-controls.css` define the relevant styling and interaction appearance to reproduce in production.
+4. **Supplementary historical reference:** Figma **Option A**, [App Shell + Equipment List](https://www.figma.com/design/YEcVV661Evf26gqMgrolCk?node-id=2-34), and established application conventions, only where they do not conflict with the current HTML prototype visuals.
 
-**Do not blindly convert the HTML into React.** Use its visual and interaction patterns to refactor the existing frontend and reusable components. Retain all backend/engineering invariants.
+**Do not copy the prototype's mock HTML/JavaScript implementation or synthetic state into production.** Reproduce its visual structure and interactions faithfully using maintainable React components and the existing backend. Retain all backend/engineering invariants.
 
 ## Prototype files and supported interactions
 
@@ -37,7 +37,7 @@ All three prototypes are self-contained and work without a build process or exte
 - **Footer:** System Status.
 - Clicking a **revision label** opens Revision Overview. Clicking its **chevron** opens a revision switcher.
 - Sidebar remains visible on desktop and adapts on smaller displays.
-- Keep the current application font family; use existing token conventions where sensible. The reference action blue is `#24557A`.
+- Keep the current application font family; otherwise match the prototype's typography hierarchy and approved styling tokens closely. The reference action blue is `#24557A`.
 
 ## Equipment experience: must preserve
 
@@ -91,14 +91,6 @@ All three prototypes are self-contained and work without a build process or exte
 - Sample drawings, tags, ratings, processing states, and extraction candidates are mock examples. The PDF content is an original inline SVG, not a customer drawing. The screenshot fixtures and Figma design are aesthetic references, not authoritative engineering records.
 - Not all nav items are wired in the local HTML; pop-up notices are intentional.
 - Prototype 'Save' and 'Run extraction' do not call APIs, persist data, or create model records. Simulated progress and confidence are not calibrated signals.
-- Native Figma layers for Quick Details, Full Editor and Document/Evidence viewer are still pending because the connected Figma account hit a tool-call limit.
-
-## Links to pass Codex
-
-- PowerForge repo: `https://github.com/adilzafar66/PowerForge`
-- Approved Figma: `https://www.figma.com/design/YEcVV661Evf26gqMgrolCk?node-id=2-34`
-- Add this package at a stable `docs/design/prototypes/powerforge-ux-v1.7/` path (or another agreed location) in the working branch before asking Codex to implement any slice. Point Codex to local file paths, not transient ChatGPT sandbox URLs. Adapt layouts to production rather than copying the HTML exactly.
-
 
 ## UX-7 — Projects List, Create & Edit (v1.7)
 
@@ -171,7 +163,7 @@ All three prototypes are self-contained and work without a build process or exte
 9. Preserve read-only inspection, provenance/verification/inheritance metadata, API errors, mutation response handling, and existing document/model carry-forward constraints.
 10. No graph canvas or Phase 8/12 topology inference/visualization is authorized by this design.
 
-**UX-specific direction:** Use the approved Figma Option A app shell and `#24557A` action blue. The right-side inspector is nonmodal and keeps the list in view. Side sheets, row focus/keyboard access, pending indicators, confirm dialogs, toasts, and query invalidation must use the shared production UI foundation, not bespoke production HTML.
+**UX-specific direction:** Use the approved prototype app shell and `#24557A` action blue. The right-side inspector is nonmodal and keeps the list in view. Side sheets, row focus/keyboard access, pending indicators, confirm dialogs, toasts, and query invalidation must use the shared production UI foundation, not bespoke production HTML.
 
 **Demo limitations:** Read-only mode, filtering, add/edit/remove/restore, and statuses are local state simulations. The demo's voltage field is a presentation example; conversion must be performed by the backend and exact decimals preserved. No actual API requests occur.
 
@@ -187,7 +179,7 @@ All three prototypes are self-contained and work without a build process or exte
 - `prototypes/powerforge-design-system-prototype.html`: visual reference for Foundations, Components, API & Jobs, Feedback & Forms, and Motion & Accessibility.
 - `qa/test_ux9_prototype.py` and `previews/ux9-*.png`: browser interaction and screenshot evidence.
 
-**Critical engineering and API boundaries:** Do not copy the simulated timers/jobs or in-memory array state into production. TanStack Query is **recommended**, not installed in PowerForge; the current app uses `useModelQuery` and manual mutation refresh. If adopting TanStack Query, reconcile SSR/client boundaries and incrementally migrate query state rather than maintaining competing caches. Preserve all existing model/revision safeguards, strict decimal serialization, and error codes. No canonical engineering writes should claim success before server confirmation. Never overwrite an unsaved draft during refetch. Use API contract and Phase 5 / Phase 6 specs as source of truth, not example data from HTML. The approved Option A Figma screen remains unchanged.
+**Critical engineering and API boundaries:** Do not copy the simulated timers/jobs or in-memory array state into production. TanStack Query is **recommended**, not installed in PowerForge; the current app uses `useModelQuery` and manual mutation refresh. If adopting TanStack Query, reconcile SSR/client boundaries and incrementally migrate query state rather than maintaining competing caches. Preserve all existing model/revision safeguards, strict decimal serialization, and error codes. No canonical engineering writes should claim success before server confirmation. Never overwrite an unsaved draft during refetch. Use API contract and Phase 5 / Phase 6 specs as source of truth, not example data from HTML.
 
 ## UX-9.1 — Selection controls (latest direction)
 
@@ -214,5 +206,5 @@ Prior hover colors are replaced by the UX-9.3 rules below.
 
 - **Canonical Documents list/register reference:** `prototypes/powerforge-documents-prototype.html` (new). The previously included `powerforge-document-evidence-prototype.html` is a **drawing/viewer/evidence reference**, not a substitute for the Documents list route.
 - Preserve the actual current `RevisionDocuments` behavior: All / Needs Review / Issues / Removed; document search; type, origin, processing, classification filters; upload/reuse; download/original; processing and AI classification status; explicit suggestion acceptance; document metadata; remove/restore; read-only revisions; deep-linked selection; retry and robust backend error semantics.
-- The new reference uses a nonmodal side inspector to keep the list operable. UI-E may adapt that to the architecture, and the existing app's React components, routing and TanStack Query are authoritative. Never show fabricated status/progress, treat simulation delays as actual backend behavior, generate classifying results, or accept AI suggestions automatically.
+- The new reference uses a nonmodal side inspector to keep the list operable. UI-E should reproduce its visual layout and inspector behavior closely while using the existing app's React components, routing and TanStack Query. Never show fabricated status/progress, treat simulation delays as actual backend behavior, generate classifying results, or accept AI suggestions automatically.
 - No duplicate View button in document rows: the row opens details, while a contextual action menu hosts **different** actions (view pages, download, remove/restore).

@@ -90,24 +90,36 @@ export async function listProjects(params?: {
     query.set("status", params.status);
   }
   const suffix = query.toString() ? `?${query.toString()}` : "";
-  const body = await request<{ items: Project[] }>(`/api/projects${suffix}`, undefined, {
-    server: params?.server,
-  });
+  const body = await request<{ items: Project[] }>(
+    `/api/projects${suffix}`,
+    undefined,
+    {
+      server: params?.server,
+    },
+  );
   return body.items;
 }
 
-export async function getProject(projectId: string, server = false): Promise<Project> {
+export async function getProject(
+  projectId: string,
+  server = false,
+): Promise<Project> {
   return request<Project>(`/api/projects/${projectId}`, undefined, { server });
 }
 
-export async function createProject(input: ProjectCreateInput): Promise<Project> {
+export async function createProject(
+  input: ProjectCreateInput,
+): Promise<Project> {
   return request<Project>("/api/projects", {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
-export async function updateProject(projectId: string, input: ProjectUpdateInput): Promise<Project> {
+export async function updateProject(
+  projectId: string,
+  input: ProjectUpdateInput,
+): Promise<Project> {
   return request<Project>(`/api/projects/${projectId}`, {
     method: "PATCH",
     body: JSON.stringify(input),
@@ -118,10 +130,15 @@ export async function projectAction(
   projectId: string,
   action: "pause" | "resume" | "cancel" | "archive" | "unarchive",
 ): Promise<Project> {
-  return request<Project>(`/api/projects/${projectId}/${action}`, { method: "POST" });
+  return request<Project>(`/api/projects/${projectId}/${action}`, {
+    method: "POST",
+  });
 }
 
-export async function listRevisions(projectId: string, server = false): Promise<Revision[]> {
+export async function listRevisions(
+  projectId: string,
+  server = false,
+): Promise<Revision[]> {
   const body = await request<{ items: Revision[] }>(
     `/api/projects/${projectId}/revisions`,
     undefined,
@@ -135,9 +152,13 @@ export async function getRevision(
   revisionId: string,
   server = false,
 ): Promise<Revision> {
-  return request<Revision>(`/api/projects/${projectId}/revisions/${revisionId}`, undefined, {
-    server,
-  });
+  return request<Revision>(
+    `/api/projects/${projectId}/revisions/${revisionId}`,
+    undefined,
+    {
+      server,
+    },
+  );
 }
 
 export async function createRevision(
@@ -150,10 +171,37 @@ export async function createRevision(
   });
 }
 
-export async function activateRevision(projectId: string, revisionId: string): Promise<Revision> {
-  return request<Revision>(`/api/projects/${projectId}/revisions/${revisionId}/activate`, {
-    method: "POST",
-  });
+export async function activateRevision(
+  projectId: string,
+  revisionId: string,
+): Promise<Revision> {
+  return request<Revision>(
+    `/api/projects/${projectId}/revisions/${revisionId}/activate`,
+    {
+      method: "POST",
+    },
+  );
+}
+
+export type RevisionUpdateInput = {
+  identifier?: string;
+  description?: string | null;
+  system_frequency?: string | null;
+  system_phase_count?: 1 | 3 | null;
+};
+
+export function updateRevision(
+  projectId: string,
+  revisionId: string,
+  input: RevisionUpdateInput,
+): Promise<Revision> {
+  return request<Revision>(
+    `/api/projects/${projectId}/revisions/${revisionId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export function formatDate(value: string | null): string {

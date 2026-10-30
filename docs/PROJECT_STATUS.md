@@ -4,7 +4,9 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 **Current implemented phase:** Phase 5 authoring refinement — Phase 5 complete / re-frozen
 
-**UI redesign:** UI-A and UI-B implemented — design system/app shell and reactive data/interaction states. Next UI milestone: UI-C. See [UI_A_HANDOFF.md](UI_A_HANDOFF.md) and [UI_B_HANDOFF.md](UI_B_HANDOFF.md).
+**UI redesign:** UI-A, UI-B and UI-C implemented — design system/app shell, reactive data/interaction states, and Projects/Revisions workspaces. Next UI milestone: UI-D. See [UI_A_HANDOFF.md](UI_A_HANDOFF.md), [UI_B_HANDOFF.md](UI_B_HANDOFF.md), and [UI_C_HANDOFF.md](UI_C_HANDOFF.md).
+
+UI-C visual fidelity rework follows the approved Projects/Revisions HTML layouts, including register toolbars, unified project details/revision activity, revision summary/workspaces/information, creation guidance rails, and edit sheets. Existing API/query/lifecycle safeguards remain. Validation: 291 frontend tests; desktop/mobile browser comparison; lint, TypeScript and production build. Necessary real-data and accessibility deviations are documented in the UI-C handoff.
 
 **Next engineering phase:** Phase 6 — Evidence, candidates, and structured extraction. Not started
 

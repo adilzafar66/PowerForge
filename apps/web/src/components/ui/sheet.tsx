@@ -11,12 +11,16 @@ export function Sheet({
   children,
   className,
   modal = true,
+  overlayClassName,
+  autoFocusFirst = false,
 }: {
   onClose: () => void;
   labelledBy: string;
   children: ReactNode;
   className?: string;
   modal?: boolean;
+  overlayClassName?: string;
+  autoFocusFirst?: boolean;
 }) {
   const previous = useRef<HTMLElement | null>(null);
   return (
@@ -28,7 +32,11 @@ export function Sheet({
       }}
     >
       <Dialog.Portal>
-        {modal && <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/20" />}
+        {modal && (
+          <Dialog.Overlay
+            className={cn("fixed inset-0 z-40 bg-ink/20", overlayClassName)}
+          />
+        )}
         <Dialog.Content
           aria-labelledby={labelledBy}
           aria-describedby={undefined}
@@ -38,7 +46,13 @@ export function Sheet({
           onOpenAutoFocus={(event) => {
             previous.current = document.activeElement as HTMLElement;
             event.preventDefault();
-            (event.currentTarget as HTMLElement).focus();
+            const panel = event.currentTarget as HTMLElement;
+            const first = autoFocusFirst
+              ? panel.querySelector<HTMLElement>(
+                  "input:not(:disabled), textarea:not(:disabled)",
+                )
+              : null;
+            (first ?? panel).focus();
           }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();

@@ -16,7 +16,9 @@ export function MetaRow({
       <span className="w-24 shrink-0 pt-0.5 text-[12px] font-semibold uppercase tracking-wide text-slate-400">
         {label}
       </span>
-      <div className="flex-1 text-[13.5px] leading-relaxed text-slate-700">{children}</div>
+      <div className="min-w-0 flex-1 text-[13.5px] leading-relaxed text-slate-700">
+        {children}
+      </div>
     </div>
   );
 }

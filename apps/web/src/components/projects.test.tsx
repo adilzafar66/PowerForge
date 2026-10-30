@@ -1,7 +1,7 @@
 import { selectOption } from "@/components/ui/control-test-helpers";
 /** @vitest-environment jsdom */
 import React from "react";
-import { render, screen, waitFor } from "@/components/query-test-utils";
+import { render, screen, waitFor, within } from "@/components/query-test-utils";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -29,6 +29,7 @@ vi.mock("next/link", () => ({
 
 import { CreateProjectForm } from "@/components/create-project-form";
 import { ProjectDetail } from "@/components/project-detail";
+import { RevisionOverview } from "@/components/revision-overview";
 import { ProjectList } from "@/components/project-list";
 import type { Project, Revision } from "@/lib/projects";
 
@@ -97,6 +98,19 @@ describe("ProjectList", () => {
 });
 
 describe("CreateProjectForm", () => {
+  it("keeps unsaved project details when cancelling the discard confirmation", async () => {
+    const user = userEvent.setup();
+    render(<CreateProjectForm />);
+    await user.type(screen.getByLabelText(/Project Name/), "Unsaved station");
+    await user.click(screen.getByRole("link", { name: "Cancel" }));
+    expect(
+      screen.getByRole("dialog", { name: "Discard project details?" }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByLabelText(/Project Name/)).toHaveValue(
+      "Unsaved station",
+    );
+  });
   it("retries only the optional revision after the project was created", async () => {
     const fetchMock = vi
       .spyOn(globalThis, "fetch")
@@ -181,7 +195,7 @@ describe("CreateProjectForm", () => {
 });
 
 describe("ProjectDetail", () => {
-  it("renders detail and activates a draft revision", async () => {
+  it("confirms activation from the revision overview", async () => {
     const user = userEvent.setup();
     const draft: Revision = {
       ...sampleRevision,
@@ -198,16 +212,17 @@ describe("ProjectDetail", () => {
     } as Response);
 
     render(
-      <ProjectDetail
-        initialProject={sampleProject}
-        initialRevisions={[sampleRevision, draft]}
+      <RevisionOverview
+        project={sampleProject}
+        revision={draft}
+        revisions={[sampleRevision, draft]}
       />,
     );
     expect(
-      screen.getByRole("heading", { name: "ABC Hospital" }),
+      screen.getByRole("heading", { name: /REV-2 Draft/ }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Revision History")).toBeInTheDocument();
-
+    await user.click(screen.getByRole("button", { name: "Activate revision" }));
+    expect(globalThis.fetch).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Activate" }));
     await waitFor(() => {
       expect(
@@ -234,8 +249,7 @@ describe("ProjectDetail", () => {
         initialRevisions={[sampleRevision]}
       />,
     );
-    await user.click(screen.getByRole("button", { name: "Project actions" }));
-    await user.click(screen.getByRole("menuitem", { name: "Archive" }));
+    await user.click(screen.getByRole("button", { name: "Archive" }));
 
     const dialog = screen.getByRole("dialog");
     await user.click(
@@ -272,17 +286,42 @@ describe("Create revision form", () => {
     const user = userEvent.setup();
     render(
       <ProjectDetail
+        revisionsPage
         initialProject={sampleProject}
         initialRevisions={revisions}
       />,
     );
-    await user.click(screen.getByRole("button", { name: /Add Revision/ }));
+    await user.click(screen.getByRole("button", { name: "New revision" }));
     return user;
   }
 
   function baseSelect() {
     return screen.getByLabelText("Based on") as HTMLButtonElement;
   }
+
+  it("requires confirmation before creating an active revision", async () => {
+    const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ ...draft, status: "ACTIVE" }), {
+        status: 201,
+      }),
+    );
+    const user = await openForm([sampleRevision]);
+    await user.type(screen.getByLabelText(/Revision Identifier/), "REV-2");
+    await user.click(screen.getByLabelText("Activate on create"));
+    await user.click(screen.getByRole("button", { name: "Create revision" }));
+    expect(fetch).not.toHaveBeenCalled();
+    await user.click(
+      screen.getByRole("button", { name: "Create and activate" }),
+    );
+    await waitFor(() => expect(fetch).toHaveBeenCalledOnce());
+    expect(JSON.parse(String(fetch.mock.calls[0][1]?.body))).toMatchObject({
+      identifier: "REV-2",
+      activate: true,
+    });
+    expect(
+      await screen.findByText("Revision REV-2 created."),
+    ).toBeInTheDocument();
+  });
 
   function carryBox() {
     return screen.getByRole("checkbox", {
@@ -316,7 +355,7 @@ describe("Create revision form", () => {
     fetchMock: ReturnType<typeof mockCreated>,
   ) {
     await user.type(screen.getByLabelText(/Revision Identifier/i), "REV-3");
-    await user.click(screen.getByRole("button", { name: "Add" }));
+    await user.click(screen.getByRole("button", { name: "Create revision" }));
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalled();
     });
@@ -508,6 +547,7 @@ describe("Create revision form", () => {
   it("shows the lineage in the revision list", () => {
     render(
       <ProjectDetail
+        revisionsPage
         initialProject={sampleProject}
         initialRevisions={[
           {
@@ -520,9 +560,10 @@ describe("Create revision form", () => {
       />,
     );
 
-    expect(screen.getByText(/Based on/)).toHaveTextContent(
-      "Based on Revision REV-1",
-    );
-    expect(screen.getAllByText(/Based on/)).toHaveLength(1);
+    const row = screen.getByRole("link", { name: "REV-2" }).closest("tr")!;
+    expect(within(row).getByText("Based on REV-1")).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: "Description / lineage" }),
+    ).toBeInTheDocument();
   });
 });

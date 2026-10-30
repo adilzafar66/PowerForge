@@ -32,7 +32,7 @@ Design tokens should be centralized as CSS variables and reflected in Tailwind t
 | `--pf-danger` | `#AA3541` | Destructive actions/error, **with label** |
 | `--pf-ring` | `#4F86AF` | Visible keyboard focus outline; check resulting contrast |
 
-Fonts: `Instrument Sans` for interface, `JetBrains Mono` for exact equipment tags and electrical numeric values when appropriate. Default body 13–14px, workbench page title ~29px, section title 17–18px, table text 12–13px. Use 4/8/12/16/24/32px spacing; 40px default controls, 48–60px register rows. Desktop sidebar 236px. Cards use quiet borders and radii (~7, 9, 12px); avoid unnecessary drop shadows. A mobile icon rail in the HTML is a **visual fallback**, not final mobile navigation behavior. A final implementation must preserve names/tooltips and wayfinding when condensed.
+Fonts: Retain the production application's existing font family; the prototype's `Instrument Sans` and `JetBrains Mono` are illustrative, not a request to migrate fonts. Match the typography hierarchy and visual density as closely as possible using the existing fonts. Default body 13–14px, workbench page title ~29px, section title 17–18px, table text 12–13px. Use 4/8/12/16/24/32px spacing; 40px default controls, 48–60px register rows. Desktop sidebar 236px. Cards use quiet borders and radii (~7, 9, 12px); avoid unnecessary drop shadows. A mobile icon rail in the HTML is a **visual fallback**, not final mobile navigation behavior. A final implementation must preserve names/tooltips and wayfinding when condensed.
 
 **Contrast:** all semantic combinations must pass a real WCAG contrast test. Tertiary text is not a safe default for body/field content. Small labels must be tested at actual device scale; never rely only on color to convey status.
 
@@ -144,7 +144,7 @@ Open `prototypes/powerforge-design-system-prototype.html` directly (or via the g
 4. **Feedback & Forms** — edit fields; trigger inline validation; cancel a dirty draft (with confirmation); save successfully; inspect destructive confirmation and toast styles.
 5. **Motion & Accessibility** — toggle the movement sample, reduced-motion preview, and use keyboard arrow keys to navigate tabs.
 
-All state is synthetic and isolated to the HTML page. The simulation's local timers do not represent server concurrency, HTTP retries, API contract behavior, verified engineering validity or actual online/offline detection. It is a visual/interaction specification and a test target for the later production implementation.
+All state is synthetic and isolated to the HTML page. The simulation's local timers do not represent server concurrency, HTTP retries, API contract behavior, verified engineering validity or actual online/offline detection. It is a visual/interaction specification and a test target for the later production implementation. The production UI should closely reproduce the prototype's appearance, layout, and interaction states; autonomy in functional implementation does not authorize visual redesign.
 
 ## 10. UX-9 approval checklist
 
@@ -207,4 +207,4 @@ This section **supersedes UX-9.2's color recommendations** for option hover and 
 
 ### v1.13 Documents register reference
 
-New `prototypes/powerforge-documents-prototype.html` illustrates a complete Documents main route. It follows the same visual tokens and UX-9.3 dropdown states, uses row selection instead of redundant View buttons, retains a nonmodal inspector, and distinguishes processing outcomes and AI suggestions. All data, success states, progress, and mutations in this HTML are illustrative. Production behavior, permissions, accessibility and current application font are authoritative; Codex may improve the layout rather than copying it precisely. The previous evidence viewer remains separate.
+New `prototypes/powerforge-documents-prototype.html` illustrates a complete Documents main route. It follows the same visual tokens and UX-9.3 dropdown states, uses row selection instead of redundant View buttons, retains a nonmodal inspector, and distinguishes processing outcomes and AI suggestions. All data, success states, progress, and mutations in this HTML are illustrative. Production behavior, permissions, accessibility and the current application font remain authoritative; Codex should match the prototype layout and styling as closely as those constraints allow, not independently redesign it. The previous evidence viewer remains separate.

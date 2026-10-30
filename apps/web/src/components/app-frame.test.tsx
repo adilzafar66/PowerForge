@@ -52,6 +52,38 @@ beforeEach(() => {
 });
 
 describe("persistent app frame", () => {
+  it("uses a dedicated revisions destination and opens revision overview from it", () => {
+    nav.path = "/projects/p/revisions";
+    render(
+      <AppFrame>
+        <AppShell project={project} revisions={revisions}>
+          Revisions
+        </AppShell>
+      </AppFrame>,
+    );
+    const navigation = within(
+      screen.getByRole("navigation", { name: "Main navigation" }),
+    );
+    expect(navigation.getByRole("link", { name: "Revisions" })).toHaveAttribute(
+      "href",
+      "/projects/p/revisions",
+    );
+    expect(navigation.getByRole("link", { name: "Revisions" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(
+      navigation.getByRole("link", { name: "Overview" }),
+    ).not.toHaveAttribute("aria-current");
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Switch revision" }),
+      { key: "ArrowDown" },
+    );
+    fireEvent.click(screen.getByRole("option", { name: "B · draft" }));
+    expect(nav.push).toHaveBeenCalledWith(
+      "/projects/p/revisions/next?view=overview",
+    );
+  });
   it("shows only supported general navigation without a project", () => {
     render(
       <AppFrame>

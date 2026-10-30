@@ -11,6 +11,7 @@ export function ConfirmDialog({
   danger,
   onConfirm,
   onCancel,
+  className = "",
 }: {
   title: string;
   message: string;
@@ -18,6 +19,7 @@ export function ConfirmDialog({
   danger?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  className?: string;
 }) {
   const previous = useRef<HTMLElement | null>(null);
   return (
@@ -28,7 +30,9 @@ export function ConfirmDialog({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[60] bg-ink/25" />
+        <Dialog.Overlay
+          className={`fixed inset-0 z-[60] bg-ink/25 ${className.includes("ui-c-dialog") ? "ui-c-overlay" : ""}`}
+        />
         <Dialog.Content
           onOpenAutoFocus={() => {
             previous.current = document.activeElement as HTMLElement;
@@ -37,7 +41,7 @@ export function ConfirmDialog({
             event.preventDefault();
             previous.current?.focus();
           }}
-          className="fixed top-1/2 left-1/2 z-[70] w-[calc(100%-32px)] max-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-panel p-6 shadow-xl"
+          className={`fixed top-1/2 left-1/2 z-[70] w-[calc(100%-32px)] max-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-xl border border-border bg-panel p-6 shadow-xl ${className}`}
         >
           <Dialog.Title className="mb-2 text-base font-semibold text-ink">
             {title}

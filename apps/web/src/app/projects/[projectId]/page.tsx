@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { AppShell } from "@/components/app-shell";
 import { ProjectDetail } from "@/components/project-detail";
@@ -11,10 +11,14 @@ export const dynamic = "force-dynamic";
 
 export default async function ProjectDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ projectId: string }>;
+  searchParams?: Promise<{ section?: string }>;
 }) {
   const { projectId } = await params;
+  if ((await searchParams)?.section === "revisions")
+    redirect(`/projects/${projectId}/revisions`);
   try {
     const [project, revisions] = await Promise.all([
       getProject(projectId, true),
@@ -28,8 +32,8 @@ export default async function ProjectDetailPage({
         ]}
       >
         <AppShell project={project} revisions={revisions}>
-        <ProjectDetail
-          key={project.id}
+          <ProjectDetail
+            key={project.id}
             initialProject={project}
             initialRevisions={revisions}
           />
