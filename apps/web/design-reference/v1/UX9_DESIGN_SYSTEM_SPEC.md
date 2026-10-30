@@ -178,7 +178,7 @@ All state is synthetic and isolated to the HTML page. The simulation's local tim
 
 ### Prototype reference
 
-- The six HTML prototypes now include the same reusable custom-selection CSS/JS demonstration, with the canonical source in `assets/powerforge-controls.css` and `assets/powerforge-controls.js`. HTML prototypes keep the enhancement inlined so each can still open alone.
+- The seven HTML prototypes now include the same reusable custom-selection CSS/JS demonstration, with the canonical source in `assets/powerforge-controls.css` and `assets/powerforge-controls.js`. HTML prototypes keep the enhancement inlined so each can still open alone.
 - The UX-9 prototype has a sixth **Selects & Checkboxes** tab; inspect closed/open menus, selection, focus/keyboard flows, checked/indeterminate/disabled states.
 - The prototype keeps the underlying native `<select>` in the DOM for demo state and form compatibility; this is **not** a prescription for dual interactive select nodes in production. Use a well-tested accessible primitive when implementing UI-A.
 - Ensure custom menus remain visible above overflow-hidden cards and in dialog/sheet contexts.
@@ -204,3 +204,7 @@ This section **supersedes UX-9.2's color recommendations** for option hover and 
 - Selected state continues to show a checkmark, even when pointer moves to a different item.
 - The active descendant is navigation focus, **not** the selected value; unselected keyboard focus uses the same neutral highlight as pointer hover. On initial opening, the selected option retains its resting blue tint until actually hovered.
 - Do not copy the prototype dropdown JavaScript into production. Use a keyboard-accessible select primitive that preserves these distinct selected/highlighted states.
+
+### v1.13 Documents register reference
+
+New `prototypes/powerforge-documents-prototype.html` illustrates a complete Documents main route. It follows the same visual tokens and UX-9.3 dropdown states, uses row selection instead of redundant View buttons, retains a nonmodal inspector, and distinguishes processing outcomes and AI suggestions. All data, success states, progress, and mutations in this HTML are illustrative. Production behavior, permissions, accessibility and current application font are authoritative; Codex may improve the layout rather than copying it precisely. The previous evidence viewer remains separate.

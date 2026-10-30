@@ -22,6 +22,7 @@ The prototype's mock project/revision counts, status actions, cross-file links, 
 | File | UI demonstrated | What to examine |
 |---|---|---|
 | `prototypes/powerforge-equipment-prototype.html` | Equipment list, quick details, full editor | Nonmodal browsing, selected row, editor tabs, compact attributes, Return/Save states |
+| `prototypes/powerforge-documents-prototype.html` | **Documents main register / UI-E** | Revision-scoped document list, filters, quick views, upload/reuse, status, nonmodal inspector, explicit suggestions |
 | `prototypes/powerforge-document-evidence-prototype.html` | Document inspector + Phase 6 evidence browser | Thumbnail rail, zoom and pan, panel controls, grouped candidate list, page-to-evidence highlighting |
 | `prototypes/powerforge-project-revisions-prototype.html` | Revision list/overview, create, edit, and activation dialogs | Cross-revision navigation, independently selected carry-forward, deliberate activation, revision metadata editor, lifecycle statuses |
 | `previews/*.png` | Static review images | Visual comparison only; HTML files are interactive |
@@ -207,3 +208,11 @@ Prior hover colors are replaced by the UX-9.3 rules below.
 - Selected option remains blue `#E6EEF4` even when another option receives pointer/keyboard focus. Selected option hover: darker blue `#D6E3ED`; merely opening the menu or navigating to the selected item retains the base blue tint.
 - Keep disabled options unaffected; preserve checkmarks, focus-visible indication, and reduced-motion accessibility.
 - Reference `assets/powerforge-controls.css` and `UX9_DESIGN_SYSTEM_SPEC.md` UX-9.3.
+
+
+## UI-E reference addition (v1.13) — Documents main page
+
+- **Canonical Documents list/register reference:** `prototypes/powerforge-documents-prototype.html` (new). The previously included `powerforge-document-evidence-prototype.html` is a **drawing/viewer/evidence reference**, not a substitute for the Documents list route.
+- Preserve the actual current `RevisionDocuments` behavior: All / Needs Review / Issues / Removed; document search; type, origin, processing, classification filters; upload/reuse; download/original; processing and AI classification status; explicit suggestion acceptance; document metadata; remove/restore; read-only revisions; deep-linked selection; retry and robust backend error semantics.
+- The new reference uses a nonmodal side inspector to keep the list operable. UI-E may adapt that to the architecture, and the existing app's React components, routing and TanStack Query are authoritative. Never show fabricated status/progress, treat simulation delays as actual backend behavior, generate classifying results, or accept AI suggestions automatically.
+- No duplicate View button in document rows: the row opens details, while a contextual action menu hosts **different** actions (view pages, download, remove/restore).

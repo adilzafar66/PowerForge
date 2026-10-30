@@ -1,4 +1,4 @@
-# PowerForge UX v1 — Project Overview consolidation
+# PowerForge UX v1.12 — Project Overview consolidation
 
 This update affects the standalone **design reference package only**, not PowerForge application source or Figma.
 

@@ -13,6 +13,7 @@ Open `index.html` locally in a desktop browser for the prototype gallery. Each H
 | Workspace | Path | Examples |
 | --- | --- | --- |
 | Equipment | `prototypes/powerforge-equipment-prototype.html` | List, quick details, editor |
+| **Documents — main workspace** | `prototypes/powerforge-documents-prototype.html` | Document register, search/advanced filters, quick views, nonmodal document details, simulated upload/reuse, processing and classification status, revision read-only state |
 | Documents / evidence | `prototypes/powerforge-document-evidence-prototype.html` | Drawing canvas, zoom/pan, source highlighting |
 | Project / Revisions | `prototypes/powerforge-project-revisions-prototype.html` | Revision list and detail, metadata edit, activation |
 | Projects | `prototypes/powerforge-projects-prototype.html` | Project list, **single unified Project Overview**, creation, edit, lifecycle |
@@ -27,7 +28,7 @@ Open `index.html` locally in a desktop browser for the prototype gallery. Each H
 4. Test **Feedback & Forms**: validation, unsaved-change warning, save pending, toast, destructive confirmation.
 5. Test **Motion & Accessibility**: keyboard tab navigation, panel motion, reduced-motion preference.
 
-See `UX9_DESIGN_SYSTEM_SPEC.md` for optional design guidance and behavioral examples and `CODEX_HANDOFF.md` for domain safeguards, source hierarchy, and migration guidance. All previous files are retained unchanged except this gallery, README and additive design notes.
+See `UX9_DESIGN_SYSTEM_SPEC.md` for optional design guidance and behavioral examples and `CODEX_HANDOFF.md` for domain safeguards, source hierarchy, and migration guidance. The v1.13 update also adds a new standalone Documents workspace and adjusts sibling-prototype Documents navigation links.
 
 ## Preview screenshots
 
@@ -44,7 +45,7 @@ Run `python qa/test_ux9_prototype.py` with Python Playwright and local `/usr/bin
 ## UX-9.1 visual control refinement
 
 - `prototypes/powerforge-design-system-prototype.html#controls` — new Selects & Checkboxes interactive section.
-- `assets/powerforge-controls.css` / `assets/powerforge-controls.js` — shared reference source for the themed dropdown/checkbox behavior applied across all six standalone HTML prototypes.
+- `assets/powerforge-controls.css` / `assets/powerforge-controls.js` — shared reference source for the themed dropdown/checkbox behavior applied across all seven standalone HTML prototypes.
 - The previous v1.8 ZIP is preserved separately. The prototype is not an actual API client.
 
 ## UX-9.2 — Historical hover exploration (superseded)
@@ -55,7 +56,7 @@ See UX-9.3 for the approved hover colors.
 
 The custom selects now hover neutral `#F5F8FA` for unselected options, while selected options retain `#E6EEF4` blue and darken to `#D6E3ED` on hover. See `UX9_3_RELEASE_NOTES.md`.
 
-## UX-10 / v1 — Unified Project Overview and reduced redundancy
+## UX-10 / v1.12 — Unified Project Overview and reduced redundancy
 
 - **One canonical Project Overview reference:** `prototypes/powerforge-projects-prototype.html#project/p1`. Project information and editing/lifecycle controls come **first**; current work, active revision, revision metrics and clickable revision history follow below. The sample counts are illustrative.
 - `prototypes/powerforge-project-revisions-prototype.html#overview` redirects to the canonical Project Overview instead of presenting a second competing layout. The revision prototype remains the reference for **Revisions**, **Revision Overview**, and revision create/edit flows.
@@ -63,3 +64,12 @@ The custom selects now hover neutral `#F5F8FA` for unselected options, while sel
 - The Revisions table no longer contains an Actions/View column; clicking or keyboard-activating a row opens that revision.
 - Codex may change spacing, layouts, controls, component organization, and typography to better integrate with the actual app. It may omit redundant elements. **Preserve feature intent and server-authoritative engineering behavior**, not prototype-specific implementation.
 - The included HTML/JS and QA scripts are demonstration assets, not application dependencies. Do not copy local fixture data, mock save timers, fake job results, or cross-file navigation into the production app.
+
+## UX-10 / v1.13 — Documents main workspace (new)
+
+The prior package included a **Document & Evidence Viewer** but did not have a dedicated **Documents main page**. This release adds `prototypes/powerforge-documents-prototype.html`, using the approved application shell and providing a complete document register for a selected revision.
+
+- Live prototype examples: search by filename/number/description; All, Needs Review, Issues, and Removed quick views; type/origin/processing/AI filters; row inspection and contextual menu; nonmodal document detail panel; metadata editing; explicit suggestion acceptance; upload/reuse dialogs; remove/restore; process retry; sample read-only revision; demo progression and reset.
+- **No data is real**: filenames, counts, job progress, confidence, changes and upload/reuse actions are simulations, not PowerForge backend calls. Production must preserve actual document relationships and authorization and may adapt the visual design.
+- The main Documents nav item in the Projects, Revisions, Equipment, Topology and Document Viewer references now links to this new main workspace where feasible. The viewer remains a separate specialized visual reference.
+- UX-9.3 selected/unselected dropdown option hover styling stays the same.
