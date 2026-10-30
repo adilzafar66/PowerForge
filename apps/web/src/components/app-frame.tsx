@@ -1,4 +1,5 @@
 "use client";
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -256,7 +257,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
   );
   return (
     <ShellContextPublisher.Provider value={setContext}>
-      <div className={`flex min-h-screen bg-canvas ${uiC ? "ui-c-shell" : ""}`}>
+      <div className={`flex min-h-screen bg-canvas ${uiC ? ws.shell : ""}`}>
         <a
           href="#main-content"
           className="sr-only fixed top-2 left-2 z-[100] rounded bg-panel p-3 focus:not-sr-only"
@@ -362,7 +363,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
             </nav>
             {uiC && project && (
               <span
-                className={`ui-c-status ${project.status} ml-auto hidden sm:inline-flex`}
+                className={`${ws.status} ${project.status} ml-auto hidden sm:inline-flex`}
               >
                 {project.status.charAt(0) +
                   project.status.slice(1).toLowerCase()}{" "}

@@ -1,4 +1,6 @@
 "use client";
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
+
 import {
   WorkspaceCard,
   WorkspaceCardBody,
@@ -155,7 +157,7 @@ export function ProjectDetail({
           : ["unarchive"];
   return (
     <AppShell project={project} revisions={revisions}>
-      <div className="ui-c">
+      <div className={ws.root}>
         <WorkspaceHeader
           title={revisionsPage ? "Revisions" : project.project_name}
           subtitle={
@@ -190,7 +192,7 @@ export function ProjectDetail({
             )
           }
         />
-        <div className="ui-c-content">
+        <div className={ws.content}>
           <AsyncState
             refreshing={pq.isFetching || rq.isFetching}
             error={pq.error || rq.error}
@@ -200,17 +202,17 @@ export function ProjectDetail({
             }}
           />
           {error && (
-            <p role="alert" className="ui-c-note mb-4 text-red-700">
+            <p role="alert" className={`${ws.note} mb-4 text-red-700`}>
               {error}
             </p>
           )}
           {message && (
-            <p role="status" className="ui-c-note mb-4">
+            <p role="status" className={`${ws.note} mb-4`}>
               {message}
             </p>
           )}
           {readOnly && (
-            <p role="status" className="ui-c-note mb-4">
+            <p role="status" className={`${ws.note} mb-4`}>
               This project is {project.status.toLowerCase()} and is read-only.
             </p>
           )}
@@ -223,7 +225,7 @@ export function ProjectDetail({
                   filterable
                 />
               </WorkspaceCard>
-              <p className="ui-c-note mt-[18px]">
+              <p className={`${ws.note} mt-[18px]`}>
                 <strong>Revision lifecycle:</strong> Draft revisions may be
                 activated if eligible. Activating a newer draft supersedes the
                 previously active revision. Historical revisions remain
@@ -232,15 +234,14 @@ export function ProjectDetail({
             </>
           ) : (
             <>
-              <div className="ui-c-meta">
+              <div className={ws.meta}>
                 <WorkspaceStatus status={project.status} />
                 <span className="font-mono">{project.project_number}</span>
                 <span>·</span>
                 <span>Updated {formatDateShort(project.updated_at)}</span>
               </div>
-              <section className="ui-c-section" aria-label="Project details">
-                <h2 className="ui-c-section-title">Project details</h2>
-                <div className="ui-c-columns ui-c-project-columns">
+              <section className={ws.section} aria-label="Project details">
+                <div className={`${ws.columns} ${ws.projectColumns}`}>
                   <WorkspaceCard>
                     <WorkspaceCardHeader
                       title="Project Information"
@@ -293,7 +294,7 @@ export function ProjectDetail({
                       />
                     </WorkspaceCardBody>
                   </WorkspaceCard>
-                  <aside className="ui-c-stack">
+                  <aside className={ws.stack}>
                     <WorkspaceCard spacing="rail">
                       <h2>Project lifecycle</h2>
                       <p>
@@ -303,7 +304,7 @@ export function ProjectDetail({
                         Changing the status is separate from editing project
                         details.
                       </p>
-                      <div className="ui-c-actions mt-4">
+                      <div className={`${ws.actions} mt-4`}>
                         {lifecycleActions.map((action) => (
                           <Button
                             key={action}
@@ -325,7 +326,7 @@ export function ProjectDetail({
                     </WorkspaceCard>
                     <WorkspaceCard spacing="rail">
                       <h2>Project summary</h2>
-                      <dl className="ui-c-summary">
+                      <dl className={ws.summary}>
                         <dt>Project number</dt>
                         <dd className="font-mono">{project.project_number}</dd>
                         <dt>Revision count</dt>
@@ -337,14 +338,13 @@ export function ProjectDetail({
                   </aside>
                 </div>
               </section>
-              <section className="ui-c-section" aria-label="Revision activity">
-                <h2 className="ui-c-section-title">Revision activity</h2>
-                <div className="ui-c-columns ui-c-project-columns">
-                  <div className="ui-c-stack">
+              <section className={ws.section} aria-label="Revision activity">
+                <div className={`${ws.columns} ${ws.projectColumns}`}>
+                  <div className={ws.stack}>
                     <WorkspaceCard spacing="work">
-                      <div className="ui-c-work-head">
+                      <div className={ws.workHead}>
                         <div>
-                          <span className="ui-c-overline">Current work</span>
+                          <span className={ws.overline}>Current work</span>
                           <h2>
                             {active
                               ? `Continue with ${active.identifier}`
@@ -405,7 +405,7 @@ export function ProjectDetail({
                             <Link
                               key={rev.id}
                               href={overviewHref(rev.id)}
-                              className="ui-c-history-row"
+                              className={ws.historyRow}
                             >
                               <span>
                                 <strong>
@@ -419,14 +419,14 @@ export function ProjectDetail({
                                   Updated {formatDateShort(rev.updated_at)}
                                 </small>
                               </span>
-                              <span className="ui-c-actions">
+                              <span className={ws.actions}>
                                 <WorkspaceStatus status={rev.status} />
                                 <ChevronRight size={14} />
                               </span>
                             </Link>
                           ))
                       ) : (
-                        <p className="ui-c-pad ui-c-subtitle">
+                        <p className={`${ws.pad} ${ws.subtitle}`}>
                           No revisions yet. Create a revision to begin
                           engineering work.
                         </p>
@@ -435,7 +435,7 @@ export function ProjectDetail({
                   </div>
                   <aside>
                     <WorkspaceCard spacing="rail">
-                      <span className="ui-c-overline">Active revision</span>
+                      <span className={ws.overline}>Active revision</span>
                       {active ? (
                         <>
                           <div className="my-3 font-mono text-[22px] font-bold">
@@ -475,7 +475,7 @@ export function ProjectDetail({
                   </aside>
                 </div>
               </section>
-              <p className="ui-c-help">
+              <p className={ws.help}>
                 Workspace counts are not provided by revision metadata. Open a
                 workspace to inspect its records.
               </p>
@@ -502,7 +502,7 @@ export function ProjectDetail({
         )}
         {confirmAction && (
           <ConfirmDialog
-            className="ui-c-dialog"
+            className={ws.dialog}
             {...(confirmAction === "unarchive"
               ? unarchiveCopy(project.status_before_archive)
               : ACTION_COPY[confirmAction])}

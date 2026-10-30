@@ -1,4 +1,6 @@
 "use client";
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
+
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { WorkspaceEditor } from "@/components/workspace-editor";
@@ -115,7 +117,7 @@ export function RevisionEditor({
       onSave={() => void save()}
     >
       {locked && <p role="status">This project is read-only.</p>}
-      <div className="ui-c-edit-title !border-0 !pt-0">
+      <div className={`${ws.editTitle} !border-0 !pt-0`}>
         Revision information
       </div>
       <Field id="revision-identifier" label="Revision Identifier" required>
@@ -143,8 +145,8 @@ export function RevisionEditor({
           A short summary of the work, scope or design changes.
         </small>
       </Field>
-      <div className="ui-c-edit-title">System-wide engineering metadata</div>
-      <p className="ui-c-edit-hint">
+      <div className={ws.editTitle}>System-wide engineering metadata</div>
+      <p className={ws.editHint}>
         <strong>Manual fields only.</strong> Frequency and phase count are
         optional model-level settings. AI extraction does not populate or change
         them. Equipment-specific phase attributes remain separate.
@@ -155,7 +157,7 @@ export function RevisionEditor({
           description may still be edited.
         </p>
       )}
-      <div className="ui-c-form-cols">
+      <div className={ws.formCols}>
         <Field id="revision-frequency" label="System frequency (Hz)">
           <Input
             id="revision-frequency"
@@ -195,7 +197,7 @@ export function RevisionEditor({
           </small>
         </Field>
       </div>
-      <p className="ui-c-note">
+      <p className={ws.note}>
         <strong>Unchanged by this edit:</strong> revision lifecycle status,
         creation date, source revision, and carry-forward history. Activation
         has its own confirmation workflow.

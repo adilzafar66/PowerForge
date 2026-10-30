@@ -1,6 +1,6 @@
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import "./ui-c-workspace.css";
 export {
   WorkspaceCard,
   WorkspaceCardBody,
@@ -21,13 +21,13 @@ export function WorkspaceHeader({
   actions?: ReactNode;
 }) {
   return (
-    <header className="ui-c-head">
-      <div className="ui-c-head-inner">
+    <header className={ws.head}>
+      <div className={ws.headInner}>
         <div>
           <h1>{title}</h1>
-          <p className="ui-c-subtitle">{subtitle}</p>
+          <p className={ws.subtitle}>{subtitle}</p>
         </div>
-        <div className="ui-c-actions">{actions}</div>
+        <div className={ws.actions}>{actions}</div>
       </div>
     </header>
   );
@@ -42,7 +42,7 @@ export function WorkspaceCardHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="ui-c-card-top">
+    <div className={ws.cardTop}>
       <div>
         <h2>{title}</h2>
         {subtitle && <p>{subtitle}</p>}
@@ -62,22 +62,22 @@ export function WorkspaceButton({
       {...props}
       variant={variant}
       size={size}
-      className={`ui-c-btn ${variant === "primary" ? "primary" : variant === "danger" ? "danger" : variant === "ghost" ? "quiet" : ""} ${size === "sm" ? "small" : ""} ${className}`}
+      className={`${ws.btn} ${variant === "primary" ? "primary" : variant === "danger" ? "danger" : variant === "ghost" ? "quiet" : ""} ${size === "sm" ? "small" : ""} ${className}`}
     />
   );
 }
 export function WorkspaceStatus({ status }: { status: string }) {
   return (
-    <span className={`ui-c-status ${status}`}>
+    <span className={`${ws.status} ${status}`}>
       {status.charAt(0) + status.slice(1).toLowerCase()}
     </span>
   );
 }
 export function WorkspaceStats({ action }: { action?: ReactNode }) {
   return (
-    <div className="ui-c-stats" aria-label="Workspace counts unavailable">
+    <div className={ws.stats} aria-label="Workspace counts unavailable">
       {["Documents", "Equipment", "Connections"].map((label) => (
-        <div className="ui-c-stat" key={label}>
+        <div className={ws.stat} key={label}>
           <strong title="Count not provided by revision metadata">—</strong>
           <small>{label}</small>
         </div>

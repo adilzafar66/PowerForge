@@ -1,4 +1,6 @@
 "use client";
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
+
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { WorkspaceEditor } from "@/components/workspace-editor";
@@ -67,7 +69,7 @@ export function ProjectEditor({
       onClose={onClose}
       onSave={() => void save()}
     >
-      <p className="ui-c-edit-hint">
+      <p className={ws.editHint}>
         <strong>Project number {project.project_number} is fixed.</strong>
         <br />
         Edit the project information below. Status and revisions are managed

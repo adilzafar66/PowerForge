@@ -1,3 +1,4 @@
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
 import {
   Fragment,
   type ComponentProps,
@@ -7,7 +8,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
-import "../ui-c-workspace.css";
 
 /** Shared workspace surfaces. Variants preserve the approved content/rail density. */
 export function WorkspaceCard({
@@ -21,18 +21,18 @@ export function WorkspaceCard({
 }) {
   const padding = {
     none: "",
-    body: "ui-c-pad",
-    rail: "ui-c-rail",
-    work: "ui-c-work",
+    body: ws.pad,
+    rail: ws.rail,
+    work: ws.work,
   }[spacing];
-  return <Element {...props} className={cn("ui-c-card", padding, className)} />;
+  return <Element {...props} className={cn(ws.card, padding, className)} />;
 }
 
 export function WorkspaceCardBody({
   className,
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
-  return <div {...props} className={cn("ui-c-pad", className)} />;
+  return <div {...props} className={cn(ws.pad, className)} />;
 }
 
 export type WorkspaceDetail = {
@@ -51,7 +51,7 @@ export function WorkspaceDetails({
   variant?: "default" | "project";
 }) {
   return (
-    <dl className={cn("ui-c-details", variant === "project" && "project")}>
+    <dl className={cn(ws.details, variant === "project" && "project")}>
       {items.map(({ label, value, mono }) => (
         <Fragment key={label}>
           <dt>{label}</dt>
@@ -78,11 +78,11 @@ export function WorkspaceFormSection({
 }) {
   return (
     <WorkspaceCard>
-      <div className="ui-c-form-head">
+      <div className={ws.formHead}>
         <h2>{title}</h2>
         {description && <p>{description}</p>}
       </div>
-      <div className={cn("ui-c-form-body", bodyClassName)}>{children}</div>
+      <div className={cn(ws.formBody, bodyClassName)}>{children}</div>
       {footer}
     </WorkspaceCard>
   );
@@ -98,7 +98,7 @@ export function WorkspaceCheckboxField({
   description: ReactNode;
 }) {
   return (
-    <label className="ui-c-check">
+    <label className={ws.check}>
       <Checkbox {...props} />
       <span>
         <strong>{label}</strong>
@@ -124,14 +124,14 @@ export function WorkspaceDrawerHeader({
   onClose: () => void;
 }) {
   return (
-    <div className="ui-c-drawer-head">
+    <div className={ws.drawerHead}>
       <div>
         <h2 id={titleId}>{title}</h2>
         <p>{subtitle}</p>
       </div>
       <button
         type="button"
-        className="ui-c-close"
+        className={ws.close}
         aria-label={closeLabel}
         disabled={pending}
         onClick={onClose}
@@ -146,5 +146,5 @@ export function WorkspaceFormActions({
   className,
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
-  return <div {...props} className={cn("ui-c-drawer-foot", className)} />;
+  return <div {...props} className={cn(ws.drawerFoot, className)} />;
 }

@@ -1,4 +1,6 @@
 "use client";
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
+
 import {
   WorkspaceFormActions,
   WorkspaceCard,
@@ -92,7 +94,7 @@ export function CreateProjectForm() {
   }
 
   return (
-    <div className="ui-c">
+    <div className={ws.root}>
       <WorkspaceHeader
         title="Create Project"
         subtitle="Set up an engineering project. You can create its first revision now or later."
@@ -105,13 +107,13 @@ export function CreateProjectForm() {
           </Button>
         }
       />
-      <div className="ui-c-content !max-w-[1100px]">
+      <div className={`${ws.content} !max-w-[1100px]`}>
         <form
           onSubmit={onSubmit}
           onChange={() => setDirty(true)}
-          className="ui-c-form ui-c-form-layout"
+          className={`${ws.form} ${ws.formLayout}`}
         >
-          <div className="ui-c-stack">
+          <div className={ws.stack}>
             <fieldset
               disabled={!!createdProject || submitting}
               className="space-y-5"
@@ -284,8 +286,8 @@ export function CreateProjectForm() {
               ) : null}
             </WorkspaceFormSection>
           </div>
-          <aside className="ui-c-form-aside">
-            <div className="ui-c-tip">
+          <aside className={ws.formAside}>
+            <div className={ws.tip}>
               <h3>Project creation</h3>
               <p>
                 The project number and name are required. Other fields can be
@@ -296,7 +298,10 @@ export function CreateProjectForm() {
                 backend operation.
               </p>
             </div>
-            <WorkspaceCard as="div" className="ui-c-tip !mt-[14px] !bg-white">
+            <WorkspaceCard
+              as="div"
+              className={`${ws.tip} !mt-[14px] !bg-white`}
+            >
               <h3>What comes next?</h3>
               <p>
                 After creation, open the project to manage revisions, documents,
@@ -309,7 +314,7 @@ export function CreateProjectForm() {
       </div>
       {discard && (
         <ConfirmDialog
-          className="ui-c-dialog"
+          className={ws.dialog}
           title="Discard project details?"
           message={
             createdProject

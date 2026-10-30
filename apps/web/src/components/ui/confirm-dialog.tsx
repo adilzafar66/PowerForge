@@ -1,4 +1,5 @@
 "use client";
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { useRef } from "react";
@@ -31,7 +32,7 @@ export function ConfirmDialog({
     >
       <Dialog.Portal>
         <Dialog.Overlay
-          className={`fixed inset-0 z-[60] bg-ink/25 ${className.includes("ui-c-dialog") ? "ui-c-overlay" : ""}`}
+          className={`fixed inset-0 z-[60] bg-ink/25 ${className.split(/\s+/).includes("ui-c-dialog") ? ws.overlay : ""}`}
         />
         <Dialog.Content
           onOpenAutoFocus={() => {

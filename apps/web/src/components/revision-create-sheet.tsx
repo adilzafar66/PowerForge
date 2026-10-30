@@ -1,4 +1,6 @@
 "use client";
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
+
 import {
   WorkspaceFormActions,
   WorkspaceDrawerHeader,
@@ -144,9 +146,9 @@ export function RevisionCreateSheet({
   return (
     <Sheet
       autoFocusFirst
-      overlayClassName="ui-c-overlay"
+      overlayClassName={ws.overlay}
       labelledBy="create-revision-heading"
-      className="ui-c-sheet"
+      className={ws.sheet}
       onClose={() => {
         if (!busy) onClose();
       }}
@@ -169,9 +171,9 @@ export function RevisionCreateSheet({
           }
         }}
       >
-        <div className="ui-c-drawer-body">
+        <div className={ws.drawerBody}>
           {error && (
-            <p role="alert" className="ui-c-note mb-4 text-red-700">
+            <p role="alert" className={`${ws.note} mb-4 text-red-700`}>
               {error}
             </p>
           )}
@@ -276,7 +278,7 @@ export function RevisionCreateSheet({
                 setNewRevision({ ...newRevision, activate: e.target.checked })
               }
             />
-            <p className="ui-c-note">
+            <p className={ws.note}>
               <strong>Important:</strong> The new revision is saved as a
               separate snapshot. Activation requires confirmation.
             </p>
@@ -303,7 +305,7 @@ export function RevisionCreateSheet({
       </form>
       {confirmActivation && (
         <ConfirmDialog
-          className="ui-c-dialog"
+          className={ws.dialog}
           title="Create and activate revision?"
           message={
             activeRevision

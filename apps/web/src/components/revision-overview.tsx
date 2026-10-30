@@ -1,4 +1,6 @@
 "use client";
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
+
 import {
   WorkspaceCard,
   WorkspaceCardBody,
@@ -100,7 +102,7 @@ export function RevisionOverview({
     revisions.find((r) => r.id === revision.based_on_revision_id)?.identifier ??
     revision.based_on_identifier;
   return (
-    <div className="ui-c">
+    <div className={ws.root}>
       <WorkspaceHeader
         title={
           <>
@@ -137,21 +139,21 @@ export function RevisionOverview({
           </>
         }
       />
-      <div className="ui-c-content">
+      <div className={ws.content}>
         {error && (
-          <p role="alert" className="ui-c-note mb-4 text-red-700">
+          <p role="alert" className={`${ws.note} mb-4 text-red-700`}>
             {error}
           </p>
         )}
         {message && (
-          <p role="status" className="ui-c-note mb-4">
+          <p role="status" className={`${ws.note} mb-4`}>
             {message}
           </p>
         )}
-        <div className="ui-c-columns">
-          <div className="ui-c-stack">
+        <div className={ws.columns}>
+          <div className={ws.stack}>
             {(locked || revision.status !== "ACTIVE") && (
-              <div className="ui-c-note">
+              <div className={ws.note}>
                 <strong>
                   {locked
                     ? "Project read-only"
@@ -173,11 +175,13 @@ export function RevisionOverview({
             <WorkspaceCard spacing="body">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className="ui-c-overline mb-[9px]">Revision summary</div>
+                  <div className={`${ws.overline} mb-[9px]`}>
+                    Revision summary
+                  </div>
                   <h2 className="mb-2 text-[22px] font-bold">
                     {revision.description || revision.identifier}
                   </h2>
-                  <p className="ui-c-subtitle">
+                  <p className={ws.subtitle}>
                     {revision.identifier} ·{" "}
                     {formatDateShort(revision.created_at)} ·{" "}
                     {project.project_number}
@@ -193,7 +197,7 @@ export function RevisionOverview({
                 subtitle="Move into the working areas for this revision"
               />
               <WorkspaceCardBody className="!py-2">
-                <Link className="ui-c-item-row" href={href("documents")}>
+                <Link className={ws.itemRow} href={href("documents")}>
                   <span className="flex items-center gap-2">
                     <Files size={19} />
                     <span>
@@ -203,7 +207,7 @@ export function RevisionOverview({
                   </span>
                   <ChevronRight size={16} />
                 </Link>
-                <Link className="ui-c-item-row" href={href("equipment")}>
+                <Link className={ws.itemRow} href={href("equipment")}>
                   <span className="flex items-center gap-2">
                     <Cpu size={19} />
                     <span>
@@ -298,10 +302,10 @@ export function RevisionOverview({
               </WorkspaceCardBody>
             </WorkspaceCard>
           </div>
-          <aside className="ui-c-stack">
+          <aside className={ws.stack}>
             <WorkspaceCard spacing="body">
               <h2 className="mb-4 text-sm font-bold">Revision history</h2>
-              <div className="ui-c-timeline">
+              <div className={ws.timeline}>
                 <div>
                   <h3>
                     {revision.status === "ACTIVE"
@@ -330,7 +334,7 @@ export function RevisionOverview({
             <WorkspaceCard spacing="body">
               <h2 className="mb-4 text-sm font-bold">Carry-forward history</h2>
               {["Documents", "Engineering model"].map((label) => (
-                <div key={label} className="ui-c-item-row">
+                <div key={label} className={ws.itemRow}>
                   <span className="text-muted">{label}</span>
                   <strong>
                     {revision.based_on_revision_id
@@ -339,7 +343,7 @@ export function RevisionOverview({
                   </strong>
                 </div>
               ))}
-              <p className="ui-c-note mt-4">
+              <p className={`${ws.note} mt-4`}>
                 Individual carry-forward choices are not included in revision
                 metadata. Workspace counts are also unavailable here.
               </p>
@@ -360,7 +364,7 @@ export function RevisionOverview({
       )}
       {confirm && (
         <ConfirmDialog
-          className="ui-c-dialog"
+          className={ws.dialog}
           title="Activate revision?"
           message={
             active

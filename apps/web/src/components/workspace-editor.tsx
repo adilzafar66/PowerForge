@@ -1,4 +1,6 @@
 "use client";
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
+
 import {
   WorkspaceFormActions,
   WorkspaceDrawerHeader,
@@ -52,10 +54,10 @@ export function WorkspaceEditor({
   return (
     <Sheet
       autoFocusFirst
-      overlayClassName="ui-c-overlay"
+      overlayClassName={ws.overlay}
       labelledBy={id}
       onClose={close}
-      className={`ui-c-sheet ${title === "Edit project" ? "project" : ""}`}
+      className={`${ws.sheet} ${title === "Edit project" ? "project" : ""}`}
     >
       <WorkspaceDrawerHeader
         titleId={id}
@@ -72,7 +74,7 @@ export function WorkspaceEditor({
           if (!disabled && !pending && dirty) onSave();
         }}
       >
-        <div className="ui-c-drawer-body space-y-5">
+        <div className={`${ws.drawerBody} space-y-5`}>
           {error && (
             <p role="alert" className="text-sm text-red-600">
               {error}
@@ -104,7 +106,7 @@ export function WorkspaceEditor({
       </form>
       {discard && (
         <ConfirmDialog
-          className="ui-c-dialog"
+          className={ws.dialog}
           title="Discard unsaved changes?"
           message="Your changes have not been saved."
           confirmLabel="Discard changes"

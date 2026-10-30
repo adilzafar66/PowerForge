@@ -1,4 +1,6 @@
 "use client";
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -27,17 +29,17 @@ export function RevisionsRegister({
     );
   return (
     <>
-      <div className="ui-c-toolbar">
-        <div className="ui-c-toolbar-controls">
+      <div className={ws.toolbar}>
+        <div className={ws.toolbarControls}>
           <input
             aria-label="Search revisions"
             placeholder="Search revisions…"
-            className="ui-c-search"
+            className={ws.search}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <div
-            className="ui-c-tabs"
+            className={ws.tabs}
             role="group"
             aria-label="Filter revision status"
           >
@@ -65,8 +67,8 @@ export function RevisionsRegister({
           Select a revision to open details
         </span>
       </div>
-      <div className="ui-c-table-scroll">
-        <table className="ui-c-table">
+      <div className={ws.tableScroll}>
+        <table className={ws.table}>
           <thead>
             <tr>
               {["Revision", "Description / lineage", "Status", "Updated"].map(
@@ -147,7 +149,7 @@ export function RevisionsRegister({
           )}
         </div>
       )}
-      <div className="ui-c-table-footer">
+      <div className={ws.tableFooter}>
         <span>
           Showing {items.length} of {revisions.length} revisions
         </span>

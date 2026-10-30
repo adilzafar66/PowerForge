@@ -50,11 +50,17 @@ Read-only Chrome screenshots were captured at 1440×1000 and 390×844, with anim
 
 At the user's request, typography now follows the earlier application baseline rather than exact prototype typography: 29px page titles, 13.5px body/detail/table text, 12–12.5px supporting text, and standard 400/500/600/700 weights. The initial UI-C version was not committed independently, so this restores the earlier shared-component conventions rather than claiming an exact historical revert. Font families, layout tokens, colors, reusable components and behavior remain unchanged. The pixel comparison below describes the preceding component extraction, before this intentional typography change.
 
-UI-C's repeated colors, typography, spacing, radii, control sizes, layout dimensions and motion values now live in `apps/web/src/styles/workspace-tokens.css`, reusing UI-A tokens where values match. Scoped workspace CSS consumes these tokens without changing their approved values.
+UI-C's repeated colors, typography, spacing, radii, control sizes, layout dimensions and motion values now live in `apps/web/src/styles/workspace-tokens.css`, reusing UI-A tokens where values match. Shared Tailwind utilities consume these tokens without changing their approved values.
 
 `components/ui/workspace-patterns.tsx` provides reusable cards/card bodies, semantic detail lists, form sections, checkbox fields, drawer headers and action footers. Project/revision pages and forms share these presentation components; callers retain formatting, draft state, validation, permissions and mutation behavior.
 
 The cleanup's read-only before/after Chrome comparison covered nine desktop/mobile page and drawer views. All measured geometry was identical; three screenshots were pixel-identical. Remaining screenshot differences reflected live project status changing from Paused to Active between captures, including status counts and lifecycle actions. The comparison made no application writes and reported no page errors.
+
+### Tailwind migration
+
+Removed `ui-c-workspace.css`. Reusable components and feature pages now consume static Tailwind class sets from `components/ui/workspace-styles.ts`. These cover layouts, typography, controls, tables, responsive breakpoints, interaction states and reduced motion. Scope markers keep shared component defaults and explicit overrides compatible; they have no standalone stylesheet rules. Values remain centralized in the shared CSS tokens. `styles/workspace-motion.css` contains only the two animation keyframes.
+
+The migration preserves the restored typography and the local removal of Project Overview's two section headings. All nine before/after screenshots matched pixel-for-pixel (desktop pages, creation/edit drawers and mobile Revision Overview), with no application writes or runtime page errors.
 
 ## Validation
 

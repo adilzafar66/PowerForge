@@ -1,4 +1,6 @@
 "use client";
+import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
+
 import { WorkspaceCard } from "@/components/ui/workspace-patterns";
 
 import Link from "next/link";
@@ -68,7 +70,7 @@ export function ProjectList({
   }
 
   return (
-    <div className="ui-c">
+    <div className={ws.root}>
       <WorkspaceHeader
         title="Projects"
         subtitle={`${projects.length} projects in workspace`}
@@ -81,15 +83,15 @@ export function ProjectList({
           </Button>
         }
       />
-      <div className="ui-c-content !pt-[30px]">
+      <div className={`${ws.content} !pt-[30px]`}>
         <AsyncState
           pending={query.isPending}
           error={query.error}
           retry={refresh}
         />
         <WorkspaceCard as="div">
-          <div className="ui-c-toolbar">
-            <div className="ui-c-toolbar-controls">
+          <div className={ws.toolbar}>
+            <div className={ws.toolbarControls}>
               <label className="flex min-h-[41px] items-center gap-[10px] rounded-lg border border-border bg-[#F9FBFC] px-[13px]">
                 <Search size={16} className="text-muted" />
                 <input
@@ -101,7 +103,7 @@ export function ProjectList({
                 />
               </label>
               <div
-                className="ui-c-tabs ui-c-project-tabs"
+                className={`${ws.tabs} ${ws.projectTabs}`}
                 role="group"
                 aria-label="Project status"
               >
@@ -129,8 +131,8 @@ export function ProjectList({
               {loading ? "Refreshing…" : "Refresh"}
             </Button>
           </div>
-          <div className="ui-c-table-scroll">
-            <table className="ui-c-table ui-c-project-table">
+          <div className={ws.tableScroll}>
+            <table className={`${ws.table} ${ws.projectTable}`}>
               <colgroup>
                 {["12%", "33%", "14%", "13%", "14%", "12%", "2%"].map(
                   (width, index) => (
@@ -230,14 +232,14 @@ export function ProjectList({
               )}
             </div>
           )}
-          <div className="ui-c-table-footer">
+          <div className={ws.tableFooter}>
             <span>
               Showing {filtered.length} of {projects.length} projects
             </span>
             <span>Project register</span>
           </div>
         </WorkspaceCard>
-        <p className="ui-c-help">
+        <p className={ws.help}>
           Select a project to view its overview and edit its metadata. Status
           filters and search update immediately.
         </p>
