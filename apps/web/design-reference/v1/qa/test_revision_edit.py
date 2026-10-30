@@ -1,13 +1,14 @@
 from pathlib import Path
 from playwright.sync_api import sync_playwright
-p=Path('/mnt/data/powerforge_ux_v1_4/prototypes/powerforge-project-revisions-prototype.html')
-pre=Path('/mnt/data/powerforge_ux_v1_4/previews');pre.mkdir(parents=True,exist_ok=True)
+ROOT=Path(__file__).resolve().parent.parent
+p=ROOT/'prototypes/powerforge-project-revisions-prototype.html'
+pre=ROOT/'previews';pre.mkdir(parents=True,exist_ok=True)
 with sync_playwright() as play:
     browser=play.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox'])
     page=browser.new_page(viewport={'width':1440,'height':900},device_scale_factor=1)
     errors=[];page.on('pageerror',lambda e: errors.append(str(e)))
     page.set_content(p.read_text(encoding='utf-8'),wait_until='load');page.wait_for_timeout(100)
-    assert page.locator('h1').first.inner_text().startswith('BC Ferries')
+    assert page.locator('h1').first.inner_text()=='Revisions'
     page.locator('#revision-label').click();page.wait_for_timeout(340)
     assert page.locator('[data-action="edit-revision"]').count()==1
     # Contextual placement: metadata editor belongs to Revision Information, not the page header.
@@ -24,7 +25,7 @@ with sync_playwright() as play:
     page.locator('#edit-identifier').fill('IFC 123 R1')
     page.locator('#edit-description').fill('Updated equipment ratings and system model assumptions')
     page.locator('#edit-frequency').fill('60')
-    page.locator('#edit-phase').select_option('3')
+    page.locator('#edit-phase').evaluate("el => { el.value='3'; el.dispatchEvent(new Event('change',{bubbles:true})) }")
     assert page.locator('#save-revision').is_enabled()
     page.wait_for_timeout(150)
     page.screenshot(path=str(pre/'edit-revision-filled-preview.png'),full_page=False)

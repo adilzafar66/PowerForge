@@ -32,7 +32,7 @@ with sync_playwright() as p:
  page.wait_for_timeout(730)
  assert page.get_by_role('heading',name='Ridgeline Substation').is_visible()
  page.screenshot(path=str(out/'project-overview-new-preview.png'),full_page=True)
- page.get_by_role('button',name='Edit',exact=True).click()
+ page.get_by_role('button',name='Edit details').click()
  page.wait_for_timeout(350)
  page.screenshot(path=str(out/'edit-project-preview.png'),full_page=False)
  assert page.get_by_role('heading',name='Edit Project').is_visible()
@@ -48,7 +48,7 @@ with sync_playwright() as p:
  page.get_by_role('button',name='Resume').click()
  page.get_by_role('button',name='Resume project').click()
  assert page.get_by_text('Active',exact=True).count()>=1
- page.get_by_role('button',name='All Projects').click()
+ page.locator('#nav-projects').click()
  assert page.locator('tbody tr').count()==7
  assert not errs, errs
  print('PASS: list filtering, creation validations, first revision, project edit & save, pause/resume, list refresh; console errors=',errs)

@@ -1,6 +1,7 @@
 from playwright.sync_api import sync_playwright
 from pathlib import Path
-p=Path('/mnt/data/powerforge_ux_v1_4/prototypes/powerforge-project-revisions-prototype.html')
+ROOT=Path(__file__).resolve().parent.parent
+p=ROOT/'prototypes/powerforge-project-revisions-prototype.html'
 pre=Path('/mnt/data/powerforge_ux_v1_4/previews');pre.mkdir(exist_ok=True)
 with sync_playwright() as play:
     browser=play.chromium.launch(headless=True,executable_path='/usr/bin/chromium',args=['--no-sandbox'])
@@ -8,8 +9,8 @@ with sync_playwright() as play:
     errors=[];page.on('pageerror',lambda e: errors.append(str(e)))
     page.set_content(p.read_text(encoding="utf-8"), wait_until="load")
     page.wait_for_timeout(350)
-    print('Overview title',page.locator('h1').first.inner_text())
-    page.screenshot(path=str(pre/'project-overview-preview.png'),full_page=True)
+    print('Revisions title',page.locator('h1').first.inner_text())
+    page.screenshot(path=str(pre/'revisions-preview.png'),full_page=True)
     page.locator('#nav-revisions').click();page.wait_for_timeout(450)
     print('Revisions title',page.locator('h1').first.inner_text(), 'rows', page.locator('tr[data-open-revision]').count())
     page.screenshot(path=str(pre/'revisions-preview.png'),full_page=True)

@@ -1,11 +1,19 @@
 # PowerForge UI/UX Design Handoff for Codex
 
+## Design autonomy and non-prescriptive references (v1.12)
+
+**Treat the prototypes as UX inspiration, not pixel-perfect deliverables or a checklist of UI widgets.** Codex has discretion to reorganize sections, refine layouts and spacing, reuse existing production components, simplify navigation, remove redundant controls, and improve the user experience when it better fits PowerForge architecture. Do not add a control merely because the prototype displays one. Keep useful functionality, not ornamental redundancy.
+
+**Keep the font family already used by the production app.** Fonts visible in prototype HTML are example styling, not a mandate to change fonts. The source of truth for current application architecture, routing, server state, API contracts, engineering invariants and access control is the repository at implementation time.
+
+The prototype's mock project/revision counts, status actions, cross-file links, and view transitions are illustrative only. They are not requirements to copy into production and do not override existing behavior.
+
 ## Priority and source hierarchy
 
 1. **Engineering behavior:** The actual PowerForge repository on `main`, with Phase 5 canonical-model rules, atomic equipment editor endpoint, terminal-profile and revision protections. Existing behavior wins over any simplified mock interaction.
-2. **Approved visual foundation:** Figma **Option A**, [App Shell + Equipment List](https://www.figma.com/design/YEcVV661Evf26gqMgrolCk?node-id=2-34), including permanent left navigation and its project/revision hierarchy. Option B was rejected and deleted.
-3. **Detailed interaction references:** The HTML prototypes in `prototypes/`; these supply examples of desired UX only, not API contracts, source-of-truth data, or production components.
-4. **Design tokens:** `design-tokens.css`, recommended initial palette and dimension values. Verify contrast and responsive behavior.
+2. **Optional visual reference:** Figma **Option A**, [App Shell + Equipment List](https://www.figma.com/design/YEcVV661Evf26gqMgrolCk?node-id=2-34), and existing application conventions. The React application may reasonably differ.
+3. **Non-prescriptive interaction references:** The HTML prototypes in `prototypes/`; their patterns and interactions may be adapted, consolidated, or simplified for the architecture.
+4. **Optional token examples:** `design-tokens.css` shows a proposed palette and dimensions; prefer established project tokens when appropriate.
 
 **Do not blindly convert the HTML into React.** Use its visual and interaction patterns to refactor the existing frontend and reusable components. Retain all backend/engineering invariants.
 
@@ -15,7 +23,7 @@
 |---|---|---|
 | `prototypes/powerforge-equipment-prototype.html` | Equipment list, quick details, full editor | Nonmodal browsing, selected row, editor tabs, compact attributes, Return/Save states |
 | `prototypes/powerforge-document-evidence-prototype.html` | Document inspector + Phase 6 evidence browser | Thumbnail rail, zoom and pan, panel controls, grouped candidate list, page-to-evidence highlighting |
-| `prototypes/powerforge-project-revisions-prototype.html` | Project overview, revision list/overview, create, edit, and activation dialogs | Cross-revision navigation, independently selected carry-forward, deliberate activation, revision metadata editor, lifecycle statuses |
+| `prototypes/powerforge-project-revisions-prototype.html` | Revision list/overview, create, edit, and activation dialogs | Cross-revision navigation, independently selected carry-forward, deliberate activation, revision metadata editor, lifecycle statuses |
 | `previews/*.png` | Static review images | Visual comparison only; HTML files are interactive |
 
 All three prototypes are self-contained and work without a build process or external dependencies. They contain original illustrative engineering SVGs and locally simulated state.
@@ -28,7 +36,7 @@ All three prototypes are self-contained and work without a build process or exte
 - **Footer:** System Status.
 - Clicking a **revision label** opens Revision Overview. Clicking its **chevron** opens a revision switcher.
 - Sidebar remains visible on desktop and adapts on smaller displays.
-- Use Instrument Sans where available, JetBrains Mono for numeric identifiers as appropriate, and dark action blue `#24557A`.
+- Keep the current application font family; use existing token conventions where sensible. The reference action blue is `#24557A`.
 
 ## Equipment experience: must preserve
 
@@ -53,7 +61,7 @@ All three prototypes are self-contained and work without a build process or exte
 
 ## Project and revision experience (new in v1.2)
 
-- **Project Overview** prioritizes the current work and the active revision before less frequently edited metadata. Show revision history and actionable links to the dedicated list/overview.
+- **Unified Project Overview** starts with Project Information, metadata editing and lifecycle. **Revision activity follows** (current work, active revision, status/counts and recent revision history); link to dedicated Revisions and Revision Overview. The sole overview reference lives in the Projects prototype.
 - **Revisions** is a project-level destination listing revisions with search, status filters, ancestry, and lifecycle status. The sample includes Active, Draft and Superseded; production data comes from the API.
 - **Revision Overview** is distinct from the project-level list and from the working Documents/Engineering Model views. Status, ancestry, inherited documents/model provenance and navigation remain discoverable.
 - The current revision label in the sidebar goes to its **Revision Overview**; the adjacent chevron opens a **revision selector**. Switching revisions must update the route and project/revision context.
@@ -88,7 +96,7 @@ All three prototypes are self-contained and work without a build process or exte
 
 - PowerForge repo: `https://github.com/adilzafar66/PowerForge`
 - Approved Figma: `https://www.figma.com/design/YEcVV661Evf26gqMgrolCk?node-id=2-34`
-- Add this package at a stable `docs/design/prototypes/powerforge-ux-v1.7/` path (or another agreed location) in the working branch before asking Codex to implement any slice. Point Codex to local file paths, not transient ChatGPT sandbox URLs.
+- Add this package at a stable `docs/design/prototypes/powerforge-ux-v1.7/` path (or another agreed location) in the working branch before asking Codex to implement any slice. Point Codex to local file paths, not transient ChatGPT sandbox URLs. Adapt layouts to production rather than copying the HTML exactly.
 
 
 ## UX-7 — Projects List, Create & Edit (v1.7)
