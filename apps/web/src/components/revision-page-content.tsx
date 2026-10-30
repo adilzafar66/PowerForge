@@ -53,7 +53,6 @@ export function RevisionPageContent({
   return (
     <AppShell project={project} revision={revision} revisions={revisions}>
       <div className="w-full min-w-0 px-4 py-6 md:px-8 md:py-8">
-        \n
         <AsyncState
           refreshing={pq.isFetching || rq.isFetching || rs.isFetching}
           error={pq.error || rq.error || rs.error}
