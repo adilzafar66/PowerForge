@@ -46,6 +46,10 @@ Read-only Chrome screenshots were captured at 1440×1000 and 390×844, with anim
 
 ## Shared UI patterns
 
+### Typography follow-up
+
+At the user's request, typography now follows the earlier application baseline rather than exact prototype typography: 29px page titles, 13.5px body/detail/table text, 12–12.5px supporting text, and standard 400/500/600/700 weights. The initial UI-C version was not committed independently, so this restores the earlier shared-component conventions rather than claiming an exact historical revert. Font families, layout tokens, colors, reusable components and behavior remain unchanged. The pixel comparison below describes the preceding component extraction, before this intentional typography change.
+
 UI-C's repeated colors, typography, spacing, radii, control sizes, layout dimensions and motion values now live in `apps/web/src/styles/workspace-tokens.css`, reusing UI-A tokens where values match. Scoped workspace CSS consumes these tokens without changing their approved values.
 
 `components/ui/workspace-patterns.tsx` provides reusable cards/card bodies, semantic detail lists, form sections, checkbox fields, drawer headers and action footers. Project/revision pages and forms share these presentation components; callers retain formatting, draft state, validation, permissions and mutation behavior.

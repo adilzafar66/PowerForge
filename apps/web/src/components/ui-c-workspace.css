@@ -18,7 +18,7 @@
   min-height: var(--pf-control-height-action);
   border-radius: var(--pf-radius-control);
   font-size: var(--pf-type-label);
-  font-weight: 720;
+  font-weight: var(--pf-weight-semibold);
 }
 .ui-c-table tr:focus-visible {
   outline: 2px solid var(--pf-action);
@@ -29,10 +29,10 @@
   height: 78px;
 }
 .ui-c-shell nav[aria-label="Main navigation"] a {
-  font-weight: 570;
+  font-weight: var(--pf-weight-medium);
 }
 .ui-c-shell nav[aria-label="Main navigation"] a[aria-current="page"] {
-  font-weight: 750;
+  font-weight: var(--pf-weight-semibold);
 }
 .ui-c-sheet.project .ui-c-drawer-head {
   padding: 23px var(--pf-space-24);
@@ -62,8 +62,8 @@
 .ui-c-head h1 {
   font-size: var(--pf-type-title);
   line-height: 1.2;
-  letter-spacing: -0.85px;
-  font-weight: 750;
+  letter-spacing: -0.025em;
+  font-weight: var(--pf-weight-bold);
   margin: 0 0 var(--pf-space-6);
   display: flex;
   align-items: center;
@@ -122,7 +122,7 @@
 .ui-c-card-top h2,
 .ui-c-form-head h2 {
   font-size: var(--pf-type-section);
-  font-weight: 750;
+  font-weight: var(--pf-weight-semibold);
   letter-spacing: -0.2px;
   margin: 0;
 }
@@ -139,7 +139,7 @@
 }
 .ui-c-section-title {
   font-size: var(--pf-type-section);
-  font-weight: 760;
+  font-weight: var(--pf-weight-semibold);
   letter-spacing: -0.3px;
   margin: 0 0 var(--pf-space-14);
 }
@@ -172,7 +172,7 @@
 .ui-c-details dt {
   font-size: var(--pf-type-caption);
   color: var(--pf-text-secondary);
-  font-weight: 700;
+  font-weight: var(--pf-weight-semibold);
 }
 .ui-c-details.project dt,
 .ui-c-details.project dd {
@@ -188,7 +188,7 @@
 }
 .ui-c-rail h2 {
   font-size: var(--pf-type-body);
-  font-weight: 750;
+  font-weight: var(--pf-weight-semibold);
   margin: 0 0 var(--pf-space-12);
 }
 .ui-c-rail p {
@@ -209,13 +209,13 @@
 .ui-c-summary dd {
   margin: 0;
   text-align: right;
-  font-weight: 700;
+  font-weight: var(--pf-weight-semibold);
 }
 .ui-c-overline {
   font-size: var(--pf-type-overline);
   letter-spacing: 0.75px;
   color: var(--pf-text-tertiary);
-  font-weight: 800;
+  font-weight: var(--pf-weight-bold);
   text-transform: uppercase;
 }
 .ui-c-work {
@@ -229,7 +229,7 @@
 }
 .ui-c-work h2 {
   font-size: var(--pf-type-subheading);
-  font-weight: 750;
+  font-weight: var(--pf-weight-semibold);
   letter-spacing: -0.4px;
   margin: var(--pf-space-6) 0 7px;
 }
@@ -255,7 +255,7 @@
 .ui-c-stat strong {
   display: block;
   font-size: var(--pf-type-editor);
-  font-weight: 750;
+  font-weight: var(--pf-weight-semibold);
 }
 .ui-c-stat small {
   color: var(--pf-text-secondary);
@@ -280,7 +280,7 @@
 }
 .ui-c-history-row strong {
   font-size: var(--pf-type-label);
-  font-weight: 750;
+  font-weight: var(--pf-weight-semibold);
 }
 .ui-c-history-row small {
   display: block;
@@ -295,7 +295,7 @@
   padding: var(--pf-space-5) var(--pf-space-10);
   border-radius: var(--pf-radius-pill);
   font-size: var(--pf-type-micro);
-  font-weight: 800;
+  font-weight: var(--pf-weight-bold);
   white-space: nowrap;
   line-height: normal;
   color: var(--pf-text-secondary);
@@ -336,7 +336,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--pf-space-8);
-  font-weight: 720;
+  font-weight: var(--pf-weight-semibold);
   font-size: var(--pf-type-label);
   box-shadow: none;
   transition:
@@ -416,7 +416,7 @@
   border-radius: var(--pf-radius-sm);
   color: var(--pf-text-secondary);
   font-size: var(--pf-type-caption);
-  font-weight: 720;
+  font-weight: var(--pf-weight-semibold);
   cursor: pointer;
   transition: background var(--pf-transition-fast);
 }
@@ -456,7 +456,7 @@
   color: var(--pf-text-tertiary);
   letter-spacing: 0.7px;
   text-transform: uppercase;
-  font-weight: 810;
+  font-weight: var(--pf-weight-bold);
   padding: var(--pf-space-14) var(--pf-space-17);
   white-space: nowrap;
 }
@@ -474,7 +474,7 @@
   background: var(--pf-table-row-hover);
 }
 .ui-c-table strong {
-  font-weight: 750;
+  font-weight: var(--pf-weight-semibold);
 }
 .ui-c-table small {
   display: block;
@@ -492,7 +492,7 @@
 .ui-c-project-table .project-name {
   font-size: var(--pf-type-body);
   color: var(--pf-text-primary);
-  font-weight: 760;
+  font-weight: var(--pf-weight-semibold);
 }
 .ui-c-table-footer {
   border-top: 1px solid var(--pf-border);
@@ -579,7 +579,7 @@
 }
 .ui-c-timeline h3 {
   font-size: var(--pf-type-label);
-  font-weight: 750;
+  font-weight: var(--pf-weight-semibold);
   margin: 0 0 var(--pf-space-5);
 }
 .ui-c-timeline p {
@@ -622,7 +622,7 @@
 }
 .ui-c-tip h3 {
   font-size: var(--pf-type-body);
-  font-weight: 750;
+  font-weight: var(--pf-weight-semibold);
   margin-bottom: var(--pf-space-8);
 }
 .ui-c-tip p {
@@ -635,7 +635,7 @@
 .ui-c-sheet label {
   color: var(--pf-text-secondary);
   font-size: var(--pf-type-caption);
-  font-weight: 760;
+  font-weight: var(--pf-weight-semibold);
 }
 .ui-c-form input:not([type="checkbox"]),
 .ui-c-form textarea,
@@ -673,7 +673,7 @@
 .ui-c-check small {
   display: block;
   font-size: var(--pf-type-caption);
-  font-weight: 400;
+  font-weight: var(--pf-weight-regular);
   color: var(--pf-text-secondary);
   margin-top: var(--pf-space-5);
   line-height: 1.5;
@@ -697,7 +697,7 @@
 }
 .ui-c-drawer-head h2 {
   font-size: var(--pf-type-editor);
-  font-weight: 750;
+  font-weight: var(--pf-weight-semibold);
   letter-spacing: -0.5px;
   margin: 0 0 var(--pf-space-6);
 }
@@ -733,7 +733,7 @@
   text-transform: uppercase;
   letter-spacing: 0.75px;
   color: var(--pf-text-tertiary);
-  font-weight: 800;
+  font-weight: var(--pf-weight-bold);
   padding-top: var(--pf-space-12);
   border-top: 1px solid var(--pf-border);
 }
@@ -851,4 +851,23 @@
   .ui-c * {
     transition-duration: 0ms !important;
   }
+}
+
+/* Restore the application typography while retaining the approved layout. */
+.ui-c-btn,
+.ui-c-dialog button {
+  font-size: var(--pf-type-button);
+  font-weight: var(--pf-weight-medium);
+}
+.ui-c-btn.small {
+  font-size: var(--pf-type-button-small);
+}
+.ui-c-status {
+  font-size: var(--pf-type-badge);
+  font-weight: var(--pf-weight-semibold);
+}
+.ui-c-details dd,
+.ui-c-details.project dd,
+.ui-c-table td {
+  font-size: var(--pf-type-body);
 }

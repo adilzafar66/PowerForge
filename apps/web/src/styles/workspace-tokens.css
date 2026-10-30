@@ -31,18 +31,26 @@
   --pf-radius-tip: 10px;
   --pf-radius-dialog: 13px;
   --pf-radius-pill: 30px;
-  --pf-type-overline: 10px;
-  --pf-type-caption: 11px;
-  --pf-type-label: 12px;
-  --pf-type-body: 13px;
+  /* Pre-fidelity application typography; prototype layout tokens stay unchanged. */
+  --pf-weight-regular: 400;
+  --pf-weight-medium: 500;
+  --pf-weight-semibold: 600;
+  --pf-weight-bold: 700;
+  --pf-type-button: 13.5px;
+  --pf-type-button-small: 12.5px;
+  --pf-type-badge: 11.5px;
+  --pf-type-overline: 11px;
+  --pf-type-caption: 12px;
+  --pf-type-label: 12.5px;
+  --pf-type-body: 13.5px;
   --pf-type-section: 15px;
   --pf-type-editor-compact: 18px;
-  --pf-type-subheading: 19px;
+  --pf-type-subheading: 18px;
   --pf-type-editor: 20px;
-  --pf-type-title-mobile: 23px;
-  --pf-type-title: 27px;
-  --pf-type-micro: 10.5px;
-  --pf-type-hint: 11.5px;
+  --pf-type-title-mobile: 29px;
+  --pf-type-title: 29px;
+  --pf-type-micro: 12px;
+  --pf-type-hint: 12px;
 
   /* Exact reference spacing scale, shared by forms, cards, tables and editors. */
   --pf-space-4: 4px;
