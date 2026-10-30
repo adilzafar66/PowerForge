@@ -1,5 +1,8 @@
 "use client";
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keys } from "@/lib/query-keys";
+import { AsyncState } from "@/components/ui/async-state";
 import { AppShell } from "@/components/app-shell";
 
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,7 +11,6 @@ import { Select } from "@/components/ui/select";
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Lock, Plus } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +29,8 @@ import { Mono } from "@/components/ui/mono";
 import { RevisionLineage } from "@/components/revision-lineage";
 import { SectionHeader } from "@/components/ui/section-header";
 import {
+  getProject,
+  listRevisions,
   activateRevision,
   createRevision,
   formatDateShort,
@@ -105,9 +109,27 @@ export function ProjectDetail({
   initialProject: Project;
   initialRevisions: Revision[];
 }) {
-  const router = useRouter();
-  const [project, setProject] = useState(initialProject);
-  const [revisions, setRevisions] = useState(initialRevisions);
+  const client = useQueryClient();
+  const projectQuery = useQuery({
+    queryKey: keys.project(initialProject.id),
+    queryFn: () => getProject(initialProject.id),
+    initialData: initialProject,
+  });
+  const revisionsQuery = useQuery({
+    queryKey: keys.revisions(initialProject.id),
+    queryFn: () => listRevisions(initialProject.id),
+    initialData: initialRevisions,
+  });
+  const project = projectQuery.data;
+  const revisions = revisionsQuery.data;
+  const setProject = (value: Project | ((current: Project) => Project)) =>
+    client.setQueryData<Project>(keys.project(project.id), (old) =>
+      typeof value === "function" ? value(old ?? project) : value,
+    );
+  const setRevisions = (value: (current: Revision[]) => Revision[]) =>
+    client.setQueryData<Revision[]>(keys.revisions(project.id), (old) =>
+      value(old ?? revisions),
+    );
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
@@ -202,7 +224,6 @@ export function ProjectDetail({
       const updated = await projectAction(project.id, action);
       setProject(updated);
       setMessage(`Project is now ${updated.status}.`);
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed");
     } finally {
@@ -228,7 +249,6 @@ export function ProjectDetail({
       setProject(updated);
       setEditing(false);
       setMessage("Project updated.");
-      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed");
     } finally {
@@ -276,7 +296,6 @@ export function ProjectDetail({
       );
       resetRevisionForm();
       setShowAddRevision(false);
-      router.refresh();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not create revision",
@@ -308,7 +327,6 @@ export function ProjectDetail({
         active_revision_identifier: activated.identifier,
       }));
       setMessage(`Revision ${activated.identifier} is now ACTIVE.`);
-      router.refresh();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not activate revision",
@@ -324,6 +342,14 @@ export function ProjectDetail({
         {null}
       </AppShell>
 
+      <AsyncState
+        refreshing={projectQuery.isFetching || revisionsQuery.isFetching}
+        error={projectQuery.error || revisionsQuery.error}
+        retry={() => {
+          void projectQuery.refetch();
+          void revisionsQuery.refetch();
+        }}
+      />
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <div className="mb-1.5 flex items-center gap-2.5">
@@ -343,7 +369,18 @@ export function ProjectDetail({
             busy={busy}
             readOnly={readOnly}
             status={project.status}
-            onEdit={() => setEditing((value) => !value)}
+            onEdit={() => {
+              if (!editing)
+                setEditForm({
+                  project_name: project.project_name,
+                  client_name: project.client_name ?? "",
+                  project_address: project.project_address ?? "",
+                  project_scope: project.project_scope ?? "",
+                  description: project.description ?? "",
+                  engineer_names: project.engineer_names.join(", "),
+                });
+              setEditing((value) => !value);
+            }}
             onAction={setConfirmAction}
           />
         </div>
@@ -358,9 +395,18 @@ export function ProjectDetail({
         </div>
       ) : null}
 
-      {error ? <p className="mb-4 text-[13px] text-red-600">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="pf-feedback mb-4 text-[13px] text-red-600">
+          {error}
+        </p>
+      ) : null}
       {message ? (
-        <p className="mb-4 text-[13px] text-emerald-600">{message}</p>
+        <p
+          role="status"
+          className="pf-feedback mb-4 text-[13px] text-emerald-600"
+        >
+          {message}
+        </p>
       ) : null}
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">

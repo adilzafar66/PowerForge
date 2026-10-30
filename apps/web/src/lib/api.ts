@@ -1,4 +1,5 @@
 import { apiBaseUrl, apiBaseUrlServer } from "@/lib/health";
+import { serverWriteConfirmed } from "./server-writes";
 
 export type ApiError = {
   detail: string;
@@ -33,13 +34,19 @@ export async function parseError(response: Response): Promise<ApiError> {
       return { detail };
     }
     if (Array.isArray(detail)) {
-      const messages = detail.map((item) => item?.msg).filter((msg): msg is string => !!msg);
+      const messages = detail
+        .map((item) => item?.msg)
+        .filter((msg): msg is string => !!msg);
       return { detail: messages.length > 0 ? messages.join("; ") : fallback };
     }
     if (detail && typeof detail === "object") {
-      const error: ApiError = { detail: detail.detail ?? fallback, code: detail.code };
+      const error: ApiError = {
+        detail: detail.detail ?? fallback,
+        code: detail.code,
+      };
       if (detail.existing_revision_document_id) {
-        error.existing_revision_document_id = detail.existing_revision_document_id;
+        error.existing_revision_document_id =
+          detail.existing_revision_document_id;
       }
       if (detail.existing_status) {
         error.existing_status = detail.existing_status;
@@ -68,12 +75,19 @@ export async function request<T>(
   });
   if (!response.ok) {
     const error = await parseError(response);
-    throw Object.assign(new Error(error.detail), { apiError: error, status: response.status });
+    throw Object.assign(new Error(error.detail), {
+      apiError: error,
+      status: response.status,
+    });
   }
   if (response.status === 204) {
+    if (init?.method && init.method !== "GET") serverWriteConfirmed(path);
     return undefined as T;
   }
-  return (await response.json()) as T;
+  const result = (await response.json()) as T;
+  if (init?.method && !["GET", "HEAD"].includes(init.method))
+    serverWriteConfirmed(path);
+  return result;
 }
 
 /** The HTTP status and structured error of a failed `request`, or nulls for other errors. */
@@ -86,7 +100,12 @@ export function apiErrorOf(err: unknown): {
   const detail = err instanceof Error ? err.message : "Request failed";
   if (err && typeof err === "object" && "apiError" in err) {
     const { apiError, status } = err as { apiError: ApiError; status?: number };
-    return { status: status ?? null, code: apiError.code ?? null, detail, error: apiError };
+    return {
+      status: status ?? null,
+      code: apiError.code ?? null,
+      detail,
+      error: apiError,
+    };
   }
   return { status: null, code: null, detail, error: null };
 }

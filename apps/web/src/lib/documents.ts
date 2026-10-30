@@ -1,4 +1,5 @@
 import { parseError, request, resolveBase } from "@/lib/api";
+import { serverWriteConfirmed } from "./server-writes";
 import type { Project, Revision } from "@/lib/projects";
 
 export const DOCUMENT_TYPES = [
@@ -58,7 +59,8 @@ export type RevisionDocument = {
   classification: ClassificationSummary;
 };
 
-export type ProcessingRunStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
+export type ProcessingRunStatus =
+  "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
 
 export type ProcessingSummary = {
   status: ProcessingRunStatus;
@@ -69,7 +71,8 @@ export type ProcessingSummary = {
   error_message: string | null;
 };
 
-export type ClassificationRunStatus = "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
+export type ClassificationRunStatus =
+  "PENDING" | "RUNNING" | "COMPLETED" | "FAILED";
 export type ClassificationStage = "DOCUMENT" | "PAGES";
 export type ConfidenceBand = "HIGH" | "MEDIUM" | "LOW";
 
@@ -204,9 +207,11 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   UNKNOWN: "Unclassified",
 };
 
-export const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = DOCUMENT_TYPES.map(
-  (value) => ({ value, label: DOCUMENT_TYPE_LABELS[value] }),
-);
+export const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] =
+  DOCUMENT_TYPES.map((value) => ({
+    value,
+    label: DOCUMENT_TYPE_LABELS[value],
+  }));
 
 export function documentTypeLabel(type: DocumentType): string {
   return DOCUMENT_TYPE_LABELS[type] ?? type;
@@ -257,7 +262,9 @@ export function confidenceBandLabel(band: ConfidenceBand): string {
 }
 
 /** Short text for a failed attempt. The two timeout codes stay distinct. */
-export function classificationErrorLabel(code: string | null | undefined): string {
+export function classificationErrorLabel(
+  code: string | null | undefined,
+): string {
   if (code === "PROVIDER_TIMEOUT") {
     return "The classification provider timed out.";
   }
@@ -301,7 +308,10 @@ type MutabilityContext = {
 };
 
 /** Why the document package cannot be changed, or null when it can. The backend is authoritative. */
-export function readOnlyReason({ project, revision }: MutabilityContext): string | null {
+export function readOnlyReason({
+  project,
+  revision,
+}: MutabilityContext): string | null {
   if (project.status === "ARCHIVED") {
     return "This project is archived, so its documents are read-only.";
   }
@@ -320,7 +330,9 @@ export function canMutate(context: MutabilityContext): boolean {
 }
 
 /** Browsers cannot render TIFF, so it is offered as a download only. */
-export function canOpenInline(document: Pick<DocumentSummary, "mime_type">): boolean {
+export function canOpenInline(
+  document: Pick<DocumentSummary, "mime_type">,
+): boolean {
   return document.mime_type.toLowerCase() !== "image/tiff";
 }
 
@@ -369,10 +381,13 @@ export async function updateDocument(
   revisionDocumentId: string,
   input: DocumentUpdateInput,
 ): Promise<RevisionDocument> {
-  return request<RevisionDocument>(`${documentsPath(projectId, revisionId)}/${revisionDocumentId}`, {
-    method: "PATCH",
-    body: JSON.stringify(input),
-  });
+  return request<RevisionDocument>(
+    `${documentsPath(projectId, revisionId)}/${revisionDocumentId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 export async function removeDocument(
@@ -402,10 +417,13 @@ export async function reuseDocument(
   revisionId: string,
   input: ReuseInput,
 ): Promise<RevisionDocument> {
-  return request<RevisionDocument>(`${documentsPath(projectId, revisionId)}/reuse`, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  return request<RevisionDocument>(
+    `${documentsPath(projectId, revisionId)}/reuse`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
 }
 
 /** A fresh signed URL on every call; callers must not cache or log it. */
@@ -524,7 +542,10 @@ const UPLOAD_EXTENSIONS = [".pdf", ".png", ".jpg", ".jpeg", ".tif", ".tiff"];
 export const UPLOAD_ACCEPT = UPLOAD_EXTENSIONS.join(",");
 
 /** A quick pre-check so obvious mistakes fail without a round trip. The server still validates. */
-export function validateUploadFile(file: File, maxBytes: number = MAX_UPLOAD_BYTES): string | null {
+export function validateUploadFile(
+  file: File,
+  maxBytes: number = MAX_UPLOAD_BYTES,
+): string | null {
   const name = file.name;
   const dot = name.lastIndexOf(".");
   const extension = dot >= 0 ? name.slice(dot).toLowerCase() : "";
@@ -572,7 +593,12 @@ export function uploadDocument(
 
     const form = new FormData();
     form.append("file", file, file.name);
-    for (const key of ["document_type", "document_number", "description", "notes"] as const) {
+    for (const key of [
+      "document_type",
+      "document_number",
+      "description",
+      "notes",
+    ] as const) {
       const value = metadata[key];
       if (value !== undefined && value !== null) {
         form.append(key, value);
@@ -586,28 +612,43 @@ export function uploadDocument(
     xhr.open("POST", `${resolveBase()}${documentsPath(projectId, revisionId)}`);
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable && event.total > 0) {
-        onProgress?.(Math.min(100, Math.round((event.loaded / event.total) * 100)));
+        onProgress?.(
+          Math.min(100, Math.round((event.loaded / event.total) * 100)),
+        );
       }
     };
     xhr.onload = async () => {
       cleanup();
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
-          resolve(JSON.parse(xhr.responseText) as UploadResult);
+          const result = JSON.parse(xhr.responseText) as UploadResult;
+          serverWriteConfirmed(documentsPath(projectId, revisionId));
+          resolve(result);
         } catch {
           reject(new Error("The server returned an unreadable response."));
         }
         return;
       }
       const apiError = await parseError(
-        new Response(xhr.responseText, { status: xhr.status, statusText: xhr.statusText }),
+        new Response(xhr.responseText, {
+          status: xhr.status,
+          statusText: xhr.statusText,
+        }),
       );
-      reject(Object.assign(new Error(apiError.detail), { apiError, status: xhr.status }));
+      reject(
+        Object.assign(new Error(apiError.detail), {
+          apiError,
+          status: xhr.status,
+        }),
+      );
     };
     xhr.onerror = () => {
       cleanup();
-      const detail = "Could not reach the server. Check your connection and retry.";
-      reject(Object.assign(new Error(detail), { apiError: { detail }, status: 0 }));
+      const detail =
+        "Could not reach the server. Check your connection and retry.";
+      reject(
+        Object.assign(new Error(detail), { apiError: { detail }, status: 0 }),
+      );
     };
     xhr.onabort = () => {
       cleanup();

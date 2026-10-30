@@ -10,10 +10,15 @@ import {
   type DocumentType,
   type RevisionDocument,
 } from "@/lib/documents";
-import { canReclassifyDocument, canRetryClassification } from "@/components/document-overflow-menu";
+import {
+  canReclassifyDocument,
+  canRetryClassification,
+} from "@/components/document-overflow-menu";
 
 function typeLabel(type: string): string {
-  return type in DOCUMENT_TYPE_LABELS ? documentTypeLabel(type as DocumentType) : type;
+  return type in DOCUMENT_TYPE_LABELS
+    ? documentTypeLabel(type as DocumentType)
+    : type;
 }
 
 export function DocumentClassificationPanel({
@@ -40,7 +45,8 @@ export function DocumentClassificationPanel({
   const suggestion = row.classification.suggestion;
   const attempt = row.classification.attempt;
   const failed = attempt?.status === "FAILED";
-  const typesDiffer = suggestion != null && suggestion.predicted_type !== row.document_type;
+  const typesDiffer =
+    suggestion != null && suggestion.predicted_type !== row.document_type;
   const editable = canMutate && row.status === "INCLUDED";
   const rationale = detail?.rationale ?? null;
 
@@ -49,10 +55,23 @@ export function DocumentClassificationPanel({
       <h3 className="mb-2 text-[11px] font-bold tracking-widest text-slate-400 uppercase">
         AI Classification
       </h3>
+      {attempt &&
+        (attempt.status === "PENDING" || attempt.status === "RUNNING") && (
+          <p role="status" className="mb-2 text-sm text-muted">
+            {attempt.status === "PENDING"
+              ? "Classification pending"
+              : "Classifying"}
+            {attempt.stage === "PAGES" && attempt.pages_total > 0
+              ? ` · ${attempt.pages_classified} / ${attempt.pages_total} pages`
+              : ""}
+          </p>
+        )}
       {suggestion ? (
         <div className="space-y-1 text-[13px] text-slate-700">
           {suggestion.accepted ? (
-            <p className="font-medium text-emerald-700">Accepted AI classification</p>
+            <p className="font-medium text-emerald-700">
+              Accepted AI classification
+            </p>
           ) : null}
           <p>
             <span className="text-slate-500">
@@ -64,12 +83,20 @@ export function DocumentClassificationPanel({
           </p>
           <p>
             <span className="text-slate-500">Confidence</span>
-            <span className="mt-0.5 block">{confidenceBandLabel(suggestion.confidence_band)}</span>
+            <span className="mt-0.5 block">
+              {confidenceBandLabel(suggestion.confidence_band)}
+            </span>
           </p>
           {detail?.confidence_score != null ? (
-            <p className="text-[12.5px] text-slate-500">Score {detail.confidence_score.toFixed(2)}</p>
+            <p className="text-[12.5px] text-slate-500">
+              Score {detail.confidence_score.toFixed(2)}
+            </p>
           ) : null}
-          {rationale ? <p className="text-[13px] leading-relaxed text-slate-600">{rationale}</p> : null}
+          {rationale ? (
+            <p className="text-[13px] leading-relaxed text-slate-600">
+              {rationale}
+            </p>
+          ) : null}
           {typesDiffer ? (
             <p className="text-[12.5px] text-slate-500">
               Confirmed: {documentTypeLabel(row.document_type)}
@@ -97,9 +124,17 @@ export function DocumentClassificationPanel({
             <p className="font-medium text-red-700">Classification failed</p>
           )}
           <p className="text-red-700">Failed</p>
-          <p className="text-[12.5px] text-slate-500">{classificationErrorLabel(attempt?.error_code)}</p>
+          <p className="text-[12.5px] text-slate-500">
+            {classificationErrorLabel(attempt?.error_code)}
+          </p>
           {canRetryClassification(row) ? (
-            <Button type="button" variant="secondary" size="sm" onClick={onRetry} disabled={busy}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={onRetry}
+              disabled={busy}
+            >
               Retry
             </Button>
           ) : null}
@@ -108,7 +143,13 @@ export function DocumentClassificationPanel({
 
       {editable && suggestion && !suggestion.accepted ? (
         <div className="mt-3 flex flex-wrap gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={onAccept} disabled={busy}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={onAccept}
+            disabled={busy}
+          >
             {typesDiffer ? "Use AI suggestion" : "Accept suggestion"}
           </Button>
           {typesDiffer ? (
@@ -131,7 +172,13 @@ export function DocumentClassificationPanel({
 
       {canReclassifyDocument(row) ? (
         <div className="mt-3">
-          <Button type="button" variant="ghost" size="sm" onClick={onReclassify} disabled={busy}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onReclassify}
+            disabled={busy}
+          >
             Reclassify
           </Button>
         </div>

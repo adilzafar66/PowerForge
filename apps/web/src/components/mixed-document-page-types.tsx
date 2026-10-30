@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { keys } from "@/lib/query-keys";
+import { AsyncState } from "@/components/ui/async-state";
 
 import { Button } from "@/components/ui/button";
-import { apiErrorOf } from "@/lib/api";
 import {
   confidenceBandLabel,
   documentTypeLabel,
   listClassificationPages,
-  type ClassificationPagePrediction,
 } from "@/lib/documents";
 
 export function MixedDocumentPageTypes({
@@ -23,30 +24,38 @@ export function MixedDocumentPageTypes({
   onOpenPage: (pageNumber: number) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [pages, setPages] = useState<ClassificationPagePrediction[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: [
+      ...keys.document(projectId, revisionId, revisionDocumentId),
+      "classification-pages",
+    ],
+    queryFn: () =>
+      listClassificationPages(projectId, revisionId, revisionDocumentId),
+    enabled: open,
+  });
+  const pages = query.data;
 
   async function toggle() {
-    if (!open && pages === null) {
-      try {
-        setPages(await listClassificationPages(projectId, revisionId, revisionDocumentId));
-      } catch (err) {
-        setError(apiErrorOf(err).detail);
-      }
-    }
     setOpen((current) => !current);
   }
 
   return (
     <div className="mt-3">
-      <Button type="button" variant="secondary" size="sm" onClick={() => void toggle()}>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() => void toggle()}
+      >
         {open ? "Hide page classifications" : "View page classifications"}
       </Button>
-      {error ? (
-        <p role="alert" className="mt-1 text-[12px] text-red-600">
-          {error}
-        </p>
-      ) : null}
+      {open && (
+        <AsyncState
+          pending={query.isPending}
+          error={query.error}
+          retry={query.refetch}
+        />
+      )}
       {open && pages ? (
         <ul className="mt-2 space-y-1 text-[12.5px]">
           {pages.map((page) => (

@@ -158,6 +158,17 @@ body {
 .pf-checkbox[aria-invalid="true"] {
   border-color: var(--pf-danger);
 }
+@keyframes pf-feedback-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.pf-feedback {
+  animation: pf-feedback-in 180ms ease-out;
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

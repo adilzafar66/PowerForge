@@ -2,7 +2,7 @@
 
 import { Select } from "@/components/ui/select";
 
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { changedFields } from "@/components/document-editor";
 import { Button } from "@/components/ui/button";
@@ -35,22 +35,27 @@ export function DocumentTypeSection({
   const editable = canMutate && row.status === "INCLUDED";
   const selectId = useId();
   const [type, setType] = useState<DocumentType>(row.document_type);
+  const typeTouched = useRef(false);
+  const typeBaseline = useRef(row.document_type);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (typeTouched.current) return;
+    typeBaseline.current = row.document_type;
     setType(row.document_type);
     setError(null);
   }, [row.id, row.document_type]);
 
   async function save() {
-    if (!editable || type === row.document_type) {
+    if (!editable || type === typeBaseline.current || saving) {
       return;
     }
     setSaving(true);
     setError(null);
     try {
       await onSave({ document_type: type });
+      typeTouched.current = false;
       setSaving(false);
     } catch (err) {
       setError(apiErrorOf(err).detail);
@@ -80,7 +85,10 @@ export function DocumentTypeSection({
                 id={selectId}
                 value={type}
                 disabled={saving}
-                onValueChange={(value) => setType(value as DocumentType)}
+                onValueChange={(value) => {
+                  typeTouched.current = true;
+                  setType(value as DocumentType);
+                }}
                 className={cn(fieldClassName, "py-2")}
               >
                 {DOCUMENT_TYPE_OPTIONS.map((option) => (
@@ -92,7 +100,7 @@ export function DocumentTypeSection({
               <Button
                 type="button"
                 size="sm"
-                disabled={saving || type === row.document_type}
+                disabled={saving || type === typeBaseline.current}
                 onClick={() => void save()}
               >
                 {saving ? "Saving…" : "Save type"}
@@ -137,16 +145,20 @@ export function DocumentMetadataPanel({
   const [number, setNumber] = useState(row.document_number ?? "");
   const [description, setDescription] = useState(row.description ?? "");
   const [notes, setNotes] = useState(row.notes ?? "");
+  const touched = useRef(false);
+  const baseline = useRef(row);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (touched.current) return;
+    baseline.current = row;
     setNumber(row.document_number ?? "");
     setDescription(row.description ?? "");
     setNotes(row.notes ?? "");
     setError(null);
     setSaving(false);
-  }, [row.id, row.document_number, row.description, row.notes]);
+  }, [row]);
 
   useEffect(() => {
     if (!focusField) {
@@ -156,7 +168,7 @@ export function DocumentMetadataPanel({
     onFocused();
   }, [focusField, baseId, onFocused]);
 
-  const changes = changedFields(row, {
+  const changes = changedFields(baseline.current, {
     type: row.document_type,
     document_number: number,
     description,
@@ -166,13 +178,14 @@ export function DocumentMetadataPanel({
   const file = row.document;
 
   async function save() {
-    if (!editable || !dirty) {
+    if (!editable || !dirty || saving) {
       return;
     }
     setSaving(true);
     setError(null);
     try {
       await onSave(changes);
+      touched.current = false;
       setSaving(false);
     } catch (err) {
       setError(apiErrorOf(err).detail);
@@ -204,7 +217,10 @@ export function DocumentMetadataPanel({
             value={number}
             maxLength={128}
             disabled={!editable || saving}
-            onChange={(event) => setNumber(event.target.value)}
+            onChange={(event) => {
+              touched.current = true;
+              setNumber(event.target.value);
+            }}
           />
         </Field>
         <Field label="Description" htmlFor={`${baseId}-description`}>
@@ -214,7 +230,10 @@ export function DocumentMetadataPanel({
             value={description}
             maxLength={2000}
             disabled={!editable || saving}
-            onChange={(event) => setDescription(event.target.value)}
+            onChange={(event) => {
+              touched.current = true;
+              setDescription(event.target.value);
+            }}
           />
         </Field>
         <Field label="Notes" htmlFor={`${baseId}-notes`}>
@@ -224,7 +243,10 @@ export function DocumentMetadataPanel({
             value={notes}
             maxLength={10000}
             disabled={!editable || saving}
-            onChange={(event) => setNotes(event.target.value)}
+            onChange={(event) => {
+              touched.current = true;
+              setNotes(event.target.value);
+            }}
           />
         </Field>
       </div>

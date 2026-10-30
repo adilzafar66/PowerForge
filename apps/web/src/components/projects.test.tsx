@@ -1,7 +1,7 @@
 import { selectOption } from "@/components/ui/control-test-helpers";
 /** @vitest-environment jsdom */
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@/components/query-test-utils";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -74,7 +74,9 @@ describe("ProjectList", () => {
     render(<ProjectList initialProjects={[sampleProject]} />);
     expect(screen.getByText("2026-001")).toBeInTheDocument();
     expect(screen.getByText("ABC Hospital")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /New Project/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /New Project/i }),
+    ).toBeInTheDocument();
   });
 
   it("shows an error when refresh fails", async () => {
@@ -95,6 +97,38 @@ describe("ProjectList", () => {
 });
 
 describe("CreateProjectForm", () => {
+  it("retries only the optional revision after the project was created", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(sampleProject), { status: 201 }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ detail: "Revision creation failed" }), {
+          status: 500,
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(sampleRevision), { status: 201 }),
+      );
+    const user = userEvent.setup();
+    render(<CreateProjectForm />);
+    await user.type(screen.getByLabelText(/Project Number/i), "NEW");
+    await user.type(screen.getByLabelText(/Project Name/i), "New project");
+    await user.click(screen.getByLabelText("Also create the first revision"));
+    await user.click(screen.getByRole("button", { name: "Create Project" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Revision creation failed",
+    );
+    expect(
+      screen.getByRole("link", { name: "open the saved project" }),
+    ).toHaveAttribute("href", `/projects/${sampleProject.id}`);
+    await user.click(screen.getByRole("button", { name: "Retry revision" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/api\/projects$/);
+    expect(String(fetchMock.mock.calls[1][0])).toMatch(/\/revisions$/);
+    expect(String(fetchMock.mock.calls[2][0])).toMatch(/\/revisions$/);
+  });
   it("posts project create payload", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
@@ -126,7 +160,10 @@ describe("CreateProjectForm", () => {
       status: 409,
       statusText: "Conflict",
       json: async () => ({
-        detail: { detail: "Project number already exists", code: "duplicate_project_number" },
+        detail: {
+          detail: "Project number already exists",
+          code: "duplicate_project_number",
+        },
       }),
     } as Response);
 
@@ -136,7 +173,9 @@ describe("CreateProjectForm", () => {
     await user.click(screen.getByRole("button", { name: "Create Project" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Project number already exists")).toBeInTheDocument();
+      expect(
+        screen.getByText("Project number already exists"),
+      ).toBeInTheDocument();
     });
   });
 });
@@ -159,14 +198,21 @@ describe("ProjectDetail", () => {
     } as Response);
 
     render(
-      <ProjectDetail initialProject={sampleProject} initialRevisions={[sampleRevision, draft]} />,
+      <ProjectDetail
+        initialProject={sampleProject}
+        initialRevisions={[sampleRevision, draft]}
+      />,
     );
-    expect(screen.getByRole("heading", { name: "ABC Hospital" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "ABC Hospital" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("Revision History")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Activate" }));
     await waitFor(() => {
-      expect(screen.getByText(/Revision REV-2 is now ACTIVE/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Revision REV-2 is now ACTIVE/i),
+      ).toBeInTheDocument();
     });
   });
 
@@ -182,12 +228,19 @@ describe("ProjectDetail", () => {
       }),
     } as Response);
 
-    render(<ProjectDetail initialProject={sampleProject} initialRevisions={[sampleRevision]} />);
+    render(
+      <ProjectDetail
+        initialProject={sampleProject}
+        initialRevisions={[sampleRevision]}
+      />,
+    );
     await user.click(screen.getByRole("button", { name: "Project actions" }));
     await user.click(screen.getByRole("menuitem", { name: "Archive" }));
 
     const dialog = screen.getByRole("dialog");
-    await user.click(dialog.querySelector("button:last-of-type") as HTMLButtonElement);
+    await user.click(
+      dialog.querySelector("button:last-of-type") as HTMLButtonElement,
+    );
 
     await waitFor(() => {
       expect(screen.getByText(/Project is now ARCHIVED/i)).toBeInTheDocument();
@@ -217,7 +270,12 @@ describe("Create revision form", () => {
 
   async function openForm(revisions: Revision[]) {
     const user = userEvent.setup();
-    render(<ProjectDetail initialProject={sampleProject} initialRevisions={revisions} />);
+    render(
+      <ProjectDetail
+        initialProject={sampleProject}
+        initialRevisions={revisions}
+      />,
+    );
     await user.click(screen.getByRole("button", { name: /Add Revision/ }));
     return user;
   }
@@ -227,7 +285,9 @@ describe("Create revision form", () => {
   }
 
   function carryBox() {
-    return screen.getByRole("checkbox", { name: /Carry forward documents/ }) as HTMLInputElement;
+    return screen.getByRole("checkbox", {
+      name: /Carry forward documents/,
+    }) as HTMLInputElement;
   }
 
   function carryModelBox() {
@@ -251,7 +311,10 @@ describe("Create revision form", () => {
     } as Response);
   }
 
-  async function submit(user: ReturnType<typeof userEvent.setup>, fetchMock: ReturnType<typeof mockCreated>) {
+  async function submit(
+    user: ReturnType<typeof userEvent.setup>,
+    fetchMock: ReturnType<typeof mockCreated>,
+  ) {
     await user.type(screen.getByLabelText(/Revision Identifier/i), "REV-3");
     await user.click(screen.getByRole("button", { name: "Add" }));
     await waitFor(() => {
@@ -268,8 +331,7 @@ describe("Create revision form", () => {
     expect(baseSelect()).toHaveTextContent("Revision REV-1 (Active)");
     await userEvent.setup().click(baseSelect());
     expect(
-      screen.getAllByRole("option")
-        .map((option) => option.textContent),
+      screen.getAllByRole("option").map((option) => option.textContent),
     ).toEqual([
       "None (start fresh)",
       "Revision REV-1 (Active)",
@@ -281,9 +343,11 @@ describe("Create revision form", () => {
     expect(carryBox()).toBeEnabled();
     expect(carryModelBox()).toBeChecked();
     expect(carryModelBox()).toBeEnabled();
-    expect(screen.getByRole("checkbox", { name: "Carry forward documents from Revision REV-1" })).toBe(
-      carryBox(),
-    );
+    expect(
+      screen.getByRole("checkbox", {
+        name: "Carry forward documents from Revision REV-1",
+      }),
+    ).toBe(carryBox());
     expect(screen.queryByText(/other than the active one/i)).toBeNull();
   });
 
@@ -313,7 +377,9 @@ describe("Create revision form", () => {
     await openForm([sampleRevision, draft, superseded]);
 
     await selectOption(baseSelect(), "Revision REV-0 (Superseded)");
-    expect(screen.getByText("Based on a revision other than the active one.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Based on a revision other than the active one."),
+    ).toBeInTheDocument();
 
     await selectOption(baseSelect(), "Revision REV-1 (Active)");
     expect(screen.queryByText(/other than the active one/i)).toBeNull();
@@ -325,7 +391,11 @@ describe("Create revision form", () => {
 
     const body = await submit(user, fetchMock);
 
-    expect(body).toEqual({ identifier: "REV-3", description: null, activate: false });
+    expect(body).toEqual({
+      identifier: "REV-3",
+      description: null,
+      activate: false,
+    });
   });
 
   it("sends an explicit null base and no carry forward when None is chosen", async () => {
@@ -393,7 +463,9 @@ describe("Create revision form", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Revision REV-3 created. 3 documents carried forward."),
+        screen.getByText(
+          "Revision REV-3 created. 3 documents carried forward.",
+        ),
       ).toBeInTheDocument();
     });
   });
@@ -406,7 +478,9 @@ describe("Create revision form", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText("Revision REV-3 created. 2 equipment items carried forward."),
+        screen.getByText(
+          "Revision REV-3 created. 2 equipment items carried forward.",
+        ),
       ).toBeInTheDocument();
     });
   });
@@ -416,7 +490,9 @@ describe("Create revision form", () => {
     const user = await openForm([sampleRevision]);
     await submit(user, one);
     await waitFor(() => {
-      expect(screen.getByText("Revision REV-3 created. 1 document carried forward.")).toBeInTheDocument();
+      expect(
+        screen.getByText("Revision REV-3 created. 1 document carried forward."),
+      ).toBeInTheDocument();
     });
   });
 
@@ -434,13 +510,19 @@ describe("Create revision form", () => {
       <ProjectDetail
         initialProject={sampleProject}
         initialRevisions={[
-          { ...draft, based_on_revision_id: sampleRevision.id, based_on_identifier: "REV-1" },
+          {
+            ...draft,
+            based_on_revision_id: sampleRevision.id,
+            based_on_identifier: "REV-1",
+          },
           sampleRevision,
         ]}
       />,
     );
 
-    expect(screen.getByText(/Based on/)).toHaveTextContent("Based on Revision REV-1");
+    expect(screen.getByText(/Based on/)).toHaveTextContent(
+      "Based on Revision REV-1",
+    );
     expect(screen.getAllByText(/Based on/)).toHaveLength(1);
   });
 });

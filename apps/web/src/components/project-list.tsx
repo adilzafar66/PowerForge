@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, Plus } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { keys } from "@/lib/query-keys";
+import { AsyncState } from "@/components/ui/async-state";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,18 +23,23 @@ import {
 } from "@/lib/projects";
 
 type StatusFilter = ProjectStatus | "ALL";
+const EMPTY_PROJECTS: Project[] = [];
 
 export function ProjectList({
   initialProjects,
 }: {
-  initialProjects: Project[];
+  initialProjects?: Project[];
 }) {
   const router = useRouter();
-  const [projects, setProjects] = useState(initialProjects);
+  const query = useQuery({
+    queryKey: keys.projects,
+    queryFn: () => listProjects(),
+    initialData: initialProjects,
+  });
+  const projects = query.data ?? EMPTY_PROJECTS;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const loading = query.isFetching;
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { ALL: projects.length };
@@ -57,16 +65,7 @@ export function ProjectList({
   }, [projects, search, statusFilter]);
 
   async function refresh() {
-    setLoading(true);
-    setError(null);
-    try {
-      const items = await listProjects();
-      setProjects(items);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load projects");
-    } finally {
-      setLoading(false);
-    }
+    await query.refetch();
   }
 
   return (
@@ -128,7 +127,11 @@ export function ProjectList({
         </Button>
       </div>
 
-      {error ? <p className="mb-4 text-[13px] text-red-600">{error}</p> : null}
+      <AsyncState
+        pending={query.isPending}
+        error={query.error}
+        retry={refresh}
+      />
 
       <Card className="overflow-hidden">
         <table className="w-full text-[13.5px]">
@@ -156,7 +159,7 @@ export function ProjectList({
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {!query.data ? null : filtered.length === 0 ? (
               <tr>
                 <td colSpan={7}>
                   <div className="flex flex-col items-center gap-2 py-20">

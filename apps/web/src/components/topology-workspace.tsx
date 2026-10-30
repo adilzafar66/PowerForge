@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
+import { useResource } from "@/lib/query-hooks";
+import { keys } from "@/lib/query-keys";
 import { ConnectionEditorSheet } from "@/components/connection-editor-sheet";
 import { ModelNodeEditor } from "@/components/model-node-editor";
 import {
@@ -10,7 +12,6 @@ import {
   ModelSheet,
   NODE_REMOVE_WARNING,
   useModel,
-  useModelQuery,
 } from "@/components/model-shared";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -35,20 +36,39 @@ import {
 } from "@/lib/engineering-model";
 
 export function TopologyWorkspace() {
-  const { projectId, revisionId, registry, writable, version } = useModel();
+  const { projectId, revisionId, registry, writable } = useModel();
   const [lifecycle, setLifecycle] = useState<LifecycleFilter>("ACTIVE");
   const [nodeEditor, setNodeEditor] = useState<string | null>(null);
   const [connectionEditor, setConnectionEditor] = useState<string | null>(null);
-  const load = useCallback(async () => {
-    const [nodes, connections, equipment] = await Promise.all([
-      listNodes(projectId, revisionId, "ALL"),
-      listConnections(projectId, revisionId, "ALL"),
-      listEquipment(projectId, revisionId, { lifecycle_status: "ALL" }),
-    ]);
-    return { nodes, connections, equipment };
-  }, [projectId, revisionId]);
-  const query = useModelQuery(load, version);
-  const data = query.data;
+  const nodes = useResource(keys.nodes(projectId, revisionId), () =>
+    listNodes(projectId, revisionId, "ALL"),
+  );
+  const connections = useResource(keys.connections(projectId, revisionId), () =>
+    listConnections(projectId, revisionId, "ALL"),
+  );
+  const equipment = useResource(
+    keys.equipment(projectId, revisionId, { lifecycle_status: "ALL" }),
+    () => listEquipment(projectId, revisionId, { lifecycle_status: "ALL" }),
+  );
+  const query = {
+    loading: nodes.loading || connections.loading || equipment.loading,
+    refreshing:
+      nodes.refreshing || connections.refreshing || equipment.refreshing,
+    error: nodes.error || connections.error || equipment.error,
+    retry: () => {
+      nodes.retry();
+      connections.retry();
+      equipment.retry();
+    },
+  };
+  const data =
+    nodes.data && connections.data && equipment.data
+      ? {
+          nodes: nodes.data,
+          connections: connections.data,
+          equipment: equipment.data,
+        }
+      : null;
   const labels = data
     ? nodeLabels(data.nodes, data.equipment, registry)
     : new Map<string, string>();

@@ -5,7 +5,6 @@ import { Select } from "@/components/ui/select";
 import {
   createContext,
   useContext,
-  useEffect,
   useId,
   useState,
   type ReactNode,
@@ -16,15 +15,14 @@ import { Field } from "@/components/ui/field";
 import { fieldClassName } from "@/components/ui/input";
 import { Sheet } from "@/components/ui/sheet";
 import { SegmentedControl } from "@/components/ui/segmented-control";
-import { apiErrorOf } from "@/lib/api";
 import type { LifecycleFilter, Registry } from "@/lib/engineering-model";
+import { AsyncState } from "@/components/ui/async-state";
 
 export type ModelContextValue = {
   projectId: string;
   revisionId: string;
   registry: Registry;
   writable: boolean;
-  version: number;
   changed: () => void;
   failed: (error: unknown) => void;
 };
@@ -33,36 +31,6 @@ export function useModel() {
   const value = useContext(ModelContext);
   if (!value) throw new Error("Model workspace is required");
   return value;
-}
-
-/** Each load is cancellable at the state boundary; older responses never replace newer data. */
-export function useModelQuery<T>(
-  load: () => Promise<T>,
-  refreshKey: string | number = 0,
-) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [retry, setRetry] = useState(0);
-  useEffect(() => {
-    let current = true;
-    setLoading(true);
-    setError(null);
-    load()
-      .then((value) => {
-        if (current) setData(value);
-      })
-      .catch((err) => {
-        if (current) setError(apiErrorOf(err).detail);
-      })
-      .finally(() => {
-        if (current) setLoading(false);
-      });
-    return () => {
-      current = false;
-    };
-  }, [load, retry, refreshKey]);
-  return { data, error, loading, retry: () => setRetry((v) => v + 1) };
 }
 
 export function ModelNotice({ children }: { children: ReactNode }) {
@@ -79,30 +47,20 @@ export function LoadState({
   loading,
   error,
   retry,
+  refreshing = false,
 }: {
   loading: boolean;
   error: string | null;
   retry: () => void;
+  refreshing?: boolean;
 }) {
   return (
-    <>
-      {loading && (
-        <div
-          role="status"
-          className="my-4 animate-pulse rounded-lg bg-slate-100 p-5 text-sm text-slate-500"
-        >
-          Loading…
-        </div>
-      )}
-      {error && (
-        <ModelNotice>
-          {error}{" "}
-          <Button variant="outline" size="sm" onClick={retry}>
-            Retry
-          </Button>
-        </ModelNotice>
-      )}
-    </>
+    <AsyncState
+      pending={loading}
+      refreshing={refreshing}
+      error={error ? new Error(error) : null}
+      retry={retry}
+    />
   );
 }
 export function ModelSelect({

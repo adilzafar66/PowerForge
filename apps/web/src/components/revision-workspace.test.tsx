@@ -8,7 +8,7 @@ import {
   screen,
   waitFor,
   within,
-} from "@testing-library/react";
+} from "@/components/query-test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 const nav = vi.hoisted(() => ({
   search: "",
@@ -290,9 +290,8 @@ describe("revision model workspace", () => {
       ),
     );
     fireEvent.click(screen.getByText("Attributes"));
-    await waitFor(() =>
-      expect(api.getEquipmentEditor).toHaveBeenCalledTimes(2),
-    );
+    // The confirmed atomic save response replaces the cached snapshot directly.
+    expect(api.getEquipmentEditor).toHaveBeenCalledTimes(1);
     expect(
       screen.queryByRole("group", { name: "Rated voltage" }),
     ).not.toBeInTheDocument();

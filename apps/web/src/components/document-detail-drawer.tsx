@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useId } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { keys } from "@/lib/query-keys";
+import { isRunning, jobInterval } from "@/lib/query-hooks";
+import { AsyncState } from "@/components/ui/async-state";
 import { X } from "lucide-react";
 
 import {
@@ -12,7 +16,6 @@ import { Sheet } from "@/components/ui/sheet";
 import {
   formatFileSize,
   getClassification,
-  type ClassificationDetail,
   type DocumentUpdateInput,
   type RevisionDocument,
 } from "@/lib/documents";
@@ -22,7 +25,6 @@ export function DocumentDetailDrawer({
   projectId,
   revisionId,
   canMutate,
-  detailVersion,
   classifying,
   retrying,
   aiError,
@@ -42,7 +44,6 @@ export function DocumentDetailDrawer({
   projectId: string;
   revisionId: string;
   canMutate: boolean;
-  detailVersion: number;
   classifying: boolean;
   retrying: boolean;
   aiError: string | null;
@@ -59,26 +60,20 @@ export function DocumentDetailDrawer({
   onSave: (input: DocumentUpdateInput) => Promise<void>;
 }) {
   const titleId = useId();
-  const [detail, setDetail] = useState<ClassificationDetail | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setDetail(null);
-    getClassification(projectId, revisionId, row.id)
-      .then((value) => {
-        if (!cancelled) {
-          setDetail(value);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setDetail(null);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId, revisionId, row.id, detailVersion]);
+  const classification = useQuery({
+    queryKey: [
+      ...keys.document(projectId, revisionId, row.id),
+      "classification",
+      row.classification,
+    ],
+    queryFn: () => getClassification(projectId, revisionId, row.id),
+    refetchInterval: (query) =>
+      jobInterval(
+        isRunning(query.state.data?.attempt?.status),
+        query.state.fetchFailureCount,
+      ),
+  });
+  const detail = classification.data ?? null;
 
   const file = row.document;
   const headerFacts = [formatFileSize(file.size_bytes)];
@@ -123,6 +118,11 @@ export function DocumentDetailDrawer({
           </button>
         </div>
       </header>
+      <AsyncState
+        pending={classification.isPending}
+        error={classification.error}
+        retry={classification.refetch}
+      />
       <DocumentOverview
         row={row}
         projectId={projectId}

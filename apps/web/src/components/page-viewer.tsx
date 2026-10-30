@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { keys } from "@/lib/query-keys";
+import { AsyncState } from "@/components/ui/async-state";
 
 import { Button } from "@/components/ui/button";
-import { apiErrorOf } from "@/lib/api";
 import {
   getPageArtifactUrl,
   listPages,
@@ -29,76 +31,64 @@ export function PageViewer({
   initialPageNumber = null,
   onClose,
 }: Props) {
-  const [pages, setPages] = useState<DocumentPage[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [analysisUrl, setAnalysisUrl] = useState<string | null>(null);
-  const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-    listPages(projectId, revisionId, revisionDocumentId)
-      .then((items) => {
-        if (cancelled) return;
-        setPages(items);
-        const preferred =
-          initialPageNumber == null
-            ? undefined
-            : items.find((page) => page.page_number === initialPageNumber);
-        setSelectedId(preferred?.id ?? items[0]?.id ?? null);
-        return Promise.all(
-          items.map(async (page) => {
-            const thumbnail = page.artifacts.find(
-              (artifact) => artifact.artifact_type === "THUMBNAIL",
-            );
-            if (!thumbnail) return null;
-            const signed = await getPageArtifactUrl(
-              projectId,
-              revisionId,
-              revisionDocumentId,
+  const docKey = keys.document(projectId, revisionId, revisionDocumentId);
+  const query = useQuery({
+    queryKey: [...docKey, "pages"],
+    queryFn: () => listPages(projectId, revisionId, revisionDocumentId),
+  });
+  const pages = query.data ?? null;
+  const [choice, setSelectedId] = useState<string | null>(null);
+  const selectedId =
+    pages?.find((page) => page.id === choice)?.id ??
+    pages?.find((page) => page.page_number === initialPageNumber)?.id ??
+    pages?.[0]?.id ??
+    null;
+  const thumbs = useQuery({
+    queryKey: [...docKey, "thumbnails", pages?.map((p) => p.id)],
+    enabled: !!pages,
+    staleTime: 0,
+    gcTime: 0,
+    queryFn: async () =>
+      Object.fromEntries(
+        await Promise.all(
+          (pages ?? [])
+            .filter((page) =>
+              page.artifacts.some((a) => a.artifact_type === "THUMBNAIL"),
+            )
+            .map(async (page) => [
               page.id,
-              "THUMBNAIL",
-            );
-            return [page.id, signed.url] as const;
-          }),
-        );
-      })
-      .then((entries) => {
-        if (cancelled || !entries) return;
-        const next: Record<string, string> = {};
-        for (const entry of entries) {
-          if (entry) next[entry[0]] = entry[1];
-        }
-        setThumbnails(next);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(apiErrorOf(err).detail);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId, revisionId, revisionDocumentId, initialPageNumber]);
-
-  useEffect(() => {
-    if (!selectedId) return;
-    let cancelled = false;
-    setAnalysisUrl(null);
-    getPageArtifactUrl(projectId, revisionId, revisionDocumentId, selectedId, "ANALYSIS_IMAGE")
-      .then((signed) => {
-        if (!cancelled) setAnalysisUrl(signed.url);
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setError(apiErrorOf(err).detail);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId, revisionId, revisionDocumentId, selectedId]);
-
+              (
+                await getPageArtifactUrl(
+                  projectId,
+                  revisionId,
+                  revisionDocumentId,
+                  page.id,
+                  "THUMBNAIL",
+                )
+              ).url,
+            ]),
+        ),
+      ),
+  });
+  const image = useQuery({
+    queryKey: [...docKey, "image", selectedId],
+    enabled: !!selectedId,
+    staleTime: 0,
+    gcTime: 0,
+    queryFn: () =>
+      getPageArtifactUrl(
+        projectId,
+        revisionId,
+        revisionDocumentId,
+        selectedId!,
+        "ANALYSIS_IMAGE",
+      ),
+  });
+  const analysisUrl = image.data?.url ?? null;
+  const thumbnails = thumbs.data ?? {};
+  const error = query.error || thumbs.error || image.error;
   const selected = pages?.find((page) => page.id === selectedId) ?? null;
-  const analysis = selected
-    ? artifactOf(selected, "ANALYSIS_IMAGE")
-    : null;
+  const analysis = selected ? artifactOf(selected, "ANALYSIS_IMAGE") : null;
 
   return (
     <div
@@ -113,21 +103,27 @@ export function PageViewer({
         className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_48px_rgba(0,0,0,0.12)]"
         onClick={(event) => event.stopPropagation()}
       >
+        <AsyncState
+          pending={query.isPending}
+          error={error}
+          retry={() => {
+            void query.refetch();
+            void thumbs.refetch();
+            if (selectedId) void image.refetch();
+          }}
+        />
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <h2 id="page-viewer-title" className="text-[16px] font-semibold text-slate-900">
+          <h2
+            id="page-viewer-title"
+            className="text-[16px] font-semibold text-slate-900"
+          >
             {filename}
           </h2>
           <Button type="button" variant="outline" size="sm" onClick={onClose}>
             Close
           </Button>
         </div>
-        {error ? (
-          <p role="alert" className="px-5 py-8 text-[13.5px] text-red-600">
-            {error}
-          </p>
-        ) : pages === null ? (
-          <p className="px-5 py-8 text-[13.5px] text-slate-400">Loading pages…</p>
-        ) : pages.length === 0 ? (
+        {pages === null ? null : pages.length === 0 ? (
           <p className="px-5 py-8 text-[13.5px] text-slate-400">No pages.</p>
         ) : (
           <div className="flex min-h-0 flex-1">
@@ -162,14 +158,18 @@ export function PageViewer({
                 <p className="text-[13.5px] font-semibold text-slate-900">
                   Page {selected.page_number}
                 </p>
-                <p className="mt-1 text-[13px] text-slate-600">{formatSourceSize(selected)}</p>
+                <p className="mt-1 text-[13px] text-slate-600">
+                  {formatSourceSize(selected)}
+                </p>
                 {analysis?.width_px != null && analysis.height_px != null ? (
                   <p className="mt-1 text-[13px] text-slate-600">
                     {analysis.width_px} × {analysis.height_px} px
                   </p>
                 ) : null}
                 <p className="mt-1 text-[13px] text-slate-600">
-                  {selected.native_text_char_count > 0 ? "Native text" : "No native text"}
+                  {selected.native_text_char_count > 0
+                    ? "Native text"
+                    : "No native text"}
                 </p>
                 {analysisUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -188,7 +188,10 @@ export function PageViewer({
   );
 }
 
-function artifactOf(page: DocumentPage, type: PageArtifactInfo["artifact_type"]): PageArtifactInfo | undefined {
+function artifactOf(
+  page: DocumentPage,
+  type: PageArtifactInfo["artifact_type"],
+): PageArtifactInfo | undefined {
   return page.artifacts.find((artifact) => artifact.artifact_type === type);
 }
 

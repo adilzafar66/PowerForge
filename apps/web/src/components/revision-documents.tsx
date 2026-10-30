@@ -2,6 +2,9 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keys } from "@/lib/query-keys";
+import { isRunning, jobInterval } from "@/lib/query-hooks";
 
 import { DocumentDetailDrawer } from "@/components/document-detail-drawer";
 import { DocumentList } from "@/components/document-list";
@@ -26,6 +29,7 @@ import {
   type QuickViewCounts,
 } from "@/lib/document-presentation";
 import {
+  getDocument,
   acceptClassification,
   isReadOnlyErrorCode,
   listDocuments,
@@ -39,6 +43,7 @@ import {
   type RevisionDocument,
 } from "@/lib/documents";
 import { cn } from "@/lib/utils";
+import { AsyncState } from "@/components/ui/async-state";
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -107,9 +112,53 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     useState<AdvancedDocumentFilters>(EMPTY_ADVANCED_FILTERS);
   const [quickView, setQuickView] = useState<DocumentQuickView>("all");
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [items, setItems] = useState<RevisionDocument[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const client = useQueryClient();
+  // Processing commits before classification is enqueued. Briefly bridge that real API gap.
+  const classificationGrace = useRef(new Map<string, number>());
+  const documents = useQuery({
+    queryKey: keys.documentList(projectId, revisionId, search),
+    queryFn: async () => {
+      try {
+        return await listDocuments(projectId, revisionId, {
+          status: "ALL",
+          search,
+        });
+      } catch (err) {
+        const { status, detail } = apiErrorOf(err);
+        if (status !== 404 && status !== 409) throw err;
+        setMessage({ tone: "warning", text: detail, refreshed: true });
+        return listDocuments(projectId, revisionId, { status: "ALL", search });
+      }
+    },
+    refetchInterval: (query) => {
+      const now = Date.now();
+      const active = query.state.data
+        ?.map((row) => {
+          if (
+            isRunning(row.processing?.status) ||
+            isRunning(row.classification.attempt?.status)
+          ) {
+            classificationGrace.current.delete(row.id);
+            return true;
+          }
+          if (
+            row.processing?.status === "COMPLETED" &&
+            row.classification.enabled &&
+            !row.classification.attempt
+          ) {
+            const started = classificationGrace.current.get(row.id) ?? now;
+            classificationGrace.current.set(row.id, started);
+            return now - started < 15_000;
+          }
+          return false;
+        })
+        .some(Boolean);
+      return jobInterval(!!active, query.state.fetchFailureCount);
+    },
+  });
+  const items = documents.data ?? null;
+  const loading = documents.isFetching;
+  const error = documents.error ? apiErrorOf(documents.error).detail : null;
   const [message, setMessage] = useState<Message | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(documentParam);
   const [removing, setRemoving] = useState<RevisionDocument | null>(null);
@@ -121,9 +170,19 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [focusMetadata, setFocusMetadata] = useState(false);
   const [reuseOpen, setReuseOpen] = useState(false);
-  const [reloadToken, setReloadToken] = useState(0);
-  const latestRequest = useRef(0);
   const seenParam = useRef(documentParam);
+  const jobStates = useRef(new Map<string, string>());
+  useEffect(() => {
+    for (const row of items ?? []) {
+      const state = JSON.stringify([row.processing, row.classification]);
+      const previous = jobStates.current.get(row.id);
+      if (previous && previous !== state)
+        void client.invalidateQueries({
+          queryKey: keys.document(projectId, revisionId, row.id),
+        });
+      jobStates.current.set(row.id, state);
+    }
+  }, [items, client, projectId, revisionId]);
 
   useEffect(() => {
     if (seenParam.current === documentParam) {
@@ -140,50 +199,12 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     return () => window.clearTimeout(timer);
   }, [searchInput]);
 
-  useEffect(() => {
-    const requestId = ++latestRequest.current;
-    const isCurrent = () => requestId === latestRequest.current;
-
-    async function load() {
-      setLoading(true);
-      setError(null);
-      const query = { status: "ALL" as const, search };
-      try {
-        const result = await listDocuments(projectId, revisionId, query);
-        if (isCurrent()) {
-          setItems(result);
-        }
-      } catch (err) {
-        if (!isCurrent()) {
-          return;
-        }
-        const { status, detail } = apiErrorOf(err);
-        if (status === 404 || status === 409) {
-          setMessage({ tone: "warning", text: detail, refreshed: true });
-          try {
-            const result = await listDocuments(projectId, revisionId, query);
-            if (isCurrent()) {
-              setItems(result);
-            }
-          } catch (retryErr) {
-            if (isCurrent()) {
-              setError(apiErrorOf(retryErr).detail);
-            }
-          }
-        } else {
-          setError(detail);
-        }
-      } finally {
-        if (isCurrent()) {
-          setLoading(false);
-        }
-      }
-    }
-
-    void load();
-  }, [projectId, revisionId, search, reloadToken]);
-
-  const reloadList = useCallback(() => setReloadToken((token) => token + 1), []);
+  const reloadList = useCallback(() => {
+    void client.invalidateQueries(
+      { queryKey: [...keys.documents(projectId, revisionId), "list"] },
+      { cancelRefetch: false },
+    );
+  }, [client, projectId, revisionId]);
 
   const refreshAfterChange = useCallback(
     (text: string) => {
@@ -242,23 +263,6 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname);
   }, [pathname, router, searchParams]);
-
-  useEffect(() => {
-    if (!selectedId || items === null) {
-      return;
-    }
-    if (items.some((row) => row.id === selectedId)) {
-      return;
-    }
-    setSelectedId(null);
-    const params = new URLSearchParams(searchParams.toString());
-    if (!params.has("document")) {
-      return;
-    }
-    params.delete("document");
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname);
-  }, [items, pathname, router, searchParams, selectedId]);
 
   useEffect(() => {
     setAiError(null);
@@ -362,9 +366,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     try {
       await updateDocument(projectId, revisionId, row.id, input);
     } catch (err) {
-      if (handleMutationError(err)) {
-        return;
-      }
+      handleMutationError(err);
       throw err;
     }
     setMessage({
@@ -379,7 +381,10 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     const name = row.document.original_filename;
     try {
       await removeDocument(projectId, revisionId, row.id);
-      setMessage({ tone: "success", text: `Removed ${name} from this revision.` });
+      setMessage({
+        tone: "success",
+        text: `Removed ${name} from this revision.`,
+      });
       reloadList();
     } catch (err) {
       if (!handleMutationError(err)) {
@@ -388,7 +393,9 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     }
   }
 
-  const narrowed = (items ?? []).filter((row) => matchesAdvancedFilters(row, advancedFilters));
+  const narrowed = (items ?? []).filter((row) =>
+    matchesAdvancedFilters(row, advancedFilters),
+  );
   const counts = countQuickViews(narrowed);
   const visible = narrowed.filter((row) => matchesQuickView(row, quickView));
   const advancedActive = activeAdvancedFilterCount(advancedFilters) > 0;
@@ -403,7 +410,30 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
           view: quickView,
         })
       : null;
-  const selected = items?.find((row) => row.id === selectedId) ?? null;
+  const selectedRow = items?.find((row) => row.id === selectedId);
+  const selectedQuery = useQuery({
+    queryKey: [
+      ...keys.document(projectId, revisionId, selectedId ?? ""),
+      "record",
+    ],
+    queryFn: () => getDocument(projectId, revisionId, selectedId!),
+    enabled: !!selectedId && items !== null && !selectedRow,
+    initialData: selectedRow,
+    refetchInterval: (query) =>
+      jobInterval(
+        isRunning(query.state.data?.processing?.status) ||
+          isRunning(query.state.data?.classification.attempt?.status),
+        query.state.fetchFailureCount,
+      ),
+  });
+  useEffect(() => {
+    if (selectedRow)
+      client.setQueryData(
+        [...keys.document(projectId, revisionId, selectedRow.id), "record"],
+        selectedRow,
+      );
+  }, [client, projectId, revisionId, selectedRow]);
+  const selected = selectedRow ?? selectedQuery.data ?? null;
 
   function handleReuseChanged(count: number) {
     if (count > 0) {
@@ -443,7 +473,11 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
         onUpload={() => setUploadOpen(true)}
         onReuse={() => setReuseOpen(true)}
       />
-      <DocumentQuickViews value={quickView} counts={counts} onChange={setQuickView} />
+      <DocumentQuickViews
+        value={quickView}
+        counts={counts}
+        onChange={setQuickView}
+      />
       {canMutate && uploadOpen ? (
         <DocumentUpload
           projectId={projectId}
@@ -464,7 +498,13 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
           )}
         >
           {message.text}
-          {message.refreshed ? " The list has been refreshed." : ""}
+          {message.refreshed
+            ? documents.isFetching
+              ? " Refreshing the list."
+              : documents.error
+                ? " Refresh failed; retry below."
+                : " The list has been refreshed."
+            : ""}
         </p>
       ) : null}
 
@@ -520,6 +560,13 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
         onReuse={() => setReuseOpen(true)}
       />
 
+      {selectedId && (
+        <AsyncState
+          pending={!selected && selectedQuery.isPending}
+          error={selectedQuery.error}
+          retry={selectedQuery.refetch}
+        />
+      )}
       {selected ? (
         <DocumentDetailDrawer
           key={selected.id}
@@ -527,7 +574,6 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
           projectId={projectId}
           revisionId={revisionId}
           canMutate={canMutate}
-          detailVersion={reloadToken}
           classifying={classifyingId === selected.id}
           retrying={retryingId === selected.id}
           aiError={aiError}

@@ -1,7 +1,7 @@
 import { selectOption } from "@/components/ui/control-test-helpers";
 /** @vitest-environment jsdom */
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@/components/query-test-utils";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 

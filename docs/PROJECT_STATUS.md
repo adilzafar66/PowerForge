@@ -4,7 +4,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 **Current implemented phase:** Phase 5 authoring refinement — Phase 5 complete / re-frozen
 
-**UI redesign:** UI-A — Design system and app shell implemented. Next UI milestone: UI-B. See [UI_A_HANDOFF.md](UI_A_HANDOFF.md).
+**UI redesign:** UI-A and UI-B implemented — design system/app shell and reactive data/interaction states. Next UI milestone: UI-C. See [UI_A_HANDOFF.md](UI_A_HANDOFF.md) and [UI_B_HANDOFF.md](UI_B_HANDOFF.md).
 
 **Next engineering phase:** Phase 6 — Evidence, candidates, and structured extraction. Not started
 

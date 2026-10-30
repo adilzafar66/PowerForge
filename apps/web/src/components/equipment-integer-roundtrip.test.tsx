@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
   within,
-} from "@testing-library/react";
+} from "@/components/query-test-utils";
 import { afterEach, expect, it, vi } from "vitest";
 import { EquipmentDetailDrawer } from "@/components/equipment-detail-drawer";
 import { ModelContext } from "@/components/model-shared";
@@ -54,7 +54,6 @@ it.each(["3", "9007199254740993"])(
           revisionId: "r",
           registry,
           writable: true,
-          version: 0,
           changed: vi.fn(),
           failed: vi.fn(),
         }}

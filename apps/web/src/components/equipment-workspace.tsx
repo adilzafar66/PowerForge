@@ -10,7 +10,6 @@ import {
   ModelSelect,
   ModelSheet,
   useModel,
-  useModelQuery,
 } from "@/components/model-shared";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,6 +21,8 @@ import {
 } from "@/components/ui/revision-table";
 import { cn } from "@/lib/utils";
 import { SearchField } from "@/components/ui/search-field";
+import { useResource } from "@/lib/query-hooks";
+import { keys } from "@/lib/query-keys";
 import {
   equipmentLabel,
   listEquipment,
@@ -30,7 +31,7 @@ import {
 } from "@/lib/engineering-model";
 
 export function EquipmentWorkspace({ active }: { active: boolean }) {
-  const { projectId, revisionId, registry, writable, version } = useModel();
+  const { projectId, revisionId, registry, writable } = useModel();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [type, setType] = useState("");
@@ -68,7 +69,15 @@ export function EquipmentWorkspace({ active }: { active: boolean }) {
       }),
     [projectId, revisionId, search, type, lifecycle],
   );
-  const rows = useModelQuery(load, version);
+  const rows = useResource(
+    keys.equipment(projectId, revisionId, {
+      search,
+      equipment_type: type,
+      lifecycle_status: lifecycle,
+    }),
+    load,
+    active,
+  );
   return (
     <>
       <div className="mb-4 space-y-3">

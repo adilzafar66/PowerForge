@@ -2,13 +2,15 @@ import { changeField } from "@/components/ui/control-test-helpers";
 /** @vitest-environment jsdom */
 import React from "react";
 import {
+  act,
   fireEvent,
   render,
   screen,
   waitFor,
   within,
-} from "@testing-library/react";
+} from "@/components/query-test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { keys } from "@/lib/query-keys";
 import {
   ModelContext,
   type ModelContextValue,
@@ -61,7 +63,6 @@ beforeEach(() => {
     revisionId: "r",
     registry,
     writable: true,
-    version: 0,
     changed: vi.fn(),
     failed: vi.fn(),
   };
@@ -96,6 +97,25 @@ async function editor(tab = "General", onClose = vi.fn()) {
 const save = () => screen.getByRole("button", { name: "Save" });
 const group = (name: string) => within(screen.getByRole("group", { name }));
 describe("unified equipment editor", () => {
+  it("preserves an unsaved draft and its baseline across a cache refetch", async () => {
+    const view = await editor();
+    await changeField(screen.getByLabelText("Tag"), {
+      target: { value: "My unsaved tag" },
+    });
+    vi.mocked(api.getEquipmentEditor).mockResolvedValue({
+      equipment: { ...equipment, tag: "Changed elsewhere" },
+      attributes,
+      terminals: [terminal],
+    });
+    await act(() =>
+      view.queryClient.invalidateQueries({
+        queryKey: keys.editor("p", "r", equipment.id),
+      }),
+    );
+    expect(screen.getByLabelText("Tag")).toHaveValue("My unsaved tag");
+    expect(save()).toBeEnabled();
+    expect(api.saveEquipmentEditor).not.toHaveBeenCalled();
+  });
   it("sends only changed text and resets the draft from the canonical response", async () => {
     vi.mocked(api.saveEquipmentEditor).mockResolvedValue({
       equipment: { ...equipment, tag: null },

@@ -4,6 +4,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 import { Select } from "@/components/ui/select";
 
+import { useQuery } from "@tanstack/react-query";
+import { keys } from "@/lib/query-keys";
 import { useEffect, useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,7 @@ import {
   reuseDocument,
   type RevisionDocument,
 } from "@/lib/documents";
-import { listRevisions, type Revision } from "@/lib/projects";
+import { listRevisions } from "@/lib/projects";
 import { REVISION_STATUS_STYLES } from "@/lib/status-styles";
 import { cn } from "@/lib/utils";
 
@@ -37,8 +39,6 @@ type Result =
   | { kind: "restored" }
   | { kind: "not_sent"; message: string };
 
-type Presence = "INCLUDED" | "REMOVED";
-
 export function ReuseDocumentDialog({
   projectId,
   revisionId,
@@ -47,13 +47,35 @@ export function ReuseDocumentDialog({
   onReadOnly,
 }: Props) {
   const titleId = useId();
-  const [revisions, setRevisions] = useState<Revision[] | null>(null);
+  const revisionQuery = useQuery({
+    queryKey: keys.revisions(projectId),
+    queryFn: () => listRevisions(projectId),
+  });
+  const revisions =
+    revisionQuery.data?.filter((r) => r.id !== revisionId) ?? null;
   const [sourceId, setSourceId] = useState("");
-  const [sourceDocs, setSourceDocs] = useState<RevisionDocument[] | null>(null);
-  const [present, setPresent] = useState<Map<string, Presence>>(new Map());
+  const sourceQuery = useQuery({
+    queryKey: [
+      ...keys.documents(projectId, sourceId),
+      "list",
+      { status: "INCLUDED" },
+    ],
+    queryFn: () => listDocuments(projectId, sourceId, { status: "INCLUDED" }),
+    enabled: !!sourceId,
+  });
+  const targetQuery = useQuery({
+    queryKey: keys.documentList(projectId, revisionId, ""),
+    queryFn: () => listDocuments(projectId, revisionId, { status: "ALL" }),
+  });
+  const sourceDocs = sourceQuery.data ?? null;
+  const present = new Map(
+    targetQuery.data?.map((row) => [row.document.id, row.status]),
+  );
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [results, setResults] = useState<Map<string, Result>>(new Map());
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const requestError =
+    revisionQuery.error || sourceQuery.error || targetQuery.error;
+  const loadError = requestError ? apiErrorOf(requestError).detail : null;
   const [adding, setAdding] = useState(false);
 
   useEffect(() => {
@@ -67,65 +89,25 @@ export function ReuseDocumentDialog({
   }, [onClose]);
 
   useEffect(() => {
-    let cancelled = false;
-    listRevisions(projectId)
-      .then((all) => {
-        if (cancelled) {
-          return;
-        }
-        const others = all.filter((revision) => revision.id !== revisionId);
-        setRevisions(others);
-        setSourceId(others[0]?.id ?? "");
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setLoadError(apiErrorOf(err).detail);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId, revisionId]);
-
+    if (!sourceId && revisionQuery.data)
+      setSourceId(
+        revisionQuery.data.find((r) => r.id !== revisionId)?.id ?? "",
+      );
+  }, [sourceId, revisionQuery.data, revisionId]);
   useEffect(() => {
-    if (!sourceId) {
-      return;
-    }
-    let cancelled = false;
-    setSourceDocs(null);
     setSelected(new Set());
     setResults(new Map());
-    setLoadError(null);
-    Promise.all([
-      listDocuments(projectId, sourceId, { status: "INCLUDED" }),
-      listDocuments(projectId, revisionId, { status: "ALL" }),
-    ])
-      .then(([source, current]) => {
-        if (cancelled) {
-          return;
-        }
-        setSourceDocs(source);
-        setPresent(
-          new Map(current.map((row) => [row.document.id, row.status])),
-        );
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setLoadError(apiErrorOf(err).detail);
-          setSourceDocs([]);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [projectId, revisionId, sourceId]);
+  }, [sourceId]);
 
   const sourceRevision = revisions?.find(
     (revision) => revision.id === sourceId,
   );
 
   function reasonUnavailable(row: RevisionDocument): string | null {
-    if (results.get(row.id)?.kind === "added") {
+    if (
+      results.get(row.id)?.kind === "added" ||
+      results.get(row.id)?.kind === "restored"
+    ) {
       return "Added";
     }
     const state = present.get(row.document.id);
@@ -209,9 +191,6 @@ export function ReuseDocumentDialog({
       setResults((current) =>
         new Map(current).set(row.id, { kind: "restored" }),
       );
-      setPresent((current) =>
-        new Map(current).set(row.document.id, "INCLUDED"),
-      );
       onChanged(1);
     } catch (err) {
       setResults((current) =>
@@ -284,7 +263,18 @@ export function ReuseDocumentDialog({
 
             {loadError ? (
               <p role="alert" className="mb-2 text-[13px] text-red-600">
-                {loadError}
+                {loadError}{" "}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    void revisionQuery.refetch();
+                    void targetQuery.refetch();
+                    if (sourceId) void sourceQuery.refetch();
+                  }}
+                >
+                  Retry
+                </Button>
               </p>
             ) : null}
 

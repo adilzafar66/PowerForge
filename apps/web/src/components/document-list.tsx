@@ -3,12 +3,19 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { DocumentOverflowMenu, type DocumentMenuHandlers } from "@/components/document-overflow-menu";
+import {
+  DocumentOverflowMenu,
+  type DocumentMenuHandlers,
+} from "@/components/document-overflow-menu";
 import { DocumentState } from "@/components/document-state";
 import { AddDocumentsMenu } from "@/components/document-workspace-toolbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { revisionTable, revisionRowClass, revisionPrimaryClass } from "@/components/ui/revision-table";
+import {
+  revisionTable,
+  revisionRowClass,
+  revisionPrimaryClass,
+} from "@/components/ui/revision-table";
 import {
   confidenceBandLabel,
   documentTypeLabel,
@@ -42,7 +49,13 @@ function secondaryFacts(row: RevisionDocument, projectId: string): ReactNode[] {
   return facts.slice(0, 3);
 }
 
-function OriginFact({ row, projectId }: { row: RevisionDocument; projectId: string }) {
+function OriginFact({
+  row,
+  projectId,
+}: {
+  row: RevisionDocument;
+  projectId: string;
+}) {
   if (row.origin !== "INHERITED") {
     return <>Uploaded · {formatDateShort(row.added_at)}</>;
   }
@@ -80,7 +93,9 @@ function TypeCell({ row }: { row: RevisionDocument }) {
   return (
     <div>
       <p className="text-slate-700">{documentTypeLabel(row.document_type)}</p>
-      {hint ? <p className="mt-0.5 text-[12px] text-slate-500">{hint}</p> : null}
+      {hint ? (
+        <p className="mt-0.5 text-[12px] text-slate-500">{hint}</p>
+      ) : null}
     </div>
   );
 }
@@ -126,9 +141,7 @@ function DocumentRow({
       className={revisionRowClass(first, selected, removed)}
     >
       <td className={revisionTable.primaryCell}>
-        <p
-          className={revisionPrimaryClass(removed)}
-        >
+        <p className={revisionPrimaryClass(removed)}>
           {row.document.original_filename}
         </p>
         <p className="mt-0.5 flex flex-wrap gap-x-1.5 text-[12px] text-slate-400">
@@ -182,7 +195,10 @@ export function DocumentList({
   canMutate: boolean;
   loading: boolean;
   error: string | null;
-  empty: { text: string; kind: "revision" | "search" | "filters" | "view" } | null;
+  empty: {
+    text: string;
+    kind: "revision" | "search" | "filters" | "view";
+  } | null;
   handlers: DocumentMenuHandlers;
   onOpen: (row: RevisionDocument) => void;
   onRetry: () => void;
@@ -192,6 +208,19 @@ export function DocumentList({
 }) {
   return (
     <Card>
+      {rows !== null && loading && (
+        <p role="status" className="px-5 py-2 text-xs text-muted">
+          Refreshing…
+        </p>
+      )}
+      {rows !== null && error && (
+        <div role="alert" className="px-5 py-3 text-sm text-danger">
+          {error}{" "}
+          <Button variant="outline" size="sm" onClick={onRetry}>
+            Retry
+          </Button>
+        </div>
+      )}
       <table className={revisionTable.table}>
         <thead className={revisionTable.head}>
           <tr className={revisionTable.headerRow}>
@@ -206,20 +235,29 @@ export function DocumentList({
         <tbody className={cn(loading && rows ? "opacity-60" : undefined)}>
           {rows === null && loading ? (
             [0, 1, 2].map((row) => (
-              <tr key={row} data-testid="document-skeleton" className="border-t border-slate-100">
+              <tr
+                key={row}
+                data-testid="document-skeleton"
+                className="border-t border-slate-100"
+              >
                 <td colSpan={4} className="px-5 py-4">
                   <div className="h-4 w-1/2 animate-pulse rounded bg-slate-100" />
                 </td>
               </tr>
             ))
-          ) : error ? (
+          ) : error && rows === null ? (
             <tr>
               <td colSpan={4}>
                 <div className="flex flex-col items-center gap-2 py-14">
                   <p role="alert" className="text-[13.5px] text-red-600">
                     {error}
                   </p>
-                  <Button type="button" variant="secondary" size="sm" onClick={onRetry}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={onRetry}
+                  >
                     Retry
                   </Button>
                 </div>
@@ -229,7 +267,9 @@ export function DocumentList({
             <tr>
               <td colSpan={4}>
                 <div className="flex flex-col items-center gap-2 py-16">
-                  <p className="text-[13.5px] font-medium text-slate-400">{empty.text}</p>
+                  <p className="text-[13.5px] font-medium text-slate-400">
+                    {empty.text}
+                  </p>
                   {empty.kind === "filters" ? (
                     <button
                       type="button"

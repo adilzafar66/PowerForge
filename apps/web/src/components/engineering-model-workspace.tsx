@@ -8,12 +8,14 @@ import {
   LoadState,
   ModelContext,
   ModelNotice,
-  useModelQuery,
 } from "@/components/model-shared";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { apiErrorOf } from "@/lib/api";
 import { isReadOnlyErrorCode } from "@/lib/documents";
 import { getEngineeringRegistry } from "@/lib/engineering-model";
+import { useQueryClient } from "@tanstack/react-query";
+import { useResource } from "@/lib/query-hooks";
+import { keys } from "@/lib/query-keys";
 
 export function EngineeringModelWorkspace({
   projectId,
@@ -27,7 +29,8 @@ export function EngineeringModelWorkspace({
   active: boolean;
 }) {
   const router = useRouter();
-  const registry = useModelQuery(getEngineeringRegistry);
+  const client = useQueryClient();
+  const registry = useResource(keys.registry, getEngineeringRegistry, active);
   const params = useSearchParams();
   const path = usePathname();
   const view = params.get("view") === "topology" ? "topology" : "equipment";
@@ -40,9 +43,7 @@ export function EngineeringModelWorkspace({
   }
   const [locked, setLocked] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [version, setVersion] = useState(0);
   const changed = useCallback(() => {
-    setVersion((v) => v + 1);
     setMessage("Saved.");
   }, []);
   const failed = useCallback(
@@ -53,9 +54,12 @@ export function EngineeringModelWorkspace({
         setLocked(true);
         router.refresh();
       }
-      if (status === 404 || status === 409) setVersion((v) => v + 1);
+      if (status === 404 || status === 409)
+        void client.invalidateQueries({
+          queryKey: keys.model(projectId, revisionId),
+        });
     },
-    [router],
+    [router, client, projectId, revisionId],
   );
   if (!registry.data) return <LoadState {...registry} />;
   return (
@@ -65,7 +69,6 @@ export function EngineeringModelWorkspace({
         revisionId,
         registry: registry.data,
         writable: canMutate && !locked,
-        version,
         changed,
         failed,
       }}
@@ -80,7 +83,15 @@ export function EngineeringModelWorkspace({
           { value: "topology", label: "Topology" },
         ]}
       />
-      {message && <ModelNotice>{message}</ModelNotice>}
+      <LoadState {...registry} />
+      {message &&
+        (message === "Saved." ? (
+          <p role="status" className="my-3 text-sm text-positive">
+            {message}
+          </p>
+        ) : (
+          <ModelNotice>{message}</ModelNotice>
+        ))}
       {locked && (
         <p role="status" className="mb-3 text-sm text-amber-800">
           This revision is read-only. Further edits are unavailable.

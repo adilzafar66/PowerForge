@@ -1,5 +1,8 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keys } from "@/lib/query-keys";
+import { AsyncState } from "@/components/ui/async-state";
 import { AttributeEditor } from "@/components/equipment-attributes-panel";
 import { EquipmentTerminalsPanel } from "@/components/equipment-terminals-panel";
 import {
@@ -36,48 +39,36 @@ export function EquipmentDetailDrawer({
   id: string;
   onClose: () => void;
 }) {
-  const {
-    projectId,
-    revisionId,
-    registry,
-    version,
-    writable,
-    changed,
-    failed,
-  } = useModel();
+  const { projectId, revisionId, registry, writable, changed, failed } =
+    useModel();
   const [snapshot, setSnapshot] = useState<EquipmentSnapshot | null>(null);
   const [draft, setDraft] = useState<EquipmentDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState("general");
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
-  const [retry, setRetry] = useState(0);
+  const client = useQueryClient();
+  const query = useQuery({
+    queryKey: keys.editor(projectId, revisionId, id),
+    queryFn: () => getEquipmentEditor(projectId, revisionId, id),
+  });
   const fieldId = useId();
   const dirtyRef = useRef(false);
   const callbacks = useRef({ onClose, failed });
   callbacks.current = { onClose, failed };
   useEffect(() => {
-    let current = true;
-    getEquipmentEditor(projectId, revisionId, id)
-      .then((value) => {
-        if (current && !dirtyRef.current) {
-          setSnapshot(value);
-          setDraft(equipmentDraft(value));
-          setError(null);
-        }
-      })
-      .catch((err) => {
-        if (current) {
-          setError(apiErrorOf(err).detail);
-          if (apiErrorOf(err).status === 404 && !dirtyRef.current)
-            callbacks.current.onClose();
-          callbacks.current.failed(err);
-        }
-      });
-    return () => {
-      current = false;
-    };
-  }, [projectId, revisionId, id, version, retry]);
+    if (query.data && !dirtyRef.current) {
+      setSnapshot(query.data);
+      setDraft(equipmentDraft(query.data));
+    }
+  }, [query.data]);
+  useEffect(() => {
+    if (!query.error) return;
+    if (apiErrorOf(query.error).status === 404 && !dirtyRef.current) {
+      callbacks.current.onClose();
+      callbacks.current.failed(query.error);
+    }
+  }, [query.error]);
   const definitions =
     registry.equipment_types.find(
       (t) => t.key === snapshot?.equipment.equipment_type,
@@ -88,7 +79,9 @@ export function EquipmentDetailDrawer({
       : { body: {}, dirty: false, invalid: false };
   dirtyRef.current = changes.dirty;
   const editable =
-    writable && snapshot?.equipment.lifecycle_status === "ACTIVE";
+    writable &&
+    snapshot?.equipment.lifecycle_status === "ACTIVE" &&
+    query.data?.equipment.lifecycle_status === "ACTIVE";
   const canSave = !!editable && changes.dirty && !changes.invalid && !busy;
   async function save(close = false) {
     if (!canSave) return;
@@ -101,7 +94,11 @@ export function EquipmentDetailDrawer({
         id,
         changes.body,
       );
+      await client.cancelQueries({
+        queryKey: keys.editor(projectId, revisionId, id),
+      });
       setSnapshot(fresh);
+      client.setQueryData(keys.editor(projectId, revisionId, id), fresh);
       setDraft(equipmentDraft(fresh));
       dirtyRef.current = false;
       setConfirm(false);
@@ -150,7 +147,7 @@ export function EquipmentDetailDrawer({
       }
       onClose={close}
       actions={
-        <Button disabled={!canSave} onClick={() => void save()}>
+        <Button pending={busy} disabled={!canSave} onClick={() => void save()}>
           {busy ? "Saving…" : "Save"}
         </Button>
       }
@@ -159,11 +156,16 @@ export function EquipmentDetailDrawer({
         <ModelNotice>
           {error}{" "}
           {!snapshot && (
-            <Button onClick={() => setRetry((v) => v + 1)}>Retry</Button>
+            <Button onClick={() => void query.refetch()}>Retry</Button>
           )}
         </ModelNotice>
       )}
-      {!snapshot && !error && <p role="status">Loading equipment…</p>}
+      <AsyncState
+        pending={!snapshot && query.isPending}
+        refreshing={!!snapshot && query.isFetching}
+        error={query.error}
+        retry={query.refetch}
+      />
       {snapshot && draft && (
         <>
           <div className="flex items-center gap-3">
