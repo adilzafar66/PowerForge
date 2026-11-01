@@ -1,8 +1,19 @@
 "use client";
-import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
-
-import { WorkspaceCard } from "@/components/ui/workspace-patterns";
-
+import { Card } from "@/components/ui/card";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { cn } from "@/lib/utils";
+import {
+  RegisterToolbar,
+  RegisterTable,
+  RegisterHeader,
+  RegisterRow,
+  RegisterCell,
+  RegisterFooter,
+} from "@/components/ui/register-table";
+import {
+  WorkspaceRoot,
+  WorkspaceContent,
+} from "@/components/ui/workspace-layout";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -10,22 +21,17 @@ import { Plus, Search, RefreshCw, ChevronRight } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { keys } from "@/lib/query-keys";
 import { AsyncState } from "@/components/ui/async-state";
-
-import {
-  WorkspaceButton as Button,
-  WorkspaceHeader,
-  WorkspaceStatus,
-} from "@/components/ui-c-workspace";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
 import {
   formatDateShort,
   listProjects,
   type Project,
   type ProjectStatus,
 } from "@/lib/projects";
-
 type StatusFilter = ProjectStatus | "ALL";
 const EMPTY_PROJECTS: Project[] = [];
-
 export function ProjectList({
   initialProjects,
 }: {
@@ -41,7 +47,6 @@ export function ProjectList({
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const loading = query.isFetching;
-
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = { ALL: projects.length };
     for (const project of projects) {
@@ -49,7 +54,6 @@ export function ProjectList({
     }
     return counts;
   }, [projects]);
-
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     return projects.filter((project) => {
@@ -64,34 +68,33 @@ export function ProjectList({
       return matchStatus && matchSearch;
     });
   }, [projects, search, statusFilter]);
-
   async function refresh() {
     await query.refetch();
   }
-
   return (
-    <div className={ws.root}>
-      <WorkspaceHeader
+    <WorkspaceRoot>
+      <PageHeader
         title="Projects"
-        subtitle={`${projects.length} projects in workspace`}
+        description={`${projects.length} projects in workspace`}
         actions={
-          <Button asChild variant="primary">
+          <Button asChild variant="primary" presentation="workspace">
             <Link href="/projects/new">
               <Plus />
               New Project
             </Link>
           </Button>
         }
+        presentation="workspace"
       />
-      <div className={`${ws.content} !pt-[30px]`}>
+      <WorkspaceContent className="!pt-[30px]">
         <AsyncState
           pending={query.isPending}
           error={query.error}
           retry={refresh}
         />
-        <WorkspaceCard as="div">
-          <div className={ws.toolbar}>
-            <div className={ws.toolbarControls}>
+        <Card presentation="workspace" as="div">
+          <RegisterToolbar>
+            <div className="flex gap-[10px] flex-wrap items-center">
               <label className="flex min-h-[41px] items-center gap-[10px] rounded-lg border border-border bg-[#F9FBFC] px-[13px]">
                 <Search size={16} className="text-muted" />
                 <input
@@ -102,37 +105,36 @@ export function ProjectList({
                   placeholder="Search number, name, client, or address"
                 />
               </label>
-              <div
-                className={`${ws.tabs} ${ws.projectTabs}`}
-                role="group"
-                aria-label="Project status"
-              >
-                {(
+              <SegmentedControl
+                presentation="projects"
+                label="Project status"
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={(
                   ["ALL", "ACTIVE", "PAUSED", "CANCELLED", "ARCHIVED"] as const
-                ).map((value) => (
-                  <button
-                    type="button"
-                    key={value}
-                    aria-pressed={statusFilter === value}
-                    onClick={() => setStatusFilter(value)}
-                  >
-                    {value === "ALL"
+                ).map((value) => ({
+                  value,
+                  label:
+                    value === "ALL"
                       ? "All"
-                      : value.charAt(0) + value.slice(1).toLowerCase()}{" "}
-                    <span className="ml-1 opacity-70">
-                      {statusCounts[value] ?? 0}
-                    </span>
-                  </button>
-                ))}
-              </div>
+                      : value.charAt(0) + value.slice(1).toLowerCase(),
+                  count: statusCounts[value] ?? 0,
+                }))}
+              />
             </div>
-            <Button size="sm" disabled={loading} onClick={() => void refresh()}>
+            <Button
+              size="sm"
+              disabled={loading}
+              onClick={() => void refresh()}
+              presentation="workspace"
+              variant="outline"
+            >
               <RefreshCw />
               {loading ? "Refreshing…" : "Refresh"}
             </Button>
-          </div>
-          <div className={ws.tableScroll}>
-            <table className={`${ws.table} ${ws.projectTable}`}>
+          </RegisterToolbar>
+          <div className="overflow-x-auto">
+            <RegisterTable>
               <colgroup>
                 {["12%", "33%", "14%", "13%", "14%", "12%", "2%"].map(
                   (width, index) => (
@@ -151,15 +153,15 @@ export function ProjectList({
                     "Updated",
                     "",
                   ].map((label) => (
-                    <th key={label} scope="col">
+                    <RegisterHeader key={label} scope="col" variant="projects">
                       {label}
-                    </th>
+                    </RegisterHeader>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((project) => (
-                  <tr
+                  <RegisterRow
                     key={project.id}
                     tabIndex={0}
                     aria-label={`Open ${project.project_name}`}
@@ -177,37 +179,51 @@ export function ProjectList({
                         router.push(`/projects/${project.id}`);
                     }}
                   >
-                    <td className="font-mono !text-[11px]">
+                    <RegisterCell
+                      className="font-mono !text-[11px]"
+                      variant="projects"
+                    >
                       {project.project_number}
-                    </td>
-                    <td>
+                    </RegisterCell>
+                    <RegisterCell variant="projects">
                       <Link
-                        className="project-name"
                         href={`/projects/${project.id}`}
+                        className={cn(
+                          "project-name",
+                          "text-workspace-body text-ink font-semibold",
+                        )}
                       >
                         {project.project_name}
                       </Link>
-                      <small>
+                      <small className="block text-muted text-workspace-micro mt-[5px]">
                         {project.project_address || "No address specified"}
                       </small>
-                    </td>
-                    <td>{project.client_name || "—"}</td>
-                    <td className="font-mono !text-[11px]">
+                    </RegisterCell>
+                    <RegisterCell variant="projects">
+                      {project.client_name || "—"}
+                    </RegisterCell>
+                    <RegisterCell
+                      className="font-mono !text-[11px]"
+                      variant="projects"
+                    >
                       {project.active_revision_identifier || "—"}
-                    </td>
-                    <td>
-                      <WorkspaceStatus status={project.status} />
-                    </td>
-                    <td className="whitespace-nowrap">
+                    </RegisterCell>
+                    <RegisterCell variant="projects">
+                      <Badge status={project.status} presentation="workspace" />
+                    </RegisterCell>
+                    <RegisterCell
+                      className="whitespace-nowrap"
+                      variant="projects"
+                    >
                       {formatDateShort(project.updated_at)}
-                    </td>
-                    <td>
+                    </RegisterCell>
+                    <RegisterCell variant="projects">
                       <ChevronRight size={14} />
-                    </td>
-                  </tr>
+                    </RegisterCell>
+                  </RegisterRow>
                 ))}
               </tbody>
-            </table>
+            </RegisterTable>
           </div>
           {query.data && filtered.length === 0 && (
             <div className="px-6 py-[70px] text-center">
@@ -226,24 +242,26 @@ export function ProjectList({
                     setSearch("");
                     setStatusFilter("ALL");
                   }}
+                  presentation="workspace"
+                  variant="outline"
                 >
                   Clear filters
                 </Button>
               )}
             </div>
           )}
-          <div className={ws.tableFooter}>
+          <RegisterFooter>
             <span>
               Showing {filtered.length} of {projects.length} projects
             </span>
             <span>Project register</span>
-          </div>
-        </WorkspaceCard>
-        <p className={ws.help}>
+          </RegisterFooter>
+        </Card>
+        <p className="text-muted text-workspace-caption leading-[var(--pf-leading-hint)] mt-4">
           Select a project to view its overview and edit its metadata. Status
           filters and search update immediately.
         </p>
-      </div>
-    </div>
+      </WorkspaceContent>
+    </WorkspaceRoot>
   );
 }

@@ -1,4 +1,4 @@
-import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
+import { Card } from "@/components/ui/card";
 import {
   Fragment,
   type ComponentProps,
@@ -8,32 +8,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
-
-/** Shared workspace surfaces. Variants preserve the approved content/rail density. */
-export function WorkspaceCard({
-  as: Element = "article",
-  spacing = "none",
-  className,
-  ...props
-}: HTMLAttributes<HTMLElement> & {
-  as?: "article" | "section" | "div";
-  spacing?: "none" | "body" | "rail" | "work";
-}) {
-  const padding = {
-    none: "",
-    body: ws.pad,
-    rail: ws.rail,
-    work: ws.work,
-  }[spacing];
-  return <Element {...props} className={cn(ws.card, padding, className)} />;
-}
-
-export function WorkspaceCardBody({
-  className,
-  ...props
-}: HTMLAttributes<HTMLDivElement>) {
-  return <div {...props} className={cn(ws.pad, className)} />;
-}
 
 export type WorkspaceDetail = {
   label: string;
@@ -51,11 +25,35 @@ export function WorkspaceDetails({
   variant?: "default" | "project";
 }) {
   return (
-    <dl className={cn(ws.details, variant === "project" && "project")}>
+    <dl
+      className={cn(
+        "grid grid-cols-[var(--pf-detail-label-width)_minmax(0,_1fr)] gap-x-[18px] m-0 max-[790px]:grid-cols-[var(--pf-detail-mobile-label-width)_minmax(0,_1fr)]",
+        variant === "project" &&
+          "grid-cols-[var(--pf-detail-project-label-width)_minmax(0,_1fr)] gap-x-[0] max-[790px]:grid-cols-[var(--pf-detail-mobile-label-width)_minmax(0,_1fr)]",
+      )}
+    >
       {items.map(({ label, value, mono }) => (
         <Fragment key={label}>
-          <dt>{label}</dt>
-          <dd className={mono ? "font-mono" : undefined}>{value}</dd>
+          <dt
+            className={cn(
+              "py-[13px] px-0 m-0 border-b border-[var(--pf-border-row)] text-workspace-caption leading-[var(--pf-leading-copy)] [overflow-wrap:anywhere] text-muted font-semibold last-of-type:border-b-0",
+              variant === "project" &&
+                "py-[14px] px-[3px] text-workspace-label",
+              "leading-[var(--pf-leading-copy)]",
+            )}
+          >
+            {label}
+          </dt>
+          <dd
+            className={cn(
+              "py-[13px] px-0 m-0 border-b border-[var(--pf-border-row)] text-workspace-body leading-[var(--pf-leading-copy)] [overflow-wrap:anywhere] last-of-type:border-b-0",
+              variant === "project" && "py-[14px] px-[3px] text-workspace-body",
+              "leading-[var(--pf-leading-copy)]",
+              mono && "font-mono",
+            )}
+          >
+            {value}
+          </dd>
         </Fragment>
       ))}
     </dl>
@@ -77,14 +75,20 @@ export function WorkspaceFormSection({
   footer?: ReactNode;
 }) {
   return (
-    <WorkspaceCard>
-      <div className={ws.formHead}>
-        <h2>{title}</h2>
-        {description && <p>{description}</p>}
+    <Card presentation="workspace" as="article">
+      <div className="pt-5 px-[22px] pb-0">
+        <h2 className="text-workspace-section font-semibold tracking-[-0.2px] m-0">
+          {title}
+        </h2>
+        {description && (
+          <p className="text-muted text-workspace-label mt-[6px] mx-0 mb-0">
+            {description}
+          </p>
+        )}
       </div>
-      <div className={cn(ws.formBody, bodyClassName)}>{children}</div>
+      <div className={cn("p-[22px]", bodyClassName)}>{children}</div>
       {footer}
-    </WorkspaceCard>
+    </Card>
   );
 }
 
@@ -98,11 +102,13 @@ export function WorkspaceCheckboxField({
   description: ReactNode;
 }) {
   return (
-    <label className={ws.check}>
+    <label className="flex items-start gap-[10px] p-3 border border-border rounded-[var(--pf-radius-control)] my-2 mx-0 text-muted text-workspace-caption font-semibold">
       <Checkbox {...props} />
       <span>
-        <strong>{label}</strong>
-        <small>{description}</small>
+        <strong className="text-workspace-label text-ink">{label}</strong>
+        <small className="block text-workspace-caption font-normal text-muted mt-[5px] leading-[var(--pf-leading-hint)]">
+          {description}
+        </small>
       </span>
     </label>
   );
@@ -110,6 +116,7 @@ export function WorkspaceCheckboxField({
 
 export function WorkspaceDrawerHeader({
   titleId,
+  presentation = "revision",
   title,
   subtitle,
   closeLabel,
@@ -117,6 +124,7 @@ export function WorkspaceDrawerHeader({
   onClose,
 }: {
   titleId: string;
+  presentation?: "project" | "revision";
   title: string;
   subtitle?: ReactNode;
   closeLabel: string;
@@ -124,14 +132,36 @@ export function WorkspaceDrawerHeader({
   onClose: () => void;
 }) {
   return (
-    <div className={ws.drawerHead}>
+    <div
+      className={cn(
+        "py-[27px] px-[29px] border-b border-border flex justify-between items-start gap-3 max-[530px]:p-5",
+        presentation === "project" &&
+          "px-6 py-[23px] max-[530px]:px-6 max-[530px]:py-[23px]",
+      )}
+    >
       <div>
-        <h2 id={titleId}>{title}</h2>
-        <p>{subtitle}</p>
+        <h2
+          id={titleId}
+          className={cn(
+            "text-workspace-editor font-semibold tracking-[-0.5px] mt-0 mx-0 mb-[6px]",
+            presentation === "project" && "text-workspace-editor-compact",
+          )}
+        >
+          {title}
+        </h2>
+        <p
+          className={cn(
+            "text-muted text-workspace-body leading-[var(--pf-leading-copy)]",
+            presentation === "project" && "text-workspace-caption",
+            "leading-[var(--pf-leading-copy)]",
+          )}
+        >
+          {subtitle}
+        </p>
       </div>
       <button
         type="button"
-        className={ws.close}
+        className="w-[30px] h-[30px] shrink-0 border border-border rounded-[var(--pf-radius-sm)] grid place-items-center text-muted"
         aria-label={closeLabel}
         disabled={pending}
         onClick={onClose}
@@ -146,5 +176,78 @@ export function WorkspaceFormActions({
   className,
   ...props
 }: HTMLAttributes<HTMLDivElement>) {
-  return <div {...props} className={cn(ws.drawerFoot, className)} />;
+  return (
+    <div
+      {...props}
+      className={cn(
+        "border-t border-border py-4 px-[25px] flex justify-end gap-[10px] max-[530px]:p-[14px]",
+        className,
+      )}
+    />
+  );
+}
+
+export function WorkspaceDrawerBody({
+  presentation = "revision",
+  className,
+  ...props
+}: HTMLAttributes<HTMLDivElement> & { presentation?: "project" | "revision" }) {
+  return (
+    <div
+      {...props}
+      className={cn(
+        "py-[25px] px-[29px] overflow-y-auto flex-1 max-[530px]:p-5",
+        presentation === "project" && "p-[22px] max-[530px]:p-[22px]",
+        className,
+      )}
+    />
+  );
+}
+export function WorkspaceCardHeader({
+  title,
+  subtitle,
+  actions,
+}: {
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <div className="py-5 px-[22px] border-b border-border flex items-center justify-between gap-[15px]">
+      <div>
+        <h2 className="text-workspace-section font-semibold tracking-[-0.2px] m-0">
+          {title}
+        </h2>
+        {subtitle && (
+          <p className="mt-[5px] mx-0 mb-0 text-muted text-workspace-caption">
+            {subtitle}
+          </p>
+        )}
+      </div>
+      {actions}
+    </div>
+  );
+}
+export function WorkspaceStats({ action }: { action?: ReactNode }) {
+  return (
+    <div
+      className="flex flex-wrap items-center gap-4 border-t border-border pt-[17px] mt-[19px]"
+      aria-label="Workspace counts unavailable"
+    >
+      {["Documents", "Equipment", "Connections"].map((label) => (
+        <div className="[flex:1_1_75px] min-w-0" key={label}>
+          <strong
+            className="block text-workspace-editor font-semibold"
+            title="Count not provided by revision metadata"
+          >
+            —
+          </strong>
+          <small className="text-muted text-workspace-caption block mt-[5px]">
+            {label}
+          </small>
+        </div>
+      ))}
+      {action}
+    </div>
+  );
 }

@@ -1,10 +1,17 @@
 "use client";
-import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
-
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import {
+  RegisterToolbar,
+  RegisterTable,
+  RegisterHeader,
+  RegisterRow,
+  RegisterCell,
+  RegisterFooter,
+} from "@/components/ui/register-table";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { WorkspaceStatus } from "@/components/ui-c-workspace";
+import { Badge } from "@/components/ui/badge";
 import { formatDateShort, type Revision } from "@/lib/projects";
 import { revisionHref } from "@/lib/workspace-navigation";
 export function RevisionsRegister({
@@ -29,53 +36,47 @@ export function RevisionsRegister({
     );
   return (
     <>
-      <div className={ws.toolbar}>
-        <div className={ws.toolbarControls}>
+      <RegisterToolbar>
+        <div className="flex gap-[10px] flex-wrap items-center">
           <input
             aria-label="Search revisions"
             placeholder="Search revisions…"
-            className={ws.search}
+            className="w-[300px] max-w-full min-h-[var(--pf-control-height-search)] bg-[var(--pf-surface-note)] border border-border rounded-[var(--pf-radius-control)] py-[10px] px-3 text-workspace-label"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <div
-            className={ws.tabs}
-            role="group"
-            aria-label="Filter revision status"
-          >
-            {[
+          <SegmentedControl
+            presentation="revisions"
+            label="Filter revision status"
+            value={status}
+            onChange={setStatus}
+            options={[
               ["", "All"],
               ["ACTIVE", "Active"],
               ["DRAFT", "Draft"],
               ["SUPERSEDED", "Superseded"],
-            ].map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={status === value}
-                onClick={() => setStatus(value)}
-              >
-                {label}{" "}
-                {value
-                  ? revisions.filter((r) => r.status === value).length
-                  : revisions.length}
-              </button>
-            ))}
-          </div>
+            ].map(([value, label]) => ({
+              value,
+              label,
+              count: value
+                ? revisions.filter((r) => r.status === value).length
+                : revisions.length,
+            }))}
+          />
         </div>
         <span className="text-[11px] text-muted">
           Select a revision to open details
         </span>
-      </div>
-      <div className={ws.tableScroll}>
-        <table className={ws.table}>
+      </RegisterToolbar>
+      <div className="overflow-x-auto">
+        <RegisterTable>
           <thead>
             <tr>
               {["Revision", "Description / lineage", "Status", "Updated"].map(
                 (label) => (
-                  <th key={label} scope="col">
+                  <RegisterHeader key={label} scope="col">
                     {label}
-                  </th>
+                  </RegisterHeader>
                 ),
               )}
             </tr>
@@ -90,7 +91,7 @@ export function RevisionsRegister({
                 "overview",
               );
               return (
-                <tr
+                <RegisterRow
                   key={r.id}
                   tabIndex={0}
                   aria-label={`Open revision ${r.identifier}`}
@@ -108,30 +109,34 @@ export function RevisionsRegister({
                       router.push(href);
                   }}
                 >
-                  <td>
+                  <RegisterCell>
                     <Link href={href} className="font-mono font-bold">
                       {r.identifier}
                     </Link>
-                  </td>
-                  <td>
-                    <strong>{r.description || "—"}</strong>
-                    <small>
+                  </RegisterCell>
+                  <RegisterCell>
+                    <strong className="font-semibold">
+                      {r.description || "—"}
+                    </strong>
+                    <small
+                      className="block text-muted text-workspace-micro mt-[5px]"
+                    >
                       {r.based_on_revision_id
                         ? `Based on ${revisions.find((item) => item.id === r.based_on_revision_id)?.identifier ?? r.based_on_identifier ?? "source revision"}`
                         : "Original revision"}
                     </small>
-                  </td>
-                  <td>
-                    <WorkspaceStatus status={r.status} />
-                  </td>
-                  <td className="whitespace-nowrap">
+                  </RegisterCell>
+                  <RegisterCell>
+                    <Badge status={r.status} presentation="workspace" />
+                  </RegisterCell>
+                  <RegisterCell className="whitespace-nowrap">
                     {formatDateShort(r.updated_at)}
-                  </td>
-                </tr>
+                  </RegisterCell>
+                </RegisterRow>
               );
             })}
           </tbody>
-        </table>
+        </RegisterTable>
       </div>
       {items.length === 0 && (
         <div className="p-10 text-center text-muted">
@@ -149,12 +154,12 @@ export function RevisionsRegister({
           )}
         </div>
       )}
-      <div className={ws.tableFooter}>
+      <RegisterFooter>
         <span>
           Showing {items.length} of {revisions.length} revisions
         </span>
         <span>Newest first</span>
-      </div>
+      </RegisterFooter>
     </>
   );
 }

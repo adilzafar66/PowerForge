@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 export function Field({
   id,
+  presentation = "default",
   label,
   required,
   children,
@@ -16,6 +17,7 @@ export function Field({
   hint,
   error,
 }: {
+  presentation?: "default" | "workspace";
   id?: string;
   label: string;
   required?: boolean;
@@ -39,7 +41,14 @@ export function Field({
       : children;
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
-      <Label htmlFor={id}>
+      <Label
+        htmlFor={id}
+        className={
+          presentation === "workspace"
+            ? "text-muted text-workspace-caption font-semibold"
+            : undefined
+        }
+      >
         {label}
         {required && (
           <span aria-hidden className="ml-0.5 text-danger">

@@ -1,19 +1,17 @@
 "use client";
-import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
-
+import { WorkspaceDrawerBody } from "@/components/ui/workspace-patterns";
 import {
   WorkspaceFormActions,
   WorkspaceDrawerHeader,
 } from "@/components/ui/workspace-patterns";
-
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { Sheet } from "@/components/ui/sheet";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { WorkspaceButton as Button } from "@/components/ui-c-workspace";
+import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
-
 /** Local drafts stay mounted through refetch; close and unload require a decision. */
 export function WorkspaceEditor({
+  presentation,
   title,
   subtitle,
   dirty,
@@ -24,6 +22,7 @@ export function WorkspaceEditor({
   onSave,
   children,
 }: {
+  presentation: "project" | "revision";
   title: string;
   subtitle?: string;
   dirty: boolean;
@@ -54,12 +53,14 @@ export function WorkspaceEditor({
   return (
     <Sheet
       autoFocusFirst
-      overlayClassName={ws.overlay}
       labelledBy={id}
       onClose={close}
-      className={`${ws.sheet} ${title === "Edit project" ? "project" : ""}`}
+      presentation={
+        presentation === "project" ? "workspace-project" : "workspace-revision"
+      }
     >
       <WorkspaceDrawerHeader
+        presentation={presentation}
         titleId={id}
         title={title}
         subtitle={subtitle}
@@ -74,7 +75,7 @@ export function WorkspaceEditor({
           if (!disabled && !pending && dirty) onSave();
         }}
       >
-        <div className={`${ws.drawerBody} space-y-5`}>
+        <WorkspaceDrawerBody presentation={presentation} className="space-y-5">
           {error && (
             <p role="alert" className="text-sm text-red-600">
               {error}
@@ -83,13 +84,14 @@ export function WorkspaceEditor({
           <fieldset disabled={pending} className="space-y-5">
             {children}
           </fieldset>
-        </div>
+        </WorkspaceDrawerBody>
         <WorkspaceFormActions>
           <Button
             type="button"
             variant="outline"
             onClick={close}
             disabled={pending}
+            presentation="workspace"
           >
             Cancel
           </Button>
@@ -98,6 +100,7 @@ export function WorkspaceEditor({
             variant="primary"
             pending={pending}
             disabled={disabled || !dirty}
+            presentation="workspace"
           >
             <Check />
             Save changes
@@ -106,13 +109,13 @@ export function WorkspaceEditor({
       </form>
       {discard && (
         <ConfirmDialog
-          className={ws.dialog}
           title="Discard unsaved changes?"
           message="Your changes have not been saved."
           confirmLabel="Discard changes"
           danger
           onCancel={() => setDiscard(false)}
           onConfirm={onClose}
+          presentation="workspace"
         />
       )}
     </Sheet>

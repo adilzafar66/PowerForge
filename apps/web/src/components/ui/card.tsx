@@ -2,11 +2,27 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+type CardProps = React.HTMLAttributes<HTMLElement> & {
+  as?: "div" | "article" | "section";
+  presentation?: "default" | "workspace";
+  spacing?: "none" | "body" | "rail" | "work";
+};
+function Card({
+  as: Element = "div",
+  presentation = "default",
+  spacing = "none",
+  className,
+  ...props
+}: CardProps) {
   return (
-    <div
+    <Element
       className={cn(
         "rounded-xl border border-border bg-white text-slate-900",
+        presentation === "workspace" &&
+          "bg-panel border border-border rounded-[var(--pf-radius-lg)] overflow-hidden min-w-0",
+        spacing === "body" && "p-6 max-[530px]:p-[18px]",
+        spacing === "rail" && "p-5",
+        spacing === "work" && "py-[22px] px-6",
         className,
       )}
       {...props}
@@ -48,10 +64,21 @@ function CardDescription({
 }
 
 function CardContent({
+  presentation = "default",
   className,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("p-5 pt-0", className)} {...props} />;
+}: React.HTMLAttributes<HTMLDivElement> & {
+  presentation?: "default" | "workspace";
+}) {
+  return (
+    <div
+      className={cn(
+        presentation === "workspace" ? "p-6 max-[530px]:p-[18px]" : "p-5 pt-0",
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export { Card, CardContent, CardDescription, CardHeader, CardTitle };

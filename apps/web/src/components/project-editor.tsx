@@ -1,6 +1,4 @@
 "use client";
-import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
-
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { WorkspaceEditor } from "@/components/workspace-editor";
@@ -13,7 +11,6 @@ import {
   type Project,
   type ProjectUpdateInput,
 } from "@/lib/projects";
-
 export function ProjectEditor({
   project,
   onClose,
@@ -60,6 +57,7 @@ export function ProjectEditor({
   }
   return (
     <WorkspaceEditor
+      presentation="project"
       title="Edit project"
       subtitle={`${project.project_number} · ${project.project_name}`}
       dirty={dirty}
@@ -69,7 +67,7 @@ export function ProjectEditor({
       onClose={onClose}
       onSave={() => void save()}
     >
-      <p className={ws.editHint}>
+      <p className="bg-[var(--pf-editor-hint-surface)] border border-border rounded-[var(--pf-radius-md)] py-[13px] px-[14px] text-muted text-workspace-hint leading-[var(--pf-leading-relaxed)]">
         <strong>Project number {project.project_number} is fixed.</strong>
         <br />
         Edit the project information below. Status and revisions are managed
@@ -94,6 +92,7 @@ export function ProjectEditor({
             id={`edit-${key}`}
             label={label}
             required={key === "project_name"}
+            presentation="workspace"
           >
             <Control
               id={`edit-${key}`}
@@ -103,6 +102,7 @@ export function ProjectEditor({
               onChange={(event) =>
                 setDraft({ ...draft, [key]: event.target.value })
               }
+              presentation="workspace"
             />
           </Field>
         );

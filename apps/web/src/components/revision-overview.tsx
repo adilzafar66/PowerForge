@@ -1,22 +1,24 @@
 "use client";
-import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
-
+import type { ReactNode } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  WorkspaceCard,
-  WorkspaceCardBody,
-  WorkspaceDetails,
-} from "@/components/ui/workspace-patterns";
+  WorkspaceRoot,
+  WorkspaceContent,
+  WorkspaceNote,
+  WorkspaceColumns,
+} from "@/components/ui/workspace-layout";
+import { WorkspaceDetails } from "@/components/ui/workspace-patterns";
 import Link from "next/link";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { keys } from "@/lib/query-keys";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
 import {
-  WorkspaceButton as Button,
-  WorkspaceHeader,
   WorkspaceCardHeader,
-  WorkspaceStatus,
   WorkspaceStats,
-} from "@/components/ui-c-workspace";
+} from "@/components/ui/workspace-patterns";
 import {
   ArrowLeft,
   ChevronRight,
@@ -34,7 +36,6 @@ import {
   type Revision,
 } from "@/lib/projects";
 import { revisionHref } from "@/lib/workspace-navigation";
-
 export function RevisionOverview({
   project,
   revision,
@@ -102,18 +103,18 @@ export function RevisionOverview({
     revisions.find((r) => r.id === revision.based_on_revision_id)?.identifier ??
     revision.based_on_identifier;
   return (
-    <div className={ws.root}>
-      <WorkspaceHeader
+    <WorkspaceRoot>
+      <PageHeader
         title={
           <>
             {revision.identifier}
-            <WorkspaceStatus status={revision.status} />
+            <Badge status={revision.status} presentation="workspace" />
           </>
         }
-        subtitle={`${revision.description || "Revision"} · ${project.project_name}`}
+        description={`${revision.description || "Revision"} · ${project.project_name}`}
         actions={
           <>
-            <Button asChild>
+            <Button asChild presentation="workspace" variant="outline">
               <Link href={`/projects/${project.id}/revisions`}>
                 <ArrowLeft />
                 All revisions
@@ -125,12 +126,13 @@ export function RevisionOverview({
                 pending={pending}
                 disabled={!eligible}
                 onClick={() => setConfirm(true)}
+                presentation="workspace"
               >
                 <Check />
                 Activate revision
               </Button>
             )}
-            <Button asChild variant="primary">
+            <Button asChild variant="primary" presentation="workspace">
               <Link href={href("documents")}>
                 Open revision workspace
                 <ChevronRight />
@@ -138,23 +140,24 @@ export function RevisionOverview({
             </Button>
           </>
         }
+        presentation="workspace"
       />
-      <div className={ws.content}>
+      <WorkspaceContent>
         {error && (
-          <p role="alert" className={`${ws.note} mb-4 text-red-700`}>
+          <WorkspaceNote role="alert" className="mb-4 text-red-700">
             {error}
-          </p>
+          </WorkspaceNote>
         )}
         {message && (
-          <p role="status" className={`${ws.note} mb-4`}>
+          <WorkspaceNote role="status" className="mb-4">
             {message}
-          </p>
+          </WorkspaceNote>
         )}
-        <div className={ws.columns}>
-          <div className={ws.stack}>
+        <WorkspaceColumns>
+          <div className="flex flex-col gap-5 min-w-0">
             {(locked || revision.status !== "ACTIVE") && (
-              <div className={ws.note}>
-                <strong>
+              <WorkspaceNote as="div">
+                <strong className="text-ink">
                   {locked
                     ? "Project read-only"
                     : revision.status === "SUPERSEDED"
@@ -170,58 +173,70 @@ export function RevisionOverview({
                         ? "This revision can be developed independently. Activation is a separate, deliberate lifecycle action."
                         : "Only a draft created after the current active revision can be activated."}
                 </p>
-              </div>
+              </WorkspaceNote>
             )}
-            <WorkspaceCard spacing="body">
+            <Card presentation="workspace" as="article" spacing="body">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <div className={`${ws.overline} mb-[9px]`}>
+                  <div className="text-workspace-overline tracking-[var(--pf-tracking-overline)] text-[var(--pf-text-tertiary)] font-bold uppercase mb-[9px]">
                     Revision summary
                   </div>
                   <h2 className="mb-2 text-[22px] font-bold">
                     {revision.description || revision.identifier}
                   </h2>
-                  <p className={ws.subtitle}>
+                  <p className="text-workspace-body text-muted leading-[var(--pf-leading-copy)] m-0">
                     {revision.identifier} ·{" "}
                     {formatDateShort(revision.created_at)} ·{" "}
                     {project.project_number}
                   </p>
                 </div>
-                <WorkspaceStatus status={revision.status} />
+                <Badge status={revision.status} presentation="workspace" />
               </div>
               <WorkspaceStats />
-            </WorkspaceCard>
-            <WorkspaceCard>
+            </Card>
+            <Card presentation="workspace" as="article">
               <WorkspaceCardHeader
                 title="Revision workspaces"
                 subtitle="Move into the working areas for this revision"
               />
-              <WorkspaceCardBody className="!py-2">
-                <Link className={ws.itemRow} href={href("documents")}>
+              <CardContent presentation="workspace" className="!py-2">
+                <Link
+                  className="flex items-center justify-between gap-[10px] py-[13px] px-0 border-b border-[var(--pf-border-item)] last:border-0 hover:text-accent"
+                  href={href("documents")}
+                >
                   <span className="flex items-center gap-2">
                     <Files size={19} />
                     <span>
-                      <strong>Documents</strong>
-                      <small>Source drawings and document processing</small>
+                      <strong className="block text-workspace-label mb-1">
+                        Documents
+                      </strong>
+                      <small className="text-muted text-workspace-caption">
+                        Source drawings and document processing
+                      </small>
                     </span>
                   </span>
                   <ChevronRight size={16} />
                 </Link>
-                <Link className={ws.itemRow} href={href("equipment")}>
+                <Link
+                  className="flex items-center justify-between gap-[10px] py-[13px] px-0 border-b border-[var(--pf-border-item)] last:border-0 hover:text-accent"
+                  href={href("equipment")}
+                >
                   <span className="flex items-center gap-2">
                     <Cpu size={19} />
                     <span>
-                      <strong>Engineering Model</strong>
-                      <small>
+                      <strong className="block text-workspace-label mb-1">
+                        Engineering Model
+                      </strong>
+                      <small className="text-muted text-workspace-caption">
                         Equipment, attributes, terminals and topology
                       </small>
                     </span>
                   </span>
                   <ChevronRight size={16} />
                 </Link>
-              </WorkspaceCardBody>
-            </WorkspaceCard>
-            <WorkspaceCard>
+              </CardContent>
+            </Card>
+            <Card presentation="workspace" as="article">
               <WorkspaceCardHeader
                 title="Revision Information"
                 subtitle="Lifecycle and ancestry of the selected revision"
@@ -231,13 +246,15 @@ export function RevisionOverview({
                     aria-label="Edit revision information"
                     disabled={locked || pending}
                     onClick={() => setEditing(true)}
+                    presentation="workspace"
+                    variant="outline"
                   >
                     <Pencil />
                     Edit
                   </Button>
                 }
               />
-              <WorkspaceCardBody>
+              <CardContent presentation="workspace">
                 <WorkspaceDetails
                   items={[
                     {
@@ -247,7 +264,12 @@ export function RevisionOverview({
                     },
                     {
                       label: "Status",
-                      value: <WorkspaceStatus status={revision.status} />,
+                      value: (
+                        <Badge
+                          status={revision.status}
+                          presentation="workspace"
+                        />
+                      ),
                     },
                     {
                       label: "Description",
@@ -299,58 +321,62 @@ export function RevisionOverview({
                       : []),
                   ]}
                 />
-              </WorkspaceCardBody>
-            </WorkspaceCard>
+              </CardContent>
+            </Card>
           </div>
-          <aside className={ws.stack}>
-            <WorkspaceCard spacing="body">
+          <aside className="flex flex-col gap-5 min-w-0">
+            <Card presentation="workspace" as="article" spacing="body">
               <h2 className="mb-4 text-sm font-bold">Revision history</h2>
-              <div className={ws.timeline}>
-                <div>
-                  <h3>
-                    {revision.status === "ACTIVE"
-                      ? "Currently active"
-                      : revision.status === "DRAFT"
-                        ? "Draft created"
-                        : "Superseded"}
-                  </h3>
-                  <p>Last updated {formatDateShort(revision.updated_at)}</p>
-                </div>
+              <div className="relative mt-[3px] mx-0 mb-[5px] pl-[21px] before:content-[''] before:absolute before:left-[7px] before:top-[10px] before:bottom-[5px] before:w-[1px] before:bg-[var(--pf-timeline-line)]">
+                <RevisionHistoryEvent
+                  title={
+                    <>
+                      {revision.status === "ACTIVE"
+                        ? "Currently active"
+                        : revision.status === "DRAFT"
+                          ? "Draft created"
+                          : "Superseded"}
+                    </>
+                  }
+                >
+                  Last updated {formatDateShort(revision.updated_at)}
+                </RevisionHistoryEvent>
                 {revision.based_on_revision_id && (
-                  <div>
-                    <h3>Based on {source || "source revision"}</h3>
-                    <p>
-                      Inherited document and model snapshots where selected at
-                      creation.
-                    </p>
-                  </div>
+                  <RevisionHistoryEvent
+                    title={<>Based on {source || "source revision"}</>}
+                  >
+                    Inherited document and model snapshots where selected at
+                    creation.
+                  </RevisionHistoryEvent>
                 )}
-                <div>
-                  <h3>Revision created</h3>
-                  <p>{formatDateShort(revision.created_at)}</p>
-                </div>
+                <RevisionHistoryEvent title={<>Revision created</>}>
+                  {formatDateShort(revision.created_at)}
+                </RevisionHistoryEvent>
               </div>
-            </WorkspaceCard>
-            <WorkspaceCard spacing="body">
+            </Card>
+            <Card presentation="workspace" as="article" spacing="body">
               <h2 className="mb-4 text-sm font-bold">Carry-forward history</h2>
               {["Documents", "Engineering model"].map((label) => (
-                <div key={label} className={ws.itemRow}>
+                <div
+                  key={label}
+                  className="flex items-center justify-between gap-[10px] py-[13px] px-0 border-b border-[var(--pf-border-item)] last:border-0 hover:text-accent"
+                >
                   <span className="text-muted">{label}</span>
-                  <strong>
+                  <strong className="block text-workspace-label mb-1">
                     {revision.based_on_revision_id
                       ? "Not recorded"
                       : "Not inherited"}
                   </strong>
                 </div>
               ))}
-              <p className={`${ws.note} mt-4`}>
+              <WorkspaceNote className="mt-4">
                 Individual carry-forward choices are not included in revision
                 metadata. Workspace counts are also unavailable here.
-              </p>
-            </WorkspaceCard>
+              </WorkspaceNote>
+            </Card>
           </aside>
-        </div>
-      </div>
+        </WorkspaceColumns>
+      </WorkspaceContent>
       {editing && (
         <RevisionEditor
           project={project}
@@ -364,7 +390,6 @@ export function RevisionOverview({
       )}
       {confirm && (
         <ConfirmDialog
-          className={ws.dialog}
           title="Activate revision?"
           message={
             active
@@ -374,8 +399,29 @@ export function RevisionOverview({
           confirmLabel="Activate"
           onCancel={() => setConfirm(false)}
           onConfirm={() => void activate()}
+          presentation="workspace"
         />
       )}
+    </WorkspaceRoot>
+  );
+}
+
+/** History presentation stays local to the overview that owns these events. */
+function RevisionHistoryEvent({
+  title,
+  children,
+}: {
+  title: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="relative pb-[19px] last:p-0 before:content-[''] before:absolute before:left-[-18px] before:top-[5px] before:border-2 before:border-panel before:bg-accent before:w-2 before:h-2 before:rounded-[50%] before:shadow-[0_0_0_1px_var(--pf-timeline-ring)]">
+      <h3 className="text-workspace-label font-semibold mt-0 mx-0 mb-[5px]">
+        {title}
+      </h3>
+      <p className="text-muted text-workspace-caption m-0 leading-[var(--pf-leading-hint)]">
+        {children}
+      </p>
     </div>
   );
 }

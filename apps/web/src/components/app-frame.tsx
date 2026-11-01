@@ -1,5 +1,5 @@
 "use client";
-import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
+import { Badge } from "@/components/ui/badge";
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -105,6 +105,8 @@ export function AppFrame({ children }: { children: ReactNode }) {
       className={cn(
         "flex min-h-10 items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors hover:bg-soft",
         active ? "bg-selection font-semibold text-accent" : "text-ink",
+        uiC && url !== "/status" && "md:font-medium",
+        uiC && url !== "/status" && active && "md:font-semibold",
       )}
     >
       <Icon aria-hidden className="h-[18px] w-[18px] shrink-0" />
@@ -116,7 +118,10 @@ export function AppFrame({ children }: { children: ReactNode }) {
       <Link
         href="/"
         onClick={() => setMobileOpen(false)}
-        className="flex h-20 shrink-0 items-center gap-3 border-b border-border px-6 text-xl font-bold tracking-tight"
+        className={cn(
+          "flex h-20 shrink-0 items-center gap-3 border-b border-border px-6 text-xl font-bold tracking-tight",
+          uiC && "md:h-[78px]",
+        )}
       >
         <Zap aria-hidden className="h-6 w-6 text-accent" />
         PowerForge
@@ -169,6 +174,11 @@ export function AppFrame({ children }: { children: ReactNode }) {
                 }
                 className={cn(
                   "min-w-0 flex-1 rounded-l-lg px-3 py-2 hover:bg-selection",
+                  uiC && "md:font-medium",
+                  uiC &&
+                    revisionId &&
+                    destination === "overview" &&
+                    "md:font-semibold",
                   revisionId &&
                     destination === "overview" &&
                     "bg-selection text-accent",
@@ -257,7 +267,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
   );
   return (
     <ShellContextPublisher.Provider value={setContext}>
-      <div className={`flex min-h-screen bg-canvas ${uiC ? ws.shell : ""}`}>
+      <div className="flex min-h-screen bg-canvas">
         <a
           href="#main-content"
           className="sr-only fixed top-2 left-2 z-[100] rounded bg-panel p-3 focus:not-sr-only"
@@ -362,13 +372,15 @@ export function AppFrame({ children }: { children: ReactNode }) {
               )}
             </nav>
             {uiC && project && (
-              <span
-                className={`${ws.status} ${project.status} ml-auto hidden sm:inline-flex`}
+              <Badge
+                presentation="workspace"
+                status={project.status}
+                className="ml-auto"
               >
                 {project.status.charAt(0) +
                   project.status.slice(1).toLowerCase()}{" "}
                 project
-              </span>
+              </Badge>
             )}
           </header>
           <main

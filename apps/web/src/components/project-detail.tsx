@@ -1,24 +1,26 @@
 "use client";
-import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
-
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import {
-  WorkspaceCard,
-  WorkspaceCardBody,
-  WorkspaceDetails,
-} from "@/components/ui/workspace-patterns";
+  WorkspaceRoot,
+  WorkspaceContent,
+  WorkspaceNote,
+  WorkspaceColumns,
+} from "@/components/ui/workspace-layout";
+import { WorkspaceDetails } from "@/components/ui/workspace-patterns";
 import Link from "next/link";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { keys } from "@/lib/query-keys";
 import { AppShell } from "@/components/app-shell";
 import { AsyncState } from "@/components/ui/async-state";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
+import { Badge } from "@/components/ui/badge";
 import {
-  WorkspaceButton as Button,
-  WorkspaceHeader,
   WorkspaceCardHeader,
-  WorkspaceStatus,
   WorkspaceStats,
-} from "@/components/ui-c-workspace";
+} from "@/components/ui/workspace-patterns";
 import { ChevronRight, Pencil, Plus, Pause, Play } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ProjectEditor } from "@/components/project-editor";
@@ -36,10 +38,14 @@ import {
 import { revisionHref } from "@/lib/workspace-navigation";
 type ConfirmableAction =
   "pause" | "resume" | "cancel" | "archive" | "unarchive";
-
 const ACTION_COPY: Record<
   Exclude<ConfirmableAction, "unarchive">,
-  { title: string; message: string; confirmLabel: string; danger?: boolean }
+  {
+    title: string;
+    message: string;
+    confirmLabel: string;
+    danger?: boolean;
+  }
 > = {
   pause: {
     title: "Pause project?",
@@ -63,7 +69,6 @@ const ACTION_COPY: Record<
     confirmLabel: "Archive",
   },
 };
-
 function unarchiveCopy(restoreStatus: ProjectStatus | null): {
   title: string;
   message: string;
@@ -91,7 +96,6 @@ function unarchiveCopy(restoreStatus: ProjectStatus | null): {
     confirmLabel: "Unarchive",
   };
 }
-
 export function ProjectDetail({
   initialProject,
   initialRevisions,
@@ -143,7 +147,6 @@ export function ProjectDetail({
       setConfirmAction(null);
     }
   }
-
   const overviewHref = (id: string) =>
     revisionHref(project.id, id, undefined, "", "overview");
   const revisionsHref = `/projects/${project.id}/revisions`;
@@ -157,10 +160,10 @@ export function ProjectDetail({
           : ["unarchive"];
   return (
     <AppShell project={project} revisions={revisions}>
-      <div className={ws.root}>
-        <WorkspaceHeader
+      <WorkspaceRoot>
+        <PageHeader
           title={revisionsPage ? "Revisions" : project.project_name}
-          subtitle={
+          description={
             revisionsPage
               ? `Review and manage the revision history for ${project.project_name}.`
               : `Project ${project.project_number} · ${project.client_name || "Client not specified"}`
@@ -171,17 +174,18 @@ export function ProjectDetail({
                 variant="primary"
                 disabled={readOnly || busy}
                 onClick={() => setCreating(true)}
+                presentation="workspace"
               >
                 <Plus />
                 New revision
               </Button>
             ) : (
               <>
-                <Button asChild>
+                <Button asChild presentation="workspace" variant="outline">
                   <Link href={revisionsHref}>View revisions</Link>
                 </Button>
                 {active && (
-                  <Button asChild variant="primary">
+                  <Button asChild variant="primary" presentation="workspace">
                     <Link href={overviewHref(active.id)}>
                       <ChevronRight />
                       Open active revision
@@ -191,8 +195,9 @@ export function ProjectDetail({
               </>
             )
           }
+          presentation="workspace"
         />
-        <div className={ws.content}>
+        <WorkspaceContent>
           <AsyncState
             refreshing={pq.isFetching || rq.isFetching}
             error={pq.error || rq.error}
@@ -202,47 +207,47 @@ export function ProjectDetail({
             }}
           />
           {error && (
-            <p role="alert" className={`${ws.note} mb-4 text-red-700`}>
+            <WorkspaceNote role="alert" className="mb-4 text-red-700">
               {error}
-            </p>
+            </WorkspaceNote>
           )}
           {message && (
-            <p role="status" className={`${ws.note} mb-4`}>
+            <WorkspaceNote role="status" className="mb-4">
               {message}
-            </p>
+            </WorkspaceNote>
           )}
           {readOnly && (
-            <p role="status" className={`${ws.note} mb-4`}>
+            <WorkspaceNote role="status" className="mb-4">
               This project is {project.status.toLowerCase()} and is read-only.
-            </p>
+            </WorkspaceNote>
           )}
           {revisionsPage ? (
             <>
-              <WorkspaceCard as="div">
+              <Card presentation="workspace" as="div">
                 <RevisionsRegister
                   projectId={project.id}
                   revisions={revisions}
                   filterable
                 />
-              </WorkspaceCard>
-              <p className={`${ws.note} mt-[18px]`}>
-                <strong>Revision lifecycle:</strong> Draft revisions may be
-                activated if eligible. Activating a newer draft supersedes the
-                previously active revision. Historical revisions remain
-                available for inspection.
-              </p>
+              </Card>
+              <WorkspaceNote className="mt-[18px]">
+                <strong className="text-ink">Revision lifecycle:</strong> Draft
+                revisions may be activated if eligible. Activating a newer draft
+                supersedes the previously active revision. Historical revisions
+                remain available for inspection.
+              </WorkspaceNote>
             </>
           ) : (
             <>
-              <div className={ws.meta}>
-                <WorkspaceStatus status={project.status} />
+              <div className="flex items-center gap-[9px] mb-[17px] text-muted">
+                <Badge status={project.status} presentation="workspace" />
                 <span className="font-mono">{project.project_number}</span>
                 <span>·</span>
                 <span>Updated {formatDateShort(project.updated_at)}</span>
               </div>
-              <section className={ws.section} aria-label="Project details">
-                <div className={`${ws.columns} ${ws.projectColumns}`}>
-                  <WorkspaceCard>
+              <section className="mb-[22px]" aria-label="Project details">
+                <WorkspaceColumns variant="project">
+                  <Card presentation="workspace" as="article">
                     <WorkspaceCardHeader
                       title="Project Information"
                       subtitle="Client, location, technical scope and engineers"
@@ -251,13 +256,15 @@ export function ProjectDetail({
                           size="sm"
                           disabled={readOnly || busy}
                           onClick={() => setEditing(true)}
+                          presentation="workspace"
+                          variant="outline"
                         >
                           <Pencil />
                           Edit details
                         </Button>
                       }
                     />
-                    <WorkspaceCardBody>
+                    <CardContent presentation="workspace">
                       <WorkspaceDetails
                         variant="project"
                         items={[
@@ -292,19 +299,25 @@ export function ProjectDetail({
                           },
                         ]}
                       />
-                    </WorkspaceCardBody>
-                  </WorkspaceCard>
-                  <aside className={ws.stack}>
-                    <WorkspaceCard spacing="rail">
-                      <h2>Project lifecycle</h2>
-                      <p>
-                        Status: <WorkspaceStatus status={project.status} />
+                    </CardContent>
+                  </Card>
+                  <aside className="flex flex-col gap-5 min-w-0">
+                    <Card presentation="workspace" as="article" spacing="rail">
+                      <h2 className="text-workspace-body font-semibold mt-0 mx-0 mb-3">
+                        Project lifecycle
+                      </h2>
+                      <p className="my-[5px] mx-0 text-muted text-workspace-label leading-[var(--pf-leading-relaxed)]">
+                        Status:{" "}
+                        <Badge
+                          status={project.status}
+                          presentation="workspace"
+                        />
                       </p>
-                      <p>
+                      <p className="my-[5px] mx-0 text-muted text-workspace-label leading-[var(--pf-leading-relaxed)]">
                         Changing the status is separate from editing project
                         details.
                       </p>
-                      <div className={`${ws.actions} mt-4`}>
+                      <div className="flex items-center gap-[10px] flex-wrap mt-4">
                         {lifecycleActions.map((action) => (
                           <Button
                             key={action}
@@ -312,6 +325,7 @@ export function ProjectDetail({
                             variant={action === "cancel" ? "danger" : "outline"}
                             disabled={busy}
                             onClick={() => setConfirmAction(action)}
+                            presentation="workspace"
                           >
                             {action === "pause" ? (
                               <Pause />
@@ -322,45 +336,76 @@ export function ProjectDetail({
                           </Button>
                         ))}
                       </div>
-                      {busy && <p role="status">Updating project…</p>}
-                    </WorkspaceCard>
-                    <WorkspaceCard spacing="rail">
-                      <h2>Project summary</h2>
-                      <dl className={ws.summary}>
-                        <dt>Project number</dt>
-                        <dd className="font-mono">{project.project_number}</dd>
-                        <dt>Revision count</dt>
-                        <dd>{revisions.length}</dd>
-                        <dt>Last updated</dt>
-                        <dd>{formatDateShort(project.updated_at)}</dd>
+                      {busy && (
+                        <p
+                          role="status"
+                          className="my-[5px] mx-0 text-muted text-workspace-label leading-[var(--pf-leading-relaxed)]"
+                        >
+                          Updating project…
+                        </p>
+                      )}
+                    </Card>
+                    <Card presentation="workspace" as="article" spacing="rail">
+                      <h2 className="text-workspace-body font-semibold mt-0 mx-0 mb-3">
+                        Project summary
+                      </h2>
+                      <dl className="grid grid-cols-[1fr_auto] gap-[13px] text-workspace-label">
+                        <dt className="text-muted">Project number</dt>
+                        <dd
+                          className={cn(
+                            "font-mono",
+                            "m-0 text-right font-semibold",
+                          )}
+                        >
+                          {project.project_number}
+                        </dd>
+                        <dt className="text-muted">Revision count</dt>
+                        <dd className="m-0 text-right font-semibold">
+                          {revisions.length}
+                        </dd>
+                        <dt className="text-muted">Last updated</dt>
+                        <dd className="m-0 text-right font-semibold">
+                          {formatDateShort(project.updated_at)}
+                        </dd>
                       </dl>
-                    </WorkspaceCard>
+                    </Card>
                   </aside>
-                </div>
+                </WorkspaceColumns>
               </section>
-              <section className={ws.section} aria-label="Revision activity">
-                <div className={`${ws.columns} ${ws.projectColumns}`}>
-                  <div className={ws.stack}>
-                    <WorkspaceCard spacing="work">
-                      <div className={ws.workHead}>
+              <section className="mb-[22px]" aria-label="Revision activity">
+                <WorkspaceColumns variant="project">
+                  <div className="flex flex-col gap-5 min-w-0">
+                    <Card presentation="workspace" as="article" spacing="work">
+                      <div className="flex items-start justify-between gap-[14px] max-[530px]:flex-col">
                         <div>
-                          <span className={ws.overline}>Current work</span>
-                          <h2>
+                          <span className="text-workspace-overline tracking-[var(--pf-tracking-overline)] text-[var(--pf-text-tertiary)] font-bold uppercase">
+                            Current work
+                          </span>
+                          <h2 className="text-workspace-subheading font-semibold tracking-[-0.4px] mt-[6px] mx-0 mb-[7px]">
                             {active
                               ? `Continue with ${active.identifier}`
                               : "No active revision"}
                           </h2>
-                          <p>
+                          <p className="text-muted text-workspace-label leading-[var(--pf-leading-relaxed)] m-0">
                             {active
                               ? `${active.description || "Active revision"} · Ready for document review and engineering model work.`
                               : "Create or activate a revision to begin engineering work."}
                           </p>
                         </div>
-                        {active && <WorkspaceStatus status={active.status} />}
+                        {active && (
+                          <Badge
+                            status={active.status}
+                            presentation="workspace"
+                          />
+                        )}
                       </div>
                       <WorkspaceStats
                         action={
-                          <Button asChild variant="primary">
+                          <Button
+                            asChild
+                            variant="primary"
+                            presentation="workspace"
+                          >
                             <Link
                               href={
                                 active
@@ -380,13 +425,18 @@ export function ProjectDetail({
                           </Button>
                         }
                       />
-                    </WorkspaceCard>
-                    <WorkspaceCard>
+                    </Card>
+                    <Card presentation="workspace" as="article">
                       <WorkspaceCardHeader
                         title="Revision history"
                         subtitle="Recent revisions for this project"
                         actions={
-                          <Button asChild size="sm">
+                          <Button
+                            asChild
+                            size="sm"
+                            presentation="workspace"
+                            variant="outline"
+                          >
                             <Link href={revisionsHref}>
                               All revisions
                               <ChevronRight />
@@ -405,44 +455,59 @@ export function ProjectDetail({
                             <Link
                               key={rev.id}
                               href={overviewHref(rev.id)}
-                              className={ws.historyRow}
+                              className="flex items-center justify-between gap-[15px] py-[15px] px-[22px] border-b border-[var(--pf-border-history)] [transition:background-color_var(--pf-transition-fast)] last:border-0 hover:bg-[var(--pf-option-hover)]"
                             >
                               <span>
-                                <strong>
+                                <strong className="text-workspace-label font-semibold">
                                   {rev.identifier} ·{" "}
                                   {rev.description || "Revision"}
                                 </strong>
-                                <small>
+                                <small className="block text-muted text-workspace-caption mt-[5px]">
                                   {rev.based_on_revision_id
                                     ? `Based on ${revisions.find((r) => r.id === rev.based_on_revision_id)?.identifier ?? rev.based_on_identifier ?? "source revision"} · `
                                     : ""}
                                   Updated {formatDateShort(rev.updated_at)}
                                 </small>
                               </span>
-                              <span className={ws.actions}>
-                                <WorkspaceStatus status={rev.status} />
+                              <span className="flex items-center gap-[10px] flex-wrap">
+                                <Badge
+                                  status={rev.status}
+                                  presentation="workspace"
+                                />
                                 <ChevronRight size={14} />
                               </span>
                             </Link>
                           ))
                       ) : (
-                        <p className={`${ws.pad} ${ws.subtitle}`}>
+                        <p className="p-6 max-[530px]:p-[18px] text-workspace-body text-muted leading-[var(--pf-leading-copy)] m-0">
                           No revisions yet. Create a revision to begin
                           engineering work.
                         </p>
                       )}
-                    </WorkspaceCard>
+                    </Card>
                   </div>
                   <aside>
-                    <WorkspaceCard spacing="rail">
-                      <span className={ws.overline}>Active revision</span>
+                    <Card presentation="workspace" as="article" spacing="rail">
+                      <span className="text-workspace-overline tracking-[var(--pf-tracking-overline)] text-[var(--pf-text-tertiary)] font-bold uppercase">
+                        Active revision
+                      </span>
                       {active ? (
                         <>
                           <div className="my-3 font-mono text-[22px] font-bold">
                             {active.identifier}
                           </div>
-                          <WorkspaceStatus status={active.status} />
-                          <p className="!my-3">{active.description || "—"}</p>
+                          <Badge
+                            status={active.status}
+                            presentation="workspace"
+                          />
+                          <p
+                            className={cn(
+                              "!my-3",
+                              "my-[5px] mx-0 text-muted text-workspace-label leading-[var(--pf-leading-relaxed)]",
+                            )}
+                          >
+                            {active.description || "—"}
+                          </p>
                           <div className="flex justify-between border-t border-border pt-3 text-xs">
                             <span className="text-muted">Updated</span>
                             <strong>
@@ -453,6 +518,8 @@ export function ProjectDetail({
                             asChild
                             size="sm"
                             className="mt-[17px] w-full"
+                            presentation="workspace"
+                            variant="outline"
                           >
                             <Link href={overviewHref(active.id)}>
                               View revision details
@@ -462,8 +529,15 @@ export function ProjectDetail({
                         </>
                       ) : (
                         <>
-                          <p>There is no active revision.</p>
-                          <Button asChild size="sm">
+                          <p className="my-[5px] mx-0 text-muted text-workspace-label leading-[var(--pf-leading-relaxed)]">
+                            There is no active revision.
+                          </p>
+                          <Button
+                            asChild
+                            size="sm"
+                            presentation="workspace"
+                            variant="outline"
+                          >
                             <Link href={revisionsHref}>
                               View revisions
                               <ChevronRight />
@@ -471,17 +545,17 @@ export function ProjectDetail({
                           </Button>
                         </>
                       )}
-                    </WorkspaceCard>
+                    </Card>
                   </aside>
-                </div>
+                </WorkspaceColumns>
               </section>
-              <p className={ws.help}>
+              <p className="text-muted text-workspace-caption leading-[var(--pf-leading-hint)] mt-4">
                 Workspace counts are not provided by revision metadata. Open a
                 workspace to inspect its records.
               </p>
             </>
           )}
-        </div>
+        </WorkspaceContent>
         {editing && (
           <ProjectEditor
             project={project}
@@ -502,15 +576,15 @@ export function ProjectDetail({
         )}
         {confirmAction && (
           <ConfirmDialog
-            className={ws.dialog}
             {...(confirmAction === "unarchive"
               ? unarchiveCopy(project.status_before_archive)
               : ACTION_COPY[confirmAction])}
             onConfirm={() => void runAction(confirmAction)}
             onCancel={() => setConfirmAction(null)}
+            presentation="workspace"
           />
         )}
-      </div>
+      </WorkspaceRoot>
     </AppShell>
   );
 }

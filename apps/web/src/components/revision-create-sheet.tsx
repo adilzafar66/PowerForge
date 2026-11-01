@@ -1,6 +1,7 @@
 "use client";
-import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
-
+import { cn } from "@/lib/utils";
+import { WorkspaceDrawerBody } from "@/components/ui/workspace-patterns";
+import { WorkspaceNote } from "@/components/ui/workspace-layout";
 import {
   WorkspaceFormActions,
   WorkspaceDrawerHeader,
@@ -14,7 +15,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select } from "@/components/ui/select";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
-import { WorkspaceButton as Button } from "@/components/ui-c-workspace";
+import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import {
   createRevision,
@@ -59,7 +60,6 @@ export function RevisionCreateSheet({
   const [carryModelChoice, setCarryModelChoice] = useState<boolean | undefined>(
     undefined,
   );
-
   const activeRevision =
     revisions.find((item) => item.status === "ACTIVE") ?? null;
   // "" stands for "None (start fresh)".
@@ -70,7 +70,6 @@ export function RevisionCreateSheet({
   const carryModelForward = selectedBase ? (carryModelChoice ?? true) : false;
   const baseIsNotActive =
     selectedBase !== null && selectedBase.id !== activeRevision?.id;
-
   function revisionCreateInput(): RevisionCreateInput {
     const input: RevisionCreateInput = {
       identifier: newRevision.identifier.trim(),
@@ -93,7 +92,6 @@ export function RevisionCreateSheet({
     }
     return input;
   }
-
   async function onCreateRevision() {
     if (!newRevision.identifier.trim()) {
       return;
@@ -142,16 +140,14 @@ export function RevisionCreateSheet({
       setBusy(false);
     }
   }
-
   return (
     <Sheet
       autoFocusFirst
-      overlayClassName={ws.overlay}
       labelledBy="create-revision-heading"
-      className={ws.sheet}
       onClose={() => {
         if (!busy) onClose();
       }}
+      presentation="workspace-revision"
     >
       <WorkspaceDrawerHeader
         titleId="create-revision-heading"
@@ -171,11 +167,11 @@ export function RevisionCreateSheet({
           }
         }}
       >
-        <div className={ws.drawerBody}>
+        <WorkspaceDrawerBody>
           {error && (
-            <p role="alert" className={`${ws.note} mb-4 text-red-700`}>
+            <WorkspaceNote role="alert" className="mb-4 text-red-700">
               {error}
-            </p>
+            </WorkspaceNote>
           )}
           <fieldset
             disabled={
@@ -185,7 +181,12 @@ export function RevisionCreateSheet({
             }
             className="space-y-[17px]"
           >
-            <Field id="identifier" label="Revision Identifier" required>
+            <Field
+              id="identifier"
+              label="Revision Identifier"
+              required
+              presentation="workspace"
+            >
               <Input
                 id="identifier"
                 value={newRevision.identifier}
@@ -195,12 +196,17 @@ export function RevisionCreateSheet({
                 placeholder="e.g. IFC 125"
                 maxLength={128}
                 required
+                presentation="workspace"
               />
               <small className="text-[11px] text-muted">
                 Must be unique within the project.
               </small>
             </Field>
-            <Field id="rev-description" label="Description">
+            <Field
+              id="rev-description"
+              label="Description"
+              presentation="workspace"
+            >
               <Textarea
                 id="rev-description"
                 value={newRevision.description}
@@ -211,9 +217,10 @@ export function RevisionCreateSheet({
                   })
                 }
                 placeholder="Summary of what changed in this revision"
+                presentation="workspace-editor"
               />
             </Field>
-            <Field id="base-revision" label="Based on">
+            <Field id="base-revision" label="Based on" presentation="workspace">
               <Select
                 id="base-revision"
                 value={selectedBaseId}
@@ -222,6 +229,7 @@ export function RevisionCreateSheet({
                   setCarryChoice(undefined);
                   setCarryModelChoice(undefined);
                 }}
+                presentation="workspace"
               >
                 <option value="">None (start fresh)</option>
                 {revisions.map((item) => (
@@ -278,14 +286,21 @@ export function RevisionCreateSheet({
                 setNewRevision({ ...newRevision, activate: e.target.checked })
               }
             />
-            <p className={ws.note}>
-              <strong>Important:</strong> The new revision is saved as a
-              separate snapshot. Activation requires confirmation.
-            </p>
+            <WorkspaceNote>
+              <strong className={cn("text-ink")}>Important:</strong> The new
+              revision is saved as a separate snapshot. Activation requires
+              confirmation.
+            </WorkspaceNote>
           </fieldset>
-        </div>
+        </WorkspaceDrawerBody>
         <WorkspaceFormActions>
-          <Button type="button" disabled={busy} onClick={onClose}>
+          <Button
+            type="button"
+            disabled={busy}
+            onClick={onClose}
+            presentation="workspace"
+            variant="outline"
+          >
             Cancel
           </Button>
           <Button
@@ -297,6 +312,7 @@ export function RevisionCreateSheet({
               project.status === "ARCHIVED" ||
               project.status === "CANCELLED"
             }
+            presentation="workspace"
           >
             <Plus />
             Create revision
@@ -305,7 +321,6 @@ export function RevisionCreateSheet({
       </form>
       {confirmActivation && (
         <ConfirmDialog
-          className={ws.dialog}
           title="Create and activate revision?"
           message={
             activeRevision
@@ -315,6 +330,7 @@ export function RevisionCreateSheet({
           confirmLabel="Create and activate"
           onCancel={() => setConfirmActivation(false)}
           onConfirm={() => void onCreateRevision()}
+          presentation="workspace"
         />
       )}
     </Sheet>

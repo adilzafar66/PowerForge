@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 /** Controlled modal: the caller's dirty/pending guard decides whether it closes. */
 export function Sheet({
   onClose,
+  presentation = "default",
   labelledBy,
   children,
   className,
@@ -15,6 +16,7 @@ export function Sheet({
   autoFocusFirst = false,
 }: {
   onClose: () => void;
+  presentation?: "default" | "workspace-project" | "workspace-revision";
   labelledBy: string;
   children: ReactNode;
   className?: string;
@@ -34,7 +36,12 @@ export function Sheet({
       <Dialog.Portal>
         {modal && (
           <Dialog.Overlay
-            className={cn("fixed inset-0 z-40 bg-ink/20", overlayClassName)}
+            className={cn(
+              "fixed inset-0 z-40 bg-ink/20",
+              presentation !== "default" &&
+                "bg-[var(--pf-overlay-workspace)] animate-[workspace-appear_var(--pf-motion-overlay)_ease]",
+              overlayClassName,
+            )}
           />
         )}
         <Dialog.Content
@@ -60,6 +67,10 @@ export function Sheet({
           }}
           className={cn(
             "fixed inset-y-0 right-0 z-50 flex w-full flex-col overflow-hidden border-l border-border bg-panel shadow-xl outline-none md:max-w-[28rem]",
+            presentation !== "default" &&
+              "leading-[normal] w-[min(var(--pf-drawer-width),_100%)] max-w-none shadow-workspace-drawer animate-[workspace-slide_var(--pf-motion-drawer)_var(--pf-ease-drawer)] motion-reduce:animate-none md:max-w-none",
+            presentation === "workspace-project" &&
+              "w-[min(var(--pf-drawer-project-width),_94vw)]",
             className,
           )}
         >

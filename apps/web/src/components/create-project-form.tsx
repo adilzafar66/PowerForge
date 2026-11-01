@@ -1,22 +1,20 @@
 "use client";
-import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
-
+import { Card } from "@/components/ui/card";
+import {
+  WorkspaceRoot,
+  WorkspaceContent,
+} from "@/components/ui/workspace-layout";
 import {
   WorkspaceFormActions,
-  WorkspaceCard,
   WorkspaceFormSection,
   WorkspaceCheckboxField,
 } from "@/components/ui/workspace-patterns";
-
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-
-import {
-  WorkspaceButton as Button,
-  WorkspaceHeader,
-} from "@/components/ui-c-workspace";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { ArrowLeft, Plus } from "lucide-react";
 import { Field } from "@/components/ui/field";
 import { Input, Textarea } from "@/components/ui/input";
@@ -26,7 +24,6 @@ import {
   parseEngineerNames,
   type Project,
 } from "@/lib/projects";
-
 export function CreateProjectForm() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +49,6 @@ export function CreateProjectForm() {
       if (!submitting) setDiscard(true);
     }
   };
-
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (submitting) return;
@@ -92,28 +88,28 @@ export function CreateProjectForm() {
       setSubmitting(false);
     }
   }
-
   return (
-    <div className={ws.root}>
-      <WorkspaceHeader
+    <WorkspaceRoot>
+      <PageHeader
         title="Create Project"
-        subtitle="Set up an engineering project. You can create its first revision now or later."
+        description="Set up an engineering project. You can create its first revision now or later."
         actions={
-          <Button asChild variant="ghost">
+          <Button asChild variant="ghost" presentation="workspace">
             <Link href="/" onClick={cancel}>
               <ArrowLeft />
               Back to Projects
             </Link>
           </Button>
         }
+        presentation="workspace"
       />
-      <div className={`${ws.content} !max-w-[1100px]`}>
+      <WorkspaceContent className="!max-w-[1100px]">
         <form
           onSubmit={onSubmit}
           onChange={() => setDirty(true)}
-          className={`${ws.form} ${ws.formLayout}`}
+          className="grid grid-cols-[minmax(0,_1fr)_var(--pf-workspace-form-rail)] items-start gap-5 max-[1120px]:grid-cols-[1fr]"
         >
-          <div className={ws.stack}>
+          <div className="flex flex-col gap-5 min-w-0">
             <fieldset
               disabled={!!createdProject || submitting}
               className="space-y-5"
@@ -124,38 +120,60 @@ export function CreateProjectForm() {
                 bodyClassName="space-y-[17px]"
               >
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Field id="project_number" label="Project Number" required>
+                  <Field
+                    id="project_number"
+                    label="Project Number"
+                    required
+                    presentation="workspace"
+                  >
                     <Input
                       id="project_number"
                       name="project_number"
                       required
                       placeholder="PF-2024-005"
+                      presentation="workspace"
                     />
                     <p className="text-xs text-muted">
                       Required. Cannot be changed after creation.
                     </p>
                   </Field>
-                  <Field id="project_name" label="Project Name" required>
+                  <Field
+                    id="project_name"
+                    label="Project Name"
+                    required
+                    presentation="workspace"
+                  >
                     <Input
                       id="project_name"
                       name="project_name"
                       required
                       placeholder="Ridgeline Substation"
+                      presentation="workspace"
                     />
                   </Field>
                 </div>
-                <Field id="client_name" label="Client / Owner">
+                <Field
+                  id="client_name"
+                  label="Client / Owner"
+                  presentation="workspace"
+                >
                   <Input
                     id="client_name"
                     name="client_name"
                     placeholder="Acme Energy LLC"
+                    presentation="workspace"
                   />
                 </Field>
-                <Field id="project_address" label="Site Address">
+                <Field
+                  id="project_address"
+                  label="Site Address"
+                  presentation="workspace"
+                >
                   <Input
                     id="project_address"
                     name="project_address"
                     placeholder="123 Power Line Rd, Phoenix, AZ 85001"
+                    presentation="workspace"
                   />
                 </Field>
               </WorkspaceFormSection>
@@ -165,30 +183,45 @@ export function CreateProjectForm() {
                 description="Helpful context for engineers and collaborators."
                 bodyClassName="space-y-[17px]"
               >
-                <Field id="project_scope" label="Scope Summary">
+                <Field
+                  id="project_scope"
+                  label="Scope Summary"
+                  presentation="workspace"
+                >
                   <Textarea
                     id="project_scope"
                     name="project_scope"
                     rows={2}
                     placeholder="One-paragraph description of the electrical scope of work."
+                    presentation="workspace-create"
                   />
                 </Field>
-                <Field id="description" label="Project Description">
+                <Field
+                  id="description"
+                  label="Project Description"
+                  presentation="workspace"
+                >
                   <Textarea
                     id="description"
                     name="description"
                     rows={3}
                     placeholder="Additional context, background, or technical notes."
+                    presentation="workspace-create"
                   />
                 </Field>
               </WorkspaceFormSection>
 
               <WorkspaceFormSection title="Project team">
-                <Field id="engineer_names" label="Engineers">
+                <Field
+                  id="engineer_names"
+                  label="Engineers"
+                  presentation="workspace"
+                >
                   <Input
                     id="engineer_names"
                     name="engineer_names"
                     placeholder="J. Smith, A. Patel"
+                    presentation="workspace"
                   />
                   <small className="text-[10.5px] text-muted">
                     Comma-separated names, matching the existing project API.
@@ -220,7 +253,7 @@ export function CreateProjectForm() {
                     </p>
                   ) : null}
                   <WorkspaceFormActions>
-                    <Button asChild variant="outline">
+                    <Button asChild variant="outline" presentation="workspace">
                       <Link href="/" onClick={cancel}>
                         Cancel
                       </Link>
@@ -229,6 +262,7 @@ export function CreateProjectForm() {
                       type="submit"
                       variant="primary"
                       pending={submitting}
+                      presentation="workspace"
                     >
                       <Plus />
                       {submitting
@@ -257,6 +291,7 @@ export function CreateProjectForm() {
                     id="revision_identifier"
                     label="Revision Identifier"
                     required
+                    presentation="workspace"
                   >
                     <Input
                       id="revision_identifier"
@@ -265,12 +300,18 @@ export function CreateProjectForm() {
                         setRevisionIdentifier(event.target.value)
                       }
                       required={createRevisionToo}
+                      presentation="workspace"
                     />
                   </Field>
-                  <Field id="revision_description" label="Revision Description">
+                  <Field
+                    id="revision_description"
+                    label="Revision Description"
+                    presentation="workspace"
+                  >
                     <Input
                       id="revision_description"
                       name="revision_description"
+                      presentation="workspace"
                     />
                   </Field>
                   <WorkspaceCheckboxField
@@ -286,35 +327,41 @@ export function CreateProjectForm() {
               ) : null}
             </WorkspaceFormSection>
           </div>
-          <aside className={ws.formAside}>
-            <div className={ws.tip}>
-              <h3>Project creation</h3>
-              <p>
+          <aside className="sticky top-[88px] max-[1120px]:static">
+            <div className="p-[18px] [border:1px_solid_var(--pf-tip-border)] rounded-[var(--pf-radius-tip)] bg-[var(--pf-tip-surface)]">
+              <h3 className="text-workspace-body font-semibold mb-2">
+                Project creation
+              </h3>
+              <p className="text-workspace-hint text-muted leading-[1.65] my-[10px] mx-0">
                 The project number and name are required. Other fields can be
                 entered later.
               </p>
-              <p>
+              <p className="text-workspace-hint text-muted leading-[1.65] my-[10px] mx-0">
                 Creating the first revision is optional and is a separate
                 backend operation.
               </p>
             </div>
-            <WorkspaceCard
+            <Card
+              presentation="workspace"
               as="div"
-              className={`${ws.tip} !mt-[14px] !bg-white`}
+              className="p-[18px] [border:1px_solid_var(--pf-tip-border)] rounded-[var(--pf-radius-tip)] bg-[var(--pf-tip-surface)] !mt-[14px] !bg-white"
             >
-              <h3>What comes next?</h3>
-              <p>
+              <h3 className="text-workspace-body font-semibold mb-2">
+                What comes next?
+              </h3>
+              <p className="text-workspace-hint text-muted leading-[1.65] my-[10px] mx-0">
                 After creation, open the project to manage revisions, documents,
                 and the engineering model.
               </p>
-              <p>Project metadata can be edited from its Overview page.</p>
-            </WorkspaceCard>
+              <p className="text-workspace-hint text-muted leading-[1.65] my-[10px] mx-0">
+                Project metadata can be edited from its Overview page.
+              </p>
+            </Card>
           </aside>
         </form>
-      </div>
+      </WorkspaceContent>
       {discard && (
         <ConfirmDialog
-          className={ws.dialog}
           title="Discard project details?"
           message={
             createdProject
@@ -327,12 +374,12 @@ export function CreateProjectForm() {
             setDirty(false);
             router.push("/");
           }}
+          presentation="workspace"
         />
       )}
-    </div>
+    </WorkspaceRoot>
   );
 }
-
 function emptyToNull(value: string): string | null {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;

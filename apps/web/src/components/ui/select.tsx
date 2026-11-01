@@ -11,7 +11,10 @@ import {
   type AriaAttributes,
 } from "react";
 import { cn } from "@/lib/utils";
-import { fieldClassName } from "@/components/ui/input";
+import {
+  fieldClassName,
+  workspaceControlClassName,
+} from "@/components/ui/input";
 
 export type SelectProps = AriaAttributes & {
   id?: string;
@@ -23,6 +26,7 @@ export type SelectProps = AriaAttributes & {
   required?: boolean;
   className?: string;
   size?: "sm" | "default";
+  presentation?: "default" | "workspace";
 };
 
 /** Option children keep existing enum/null definitions at their domain call sites. */
@@ -36,6 +40,7 @@ export function Select({
   required,
   className,
   size = "default",
+  presentation = "default",
   ...aria
 }: SelectProps) {
   const options = optionElements(children);
@@ -57,6 +62,7 @@ export function Select({
             fieldClassName,
             "items-center justify-between gap-2 text-left",
             size === "sm" ? "min-h-8 py-1 text-[12px]" : "min-h-10",
+            presentation === "workspace" && workspaceControlClassName,
             className,
           )}
         >

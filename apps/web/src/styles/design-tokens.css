@@ -1,0 +1,177 @@
+/* Canonical design values. Keep intentional variants distinct; use local utilities
+   for one-off spacing. Responsive breakpoints remain literal in components. */
+:root {
+  /* Semantic colors and intentionally distinct workspace states */
+  --pf-canvas: #f6f8fa;
+  --pf-surface: #ffffff;
+  --pf-border: #dbe3ea;
+  --pf-soft: #f0f3f6;
+  --pf-text-primary: #182638;
+  --pf-text-secondary: #526477;
+  --pf-text-tertiary: #8597a8;
+  --pf-action: #24557a;
+  --pf-action-hover: #193e5b;
+  --pf-action-tint: #e6eef4;
+  --pf-option-hover: #f5f8fa;
+  --pf-option-selected-hover: #d6e3ed;
+  --pf-positive: #0f766e;
+  --pf-positive-tint: #e9f6f2;
+  --pf-warning: #8d621d;
+  --pf-warning-tint: #fff4dd;
+  --pf-danger: #aa3541;
+  --pf-danger-tint: #fff0f1;
+  --pf-ring: #4f86af;
+  --pf-border-row: #ebeff3;
+  --pf-border-history: #e8edf1;
+  --pf-border-item: #e9eef2;
+  --pf-status-draft: #7858ab;
+  --pf-status-draft-tint: #f2eefb;
+  --pf-status-paused: #89651b;
+  --pf-status-cancelled: #a73c4d;
+  --pf-action-destructive: #b03147;
+  --pf-action-destructive-border: #e8bfc7;
+  --pf-action-destructive-hover: #fff3f4;
+  --pf-surface-note: #f9fafb;
+  --pf-tab-hover: #e2e9ee;
+  --pf-tab-selected-border: #d1e1ed;
+  --pf-table-heading: #f7f9fa;
+  --pf-table-row-hover: #fafbfc;
+  --pf-timeline-line: #d7e0e7;
+  --pf-timeline-ring: #acc0cf;
+  --pf-tip-border: #cfe0ea;
+  --pf-tip-surface: #f4f8fb;
+  --pf-editor-hint-surface: #f4f7fa;
+  --pf-overlay-workspace: rgba(24, 38, 56, 0.4);
+  --pf-control-height-action: 37px;
+  --pf-motion-overlay: 180ms;
+
+  /* Typography — preserve the post-UI-C adjustments */
+  --pf-font-sans: "Instrument Sans", system-ui, sans-serif;
+  --pf-font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --pf-type-app-body: 14px;
+  --pf-weight-regular: 400;
+  --pf-weight-medium: 500;
+  --pf-weight-semibold: 600;
+  --pf-weight-bold: 700;
+  --pf-type-button: var(--pf-type-body);
+  --pf-type-button-small: var(--pf-type-label);
+  --pf-type-badge: 11.5px;
+  --pf-type-overline: 11px;
+  --pf-type-caption: 12px;
+  --pf-type-label: 12.5px;
+  --pf-type-body: 13.5px;
+  --pf-type-section: 15px;
+  --pf-type-editor-compact: var(--pf-type-subheading);
+  --pf-type-subheading: 18px;
+  --pf-type-editor: 20px;
+  --pf-type-title-mobile: var(--pf-type-title);
+  --pf-type-title: 29px;
+  --pf-type-micro: var(--pf-type-caption);
+  --pf-type-hint: var(--pf-type-caption);
+  --pf-leading-copy: 1.55;
+  --pf-leading-relaxed: 1.6;
+  --pf-leading-hint: 1.5;
+  --pf-tracking-overline: 0.75px;
+
+  /* Control and layout dimensions */
+  --pf-sidebar: #ffffff;
+  --pf-sidebar-width: 236px;
+  --pf-control-height-compact: 31px;
+  --pf-control-height-search: 39px;
+  --pf-control-height-input: 41px;
+  --pf-workspace-content-max: 1390px;
+  --pf-workspace-header-max: 1300px;
+  --pf-workspace-rail: 330px;
+  --pf-workspace-project-rail: 310px;
+  --pf-workspace-form-rail: 296px;
+  --pf-detail-label-width: 165px;
+  --pf-detail-project-label-width: 180px;
+  --pf-detail-mobile-label-width: 128px;
+  --pf-drawer-width: 500px;
+  --pf-drawer-project-width: 540px;
+  --pf-dialog-width: 440px;
+
+  /* Corners and elevation */
+  --pf-radius-sm: 7px;
+  --pf-radius-md: 9px;
+  --pf-radius-lg: 12px;
+  --pf-shadow-tab: 0 1px 3px #1b385018;
+  --pf-shadow-drawer: -12px 0 42px #18263821;
+  --pf-shadow-dialog: 0 18px 60px #1826382b;
+  --pf-radius-control: 8px;
+  --pf-radius-tip: 10px;
+  --pf-radius-dialog: 13px;
+  --pf-radius-pill: 30px;
+
+  /* Motion */
+  --pf-motion-feedback: 180ms;
+  --pf-transition-fast: 150ms;
+  --pf-transition-normal: 220ms;
+  --pf-motion-content: 190ms;
+  --pf-motion-drawer: 230ms;
+  --pf-ease-drawer: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --pf-ease-standard: ease;
+  --pf-ease-exit: ease-out;
+}
+
+/* Tailwind aliases share the canonical values. Keep transitional colors until UI-D/E/F. */
+@theme inline {
+  --font-weight-normal: var(--pf-weight-regular);
+  --font-weight-medium: var(--pf-weight-medium);
+  --font-weight-semibold: var(--pf-weight-semibold);
+  --font-weight-bold: var(--pf-weight-bold);
+  --shadow-workspace-drawer: var(--pf-shadow-drawer);
+  --shadow-workspace-dialog: var(--pf-shadow-dialog);
+  --shadow-workspace-tab: var(--pf-shadow-tab);
+  --font-sans: var(--pf-font-sans);
+  --font-mono: var(--pf-font-mono);
+  --color-surface: var(--pf-canvas);
+  --color-border: var(--pf-border);
+  --color-accent: var(--pf-action);
+  --color-accent-hover: var(--pf-action-hover);
+  --color-canvas: var(--pf-canvas);
+  --color-panel: var(--pf-surface);
+  --color-soft: var(--pf-soft);
+  --color-ink: var(--pf-text-primary);
+  --color-muted: var(--pf-text-secondary);
+  --color-selection: var(--pf-action-tint);
+  --color-focus: var(--pf-ring);
+  --color-positive: var(--pf-positive);
+  --color-positive-tint: var(--pf-positive-tint);
+  --color-warning: var(--pf-warning);
+  --color-warning-tint: var(--pf-warning-tint);
+  --color-danger: var(--pf-danger);
+  --color-danger-tint: var(--pf-danger-tint);
+  /* Transitional palette aliases keep existing workspaces cohesive during UI-C–F. */
+  --color-slate-50: var(--pf-canvas);
+  --color-slate-100: var(--pf-soft);
+  --color-slate-200: var(--pf-border);
+  --color-slate-400: #5b6f82;
+  --color-slate-500: var(--pf-text-secondary);
+  --color-slate-600: var(--pf-text-secondary);
+  --color-slate-700: #34495e;
+  --color-slate-800: var(--pf-text-primary);
+  --color-slate-900: var(--pf-text-primary);
+  --color-blue-50: var(--pf-action-tint);
+  --color-blue-100: var(--pf-option-selected-hover);
+  --color-blue-400: var(--pf-ring);
+  --color-blue-500: var(--pf-action);
+  --color-blue-600: var(--pf-action);
+  --color-blue-700: var(--pf-action-hover);
+  --text-workspace-app-body: var(--pf-type-app-body);
+  --text-workspace-button: var(--pf-type-button);
+  --text-workspace-button-small: var(--pf-type-button-small);
+  --text-workspace-badge: var(--pf-type-badge);
+  --text-workspace-overline: var(--pf-type-overline);
+  --text-workspace-caption: var(--pf-type-caption);
+  --text-workspace-label: var(--pf-type-label);
+  --text-workspace-body: var(--pf-type-body);
+  --text-workspace-section: var(--pf-type-section);
+  --text-workspace-editor-compact: var(--pf-type-editor-compact);
+  --text-workspace-subheading: var(--pf-type-subheading);
+  --text-workspace-editor: var(--pf-type-editor);
+  --text-workspace-title-mobile: var(--pf-type-title-mobile);
+  --text-workspace-title: var(--pf-type-title);
+  --text-workspace-micro: var(--pf-type-micro);
+  --text-workspace-hint: var(--pf-type-hint);
+}

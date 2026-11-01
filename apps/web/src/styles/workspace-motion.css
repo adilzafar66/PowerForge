@@ -1,4 +1,4 @@
-@keyframes ui-c-appear {
+@keyframes workspace-appear {
   from {
     opacity: 0;
     transform: translateY(4px);
@@ -9,7 +9,7 @@
   }
 }
 
-@keyframes ui-c-slide {
+@keyframes workspace-slide {
   from {
     transform: translateX(22px);
     opacity: 0.7;

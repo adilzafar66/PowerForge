@@ -1,6 +1,5 @@
 "use client";
-import { workspaceStyles as ws } from "@/components/ui/workspace-styles";
-
+import { WorkspaceNote } from "@/components/ui/workspace-layout";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { WorkspaceEditor } from "@/components/workspace-editor";
@@ -14,7 +13,6 @@ import {
   type Revision,
   type RevisionUpdateInput,
 } from "@/lib/projects";
-
 // Check the decimal's syntax and sign without ever rounding it through Number.
 export function positiveDecimal(value: string) {
   return (
@@ -22,7 +20,6 @@ export function positiveDecimal(value: string) {
     /[1-9]/.test(value.split(/[eE]/)[0])
   );
 }
-
 export function RevisionEditor({
   project,
   revision,
@@ -102,6 +99,7 @@ export function RevisionEditor({
   }
   return (
     <WorkspaceEditor
+      presentation="revision"
       title="Edit revision"
       subtitle={`Update metadata for ${revision.identifier}`}
       dirty={dirty}
@@ -117,10 +115,15 @@ export function RevisionEditor({
       onSave={() => void save()}
     >
       {locked && <p role="status">This project is read-only.</p>}
-      <div className={`${ws.editTitle} !border-0 !pt-0`}>
+      <div className="text-workspace-caption uppercase tracking-[var(--pf-tracking-overline)] text-[var(--pf-text-tertiary)] font-bold pt-3 border-t border-border !border-0 !pt-0">
         Revision information
       </div>
-      <Field id="revision-identifier" label="Revision Identifier" required>
+      <Field
+        id="revision-identifier"
+        label="Revision Identifier"
+        required
+        presentation="workspace"
+      >
         <Input
           id="revision-identifier"
           required
@@ -128,25 +131,33 @@ export function RevisionEditor({
           disabled={locked}
           value={draft.identifier}
           onChange={(e) => setDraft({ ...draft, identifier: e.target.value })}
+          presentation="workspace"
         />
         <small className="text-[11px] text-muted">
           Must be unique within the project. Changing this label does not create
           a new revision.
         </small>
       </Field>
-      <Field id="revision-description" label="Description">
+      <Field
+        id="revision-description"
+        label="Description"
+        presentation="workspace"
+      >
         <Textarea
           id="revision-description"
           disabled={locked}
           value={draft.description}
           onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+          presentation="workspace-editor"
         />
         <small className="text-[11px] text-muted">
           A short summary of the work, scope or design changes.
         </small>
       </Field>
-      <div className={ws.editTitle}>System-wide engineering metadata</div>
-      <p className={ws.editHint}>
+      <div className="text-workspace-caption uppercase tracking-[var(--pf-tracking-overline)] text-[var(--pf-text-tertiary)] font-bold pt-3 border-t border-border">
+        System-wide engineering metadata
+      </div>
+      <p className="bg-[var(--pf-editor-hint-surface)] border border-border rounded-[var(--pf-radius-md)] py-[13px] px-[14px] text-muted text-workspace-hint leading-[var(--pf-leading-relaxed)]">
         <strong>Manual fields only.</strong> Frequency and phase count are
         optional model-level settings. AI extraction does not populate or change
         them. Equipment-specific phase attributes remain separate.
@@ -157,8 +168,12 @@ export function RevisionEditor({
           description may still be edited.
         </p>
       )}
-      <div className={ws.formCols}>
-        <Field id="revision-frequency" label="System frequency (Hz)">
+      <div className="grid grid-cols-[repeat(2,_minmax(0,_1fr))] gap-[18px] max-[790px]:grid-cols-[1fr]">
+        <Field
+          id="revision-frequency"
+          label="System frequency (Hz)"
+          presentation="workspace"
+        >
           <Input
             id="revision-frequency"
             inputMode="decimal"
@@ -169,6 +184,7 @@ export function RevisionEditor({
             onChange={(e) =>
               setDraft({ ...draft, system_frequency: e.target.value })
             }
+            presentation="workspace"
           />
           <small className="text-[11px] text-muted">
             Positive decimal value; leave blank for unset.
@@ -179,7 +195,11 @@ export function RevisionEditor({
             </p>
           )}
         </Field>
-        <Field id="revision-phase" label="System phase count">
+        <Field
+          id="revision-phase"
+          label="System phase count"
+          presentation="workspace"
+        >
           <Select
             id="revision-phase"
             value={draft.system_phase_count}
@@ -187,6 +207,7 @@ export function RevisionEditor({
             onValueChange={(value) =>
               setDraft({ ...draft, system_phase_count: value })
             }
+            presentation="workspace"
           >
             <option value="">Not set</option>
             <option value="1">1 phase</option>
@@ -197,11 +218,11 @@ export function RevisionEditor({
           </small>
         </Field>
       </div>
-      <p className={ws.note}>
-        <strong>Unchanged by this edit:</strong> revision lifecycle status,
-        creation date, source revision, and carry-forward history. Activation
-        has its own confirmation workflow.
-      </p>
+      <WorkspaceNote>
+        <strong className="text-ink">Unchanged by this edit:</strong>{" "}
+        revision lifecycle status, creation date, source revision, and
+        carry-forward history. Activation has its own confirmation workflow.
+      </WorkspaceNote>
     </WorkspaceEditor>
   );
 }
