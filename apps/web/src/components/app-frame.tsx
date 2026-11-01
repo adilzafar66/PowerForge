@@ -31,6 +31,7 @@ import {
   revisionHref,
   type RevisionDestination,
 } from "@/lib/workspace-navigation";
+import { guardNavigation } from "@/lib/navigation-guard";
 import { cn } from "@/lib/utils";
 
 export function AppFrame({ children }: { children: ReactNode }) {
@@ -198,15 +199,14 @@ export function AppFrame({ children }: { children: ReactNode }) {
                 value={revision.id}
                 onValueChange={(id) => {
                   setMobileOpen(false);
-                  router.push(
-                    revisionHref(
-                      project.id,
-                      id,
-                      revisionId,
-                      params.toString(),
-                      revisionId ? undefined : "overview",
-                    ),
+                  const url = revisionHref(
+                    project.id,
+                    id,
+                    revisionId,
+                    params.toString(),
+                    revisionId ? undefined : "overview",
                   );
+                  if (!guardNavigation(url)) router.push(url);
                 }}
               >
                 <Select.Trigger

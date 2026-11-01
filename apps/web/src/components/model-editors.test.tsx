@@ -1,6 +1,7 @@
 import { changeField } from "@/components/ui/control-test-helpers";
 /** @vitest-environment jsdom */
 import React from "react";
+import Link from "next/link";
 import {
   act,
   fireEvent,
@@ -9,7 +10,8 @@ import {
   waitFor,
   within,
 } from "@/components/query-test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { guardNavigation } from "@/lib/navigation-guard";
 import { keys } from "@/lib/query-keys";
 import {
   ModelContext,
@@ -369,6 +371,83 @@ describe("unified equipment editor", () => {
     back();
     fireEvent.click(screen.getByRole("button", { name: "Save and leave" }));
     await waitFor(() => expect(left).toHaveBeenCalledOnce());
+  });
+  describe("navigation away from a dirty editor", () => {
+    const editUrl =
+      "/projects/p/revisions/r?workspace=model&equipment=e1&equipmentMode=edit";
+    const here = () => window.location.pathname + window.location.search;
+    beforeEach(() => window.history.replaceState(null, "", editUrl));
+    afterEach(() => window.history.replaceState(null, "", "/"));
+    async function dirtyEditor() {
+      const navigate = vi.fn();
+      mount(
+        <>
+          <Link href="/projects/p">Project overview</Link>
+          <EquipmentEditorHarness
+            id={equipment.id}
+            onLeft={vi.fn()}
+            onNavigate={navigate}
+          />
+        </>,
+      );
+      await screen.findByLabelText("Equipment tag");
+      expect(guardNavigation("/projects/p/revisions/old")).toBe(false);
+      await changeField(screen.getByLabelText("Equipment tag"), {
+        target: { value: "Draft" },
+      });
+      return navigate;
+    }
+    const dialog = () =>
+      screen.queryByRole("dialog", { name: "Unsaved changes" });
+    it("holds link navigation until the draft is discarded", async () => {
+      const navigate = await dirtyEditor();
+      const link = screen.getByRole("link", { name: "Project overview" });
+      expect(fireEvent.click(link)).toBe(false);
+      expect(dialog()).toBeInTheDocument();
+      fireEvent.click(screen.getByText("Keep editing"));
+      await waitFor(() => expect(dialog()).not.toBeInTheDocument());
+      expect(screen.getByLabelText("Equipment tag")).toHaveValue("Draft");
+      expect(navigate).not.toHaveBeenCalled();
+      fireEvent.click(link);
+      fireEvent.click(screen.getByText("Discard changes"));
+      expect(navigate).toHaveBeenCalledExactlyOnceWith("/projects/p");
+      expect(api.saveEquipmentEditor).not.toHaveBeenCalled();
+    });
+    it("switches revision only after a successful save", async () => {
+      vi.mocked(api.saveEquipmentEditor).mockRejectedValueOnce(
+        new Error("Save rejected by server"),
+      );
+      const navigate = await dirtyEditor();
+      act(() => {
+        expect(guardNavigation("/projects/p/revisions/old")).toBe(true);
+      });
+      fireEvent.click(screen.getByRole("button", { name: "Save and leave" }));
+      await screen.findAllByText("Save rejected by server");
+      expect(navigate).not.toHaveBeenCalled();
+      expect(dialog()).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Save and leave" }));
+      await waitFor(() =>
+        expect(navigate).toHaveBeenCalledExactlyOnceWith(
+          "/projects/p/revisions/old",
+        ),
+      );
+      expect(api.saveEquipmentEditor).toHaveBeenCalledTimes(2);
+    });
+    it("restores the editor entry on browser Back and proceeds on discard", async () => {
+      const navigate = await dirtyEditor();
+      const router = vi.fn();
+      window.addEventListener("popstate", router);
+      window.history.pushState(null, "", "/projects/p");
+      act(() => {
+        window.dispatchEvent(new PopStateEvent("popstate"));
+      });
+      window.removeEventListener("popstate", router);
+      expect(router).not.toHaveBeenCalled();
+      expect(here()).toBe(editUrl);
+      expect(dialog()).toBeInTheDocument();
+      fireEvent.click(screen.getByText("Discard changes"));
+      expect(navigate).toHaveBeenCalledExactlyOnceWith("/projects/p");
+    });
   });
   it("keeps custom terminal edits in the draft and protects profile keys", async () => {
     vi.mocked(api.getEquipmentEditor).mockResolvedValue({

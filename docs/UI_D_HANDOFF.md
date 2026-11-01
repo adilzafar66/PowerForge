@@ -15,7 +15,8 @@ Implemented on `codex/ui-d-equipment-workspace`, based on accepted `main` commit
 
 - Existing links remain valid: `?workspace=model` (Equipment), `&equipment={id}` (now opens Quick Details), `&view=topology|overview`.
 - New editor state: `&equipment={id}&equipmentMode=edit&equipmentTab=general|attributes|terminals`. An unknown tab falls back to General. Selecting rows uses `replace`; opening the editor uses `push`, so browser Back returns to Quick Details. Tab changes and Return use `replace`.
-- Leaving a dirty editor by any route (Back to Equipment, browser Back/Forward, sidebar, links) keeps the editor mounted and opens **Unsaved changes**: Keep editing (restores the editor URL), Discard changes, or Save and leave (stays open on a failed save, with the server error).
+- Leaving a dirty editor by any path opens **Unsaved changes**: Back to Equipment, browser Back/Forward, sidebar and breadcrumb links, the revision switcher, or project navigation. Keep editing cancels the navigation and keeps the draft. Discard changes drops the draft and continues to the intended destination. Save and leave uses the atomic editor PATCH and continues only after a successful save; on failure the dialog stays open with the server error.
+- `lib/navigation-guard.ts` is active only while the editor is dirty. A document capture listener holds same-origin link clicks (modified clicks, new-tab and download links still pass through). `guardNavigation(href)` covers programmatic navigation such as the revision switcher. A `popstate` listener registered at module load runs before Next's router; it restores the editor's history entry and records the destination. Reloads and closing the tab still use the `beforeunload` warning.
 - `clearEquipment` removes all three equipment parameters when switching revisions or workspaces. A deleted or missing equipment ID shows a not-found notice and clears the selection.
 - In the Equipment view the Revision workspace and Equipment/Topology segmented controls are hidden (the sidebar provides that navigation), and the revision summary block is replaced by the prototype header. The read-only banner stays above the title. Save confirmation is a bottom-right “Changes saved.” toast; Topology keeps its inline message.
 
@@ -29,7 +30,7 @@ Regression against `main`: a baseline was captured from a `main` worktree, then 
 
 ## Checks run
 
-- `npx vitest run`: 24 files, 308 tests passed. Focused coverage includes truthful metrics, nonmodal Quick Details, editor URL/tabs, Back/Forward guard, keep/discard/save-and-leave (including failed save), missing equipment links, read-only and removed messaging, single-PATCH terminal remove/restore, CONFLICTING read-only, attribute filtering without losing edits, and exact large-integer round trip.
+- `npx vitest run`: 24 files, 311 tests passed. Tests cover guarded link, revision-switch and browser-Back navigation, including failed and successful save-and-leave. A Chrome check against the Next dev server also exercised Back, a sidebar link, the revision switcher, project navigation with Discard, Save and leave (one PATCH), and normal history once the draft was clean. Focused coverage includes truthful metrics, nonmodal Quick Details, editor URL/tabs, Back/Forward guard, keep/discard/save-and-leave (including failed save), missing equipment links, read-only and removed messaging, single-PATCH terminal remove/restore, CONFLICTING read-only, attribute filtering without losing edits, and exact large-integer round trip.
 - `npx tsc --noEmit -p .`: passed. `npx next lint`: no warnings or errors. `npm run build`: passed.
 - `node visual/run.mjs capture` (fresh directory): 68 captures, no page errors or missing fixtures. Immediate `compare` against it: no geometry or style changes, only the pixel noise described above.
 - No backend tests were run because no backend code changed.
@@ -60,7 +61,7 @@ All proposals must stay revision-scoped, honor lifecycle (ACTIVE/REMOVED), and k
 
 ## Remaining risks
 
-- Switching revision with a dirty editor is not guarded; the workspace is keyed by revision and the draft is discarded (the `beforeunload` warning still covers full reloads).
+- The navigation guard intercepts in-app links, guarded programmatic navigation (`guardNavigation`) and browser history. A future programmatic `router.push` that bypasses `guardNavigation` would bypass the guard. A guarded Back/Forward re-pushes the editor entry, which drops any forward history.
 - Metrics and topology summaries load whole revision lists; acceptable now, but heavy for large models until the endpoints above exist.
 - The visual harness compares at `threshold: 0` and has a baseline pixel-noise floor; reviewers should rely on geometry/computed-style results and the diff images.
 

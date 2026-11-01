@@ -9,11 +9,13 @@ export function EquipmentEditorHarness({
   initialTab = "general",
   onLeft,
   onMissing = () => {},
+  onNavigate = () => {},
 }: {
   id: string;
   initialTab?: EquipmentTab;
   onLeft: () => void;
   onMissing?: () => void;
+  onNavigate?: (href: string) => void;
 }) {
   const [tab, setTab] = useState(initialTab);
   const [inUrl, setInUrl] = useState(true);
@@ -39,6 +41,7 @@ export function EquipmentEditorHarness({
         onLeft();
       }}
       onMissing={onMissing}
+      onNavigate={onNavigate}
     />
   );
 }

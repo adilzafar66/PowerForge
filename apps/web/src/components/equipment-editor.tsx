@@ -3,6 +3,7 @@ import {
   useEffect,
   useId,
   useRef,
+  useState,
   type KeyboardEvent,
   type ReactNode,
 } from "react";
@@ -33,6 +34,7 @@ import {
   restoreEquipment,
   typeLabel,
 } from "@/lib/engineering-model";
+import { useNavigationBlocker } from "@/lib/navigation-guard";
 import { cn } from "@/lib/utils";
 import { EQUIPMENT_TABS, type EquipmentTab } from "@/lib/workspace-navigation";
 
@@ -53,6 +55,7 @@ export function EquipmentEditor({
   onStay,
   onDiscard,
   onMissing,
+  onNavigate,
 }: {
   id: string;
   tab: EquipmentTab;
@@ -66,6 +69,8 @@ export function EquipmentEditor({
   onStay: () => void;
   onDiscard: () => void;
   onMissing: () => void;
+  /** Continues a navigation that was held for the unsaved-changes dialog. */
+  onNavigate: (href: string) => void;
 }) {
   const { projectId, revisionId, registry, writable, revisionLabel } =
     useModel();
@@ -77,6 +82,23 @@ export function EquipmentEditor({
   reportDirty.current = onDirtyChange;
   useEffect(() => reportDirty.current(dirty), [dirty]);
   useEffect(() => () => reportDirty.current(false), []);
+  const [pending, setPending] = useState<string | null>(null);
+  useNavigationBlocker(dirty, setPending);
+  const stay = () => (pending === null ? onStay() : setPending(null));
+  const discard = () => {
+    onDiscard();
+    if (pending !== null) {
+      setPending(null);
+      onNavigate(pending);
+    }
+  };
+  async function saveAndLeave() {
+    const target = pending;
+    if ((await editor.save()) && target !== null) {
+      setPending(null);
+      onNavigate(target);
+    }
+  }
   const row = snapshot?.equipment;
   const removed = row?.lifecycle_status === "REMOVED";
   const label = row ? equipmentLabel(row, registry) : "Equipment";
@@ -417,9 +439,9 @@ export function EquipmentEditor({
         </p>
       )}
       <Dialog.Root
-        open={leaving}
+        open={leaving || pending !== null}
         onOpenChange={(open) => {
-          if (!open && !busy) onStay();
+          if (!open && !busy) stay();
         }}
       >
         <Dialog.Portal>
@@ -438,7 +460,7 @@ export function EquipmentEditor({
                 presentation="workspace-dialog"
                 variant="ghost"
                 disabled={busy}
-                onClick={onStay}
+                onClick={stay}
               >
                 Keep editing
               </Button>
@@ -446,7 +468,7 @@ export function EquipmentEditor({
                 presentation="workspace-dialog"
                 variant="outline"
                 disabled={busy}
-                onClick={onDiscard}
+                onClick={discard}
               >
                 Discard changes
               </Button>
@@ -454,7 +476,7 @@ export function EquipmentEditor({
                 presentation="workspace-dialog"
                 variant="primary"
                 disabled={!editor.canSave}
-                onClick={() => void editor.save()}
+                onClick={() => void saveAndLeave()}
               >
                 Save and leave
               </Button>

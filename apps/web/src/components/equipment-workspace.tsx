@@ -144,6 +144,7 @@ export function EquipmentWorkspace({ active }: { active: boolean }) {
             setDirty(false);
             select(null);
           }}
+          onNavigate={(next) => router.push(next)}
         />
       )}
       <div hidden={!!editor && active}>
