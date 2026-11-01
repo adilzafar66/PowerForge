@@ -10,6 +10,7 @@ import { AppShell } from "@/components/app-shell";
 import { AsyncState } from "@/components/ui/async-state";
 import { ReadOnlyBanner } from "@/components/read-only-banner";
 import {
+  isDocumentsView,
   isEquipmentView,
   RevisionWorkspace,
 } from "@/components/revision-workspace";
@@ -17,7 +18,7 @@ import { RevisionLineage } from "@/components/revision-lineage";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Mono } from "@/components/ui/mono";
-import { canMutate } from "@/lib/documents";
+import { canMutate, readOnlyReason } from "@/lib/documents";
 import {
   formatDateShort,
   getProject,
@@ -38,6 +39,7 @@ export function RevisionPageContent({
   const params = useSearchParams();
   const overview = params.get("view") === "overview";
   const equipment = isEquipmentView(params);
+  const documents = isDocumentsView(params);
   const p = initialProject.id,
     r = initialRevision.id;
   const pq = useQuery({
@@ -62,7 +64,7 @@ export function RevisionPageContent({
     <AppShell project={project} revision={revision} revisions={revisions}>
       <div
         className={
-          overview
+          overview || documents
             ? "w-full min-w-0"
             : equipment
               ? "mx-auto w-full max-w-[var(--pf-equipment-max)] min-w-0 px-[47px] pt-[39px] pb-[76px] text-ink max-[1230px]:p-7 max-[700px]:px-[15px] max-[700px]:py-[22px]"
@@ -86,10 +88,12 @@ export function RevisionPageContent({
           />
         ) : (
           <>
-            {!equipment && (
+            {!equipment && !documents && (
               <RevisionSummary project={project} revision={revision} />
             )}
-            <ReadOnlyBanner project={project} revision={revision} />
+            {!documents && (
+              <ReadOnlyBanner project={project} revision={revision} />
+            )}
             <Suspense fallback={null}>
               <RevisionWorkspace
                 key={`${p}:${r}`}
@@ -97,6 +101,10 @@ export function RevisionPageContent({
                 revisionId={revision.id}
                 revisionLabel={revision.identifier}
                 canMutate={canMutate({ project, revision })}
+                readOnlyReason={readOnlyReason({ project, revision })}
+                activeRevisionId={
+                  revisions.find((r) => r.status === "ACTIVE")?.id ?? null
+                }
               />
             </Suspense>
           </>

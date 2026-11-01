@@ -12,6 +12,7 @@ import {
 } from "@/lib/documents";
 
 export type DocumentMenuHandlers = {
+  onDetails?: (row: RevisionDocument) => void;
   onViewPages: (row: RevisionDocument) => void;
   onEditMetadata: (row: RevisionDocument) => void;
   onReclassify: (row: RevisionDocument) => void;
@@ -49,6 +50,52 @@ export function canRetryClassification(row: RevisionDocument): boolean {
   return included(row) && row.classification.enabled && row.classification.attempt?.status === "FAILED";
 }
 
+/** Opens or downloads the original through a short-lived signed URL. */
+export function useOriginalFile(
+  projectId: string,
+  revisionId: string,
+  revisionDocumentId: string,
+  onStateChanged?: (message: string) => void,
+) {
+  const [busy, setBusy] = useState<DownloadDisposition | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function run(disposition: DownloadDisposition) {
+    setError(null);
+    setBusy(disposition);
+    const tab = disposition === "inline" ? window.open("", "_blank") : null;
+    try {
+      const { url } = await getDownloadUrl(
+        projectId,
+        revisionId,
+        revisionDocumentId,
+        disposition,
+      );
+      if (disposition === "inline") {
+        if (tab) {
+          tab.opener = null;
+          tab.location.href = url;
+        } else {
+          window.open(url, "_blank", "noopener");
+        }
+      } else {
+        window.location.assign(url);
+      }
+    } catch (err) {
+      tab?.close();
+      const { status, detail } = apiErrorOf(err);
+      setError(detail);
+      if (status === 404 || status === 409) {
+        onStateChanged?.(detail);
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return { busy, error, run };
+}
+
 export function DocumentOverflowMenu({
   row,
   projectId,
@@ -65,40 +112,24 @@ export function DocumentOverflowMenu({
   /** Visible text trigger. The row menu omits this and keeps the icon button. */
   triggerLabel?: string;
 }) {
-  const [busy, setBusy] = useState<DownloadDisposition | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { busy, error, run } = useOriginalFile(
+    projectId,
+    revisionId,
+    row.id,
+    handlers.onStateChanged,
+  );
   const [restoring, setRestoring] = useState(false);
   const name = row.document.original_filename;
 
-  async function run(disposition: DownloadDisposition) {
-    setError(null);
-    setBusy(disposition);
-    const tab = disposition === "inline" ? window.open("", "_blank") : null;
-    try {
-      const { url } = await getDownloadUrl(projectId, revisionId, row.id, disposition);
-      if (disposition === "inline") {
-        if (tab) {
-          tab.opener = null;
-          tab.location.href = url;
-        } else {
-          window.open(url, "_blank", "noopener");
-        }
-      } else {
-        window.location.assign(url);
-      }
-    } catch (err) {
-      tab?.close();
-      const { status, detail } = apiErrorOf(err);
-      setError(detail);
-      if (status === 404 || status === 409) {
-        handlers.onStateChanged(detail);
-      }
-    } finally {
-      setBusy(null);
-    }
-  }
-
   const items: DropdownMenuItem[] = [];
+  if (handlers.onDetails) {
+    const onDetails = handlers.onDetails;
+    items.push({
+      id: "details",
+      label: "Document details",
+      onSelect: () => onDetails(row),
+    });
+  }
   if (row.processing?.status === "COMPLETED") {
     items.push({
       id: "pages",
@@ -180,6 +211,11 @@ export function DocumentOverflowMenu({
         items={items}
         label={`Actions for ${name}`}
         triggerLabel={triggerLabel}
+        triggerClassName={
+          triggerLabel
+            ? undefined
+            : "size-[29px] min-h-0 min-w-0 rounded-[var(--pf-radius-control)] border border-border bg-panel text-ink [&>svg]:size-4"
+        }
         disabled={restoring}
       />
       {error ? (

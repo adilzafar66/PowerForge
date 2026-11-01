@@ -8,8 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { keys } from "@/lib/query-keys";
 import { useEffect, useId, useState } from "react";
 
-import { Button } from "@/components/ui/button";
-import { fieldClassName } from "@/components/ui/input";
+import { docButtonClass, DocumentsDialog } from "@/components/documents-ui";
 import { apiErrorOf } from "@/lib/api";
 import {
   documentTypeLabel,
@@ -46,7 +45,7 @@ export function ReuseDocumentDialog({
   onChanged,
   onReadOnly,
 }: Props) {
-  const titleId = useId();
+  const sourceFieldId = useId();
   const revisionQuery = useQuery({
     queryKey: keys.revisions(projectId),
     queryFn: () => listRevisions(projectId),
@@ -77,16 +76,6 @@ export function ReuseDocumentDialog({
     revisionQuery.error || sourceQuery.error || targetQuery.error;
   const loadError = requestError ? apiErrorOf(requestError).detail : null;
   const [adding, setAdding] = useState(false);
-
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
 
   useEffect(() => {
     if (!sourceId && revisionQuery.data)
@@ -208,130 +197,117 @@ export function ReuseDocumentDialog({
   const selectedCount = selectable.filter((row) => selected.has(row.id)).length;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/25 backdrop-blur-[2px]"
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        className="flex max-h-[90vh] w-[640px] flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_24px_48px_rgba(0,0,0,0.12),0_4px_8px_rgba(0,0,0,0.06)]"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <h2
-          id={titleId}
-          className="mb-1 text-[16px] font-semibold text-slate-900"
-        >
-          Add from another revision
-        </h2>
-        <p className="mb-4 text-[13px] text-slate-500">
-          Pick documents from another revision of this project. The file is
-          shared, not copied, and its details are copied so you can edit them
-          here.
-        </p>
-
-        {revisions === null && !loadError ? (
-          <p className="text-[13px] text-slate-400">Loading revisions…</p>
-        ) : null}
-
-        {revisions && revisions.length === 0 ? (
-          <p className="text-[13px] text-slate-500">
-            This project has no other revisions.
-          </p>
-        ) : null}
-
-        {revisions && revisions.length > 0 ? (
-          <>
-            <label className="mb-3 flex items-center gap-2 text-[12.5px] font-medium text-slate-600">
-              Source revision
-              <Select
-                aria-label="Source revision"
-                value={sourceId}
-                onValueChange={(value) => setSourceId(value)}
-                disabled={adding}
-                className={cn(fieldClassName, "w-auto py-1.5 text-[13px]")}
-              >
-                {revisions.map((revision) => (
-                  <option key={revision.id} value={revision.id}>
-                    {`Revision ${revision.identifier} (${REVISION_STATUS_STYLES[revision.status].label})`}
-                  </option>
-                ))}
-              </Select>
-            </label>
-
-            {loadError ? (
-              <p role="alert" className="mb-2 text-[13px] text-red-600">
-                {loadError}{" "}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    void revisionQuery.refetch();
-                    void targetQuery.refetch();
-                    if (sourceId) void sourceQuery.refetch();
-                  }}
-                >
-                  Retry
-                </Button>
-              </p>
-            ) : null}
-
-            <div className="min-h-[80px] flex-1 overflow-y-auto rounded-xl border border-slate-200">
-              {sourceDocs === null ? (
-                <p className="px-4 py-6 text-[13px] text-slate-400">
-                  Loading documents…
-                </p>
-              ) : sourceDocs.length === 0 ? (
-                <p className="px-4 py-6 text-[13px] text-slate-400">
-                  No included documents in Revision {sourceRevision?.identifier}
-                  .
-                </p>
-              ) : (
-                <ul className="divide-y divide-slate-100">
-                  {sourceDocs.map((row) => (
-                    <SourceRow
-                      key={row.id}
-                      row={row}
-                      unavailable={reasonUnavailable(row)}
-                      checked={selected.has(row.id)}
-                      result={results.get(row.id)}
-                      disabled={adding}
-                      onToggle={() => toggle(row.id)}
-                      onRestore={(existingId) =>
-                        void restoreExisting(row, existingId)
-                      }
-                    />
-                  ))}
-                </ul>
-              )}
-            </div>
-          </>
-        ) : null}
-
-        {revisions === null && loadError ? (
-          <p role="alert" className="text-[13px] text-red-600">
-            {loadError}
-          </p>
-        ) : null}
-
-        <div className="mt-5 flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={onClose}>
+    <DocumentsDialog
+      title="Add from another revision"
+      description="Reuse project documents from another revision. The file is shared, not copied, and its details are copied so you can edit them here."
+      onClose={onClose}
+      footer={
+        <>
+          <button type="button" className={docButtonClass()} onClick={onClose}>
             Close
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
+            className={docButtonClass("primary")}
             disabled={selectedCount === 0 || adding}
             onClick={() => void addSelected()}
           >
             {adding
               ? "Adding…"
               : `Add ${selectedCount} ${selectedCount === 1 ? "document" : "documents"}`}
-          </Button>
-        </div>
-      </div>
-    </div>
+          </button>
+        </>
+      }
+    >
+      {revisions === null && !loadError ? (
+        <p className="m-0 text-workspace-label text-muted">Loading revisions…</p>
+      ) : null}
+
+      {revisions && revisions.length === 0 ? (
+        <p className="m-0 text-workspace-label text-muted">
+          This project has no other revisions.
+        </p>
+      ) : null}
+
+      {revisions && revisions.length > 0 ? (
+        <>
+          <div className="mb-3.5 flex flex-col gap-1.5">
+            <label
+              htmlFor={sourceFieldId}
+              className="text-workspace-caption font-semibold text-muted"
+            >
+              Source revision
+            </label>
+            <Select
+              id={sourceFieldId}
+              aria-label="Source revision"
+              value={sourceId}
+              onValueChange={(value) => setSourceId(value)}
+              disabled={adding}
+              className="min-h-[38px] rounded-[var(--pf-radius-control)] border-border px-[11px] py-2 text-workspace-label"
+            >
+              {revisions.map((revision) => (
+                <option key={revision.id} value={revision.id}>
+                  {`Revision ${revision.identifier} (${REVISION_STATUS_STYLES[revision.status].label})`}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          {loadError ? (
+            <p role="alert" className="mb-2 text-workspace-label text-danger">
+              {loadError}{" "}
+              <button
+                type="button"
+                className={docButtonClass("tiny")}
+                onClick={() => {
+                  void revisionQuery.refetch();
+                  void targetQuery.refetch();
+                  if (sourceId) void sourceQuery.refetch();
+                }}
+              >
+                Retry
+              </button>
+            </p>
+          ) : null}
+
+          <div className="min-h-[80px]">
+            {sourceDocs === null ? (
+              <p className="m-0 py-4 text-workspace-label text-muted">
+                Loading documents…
+              </p>
+            ) : sourceDocs.length === 0 ? (
+              <p className="m-0 py-4 text-workspace-label text-muted">
+                No included documents in Revision {sourceRevision?.identifier}.
+              </p>
+            ) : (
+              <ul className="m-0 list-none divide-y divide-[var(--pf-documents-row-border)] p-0">
+                {sourceDocs.map((row) => (
+                  <SourceRow
+                    key={row.id}
+                    row={row}
+                    unavailable={reasonUnavailable(row)}
+                    checked={selected.has(row.id)}
+                    result={results.get(row.id)}
+                    disabled={adding}
+                    onToggle={() => toggle(row.id)}
+                    onRestore={(existingId) =>
+                      void restoreExisting(row, existingId)
+                    }
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        </>
+      ) : null}
+
+      {revisions === null && loadError ? (
+        <p role="alert" className="m-0 text-workspace-label text-danger">
+          {loadError}
+        </p>
+      ) : null}
+    </DocumentsDialog>
   );
 }
 
@@ -354,52 +330,51 @@ function SourceRow({
 }) {
   const name = row.document.original_filename;
   return (
-    <li className="flex items-start gap-3 px-4 py-2.5 text-[13px]">
+    <li className="flex items-start gap-3 py-3">
       <Checkbox
         aria-label={`Select ${name}`}
         checked={checked}
         disabled={disabled || !!unavailable}
         onChange={onToggle}
-        className="mt-1"
+        className="mt-0.5"
       />
       <div className="min-w-0 flex-1">
         <p
           className={cn(
-            "font-medium break-all",
-            unavailable ? "text-slate-400" : "text-slate-800",
+            "m-0 text-workspace-label font-semibold break-all",
+            unavailable ? "text-muted" : "text-ink",
           )}
         >
           {name}
         </p>
-        <p className="text-[12px] text-slate-400">
+        <p className="m-0 mt-0.5 text-workspace-caption text-muted">
           {documentTypeLabel(row.document_type)} ·{" "}
           {formatFileSize(row.document.size_bytes)}
         </p>
         {unavailable &&
         result?.kind !== "added" &&
         result?.kind !== "restored" ? (
-          <p className="mt-0.5 text-[12px] text-slate-500">{unavailable}</p>
+          <p className="m-0 mt-0.5 text-workspace-caption text-muted">{unavailable}</p>
         ) : null}
         {result?.kind === "added" ? (
-          <p className="mt-0.5 text-[12px] text-emerald-700">Added</p>
+          <p className="m-0 mt-0.5 text-workspace-caption text-positive">Added</p>
         ) : null}
         {result?.kind === "restored" ? (
-          <p className="mt-0.5 text-[12px] text-emerald-700">Restored</p>
+          <p className="m-0 mt-0.5 text-workspace-caption text-positive">Restored</p>
         ) : null}
         {result?.kind === "failed" || result?.kind === "not_sent" ? (
-          <p className="mt-0.5 text-[12px] text-red-600">{result.message}</p>
+          <p className="m-0 mt-0.5 text-workspace-caption text-danger">{result.message}</p>
         ) : null}
       </div>
       {result?.kind === "failed" && result.restoreId ? (
-        <Button
+        <button
           type="button"
-          variant="secondary"
-          size="sm"
+          className={docButtonClass("tiny")}
           aria-label={`Restore ${name}`}
           onClick={() => onRestore(result.restoreId as string)}
         >
           Restore
-        </Button>
+        </button>
       ) : null}
     </li>
   );

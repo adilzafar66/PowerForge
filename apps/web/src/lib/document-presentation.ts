@@ -1,5 +1,7 @@
 import {
   classificationAttemptState,
+  confidenceBandLabel,
+  documentTypeLabel,
   type ClassificationAttemptState,
   type DocumentOrigin,
   type DocumentType,
@@ -152,6 +154,94 @@ export function countQuickViews(rows: readonly RevisionDocument[]): QuickViewCou
     }
   }
   return counts;
+}
+
+/** Included documents that need a decision or have failed work. */
+export function attentionCount(counts: QuickViewCounts): number {
+  return counts.needsReview + counts.issues;
+}
+
+export type CellTone = "ready" | "running" | "failed" | "pending" | "review" | "neutral";
+
+export type CellState = {
+  tone: CellTone;
+  label: string;
+  detail?: string;
+  /** 0–100 when the backend reports page progress. */
+  progress?: number;
+  /** Spoken label when the visible label is a dash. */
+  srLabel?: string;
+};
+
+function pages(count: number): string {
+  return `${count} ${count === 1 ? "page" : "pages"}`;
+}
+
+export function processingCell(row: RevisionDocument): CellState {
+  const processing = row.processing;
+  if (!processing) return { tone: "neutral", label: "Not started" };
+  if (processing.status === "PENDING")
+    return { tone: "pending", label: "Pending", detail: "Waiting to start" };
+  if (processing.status === "RUNNING") {
+    const total = processing.pages_total;
+    return total != null && total > 0
+      ? {
+          tone: "running",
+          label: "Processing",
+          detail: `${processing.pages_processed} / ${total} pages`,
+          progress: (processing.pages_processed / total) * 100,
+        }
+      : { tone: "running", label: "Processing" };
+  }
+  if (processing.status === "FAILED")
+    return { tone: "failed", label: "Failed", detail: "Retry available" };
+  return {
+    tone: "ready",
+    label: "Complete",
+    detail: processing.pages_total != null ? pages(processing.pages_total) : undefined,
+  };
+}
+
+export function classificationCell(row: RevisionDocument): CellState {
+  const { enabled, suggestion, attempt } = row.classification;
+  if (!enabled)
+    return { tone: "neutral", label: "—", srLabel: "AI classification disabled" };
+  if (attempt?.status === "PENDING" || attempt?.status === "RUNNING")
+    return {
+      tone: "running",
+      label: "Classifying",
+      detail:
+        attempt.stage === "PAGES" && attempt.pages_total > 0
+          ? `${attempt.pages_classified} / ${attempt.pages_total} pages`
+          : undefined,
+    };
+  if (attempt?.status === "FAILED" && row.processing?.status === "COMPLETED")
+    return { tone: "failed", label: "Failed", detail: "Retry available" };
+  if (suggestion && !suggestion.accepted)
+    return {
+      tone: "review",
+      label: "Needs review",
+      detail: `Suggested: ${documentTypeLabel(suggestion.predicted_type)}`,
+    };
+  if (suggestion)
+    return {
+      tone: "ready",
+      label: "Accepted",
+      detail: `${confidenceBandLabel(suggestion.confidence_band)} confidence`,
+    };
+  return { tone: "neutral", label: "—", srLabel: "Not classified" };
+}
+
+export type StatusChipState = {
+  tone: "green" | "yellow" | "red" | "gray";
+  label: string;
+};
+
+export function documentStatusChip(row: RevisionDocument): StatusChipState {
+  if (row.status === "REMOVED") return { tone: "gray", label: "Removed" };
+  if (documentHasIssue(row)) return { tone: "red", label: "Issue" };
+  if (documentNeedsReview(row)) return { tone: "yellow", label: "Review" };
+  return { tone: "green", label: "Included" };
 }
 
 export function presentationStateLabel(state: DocumentPresentationState): string {

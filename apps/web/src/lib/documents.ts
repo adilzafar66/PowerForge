@@ -494,6 +494,16 @@ export async function getClassification(
   );
 }
 
+export async function getProcessing(
+  projectId: string,
+  revisionId: string,
+  revisionDocumentId: string,
+): Promise<ProcessingStatusResponse> {
+  return request<ProcessingStatusResponse>(
+    `${documentsPath(projectId, revisionId)}/${revisionDocumentId}/processing`,
+  );
+}
+
 export async function listClassificationPages(
   projectId: string,
   revisionId: string,

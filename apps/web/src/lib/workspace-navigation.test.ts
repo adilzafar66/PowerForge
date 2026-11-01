@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { equipmentTab, revisionHref } from "./workspace-navigation";
+import {
+  documentViewerHref,
+  equipmentTab,
+  revisionHref,
+} from "./workspace-navigation";
 
 describe("revision navigation", () => {
   it("keeps unrelated parameters and current equipment selection", () => {
@@ -57,5 +61,25 @@ describe("revision navigation", () => {
     expect(equipmentTab("attributes")).toBe("attributes");
     expect(equipmentTab("other")).toBe("general");
     expect(equipmentTab(null)).toBe("general");
+  });
+});
+
+describe("document viewer URLs", () => {
+  it("keeps page 1 and document mode implicit", () => {
+    expect(documentViewerHref("p", "r", "d")).toBe(
+      "/projects/p/revisions/r/documents/d",
+    );
+    expect(documentViewerHref("p", "r", "d", { page: 1, mode: "document" })).toBe(
+      "/projects/p/revisions/r/documents/d",
+    );
+    expect(documentViewerHref("p", "r", "d", { page: 4, mode: "evidence" })).toBe(
+      "/projects/p/revisions/r/documents/d?page=4&mode=evidence",
+    );
+  });
+
+  it("drops viewer-only state from revision links", () => {
+    expect(
+      revisionHref("p", "r", "r", "page=4&mode=evidence&keep=yes", "documents"),
+    ).toBe("/projects/p/revisions/r?keep=yes");
   });
 });

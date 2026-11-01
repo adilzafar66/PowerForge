@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { keys } from "@/lib/query-keys";
 import { AsyncState } from "@/components/ui/async-state";
 
-import { Button } from "@/components/ui/button";
+import { docButtonClass } from "@/components/documents-ui";
 import {
   confidenceBandLabel,
   documentTypeLabel,
@@ -35,20 +35,18 @@ export function MixedDocumentPageTypes({
   });
   const pages = query.data;
 
-  async function toggle() {
-    setOpen((current) => !current);
-  }
-
   return (
-    <div className="mt-3">
-      <Button
+    <div className="mt-[15px]">
+      <h4 className="m-0 mb-2 text-workspace-caption font-semibold text-ink">
+        Page breakdown
+      </h4>
+      <button
         type="button"
-        variant="secondary"
-        size="sm"
-        onClick={() => void toggle()}
+        className={docButtonClass("tiny")}
+        onClick={() => setOpen((current) => !current)}
       >
         {open ? "Hide page classifications" : "View page classifications"}
-      </Button>
+      </button>
       {open && (
         <AsyncState
           pending={query.isPending}
@@ -57,12 +55,12 @@ export function MixedDocumentPageTypes({
         />
       )}
       {open && pages ? (
-        <ul className="mt-2 space-y-1 text-[12.5px]">
+        <ul className="m-0 mt-2 list-none space-y-1 p-0 text-workspace-caption">
           {pages.map((page) => (
             <li key={page.page_number}>
               <button
                 type="button"
-                className="cursor-pointer text-left text-slate-700 hover:underline"
+                className="cursor-pointer border-0 bg-transparent p-0 text-left text-ink hover:text-accent hover:underline"
                 onClick={() => onOpenPage(page.page_number)}
               >
                 {page.page_number} {documentTypeLabel(page.predicted_type)} ·{" "}

@@ -6,7 +6,7 @@ import path from "node:path";
 import { chromium } from "playwright";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
-import { fixtureResponse } from "./fixtures.mjs";
+import { fixtureAsset, fixtureResponse } from "./fixtures.mjs";
 
 const mode = process.argv[2];
 assert(["capture", "compare"].includes(mode), "Use capture or compare");
@@ -46,6 +46,12 @@ const server = createServer((req, res) => {
     res.end("{}");
     return;
   }
+  const asset = fixtureAsset(url);
+  if (asset) {
+    res.setHeader("Content-Type", asset.type);
+    res.end(asset.body);
+    return;
+  }
   const body = fixtureResponse(url, scenario);
   if (body === undefined) {
     failures.push(`Missing fixture ${req.url}`);
@@ -57,6 +63,11 @@ const server = createServer((req, res) => {
   if (scenario === "error" && url.pathname === "/api/projects") {
     res.writeHead(503);
     res.end(JSON.stringify({ detail: "Fixture service unavailable" }));
+    return;
+  }
+  if (body.__status) {
+    res.writeHead(body.__status);
+    res.end(JSON.stringify({ detail: body.detail }));
     return;
   }
   res.end(JSON.stringify(body));
@@ -197,7 +208,9 @@ try {
           }),
       );
     manifest.captures[name] = geometry;
-    if (old) {
+    if (old && !old.captures[name]) {
+      failures.push(`${name}: no baseline capture`);
+    } else if (old) {
       const a = PNG.sync.read(
           await readFile(path.join(baseline, name + ".png")),
         ),
@@ -330,11 +343,80 @@ try {
     await equipmentStates("tablet");
     await page.setViewportSize({ width: 1440, height: 1000 });
     await go(r + "?document=doc");
+    await page
+      .getByRole("dialog")
+      .filter({ has: page.getByRole("button", { name: "Close details" }) })
+      .waitFor();
     await shot("document-drawer");
-    await page.getByRole("button", { name: "More", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Remove from revision" }).click();
+    await page.getByRole("button", { name: "Remove", exact: true }).click();
     await shot("document-remove-dialog");
     await page.keyboard.press("Escape");
+    for (const width of [1440, 1024, 390]) {
+      const prefix = `documents-${width}`;
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+      await go(r);
+      await shot(`${prefix}-register`);
+      await page.getByRole("button", { name: "Filters", exact: true }).click();
+      await shot(`${prefix}-filters`);
+      await page.keyboard.press("Escape");
+      const addMenu = () =>
+        page
+          .getByRole("button", { name: "Add documents", exact: true })
+          .first()
+          .click();
+      await addMenu();
+      await shot(`${prefix}-add-menu`);
+      await page.getByRole("menuitem", { name: "Upload files" }).click();
+      await shot(`${prefix}-upload`);
+      await page.keyboard.press("Escape");
+      await addMenu();
+      await page
+        .getByRole("menuitem", { name: "Add from another revision" })
+        .click();
+      await page.getByText("Panel_Schedules_Level2.pdf").last().waitFor();
+      await shot(`${prefix}-reuse`);
+      await page.keyboard.press("Escape");
+      await go(r + "?document=doc-panels");
+      await page
+        .getByRole("dialog")
+        .filter({ has: page.getByRole("button", { name: "Close details" }) })
+        .waitFor();
+      await shot(`${prefix}-inspector`);
+      const viewer = r + "/documents/doc";
+      await go(viewer);
+      await page.getByRole("img", { name: "Page 1" }).waitFor();
+      await shot(`${prefix}-viewer`);
+      await go(viewer + "?mode=evidence");
+      await page.getByRole("img", { name: "Page 1" }).waitFor();
+      await shot(`${prefix}-evidence`);
+      if (width !== 390) {
+        await go(viewer + "?page=2");
+        await page
+          .getByRole("button", { name: "Page thumbnails", exact: true })
+          .click();
+        await page.getByRole("img", { name: "Page 2" }).waitFor();
+        await shot(`${prefix}-thumbs-collapsed`);
+      }
+      await go(r + "/documents/doc-tx");
+      await shot(`${prefix}-viewer-processing`);
+      scenario = "readonly";
+      await go(r);
+      await shot(`${prefix}-readonly`);
+      scenario = "normal";
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await go(r + "?document=doc-panels");
+    await page
+      .getByRole("textbox", { name: "Description", exact: true })
+      .fill("Unsaved fixture draft");
+    await page.getByRole("row", { name: /Substation_SLD/ }).click();
+    await page
+      .getByRole("dialog", { name: "Discard unsaved changes?" })
+      .waitFor();
+    await shot("documents-unsaved-dialog");
+    await page
+      .getByRole("button", { name: "Keep editing", exact: true })
+      .click();
     await go(edit("general"));
     await page
       .getByRole("textbox", { name: "Equipment tag", exact: true })

@@ -1,6 +1,15 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { Check, RefreshCw } from "lucide-react";
+import { useState, type ReactNode } from "react";
+
+import { CellStateView } from "@/components/document-list";
+import {
+  docButtonClass,
+  InspectorSection,
+  MiniGrid,
+} from "@/components/documents-ui";
+import { classificationCell } from "@/lib/document-presentation";
 import {
   classificationErrorLabel,
   confidenceBandLabel,
@@ -31,6 +40,7 @@ export function DocumentClassificationPanel({
   onChooseType,
   onReclassify,
   onRetry,
+  children,
 }: {
   row: RevisionDocument;
   detail: ClassificationDetail | null;
@@ -41,7 +51,10 @@ export function DocumentClassificationPanel({
   onChooseType: () => void;
   onReclassify: () => void;
   onRetry: () => void;
+  /** Page breakdown for mixed documents. */
+  children?: ReactNode;
 }) {
+  const [kept, setKept] = useState<string | null>(null);
   const suggestion = row.classification.suggestion;
   const attempt = row.classification.attempt;
   const failed = attempt?.status === "FAILED";
@@ -49,61 +62,50 @@ export function DocumentClassificationPanel({
     suggestion != null && suggestion.predicted_type !== row.document_type;
   const editable = canMutate && row.status === "INCLUDED";
   const rationale = detail?.rationale ?? null;
+  const keptCurrent = suggestion != null && kept === suggestion.prediction_id;
 
   return (
-    <section className="border-t border-slate-100 px-5 py-4">
-      <h3 className="mb-2 text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-        AI Classification
-      </h3>
-      {attempt &&
-        (attempt.status === "PENDING" || attempt.status === "RUNNING") && (
-          <p role="status" className="mb-2 text-sm text-muted">
-            {attempt.status === "PENDING"
-              ? "Classification pending"
-              : "Classifying"}
-            {attempt.stage === "PAGES" && attempt.pages_total > 0
-              ? ` · ${attempt.pages_classified} / ${attempt.pages_total} pages`
-              : ""}
-          </p>
-        )}
+    <InspectorSection title="AI classification">
+      <CellStateView state={classificationCell(row)} />
+      {suggestion?.accepted ? (
+        <p className="sr-only">Accepted AI classification</p>
+      ) : null}
       {suggestion ? (
-        <div className="space-y-1 text-[13px] text-slate-700">
-          {suggestion.accepted ? (
-            <p className="font-medium text-emerald-700">
-              Accepted AI classification
-            </p>
-          ) : null}
-          <p>
-            <span className="text-slate-500">
-              {typesDiffer ? "AI suggestion" : "Suggested type"}
-            </span>
-            <span className="mt-0.5 block font-medium">
-              {documentTypeLabel(suggestion.predicted_type)}
-            </span>
-          </p>
-          <p>
-            <span className="text-slate-500">Confidence</span>
-            <span className="mt-0.5 block">
-              {confidenceBandLabel(suggestion.confidence_band)}
-            </span>
-          </p>
-          {detail?.confidence_score != null ? (
-            <p className="text-[12.5px] text-slate-500">
-              Score {detail.confidence_score.toFixed(2)}
-            </p>
-          ) : null}
+        <>
+          <MiniGrid
+            className="mt-[13px]"
+            items={[
+              [
+                typesDiffer ? "AI suggestion" : "Suggested type",
+                documentTypeLabel(suggestion.predicted_type),
+              ],
+              [
+                "Confidence",
+                <>
+                  {confidenceBandLabel(suggestion.confidence_band)}
+                  {detail?.confidence_score != null ? (
+                    <span className="block text-muted">
+                      Score {detail.confidence_score.toFixed(2)}
+                    </span>
+                  ) : null}
+                </>,
+              ],
+              ["Accepted", suggestion.accepted ? "Yes" : "No"],
+              ...(typesDiffer
+                ? ([["Confirmed", documentTypeLabel(row.document_type)]] as [
+                    string,
+                    ReactNode,
+                  ][])
+                : []),
+            ]}
+          />
           {rationale ? (
-            <p className="text-[13px] leading-relaxed text-slate-600">
+            <p className="m-0 mt-3 text-workspace-caption leading-[1.55] text-muted">
               {rationale}
             </p>
           ) : null}
-          {typesDiffer ? (
-            <p className="text-[12.5px] text-slate-500">
-              Confirmed: {documentTypeLabel(row.document_type)}
-            </p>
-          ) : null}
           {detail && detail.alternatives.length > 0 ? (
-            <ul className="mt-1 text-[12.5px] text-slate-500">
+            <ul className="m-0 mt-2 list-none p-0 text-workspace-caption text-muted">
               {detail.alternatives.map((alternative) => (
                 <li key={`${alternative.type}-${alternative.score}`}>
                   {typeLabel(alternative.type)} · {alternative.score.toFixed(2)}
@@ -111,84 +113,91 @@ export function DocumentClassificationPanel({
               ))}
             </ul>
           ) : null}
-        </div>
-      ) : (
-        <p className="text-[13px] text-slate-500">No suggestion</p>
-      )}
+        </>
+      ) : !attempt || attempt.status === "COMPLETED" ? (
+        <p className="m-0 mt-2 text-workspace-caption text-muted">No suggestion</p>
+      ) : null}
 
       {failed ? (
-        <div className="mt-3 space-y-1 text-[13px]">
-          {suggestion ? (
-            <p className="font-medium text-slate-700">Latest attempt</p>
-          ) : (
-            <p className="font-medium text-red-700">Classification failed</p>
-          )}
-          <p className="text-red-700">Failed</p>
-          <p className="text-[12.5px] text-slate-500">
+        <div className="mt-3 text-workspace-caption">
+          <p className="m-0 font-semibold text-ink">
+            {suggestion ? "Latest attempt failed" : "Classification failed"}
+          </p>
+          <p className="m-0 mt-0.5 text-muted">
             {classificationErrorLabel(attempt?.error_code)}
           </p>
-          {canRetryClassification(row) ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={onRetry}
-              disabled={busy}
-            >
-              Retry
-            </Button>
-          ) : null}
         </div>
       ) : null}
 
-      {editable && suggestion && !suggestion.accepted ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button
+      {children}
+
+      {keptCurrent ? (
+        <p role="status" className="m-0 mt-3 text-workspace-caption text-muted">
+          Confirmed type kept. The suggestion stays unaccepted.
+        </p>
+      ) : null}
+
+      <div className="flex flex-wrap gap-2 empty:hidden [&:not(:empty)]:mt-[15px]">
+        {editable && suggestion && !suggestion.accepted && !keptCurrent ? (
+          <>
+            <button
+              type="button"
+              className={docButtonClass("tiny", "primary")}
+              onClick={onAccept}
+              disabled={busy}
+            >
+              <Check aria-hidden strokeWidth={2} />
+              {typesDiffer ? "Use AI suggestion" : "Accept suggestion"}
+            </button>
+            {typesDiffer ? (
+              <button
+                type="button"
+                className={docButtonClass("tiny")}
+                disabled={busy}
+                onClick={() => setKept(suggestion.prediction_id)}
+              >
+                Keep current
+              </button>
+            ) : (
+              <button
+                type="button"
+                className={docButtonClass("tiny")}
+                onClick={onChooseType}
+                disabled={busy}
+              >
+                Choose another type
+              </button>
+            )}
+          </>
+        ) : null}
+        {failed && canRetryClassification(row) ? (
+          <button
             type="button"
-            variant="secondary"
-            size="sm"
-            onClick={onAccept}
+            className={docButtonClass("tiny")}
+            onClick={onRetry}
             disabled={busy}
           >
-            {typesDiffer ? "Use AI suggestion" : "Accept suggestion"}
-          </Button>
-          {typesDiffer ? (
-            <Button type="button" variant="secondary" size="sm" disabled={busy}>
-              Keep current
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={onChooseType}
-              disabled={busy}
-            >
-              Choose another type
-            </Button>
-          )}
-        </div>
-      ) : null}
-
-      {canReclassifyDocument(row) ? (
-        <div className="mt-3">
-          <Button
+            <RefreshCw aria-hidden strokeWidth={1.8} />
+            Retry
+          </button>
+        ) : null}
+        {canReclassifyDocument(row) ? (
+          <button
             type="button"
-            variant="ghost"
-            size="sm"
+            className={docButtonClass("tiny", "ghost")}
             onClick={onReclassify}
             disabled={busy}
           >
             Reclassify
-          </Button>
-        </div>
-      ) : null}
+          </button>
+        ) : null}
+      </div>
 
       {error ? (
-        <p role="alert" className="mt-2 text-[12.5px] text-red-600">
+        <p role="alert" className="m-0 mt-2 text-workspace-caption text-danger">
           {error}
         </p>
       ) : null}
-    </section>
+    </InspectorSection>
   );
 }

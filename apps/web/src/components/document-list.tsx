@@ -1,108 +1,134 @@
 "use client";
 
-import Link from "next/link";
-import type { ReactNode } from "react";
+import {
+  CircleAlert,
+  CircleCheck,
+  CircleDashed,
+  Clock3,
+  FileSearch,
+  FileText,
+  LoaderCircle,
+  TriangleAlert,
+} from "lucide-react";
 
 import {
   DocumentOverflowMenu,
   type DocumentMenuHandlers,
 } from "@/components/document-overflow-menu";
-import { DocumentState } from "@/components/document-state";
 import { AddDocumentsMenu } from "@/components/document-workspace-toolbar";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { docButtonClass, ProgressBar } from "@/components/documents-ui";
 import {
-  revisionTable,
-  revisionRowClass,
-  revisionPrimaryClass,
-} from "@/components/ui/revision-table";
+  classificationCell,
+  processingCell,
+  type CellState,
+  type CellTone,
+} from "@/lib/document-presentation";
 import {
-  confidenceBandLabel,
   documentTypeLabel,
   formatFileSize,
+  originLabel,
   type RevisionDocument,
 } from "@/lib/documents";
 import { formatDateShort } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 
-const TH = revisionTable.header;
+const TH =
+  "border-b border-border bg-[#f8fafb] px-[15px] py-3.5 text-left text-workspace-overline font-bold tracking-[0.62px] text-[var(--pf-text-tertiary)] uppercase";
+const TD =
+  "border-t border-[var(--pf-documents-row-border)] p-[15px] align-middle text-workspace-label";
 
-function secondaryFacts(row: RevisionDocument, projectId: string): ReactNode[] {
-  const facts: ReactNode[] = [];
-  if (row.document_number) {
-    facts.push(<span key="number">{row.document_number}</span>);
-  }
-  facts.push(<span key="size">{formatFileSize(row.document.size_bytes)}</span>);
-  facts.push(
-    <span key="origin">
-      <OriginFact row={row} projectId={projectId} />
-    </span>,
-  );
-  if (row.processing?.pages_total != null) {
-    const count = row.processing.pages_total;
-    facts.push(
-      <span key="pages">
-        {count} {count === 1 ? "page" : "pages"}
-      </span>,
+const TONE_CLASS: Record<CellTone, string> = {
+  ready: "text-positive",
+  running: "text-accent",
+  failed: "text-danger",
+  pending: "text-warning",
+  review: "text-warning",
+  neutral: "text-muted",
+};
+
+function ToneIcon({ tone }: { tone: CellTone }) {
+  const props = { "aria-hidden": true, strokeWidth: 1.9, className: "size-3.5 shrink-0" };
+  if (tone === "ready") return <CircleCheck {...props} />;
+  if (tone === "running")
+    return (
+      <LoaderCircle
+        {...props}
+        className={cn(props.className, "animate-spin motion-reduce:animate-none")}
+      />
     );
-  }
-  return facts.slice(0, 3);
+  if (tone === "failed") return <CircleAlert {...props} />;
+  if (tone === "pending") return <Clock3 {...props} />;
+  if (tone === "review") return <TriangleAlert {...props} />;
+  return <CircleDashed {...props} />;
 }
 
-function OriginFact({
-  row,
-  projectId,
+export function CellStateView({
+  state,
+  progressLabel,
 }: {
-  row: RevisionDocument;
-  projectId: string;
+  state: CellState;
+  progressLabel?: string;
 }) {
-  if (row.origin !== "INHERITED") {
-    return <>Uploaded · {formatDateShort(row.added_at)}</>;
-  }
-  const identifier = row.inherited_from_revision_identifier;
-  if (!identifier) {
-    return <>Inherited</>;
-  }
-  const label = `Rev ${identifier}`;
-  if (!row.inherited_from_revision_id) {
-    return <>Inherited from {label}</>;
-  }
+  const dash = state.label === "—";
   return (
-    <>
-      Inherited from{" "}
-      <Link
-        href={`/projects/${projectId}/revisions/${row.inherited_from_revision_id}`}
-        className="text-accent hover:underline"
-        onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => event.stopPropagation()}
+    <div className="min-w-0">
+      <p
+        className={cn(
+          "m-0 flex items-center gap-1.5 text-workspace-label font-semibold",
+          TONE_CLASS[state.tone],
+        )}
       >
-        {label}
-      </Link>
-    </>
-  );
-}
-
-function TypeCell({ row }: { row: RevisionDocument }) {
-  const suggestion = row.classification.suggestion;
-  let hint: string | null = null;
-  if (suggestion && row.document_type === "UNKNOWN") {
-    hint = `AI: ${documentTypeLabel(suggestion.predicted_type)} · ${confidenceBandLabel(suggestion.confidence_band)}`;
-  } else if (suggestion && suggestion.predicted_type !== row.document_type) {
-    hint = `AI suggests: ${documentTypeLabel(suggestion.predicted_type)}`;
-  }
-  return (
-    <div>
-      <p className="text-slate-700">{documentTypeLabel(row.document_type)}</p>
-      {hint ? (
-        <p className="mt-0.5 text-[12px] text-slate-500">{hint}</p>
+        {dash ? (
+          <>
+            <span aria-hidden>—</span>
+            <span className="sr-only">{state.srLabel}</span>
+          </>
+        ) : (
+          <>
+            <ToneIcon tone={state.tone} />
+            {state.label}
+          </>
+        )}
+      </p>
+      {state.detail ? (
+        <p className="m-0 mt-[3px] text-workspace-caption text-muted">
+          {state.detail}
+        </p>
+      ) : null}
+      {state.progress != null && progressLabel ? (
+        <ProgressBar value={state.progress} label={progressLabel} />
       ) : null}
     </div>
   );
 }
 
+function documentMeta(row: RevisionDocument): string {
+  const facts = [];
+  if (row.document_number) facts.push(row.document_number);
+  facts.push(formatFileSize(row.document.size_bytes));
+  if (row.processing?.pages_total != null) {
+    const count = row.processing.pages_total;
+    facts.push(`${count} ${count === 1 ? "page" : "pages"}`);
+  }
+  return facts.join(" · ");
+}
+
+export function FileIcon({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "flex h-10 w-[35px] shrink-0 items-center justify-center rounded-[var(--pf-radius-control)] border border-[var(--pf-documents-file-border)] bg-[var(--pf-documents-file-surface)] text-accent",
+        className,
+      )}
+    >
+      <FileText className="size-[18px]" strokeWidth={1.7} />
+    </span>
+  );
+}
+
 function DocumentRow({
   row,
-  first,
   selected,
   projectId,
   revisionId,
@@ -111,7 +137,6 @@ function DocumentRow({
   onOpen,
 }: {
   row: RevisionDocument;
-  first: boolean;
   selected: boolean;
   projectId: string;
   revisionId: string;
@@ -120,7 +145,7 @@ function DocumentRow({
   onOpen: (row: RevisionDocument) => void;
 }) {
   const removed = row.status === "REMOVED";
-  const facts = secondaryFacts(row, projectId);
+  const name = row.document.original_filename;
   return (
     <tr
       tabIndex={0}
@@ -138,28 +163,51 @@ function DocumentRow({
           onOpen(row);
         }
       }}
-      className={revisionRowClass(first, selected, removed)}
+      className={cn(
+        "cursor-pointer outline-none transition-colors duration-150 hover:bg-[var(--pf-equipment-row-hover)] focus-visible:[box-shadow:inset_0_0_0_2px_var(--pf-ring)]",
+        selected &&
+          "bg-[var(--pf-documents-row-selected)] hover:bg-[var(--pf-documents-row-selected)]",
+        removed && "opacity-[0.68]",
+      )}
     >
-      <td className={revisionTable.primaryCell}>
-        <p className={revisionPrimaryClass(removed)}>
-          {row.document.original_filename}
+      <td className={TD}>
+        <div className="flex min-w-0 items-center gap-[11px]">
+          <FileIcon />
+          <div className="min-w-0">
+            <p
+              title={name}
+              className={cn(
+                "m-0 truncate text-workspace-label font-semibold text-ink",
+                removed && "line-through decoration-[var(--pf-text-tertiary)]",
+              )}
+            >
+              {name}
+            </p>
+            <p className="m-0 mt-1 truncate text-workspace-caption text-muted">
+              {documentMeta(row)}
+            </p>
+          </div>
+        </div>
+      </td>
+      <td className={cn(TD, "font-semibold text-ink [overflow-wrap:anywhere]")}>
+        {documentTypeLabel(row.document_type)}
+      </td>
+      <td className={TD}>
+        <CellStateView
+          state={processingCell(row)}
+          progressLabel={`Processing progress for ${name}`}
+        />
+      </td>
+      <td className={TD}>
+        <CellStateView state={classificationCell(row)} />
+      </td>
+      <td className={cn(TD, "text-ink")}>
+        <p className="m-0">{originLabel(row.origin)}</p>
+        <p className="m-0 mt-[3px] text-workspace-caption text-muted">
+          {formatDateShort(row.added_at)}
         </p>
-        <p className="mt-0.5 flex flex-wrap gap-x-1.5 text-[12px] text-slate-400">
-          {facts.map((fact, index) => (
-            <span key={index} className="inline-flex items-center gap-1.5">
-              {index > 0 ? <span aria-hidden>·</span> : null}
-              {fact}
-            </span>
-          ))}
-        </p>
       </td>
-      <td className={revisionTable.cell}>
-        <TypeCell row={row} />
-      </td>
-      <td className={revisionTable.cell}>
-        <DocumentState row={row} />
-      </td>
-      <td className={revisionTable.actionsCell}>
+      <td className={cn(TD, "pr-3 pl-0 text-right")}>
         <DocumentOverflowMenu
           row={row}
           projectId={projectId}
@@ -172,6 +220,18 @@ function DocumentRow({
   );
 }
 
+export type DocumentEmptyState = {
+  text: string;
+  kind: "revision" | "search" | "filters" | "view";
+};
+
+const EMPTY_HINTS: Record<DocumentEmptyState["kind"], string> = {
+  revision: "Upload source files or add documents from another revision.",
+  search: "Try a different file name, document number or description.",
+  filters: "Adjust or clear the filters to see more documents.",
+  view: "Nothing in this view right now.",
+};
+
 export function DocumentList({
   rows,
   selectedId,
@@ -182,6 +242,7 @@ export function DocumentList({
   error,
   empty,
   handlers,
+  footer,
   onOpen,
   onRetry,
   onClearFilters,
@@ -195,11 +256,9 @@ export function DocumentList({
   canMutate: boolean;
   loading: boolean;
   error: string | null;
-  empty: {
-    text: string;
-    kind: "revision" | "search" | "filters" | "view";
-  } | null;
+  empty: DocumentEmptyState | null;
   handlers: DocumentMenuHandlers;
+  footer: string | null;
   onOpen: (row: RevisionDocument) => void;
   onRetry: () => void;
   onClearFilters: () => void;
@@ -207,101 +266,139 @@ export function DocumentList({
   onReuse: () => void;
 }) {
   return (
-    <Card>
-      {rows !== null && loading && (
-        <p role="status" className="px-5 py-2 text-xs text-muted">
-          Refreshing…
-        </p>
-      )}
+    <>
       {rows !== null && error && (
-        <div role="alert" className="px-5 py-3 text-sm text-danger">
-          {error}{" "}
-          <Button variant="outline" size="sm" onClick={onRetry}>
+        <div
+          role="alert"
+          className="flex items-center gap-3 border-b border-border px-5 py-3 text-workspace-label text-danger"
+        >
+          {error}
+          <button type="button" className={docButtonClass("tiny")} onClick={onRetry}>
             Retry
-          </Button>
+          </button>
         </div>
       )}
-      <table className={revisionTable.table}>
-        <thead className={revisionTable.head}>
-          <tr className={revisionTable.headerRow}>
-            <th className={cn(TH, "px-5")}>Document</th>
-            <th className={TH}>Type</th>
-            <th className={TH}>State</th>
-            <th className={cn(TH, "text-right")}>
-              <span className="sr-only">More</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody className={cn(loading && rows ? "opacity-60" : undefined)}>
-          {rows === null && loading ? (
-            [0, 1, 2].map((row) => (
-              <tr
-                key={row}
-                data-testid="document-skeleton"
-                className="border-t border-slate-100"
-              >
-                <td colSpan={4} className="px-5 py-4">
-                  <div className="h-4 w-1/2 animate-pulse rounded bg-slate-100" />
+      <div className="relative overflow-x-auto">
+        <table
+          className={cn(
+            "w-full table-fixed border-collapse max-[1100px]:min-w-[860px]",
+            loading && rows ? "opacity-60" : undefined,
+          )}
+        >
+          <colgroup>
+            <col className="w-[34%]" />
+            <col className="w-[18%]" />
+            <col className="w-[16%]" />
+            <col className="w-[17%]" />
+            <col className="w-[11%]" />
+            <col className="w-[4%] min-w-12" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col" className={TH}>
+                Document
+              </th>
+              <th scope="col" className={TH}>
+                Confirmed type
+              </th>
+              <th scope="col" className={TH}>
+                Processing
+              </th>
+              <th scope="col" className={TH}>
+                AI classification
+              </th>
+              <th scope="col" className={TH}>
+                Origin
+              </th>
+              <th scope="col" className={TH}>
+                <span className="sr-only">More</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows === null && loading ? (
+              [0, 1, 2].map((row) => (
+                <tr key={row} data-testid="document-skeleton">
+                  <td colSpan={6} className={TD}>
+                    <div className="flex items-center gap-[11px]">
+                      <span className="h-10 w-[35px] animate-pulse rounded-[var(--pf-radius-control)] bg-soft" />
+                      <span className="h-3.5 w-1/3 animate-pulse rounded bg-soft" />
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : error && rows === null ? (
+              <tr>
+                <td colSpan={6}>
+                  <div className="flex flex-col items-center gap-2 px-5 py-[65px] text-center">
+                    <p role="alert" className="m-0 text-workspace-body text-danger">
+                      {error}
+                    </p>
+                    <button type="button" className={docButtonClass()} onClick={onRetry}>
+                      Retry
+                    </button>
+                  </div>
                 </td>
               </tr>
-            ))
-          ) : error && rows === null ? (
-            <tr>
-              <td colSpan={4}>
-                <div className="flex flex-col items-center gap-2 py-14">
-                  <p role="alert" className="text-[13.5px] text-red-600">
-                    {error}
-                  </p>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={onRetry}
-                  >
-                    Retry
-                  </Button>
-                </div>
-              </td>
-            </tr>
-          ) : empty ? (
-            <tr>
-              <td colSpan={4}>
-                <div className="flex flex-col items-center gap-2 py-16">
-                  <p className="text-[13.5px] font-medium text-slate-400">
-                    {empty.text}
-                  </p>
-                  {empty.kind === "filters" ? (
-                    <button
-                      type="button"
-                      onClick={onClearFilters}
-                      className="cursor-pointer text-[12.5px] text-accent hover:underline"
-                    >
-                      Clear filters
-                    </button>
-                  ) : null}
-                  {empty.kind === "revision" && canMutate ? (
-                    <AddDocumentsMenu onUpload={onUpload} onReuse={onReuse} />
-                  ) : null}
-                </div>
-              </td>
-            </tr>
-          ) : (
-            rows?.map((row, index) => (
-              <DocumentRow
-                key={row.id}
-                row={row}
-                first={index === 0}
-                selected={row.id === selectedId}
-                projectId={projectId}
-                revisionId={revisionId}
-                canMutate={canMutate}
-                handlers={handlers}
-                onOpen={onOpen}
-              />
-            ))
-          )}
-        </tbody>
-      </table>
-    </Card>
+            ) : empty ? (
+              <tr>
+                <td colSpan={6}>
+                  <div className="flex flex-col items-center px-5 py-[65px] text-center">
+                    <FileSearch
+                      aria-hidden
+                      className="size-7 text-[#a8b9c5]"
+                      strokeWidth={1.6}
+                    />
+                    <h3 className="m-0 mt-2.5 mb-[5px] text-workspace-body font-semibold text-ink">
+                      {empty.text}
+                    </h3>
+                    <p className="m-0 text-workspace-caption text-muted">
+                      {EMPTY_HINTS[empty.kind]}
+                    </p>
+                    {empty.kind === "filters" ? (
+                      <button
+                        type="button"
+                        onClick={onClearFilters}
+                        className={cn(docButtonClass(), "mt-3.5")}
+                      >
+                        Clear filters
+                      </button>
+                    ) : null}
+                    {empty.kind === "revision" && canMutate ? (
+                      <AddDocumentsMenu
+                        onUpload={onUpload}
+                        onReuse={onReuse}
+                        className="mt-3.5"
+                      />
+                    ) : null}
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              rows?.map((row) => (
+                <DocumentRow
+                  key={row.id}
+                  row={row}
+                  selected={row.id === selectedId}
+                  projectId={projectId}
+                  revisionId={revisionId}
+                  canMutate={canMutate}
+                  handlers={handlers}
+                  onOpen={onOpen}
+                />
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {footer ? (
+        <div className="flex flex-wrap justify-between gap-2.5 border-t border-border px-5 py-3 text-workspace-caption text-muted">
+          <span>{footer}</span>
+          <span className="max-[650px]:hidden">
+            Click a row to inspect details · Ordered by date added
+          </span>
+        </div>
+      ) : null}
+    </>
   );
 }

@@ -1,7 +1,21 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { FileStack, RefreshCw } from "lucide-react";
+
+import { CellStateView } from "@/components/document-list";
+import { docButtonClass, InspectorSection } from "@/components/documents-ui";
+import { processingCell } from "@/lib/document-presentation";
 import type { RevisionDocument } from "@/lib/documents";
+
+function processingNote(row: RevisionDocument): string {
+  const status = row.processing?.status;
+  if (status === "COMPLETED") return "Page artifacts are available for review.";
+  if (status === "FAILED")
+    return "The latest processing attempt failed. Existing data remains available.";
+  if (status === "RUNNING") return "Pages are being rendered and read.";
+  if (status === "PENDING") return "Waiting for a processing worker.";
+  return "Awaiting processing.";
+}
 
 export function DocumentProcessingPanel({
   row,
@@ -17,55 +31,46 @@ export function DocumentProcessingPanel({
   onRetry: () => void;
 }) {
   const processing = row.processing;
-  const pages =
-    processing?.pages_total != null
-      ? `${processing.pages_processed} / ${processing.pages_total}`
-      : null;
-
   return (
-    <section className="border-t border-slate-100 px-5 py-4">
-      <h3 className="mb-2 text-[11px] font-bold tracking-widest text-slate-400 uppercase">
-        Processing
-      </h3>
-      {!processing ? <p className="text-[13px] text-slate-500">Not started</p> : null}
-      {processing?.status === "PENDING" ? (
-        <p className="text-[13px] font-medium text-slate-700">Pending</p>
+    <InspectorSection title="Processing">
+      <CellStateView
+        state={processingCell(row)}
+        progressLabel={`Processing progress for ${row.document.original_filename}`}
+      />
+      <p className="m-0 mt-2.5 text-workspace-caption text-muted">
+        {processingNote(row)}
+      </p>
+      {processing?.status === "FAILED" && processing.error_message ? (
+        <p className="m-0 mt-1.5 text-workspace-caption text-danger">
+          {processing.error_message}
+        </p>
       ) : null}
-      {processing?.status === "RUNNING" ? (
-        <div className="text-[13px] text-slate-700">
-          <p className="font-medium">In progress</p>
-          {pages ? <p className="text-slate-500">{pages} pages</p> : null}
-        </div>
-      ) : null}
-      {processing?.status === "COMPLETED" ? (
-        <div className="space-y-2">
-          <p className="text-[13px] font-medium text-emerald-700">Complete</p>
-          {processing.pages_total != null ? (
-            <p className="text-[13px] text-slate-500">
-              {processing.pages_total} {processing.pages_total === 1 ? "page" : "pages"}
-            </p>
-          ) : null}
-          <Button type="button" variant="secondary" size="sm" onClick={onViewPages}>
-            View pages
-          </Button>
-        </div>
-      ) : null}
-      {processing?.status === "FAILED" ? (
-        <div className="space-y-2">
-          <p className="text-[13px] font-medium text-red-700">Processing failed</p>
-          {processing.error_message ? (
-            <p className="text-[12.5px] text-slate-500">{processing.error_message}</p>
-          ) : null}
-          <Button type="button" variant="secondary" size="sm" onClick={onRetry} disabled={busy}>
+      <div className="mt-[15px] flex flex-wrap gap-2">
+        {processing?.status === "FAILED" ? (
+          <button
+            type="button"
+            className={docButtonClass("tiny")}
+            onClick={onRetry}
+            disabled={busy}
+          >
+            <RefreshCw aria-hidden strokeWidth={1.8} />
             Retry processing
-          </Button>
-        </div>
-      ) : null}
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className={docButtonClass("tiny")}
+          onClick={onViewPages}
+        >
+          <FileStack aria-hidden strokeWidth={1.8} />
+          View pages / evidence
+        </button>
+      </div>
       {error ? (
-        <p role="alert" className="mt-2 text-[12.5px] text-red-600">
+        <p role="alert" className="m-0 mt-2 text-workspace-caption text-danger">
           {error}
         </p>
       ) : null}
-    </section>
+    </InspectorSection>
   );
 }

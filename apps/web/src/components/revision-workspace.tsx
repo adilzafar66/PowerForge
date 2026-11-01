@@ -16,11 +16,22 @@ export function isEquipmentView(params: URLSearchParams) {
   );
 }
 
-export function RevisionWorkspace(props: {
+/** Documents owns its page header too; only Topology keeps the workspace switch. */
+export function isDocumentsView(params: URLSearchParams) {
+  return params.get("workspace") !== "model" && params.get("view") !== "overview";
+}
+
+export function RevisionWorkspace({
+  readOnlyReason,
+  activeRevisionId,
+  ...props
+}: {
   projectId: string;
   revisionId: string;
   canMutate: boolean;
   revisionLabel?: string;
+  readOnlyReason?: string | null;
+  activeRevisionId?: string | null;
 }) {
   const params = useSearchParams();
   const router = useRouter();
@@ -50,7 +61,7 @@ export function RevisionWorkspace(props: {
     );
   return (
     <>
-      {!isEquipmentView(params) && (
+      {model && !isEquipmentView(params) && (
         <SegmentedControl
           label="Revision workspace"
           className="mb-5 w-fit"
@@ -67,6 +78,9 @@ export function RevisionWorkspace(props: {
           projectId={props.projectId}
           revisionId={props.revisionId}
           canMutate={props.canMutate}
+          revisionLabel={props.revisionLabel}
+          readOnlyReason={readOnlyReason}
+          activeRevisionId={activeRevisionId}
         />
       )}
       {(visited || model) && (

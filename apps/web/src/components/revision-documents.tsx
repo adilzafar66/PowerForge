@@ -6,21 +6,25 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { keys } from "@/lib/query-keys";
 import { isRunning, jobInterval } from "@/lib/query-hooks";
 
-import { DocumentDetailDrawer } from "@/components/document-detail-drawer";
-import { DocumentList } from "@/components/document-list";
+import { DocumentInspector } from "@/components/document-inspector";
+import { DocumentList, type DocumentEmptyState } from "@/components/document-list";
 import { type DocumentMenuHandlers } from "@/components/document-overflow-menu";
-import { DocumentUpload } from "@/components/document-upload";
+import { DocumentUploadDialog } from "@/components/document-upload";
 import {
   activeAdvancedFilterCount,
+  AttentionBar,
   DocumentQuickViews,
-  DocumentWorkspaceToolbar,
+  DocumentRegisterToolbar,
+  DocumentsHeader,
 } from "@/components/document-workspace-toolbar";
-import { PageViewer } from "@/components/page-viewer";
+import { docButtonClass, DocumentsDialog } from "@/components/documents-ui";
 import { ReuseDocumentDialog } from "@/components/reuse-document-dialog";
+import { useUploadQueue } from "@/components/use-upload-queue";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { apiErrorOf } from "@/lib/api";
 import {
   EMPTY_ADVANCED_FILTERS,
+  attentionCount,
   countQuickViews,
   matchesAdvancedFilters,
   matchesQuickView,
@@ -42,7 +46,9 @@ import {
   type DocumentUpdateInput,
   type RevisionDocument,
 } from "@/lib/documents";
+import { guardNavigation, useNavigationBlocker } from "@/lib/navigation-guard";
 import { cn } from "@/lib/utils";
+import { documentViewerHref, revisionHref } from "@/lib/workspace-navigation";
 import { AsyncState } from "@/components/ui/async-state";
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -52,6 +58,11 @@ type Props = {
   revisionId: string;
   /** From `canMutate` on the server; controls that change documents render only when true. */
   canMutate: boolean;
+  revisionLabel?: string;
+  /** Why the package is read-only, from `readOnlyReason`. */
+  readOnlyReason?: string | null;
+  /** The project's active revision, offered from a read-only revision. */
+  activeRevisionId?: string | null;
 };
 
 type Message = {
@@ -60,6 +71,9 @@ type Message = {
   /** Warnings say the list was refreshed because the server state had changed. */
   refreshed?: boolean;
 };
+
+/** Leaving the inspector with unsaved edits waits for an explicit decision. */
+type PendingLeave = { kind: "close" } | { kind: "navigate"; href: string };
 
 function emptyCopy({
   items,
@@ -75,7 +89,7 @@ function emptyCopy({
   search: string;
   advancedActive: boolean;
   view: DocumentQuickView;
-}): { text: string; kind: "revision" | "search" | "filters" | "view" } {
+}): DocumentEmptyState {
   if (items.length === 0 && search !== "") {
     return { text: "No documents match your search", kind: "search" };
   }
@@ -101,7 +115,14 @@ function emptyCopy({
   return { text: "No documents in this revision", kind: "revision" };
 }
 
-export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
+export function RevisionDocuments({
+  projectId,
+  revisionId,
+  canMutate,
+  revisionLabel,
+  readOnlyReason = null,
+  activeRevisionId = null,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -112,6 +133,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     useState<AdvancedDocumentFilters>(EMPTY_ADVANCED_FILTERS);
   const [quickView, setQuickView] = useState<DocumentQuickView>("all");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [manualRefresh, setManualRefresh] = useState(false);
   const client = useQueryClient();
   // Processing commits before classification is enqueued. Briefly bridge that real API gap.
   const classificationGrace = useRef(new Map<string, number>());
@@ -162,14 +184,14 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
   const [message, setMessage] = useState<Message | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(documentParam);
   const [removing, setRemoving] = useState<RevisionDocument | null>(null);
-  const [viewing, setViewing] = useState<RevisionDocument | null>(null);
-  const [viewerPage, setViewerPage] = useState<number | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [classifyingId, setClassifyingId] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [processingError, setProcessingError] = useState<string | null>(null);
   const [focusMetadata, setFocusMetadata] = useState(false);
   const [reuseOpen, setReuseOpen] = useState(false);
+  const [inspectorDirty, setInspectorDirty] = useState(false);
+  const [pendingLeave, setPendingLeave] = useState<PendingLeave | null>(null);
   const seenParam = useRef(documentParam);
   const jobStates = useRef(new Map<string, string>());
   useEffect(() => {
@@ -223,6 +245,13 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     [router, reloadList],
   );
 
+  const uploads = useUploadQueue({
+    projectId,
+    revisionId,
+    onUploaded: reloadList,
+    onReadOnly: handleReadOnly,
+  });
+
   const handleMutationError = useCallback(
     (err: unknown): boolean => {
       const { status, code, detail } = apiErrorOf(err);
@@ -239,7 +268,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     [handleReadOnly, refreshAfterChange],
   );
 
-  const selectDocument = useCallback(
+  const showDocument = useCallback(
     (id: string) => {
       setSelectedId(id);
       const params = new URLSearchParams(searchParams.toString());
@@ -252,7 +281,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     [pathname, router, searchParams],
   );
 
-  const closeDocument = useCallback(() => {
+  const hideDocument = useCallback(() => {
     setSelectedId(null);
     setFocusMetadata(false);
     if (!searchParams.get("document")) {
@@ -264,9 +293,31 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     router.replace(query ? `${pathname}?${query}` : pathname);
   }, [pathname, router, searchParams]);
 
+  const closeDocument = useCallback(() => {
+    if (inspectorDirty) {
+      setPendingLeave({ kind: "close" });
+      return;
+    }
+    hideDocument();
+  }, [inspectorDirty, hideDocument]);
+
+  useNavigationBlocker(inspectorDirty, (href) =>
+    setPendingLeave({ kind: "navigate", href }),
+  );
+
+  function discardAndLeave() {
+    const leave = pendingLeave;
+    setPendingLeave(null);
+    setInspectorDirty(false);
+    if (!leave) return;
+    if (leave.kind === "close") hideDocument();
+    else router.push(leave.href);
+  }
+
   useEffect(() => {
     setAiError(null);
     setProcessingError(null);
+    if (selectedId) setMessage(null);
   }, [selectedId]);
 
   const restoreRow = useCallback(
@@ -286,8 +337,10 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
   );
 
   function openViewer(row: RevisionDocument, pageNumber?: number) {
-    setViewerPage(pageNumber ?? null);
-    setViewing(row);
+    const url = documentViewerHref(projectId, revisionId, row.id, {
+      page: pageNumber,
+    });
+    if (!guardNavigation(url)) router.push(url);
   }
 
   async function acceptRow(row: RevisionDocument) {
@@ -393,10 +446,12 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     }
   }
 
-  const narrowed = (items ?? []).filter((row) =>
+  const all = items ?? [];
+  const narrowed = all.filter((row) =>
     matchesAdvancedFilters(row, advancedFilters),
   );
   const counts = countQuickViews(narrowed);
+  const totals = countQuickViews(all);
   const visible = narrowed.filter((row) => matchesQuickView(row, quickView));
   const advancedActive = activeAdvancedFilterCount(advancedFilters) > 0;
   const empty =
@@ -410,6 +465,12 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
           view: quickView,
         })
       : null;
+  const footer =
+    items === null
+      ? null
+      : quickView === "removed"
+        ? `Showing ${visible.length} of ${totals.removed} removed ${totals.removed === 1 ? "document" : "documents"}`
+        : `Showing ${visible.length} of ${totals.all} active ${totals.all === 1 ? "document" : "documents"}`;
   const selectedRow = items?.find((row) => row.id === selectedId);
   const selectedQuery = useQuery({
     queryKey: [
@@ -448,9 +509,10 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
   const clearMetadataFocus = useCallback(() => setFocusMetadata(false), []);
 
   const menuHandlers: DocumentMenuHandlers = {
+    onDetails: (row) => showDocument(row.id),
     onViewPages: (row) => openViewer(row),
     onEditMetadata: (row) => {
-      selectDocument(row.id);
+      showDocument(row.id);
       setFocusMetadata(true);
     },
     onReclassify: (row) => void reclassifyRow(row),
@@ -461,55 +523,124 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
     onStateChanged: refreshAfterChange,
   };
 
+  const refreshIndicator =
+    documents.isFetching && items !== null
+      ? "Refreshing…"
+      : manualRefresh && !documents.error
+        ? "Up to date"
+        : null;
+
+  const messageLine = (className: string) =>
+    message ? (
+      <p
+        role={message.tone === "error" ? "alert" : "status"}
+        className={cn(
+          "m-0 text-workspace-label",
+          message.tone === "success" && "text-positive",
+          message.tone === "warning" && "text-warning",
+          message.tone === "error" && "text-danger",
+          className,
+        )}
+      >
+        {message.text}
+        {message.refreshed
+          ? documents.isFetching
+            ? " Refreshing the list."
+            : documents.error
+              ? " Refresh failed; retry below."
+              : " The list has been refreshed."
+          : ""}
+      </p>
+    ) : null;
+
   return (
     <section aria-label="Documents">
-      <DocumentWorkspaceToolbar
-        documentCount={items === null ? null : counts.all}
+      <DocumentsHeader
+        revisionLabel={revisionLabel}
+        overviewHref={revisionHref(projectId, revisionId, revisionId, "", "overview")}
         canMutate={canMutate}
-        search={searchInput}
-        onSearchChange={setSearchInput}
-        filters={advancedFilters}
-        onFiltersChange={setAdvancedFilters}
         onUpload={() => setUploadOpen(true)}
         onReuse={() => setReuseOpen(true)}
       />
-      <DocumentQuickViews
-        value={quickView}
-        counts={counts}
-        onChange={setQuickView}
-      />
-      {canMutate && uploadOpen ? (
-        <DocumentUpload
-          projectId={projectId}
-          revisionId={revisionId}
-          onUploaded={reloadList}
-          onReadOnly={handleReadOnly}
+      <div className="mx-auto max-w-[var(--pf-documents-max)] min-w-0 px-[34px] pt-[29px] pb-[70px] max-[1250px]:px-6 max-[850px]:px-[18px] max-[850px]:py-[22px]">
+        <AttentionBar
+          attention={attentionCount(totals)}
+          issues={totals.issues}
+          readOnlyReason={readOnlyReason}
+          activeRevisionHref={
+            activeRevisionId && activeRevisionId !== revisionId
+              ? revisionHref(projectId, activeRevisionId, revisionId, "", "documents")
+              : null
+          }
+          onView={setQuickView}
         />
-      ) : null}
 
-      {message ? (
-        <p
-          role={message.tone === "error" ? "alert" : "status"}
-          className={cn(
-            "mb-3 text-[13px]",
-            message.tone === "success" && "text-emerald-700",
-            message.tone === "warning" && "text-amber-700",
-            message.tone === "error" && "text-red-600",
-          )}
-        >
-          {message.text}
-          {message.refreshed
-            ? documents.isFetching
-              ? " Refreshing the list."
-              : documents.error
-                ? " Refresh failed; retry below."
-                : " The list has been refreshed."
-            : ""}
-        </p>
+        {messageLine("mb-3.5")}
+
+        <div className="mb-3.5 flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="m-0 text-workspace-body font-bold tracking-[-0.1px] text-ink">
+              Document register
+            </h2>
+            <p className="m-0 mt-0.5 text-workspace-caption text-muted">
+              Working documents associated with the selected project revision
+            </p>
+          </div>
+          {refreshIndicator ? (
+            <p role="status" className="m-0 shrink-0 text-workspace-caption text-muted">
+              {refreshIndicator}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="min-w-0 overflow-hidden rounded-[var(--pf-radius-lg)] border border-border bg-panel">
+          <DocumentRegisterToolbar
+            search={searchInput}
+            onSearchChange={setSearchInput}
+            filters={advancedFilters}
+            onFiltersChange={setAdvancedFilters}
+            refreshing={documents.isFetching}
+            onRefresh={() => {
+              setManualRefresh(true);
+              void documents.refetch();
+            }}
+          />
+          <DocumentQuickViews
+            value={quickView}
+            counts={counts}
+            onChange={setQuickView}
+          />
+          <DocumentList
+            rows={items === null ? null : visible}
+            selectedId={selected?.id ?? null}
+            projectId={projectId}
+            revisionId={revisionId}
+            canMutate={canMutate}
+            loading={loading}
+            error={error}
+            empty={empty}
+            footer={footer}
+            handlers={menuHandlers}
+            onOpen={(row) => showDocument(row.id)}
+            onRetry={reloadList}
+            onClearFilters={() => setAdvancedFilters(EMPTY_ADVANCED_FILTERS)}
+            onUpload={() => setUploadOpen(true)}
+            onReuse={() => setReuseOpen(true)}
+          />
+        </div>
+      </div>
+
+      {canMutate && uploadOpen ? (
+        <DocumentUploadDialog
+          queue={uploads}
+          revisionLabel={revisionLabel}
+          onClose={() => setUploadOpen(false)}
+        />
       ) : null}
 
       {removing ? (
         <ConfirmDialog
+          presentation="workspace"
           title="Remove document from this revision?"
           message="It stays in the project and in any other revision that includes it. You can restore it from the Removed view."
           confirmLabel="Remove"
@@ -529,36 +660,37 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
         />
       ) : null}
 
-      {viewing ? (
-        <PageViewer
-          projectId={projectId}
-          revisionId={revisionId}
-          revisionDocumentId={viewing.id}
-          filename={viewing.document.original_filename}
-          initialPageNumber={viewerPage}
-          onClose={() => {
-            setViewing(null);
-            setViewerPage(null);
-          }}
-        />
+      {pendingLeave ? (
+        <DocumentsDialog
+          title="Discard unsaved changes?"
+          description="You have unsaved document details."
+          onClose={() => setPendingLeave(null)}
+          footer={
+            <>
+              <button
+                type="button"
+                className={docButtonClass()}
+                onClick={() => setPendingLeave(null)}
+              >
+                Keep editing
+              </button>
+              <button
+                type="button"
+                className={docButtonClass("danger")}
+                onClick={discardAndLeave}
+              >
+                Discard changes
+              </button>
+            </>
+          }
+        >
+          <p className="m-0 rounded-[9px] border border-[var(--pf-documents-warning-border)] bg-warning-tint px-3.5 py-3 text-workspace-caption text-warning">
+            {pendingLeave.kind === "close"
+              ? "Your changes will be lost if you close the inspector."
+              : "Your changes will be lost if you leave this page."}
+          </p>
+        </DocumentsDialog>
       ) : null}
-
-      <DocumentList
-        rows={items === null ? null : visible}
-        selectedId={selected?.id ?? null}
-        projectId={projectId}
-        revisionId={revisionId}
-        canMutate={canMutate}
-        loading={loading}
-        error={error}
-        empty={empty}
-        handlers={menuHandlers}
-        onOpen={(row) => selectDocument(row.id)}
-        onRetry={reloadList}
-        onClearFilters={() => setAdvancedFilters(EMPTY_ADVANCED_FILTERS)}
-        onUpload={() => setUploadOpen(true)}
-        onReuse={() => setReuseOpen(true)}
-      />
 
       {selectedId && (
         <AsyncState
@@ -568,7 +700,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
         />
       )}
       {selected ? (
-        <DocumentDetailDrawer
+        <DocumentInspector
           key={selected.id}
           row={selected}
           projectId={projectId}
@@ -580,7 +712,8 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
           processingError={processingError}
           focusMetadata={focusMetadata}
           handlers={menuHandlers}
-          onClose={closeDocument}
+          notice={messageLine("border-b border-border px-[21px] py-3")}
+          onRequestClose={closeDocument}
           onMetadataFocused={clearMetadataFocus}
           onAccept={() => void acceptRow(selected)}
           onReclassify={() => void reclassifyRow(selected)}
@@ -588,6 +721,7 @@ export function RevisionDocuments({ projectId, revisionId, canMutate }: Props) {
           onRetryProcessing={() => void retryRow(selected)}
           onViewPages={(pageNumber) => openViewer(selected, pageNumber)}
           onSave={(input) => saveRow(selected, input)}
+          onDirtyChange={setInspectorDirty}
         />
       ) : null}
     </section>

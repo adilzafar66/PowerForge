@@ -40,9 +40,18 @@ export function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const params = useSearchParams();
   const router = useRouter();
-  const route = pathname.match(/^\/projects\/([^/]+)(?:\/revisions\/([^/]+))?/);
+  const route = pathname.match(
+    /^\/projects\/([^/]+)(?:\/revisions\/([^/]+)(?:\/documents\/([^/]+))?)?/,
+  );
   const projectId = route?.[1] === "new" ? undefined : route?.[1];
   const revisionId = route?.[2];
+  const viewerDocumentId = route?.[3]
+    ? decodeURIComponent(route[3])
+    : undefined;
+  const viewerDocument =
+    viewerDocumentId && context.document?.id === viewerDocumentId
+      ? context.document
+      : undefined;
   const project =
     context.project?.id === projectId ? context.project : undefined;
   const revisions = project ? (context.revisions ?? []) : [];
@@ -68,13 +77,18 @@ export function AppFrame({ children }: { children: ReactNode }) {
     pathname === "/" ||
     pathname === "/projects/new" ||
     (!!projectId && (!revisionId || destination === "overview"));
-  const projectBar = uiC || (!!revisionId && destination === "equipment");
+  const projectBar =
+    uiC ||
+    (!!revisionId &&
+      (destination === "equipment" || destination === "documents"));
   const currentLabel =
     pathname === "/status"
       ? "System Status"
       : pathname === "/projects/new"
         ? "Create Project"
-        : revisionId
+        : viewerDocumentId
+          ? (viewerDocument?.name ?? "Document")
+          : revisionId
           ? {
               overview: "Overview",
               documents: "Documents",
@@ -367,8 +381,25 @@ export function AppFrame({ children }: { children: ReactNode }) {
                   <ChevronRight aria-hidden className="h-3 w-3" />
                 </>
               )}
+              {viewerDocumentId && revision && (
+                <>
+                  <Link
+                    href={`${revisionHref(projectId!, revision.id, revisionId, "", "documents")}?document=${encodeURIComponent(viewerDocumentId)}`}
+                    className="hover:text-accent"
+                  >
+                    Documents
+                  </Link>
+                  <ChevronRight aria-hidden className="h-3 w-3" />
+                </>
+              )}
               {!(uiC && project && !revisionId && !projectRevisions) && (
-                <span aria-current="page" className="font-medium text-ink">
+                <span
+                  aria-current="page"
+                  className={cn(
+                    "font-medium text-ink",
+                    viewerDocumentId && "max-w-72 truncate",
+                  )}
+                >
                   {uiC && revisionId && revision
                     ? revision.identifier
                     : currentLabel}

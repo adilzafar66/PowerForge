@@ -28,6 +28,8 @@ export function revisionHref(
 ) {
   const query = new URLSearchParams(search);
   query.delete("section");
+  query.delete("page");
+  query.delete("mode");
   if (revisionId !== currentRevisionId) {
     query.delete("document");
     clearEquipment(query);
@@ -48,4 +50,19 @@ export function revisionHref(
     if (destination === "topology") clearEquipment(query);
   }
   return `/projects/${encodeURIComponent(projectId)}/revisions/${encodeURIComponent(revisionId)}${query.size ? `?${query}` : ""}`;
+}
+
+export type ViewerMode = "document" | "evidence";
+
+/** Dedicated viewer route. `page` is 1-based; document mode and page 1 stay implicit. */
+export function documentViewerHref(
+  projectId: string,
+  revisionId: string,
+  documentId: string,
+  options: { page?: number | null; mode?: ViewerMode } = {},
+) {
+  const query = new URLSearchParams();
+  if (options.page && options.page > 1) query.set("page", String(options.page));
+  if (options.mode === "evidence") query.set("mode", "evidence");
+  return `/projects/${encodeURIComponent(projectId)}/revisions/${encodeURIComponent(revisionId)}/documents/${encodeURIComponent(documentId)}${query.size ? `?${query}` : ""}`;
 }

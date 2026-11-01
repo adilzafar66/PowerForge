@@ -103,6 +103,31 @@
   --pf-shadow-inspector: 0 4px 16px rgba(24, 38, 56, 0.035);
   --pf-shadow-toast: 0 12px 30px rgba(0, 0, 0, 0.15);
 
+  /* Documents workspace and viewer */
+  --pf-documents-max: 1380px;
+  --pf-documents-inspector: 398px;
+  --pf-documents-row-selected: #f0f5f8;
+  --pf-documents-row-border: #e8edf1;
+  --pf-documents-file-border: #d5e0e8;
+  --pf-documents-file-surface: #f0f5f9;
+  --pf-documents-notice: #f0f4f7;
+  --pf-documents-notice-border: #dce5eb;
+  --pf-documents-warning-border: #eed8a9;
+  --pf-documents-dropzone-border: #a8bfcf;
+  --pf-documents-dialog-footer: #f9fbfc;
+  --pf-progress-track: #e5edf2;
+  --pf-shadow-documents-dialog: 0 25px 85px rgba(11, 29, 43, 0.16);
+  --pf-shadow-documents-menu: 0 15px 35px rgba(24, 38, 56, 0.15);
+  --pf-viewer-toolbar: 52px;
+  --pf-viewer-thumbs: 145px;
+  --pf-viewer-thumbs-compact: 112px;
+  --pf-viewer-panel: 367px;
+  --pf-viewer-panel-compact: 326px;
+  --pf-viewer-panel-narrow: 300px;
+  --pf-viewer-canvas: #e9edf1;
+  --pf-viewer-thumb-active: #92aec0;
+  --pf-shadow-viewer-page: 0 8px 26px rgba(24, 38, 56, 0.17);
+
   /* Corners and elevation */
   --pf-radius-sm: 7px;
   --pf-radius-md: 9px;

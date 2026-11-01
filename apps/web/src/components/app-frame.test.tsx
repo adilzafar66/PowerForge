@@ -133,6 +133,49 @@ describe("persistent app frame", () => {
       "/projects/p/revisions/next?workspace=model&view=topology&keep=yes",
     );
   });
+  it("keeps Documents active in the viewer and leaves viewer state behind", () => {
+    nav.path = "/projects/p/revisions/r/documents/rd-1";
+    nav.search = "page=3&mode=evidence";
+    render(
+      <AppFrame>
+        <AppShell
+          project={project}
+          revision={revision}
+          revisions={revisions}
+          document={{ id: "rd-1", name: "SLD.pdf" }}
+        >
+          Viewer
+        </AppShell>
+      </AppFrame>,
+    );
+    const navigation = within(
+      screen.getByRole("navigation", { name: "Main navigation" }),
+    );
+    expect(navigation.getByRole("link", { name: "Documents" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(navigation.getByRole("link", { name: "Documents" })).toHaveAttribute(
+      "href",
+      "/projects/p/revisions/r",
+    );
+    const crumbs = within(
+      screen.getByRole("navigation", { name: "Context breadcrumbs" }),
+    );
+    expect(crumbs.getByRole("link", { name: "Documents" })).toHaveAttribute(
+      "href",
+      "/projects/p/revisions/r?document=rd-1",
+    );
+    expect(crumbs.getByText("SLD.pdf")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByText("Active project")).toBeInTheDocument();
+
+    fireEvent.keyDown(
+      screen.getByRole("combobox", { name: "Switch revision" }),
+      { key: "ArrowDown" },
+    );
+    fireEvent.click(screen.getByRole("option", { name: "B · draft" }));
+    expect(nav.push).toHaveBeenCalledWith("/projects/p/revisions/next");
+  });
   it("opens a named mobile navigation dialog with a working close control", () => {
     render(
       <AppFrame>

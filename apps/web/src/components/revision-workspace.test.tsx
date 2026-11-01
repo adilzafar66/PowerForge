@@ -34,7 +34,9 @@ vi.mock("next/link", () => ({
   }) => <a href={href}>{children}</a>,
 }));
 vi.mock("@/components/revision-documents", () => ({
-  RevisionDocuments: () => <div>Existing Documents workspace</div>,
+  RevisionDocuments: ({ readOnlyReason }: { readOnlyReason?: string | null }) => (
+    <div data-read-only={readOnlyReason ?? ""}>Existing Documents workspace</div>
+  ),
 }));
 vi.mock("@/lib/engineering-model", async (original) => ({
   ...(await original<typeof api>()),
@@ -114,11 +116,10 @@ describe("revision model workspace", () => {
       screen.getByText("Existing Documents workspace"),
     ).toBeInTheDocument();
     expect(api.getEngineeringRegistry).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByText("Engineering Model"));
-    expect(nav.replace).toHaveBeenLastCalledWith(
-      `${path}?keep=yes&workspace=model`,
-      { scroll: false },
-    );
+    // Documents owns its header; the sidebar switches to the model.
+    expect(
+      screen.queryByRole("group", { name: "Revision workspace" }),
+    ).not.toBeInTheDocument();
     nav.search = "keep=yes&workspace=model&equipment=e1";
     view.rerender(<RevisionWorkspace {...props} />);
     await inspector();
@@ -485,48 +486,68 @@ describe("revision model workspace", () => {
     // Register and summary queries both refetch after the 409 invalidation.
     await waitFor(() => expect(api.listEquipment).toHaveBeenCalledTimes(4));
   });
-  it.each(["", "workspace=model"])(
-    "keeps the shared read-only banner above workspace %s",
-    async (query) => {
-      nav.search = query;
-      vi.mocked(getProject).mockResolvedValue({
-        id: "p",
-        status: "ACTIVE",
-        project_name: "Test project",
-        project_number: "TEST",
-      } as Project);
-      vi.mocked(getRevision).mockResolvedValue({
-        id: "r",
-        identifier: "0",
-        status: "SUPERSEDED",
-        created_at: "2026-01-01",
-        updated_at: "2026-01-01",
-      } as Revision);
-      render(
-        await RevisionPage({
-          params: Promise.resolve({ projectId: "p", revisionId: "r" }),
-        }),
-      );
-      const banner = screen.getByText(
-        /Engineering model data remains viewable/,
-      );
-      const workspace = query
-        ? await screen.findByRole("heading", { level: 1, name: "Equipment" })
-        : screen.getByRole("group", { name: "Revision workspace" });
-      expect(
-        banner.compareDocumentPosition(workspace) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
-      if (query) {
-        await screen.findByText("SWGR-1");
-        expect(screen.queryByText("Add Equipment")).not.toBeInTheDocument();
-        expect(
-          screen.getByText("Manage electrical equipment in revision 0"),
-        ).toBeInTheDocument();
-      } else
-        expect(
-          screen.getByText("Existing Documents workspace"),
-        ).toBeInTheDocument();
-    },
-  );
+  it("lets Documents own its read-only notice", async () => {
+    nav.search = "";
+    vi.mocked(getProject).mockResolvedValue({
+      id: "p",
+      status: "ACTIVE",
+      project_name: "Test project",
+      project_number: "TEST",
+    } as Project);
+    vi.mocked(getRevision).mockResolvedValue({
+      id: "r",
+      identifier: "0",
+      status: "SUPERSEDED",
+      created_at: "2026-01-01",
+      updated_at: "2026-01-01",
+    } as Revision);
+    render(
+      await RevisionPage({
+        params: Promise.resolve({ projectId: "p", revisionId: "r" }),
+      }),
+    );
+    const documents = screen.getByText("Existing Documents workspace");
+    expect(documents.getAttribute("data-read-only")).not.toBe("");
+    expect(
+      screen.queryByText(/Engineering model data remains viewable/),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Revision workspace" }),
+    ).not.toBeInTheDocument();
+  });
+  it("keeps the shared read-only banner above the Equipment workspace", async () => {
+    nav.search = "workspace=model";
+    vi.mocked(getProject).mockResolvedValue({
+      id: "p",
+      status: "ACTIVE",
+      project_name: "Test project",
+      project_number: "TEST",
+    } as Project);
+    vi.mocked(getRevision).mockResolvedValue({
+      id: "r",
+      identifier: "0",
+      status: "SUPERSEDED",
+      created_at: "2026-01-01",
+      updated_at: "2026-01-01",
+    } as Revision);
+    render(
+      await RevisionPage({
+        params: Promise.resolve({ projectId: "p", revisionId: "r" }),
+      }),
+    );
+    const banner = screen.getByText(/Engineering model data remains viewable/);
+    const workspace = await screen.findByRole("heading", {
+      level: 1,
+      name: "Equipment",
+    });
+    expect(
+      banner.compareDocumentPosition(workspace) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    await screen.findByText("SWGR-1");
+    expect(screen.queryByText("Add Equipment")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Manage electrical equipment in revision 0"),
+    ).toBeInTheDocument();
+  });
 });
