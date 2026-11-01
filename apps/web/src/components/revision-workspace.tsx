@@ -5,11 +5,22 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { RevisionDocuments } from "@/components/revision-documents";
 import { EngineeringModelWorkspace } from "@/components/engineering-model-workspace";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { clearEquipment } from "@/lib/workspace-navigation";
+
+/** Equipment owns its full page header; navigation reaches it from the shell. */
+export function isEquipmentView(params: URLSearchParams) {
+  return (
+    params.get("workspace") === "model" &&
+    params.get("view") !== "topology" &&
+    params.get("view") !== "overview"
+  );
+}
 
 export function RevisionWorkspace(props: {
   projectId: string;
   revisionId: string;
   canMutate: boolean;
+  revisionLabel?: string;
 }) {
   const params = useSearchParams();
   const router = useRouter();
@@ -26,7 +37,7 @@ export function RevisionWorkspace(props: {
       next.delete("document");
     } else {
       next.delete("workspace");
-      next.delete("equipment");
+      clearEquipment(next);
     }
     router.replace(`${path}${next.size ? `?${next}` : ""}`, { scroll: false });
   }
@@ -39,17 +50,25 @@ export function RevisionWorkspace(props: {
     );
   return (
     <>
-      <SegmentedControl
-        label="Revision workspace"
-        className="mb-5 w-fit"
-        value={model ? "model" : "documents"}
-        onChange={change}
-        options={[
-          { value: "documents", label: "Documents" },
-          { value: "model", label: "Engineering Model" },
-        ]}
-      />
-      {!model && <RevisionDocuments {...props} />}
+      {!isEquipmentView(params) && (
+        <SegmentedControl
+          label="Revision workspace"
+          className="mb-5 w-fit"
+          value={model ? "model" : "documents"}
+          onChange={change}
+          options={[
+            { value: "documents", label: "Documents" },
+            { value: "model", label: "Engineering Model" },
+          ]}
+        />
+      )}
+      {!model && (
+        <RevisionDocuments
+          projectId={props.projectId}
+          revisionId={props.revisionId}
+          canMutate={props.canMutate}
+        />
+      )}
       {(visited || model) && (
         <div hidden={!model}>
           <EngineeringModelWorkspace

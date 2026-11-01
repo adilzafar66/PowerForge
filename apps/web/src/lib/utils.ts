@@ -6,7 +6,13 @@ import { extendTailwindMerge } from "tailwind-merge";
 const twMerge = extendTailwindMerge({
   extend: {
     theme: {
-      shadow: ["workspace-drawer", "workspace-dialog", "workspace-tab"],
+      shadow: [
+        "workspace-drawer",
+        "workspace-dialog",
+        "workspace-tab",
+        "workspace-inspector",
+        "workspace-toast",
+      ],
       text: [
         "workspace-app-body",
         "workspace-button",

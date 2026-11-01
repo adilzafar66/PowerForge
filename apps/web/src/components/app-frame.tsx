@@ -67,6 +67,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
     pathname === "/" ||
     pathname === "/projects/new" ||
     (!!projectId && (!revisionId || destination === "overview"));
+  const projectBar = uiC || (!!revisionId && destination === "equipment");
   const currentLabel =
     pathname === "/status"
       ? "System Status"
@@ -279,7 +280,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
         </aside>
         <div className="min-w-0 flex-1">
           <header
-            className={`flex items-center gap-3 border-b border-border bg-panel px-4 ${uiC ? "min-h-[66px] md:px-[43px]" : "min-h-16 md:px-8"}`}
+            className={`flex items-center gap-3 border-b border-border bg-panel px-4 ${projectBar ? "min-h-[66px] md:px-[43px]" : "min-h-16 md:px-8"}`}
           >
             <Dialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
               <Dialog.Trigger asChild>
@@ -332,7 +333,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
                         : undefined
                     }
                   >
-                    {uiC
+                    {projectBar
                       ? project.project_name
                       : `${project.project_number} · ${project.project_name}`}
                   </Link>
@@ -356,7 +357,10 @@ export function AppFrame({ children }: { children: ReactNode }) {
                 <>
                   <Link
                     href={href("overview")}
-                    className="font-mono hover:text-accent"
+                    className={cn(
+                      "hover:text-accent",
+                      !projectBar && "font-mono",
+                    )}
                   >
                     {revision.identifier}
                   </Link>
@@ -371,7 +375,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
                 </span>
               )}
             </nav>
-            {uiC && project && (
+            {projectBar && project && (
               <Badge
                 presentation="workspace"
                 status={project.status}

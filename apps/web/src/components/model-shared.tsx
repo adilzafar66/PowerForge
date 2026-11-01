@@ -22,6 +22,8 @@ export type ModelContextValue = {
   projectId: string;
   revisionId: string;
   registry: Registry;
+  /** Display identifier of the revision, when the page has loaded it. */
+  revisionLabel?: string;
   writable: boolean;
   changed: () => void;
   failed: (error: unknown) => void;

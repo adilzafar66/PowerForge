@@ -92,6 +92,40 @@ export const equipment = {
   lineage_id: "l1",
   inherited_from_equipment_id: null,
 };
+export const equipmentRows = [
+  equipment,
+  {
+    ...equipment,
+    id: "e2",
+    equipment_type: "TRANSFORMER",
+    tag: "TX-1",
+    name: "Station service transformer",
+    lineage_id: "l2",
+  },
+  {
+    ...equipment,
+    id: "e3",
+    tag: "SWGR-0",
+    name: "Retired switchgear",
+    lineage_id: "l3",
+    lifecycle_status: "REMOVED",
+    removed_at: stamp,
+  },
+];
+const terminal = (id, terminal_key, label) => ({
+  ...audit,
+  id,
+  kind: "EQUIPMENT_TERMINAL",
+  managed_by_profile: true,
+  equipment_id: "e1",
+  terminal_key,
+  label,
+  inherited_from_node_id: null,
+});
+export const terminals = [
+  terminal("t1", "LINE", "Line side"),
+  terminal("t2", "LOAD", "Load side"),
+];
 export const nodes = [
   {
     ...audit,
@@ -103,13 +137,82 @@ export const nodes = [
     label: "Main bus",
     inherited_from_node_id: null,
   },
+  ...terminals,
 ];
+export const connections = [
+  {
+    ...audit,
+    id: "c1",
+    from_node_id: "t1",
+    to_node_id: "n1",
+    connection_kind: "ELECTRICAL",
+    direction: "UNDIRECTED",
+    phase_configuration: null,
+    nominal_voltage: null,
+    nominal_voltage_unit: null,
+    confidence: null,
+    inherited_from_connection_id: null,
+  },
+];
+const definition = (key, display_name, value_type, extra = {}) => ({
+  key,
+  display_name,
+  value_type,
+  canonical_unit: null,
+  required: false,
+  critical: false,
+  allowed_values: [],
+  notes: null,
+  display_order: 0,
+  requirement_group: null,
+  requirement_condition: null,
+  supported_input_units: [],
+  ...extra,
+});
 export const registry = {
   registry_version: "visual-fixture",
   equipment_types: [
     {
       key: "SWITCHGEAR",
       display_name: "Switchgear",
+      attributes: [
+        definition("nominal_voltage", "Nominal voltage", "NUMBER", {
+          canonical_unit: "kV",
+          required: true,
+          critical: true,
+          display_order: 1,
+          supported_input_units: ["kV", "V"],
+        }),
+        definition("phase_count", "Phase count", "INTEGER", {
+          required: true,
+          critical: true,
+          display_order: 2,
+        }),
+        definition("continuous_current", "Continuous current", "NUMBER", {
+          canonical_unit: "A",
+          required: true,
+          display_order: 3,
+          supported_input_units: ["A", "kA"],
+        }),
+        definition("interrupting_rating", "Interrupting rating", "NUMBER", {
+          canonical_unit: "kA",
+          critical: true,
+          display_order: 4,
+          requirement_condition:
+            "Required when protective devices are modeled.",
+          supported_input_units: ["kA"],
+        }),
+        definition("bus_material", "Bus material", "ENUM", {
+          display_order: 5,
+          allowed_values: ["COPPER", "ALUMINUM"],
+          notes: "Use the manufacturer nameplate where available.",
+        }),
+      ],
+      requirements: [],
+    },
+    {
+      key: "TRANSFORMER",
+      display_name: "Transformer",
       attributes: [],
       requirements: [],
     },
@@ -117,6 +220,46 @@ export const registry = {
   requirement_rules: [],
   unit_families: [],
 };
+const attribute = (attribute_key, value_type, values) => ({
+  id: `a-${attribute_key}`,
+  project_id: "p",
+  revision_id: "r",
+  created_at: stamp,
+  created_by: null,
+  updated_at: stamp,
+  updated_by: null,
+  equipment_id: "e1",
+  attribute_key,
+  value_type,
+  numeric_value: null,
+  integer_value: null,
+  text_value: null,
+  boolean_value: null,
+  unit: null,
+  information_state: "PRESENT",
+  verification_state: "ENGINEER_REVIEWED",
+  origin: "MANUAL",
+  confidence: null,
+  inherited_from_attribute_id: null,
+  ...values,
+});
+export const attributes = [
+  attribute("nominal_voltage", "NUMBER", { numeric_value: "13.8", unit: "kV" }),
+  attribute("phase_count", "INTEGER", { integer_value: "3" }),
+  attribute("continuous_current", "NUMBER", {
+    numeric_value: "1200",
+    unit: "A",
+  }),
+  attribute("interrupting_rating", "NUMBER", {
+    information_state: "MISSING",
+    verification_state: "UNVERIFIED",
+  }),
+  attribute("bus_material", "ENUM", {
+    information_state: "NOT_POPULATED",
+    verification_state: "UNVERIFIED",
+    origin: null,
+  }),
+];
 export function fixtureResponse(url, scenario) {
   const path = url.pathname;
   if (path === "/health")
@@ -156,12 +299,27 @@ export function fixtureResponse(url, scenario) {
   if (suffix === "/documents") return { items: [document] };
   if (suffix === "/documents/doc/classification")
     return { enabled: true, suggestion: null, attempt: null };
-  if (suffix === "/equipment") return { items: [equipment] };
+  if (suffix === "/equipment") {
+    const status = url.searchParams.get("lifecycle_status") || "ACTIVE";
+    const type = url.searchParams.get("equipment_type");
+    const search = url.searchParams.get("search")?.toLowerCase();
+    return {
+      items: equipmentRows.filter(
+        (e) =>
+          (status === "ALL" || e.lifecycle_status === status) &&
+          (!type || e.equipment_type === type) &&
+          (!search ||
+            [e.tag, e.name, e.description].some((v) =>
+              v?.toLowerCase().includes(search),
+            )),
+      ),
+    };
+  }
   if (suffix === "/equipment/e1") return equipment;
   if (suffix === "/equipment/e1/editor")
-    return { equipment, attributes: [], terminals: [], connections: [] };
-  if (suffix === "/equipment/e1/attributes") return { items: [] };
+    return { equipment, attributes, terminals };
+  if (suffix === "/equipment/e1/attributes") return { items: attributes };
   if (suffix === "/nodes") return { items: nodes };
-  if (suffix === "/connections") return { items: [] };
+  if (suffix === "/connections") return { items: connections };
   return undefined;
 }

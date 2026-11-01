@@ -16,7 +16,7 @@ import {
   type ModelContextValue,
 } from "@/components/model-shared";
 import { EquipmentGeneralPanel } from "@/components/equipment-general-panel";
-import { EquipmentDetailDrawer } from "@/components/equipment-detail-drawer";
+import { EquipmentEditorHarness } from "@/components/equipment-editor-test-utils";
 import { ConnectionEditorSheet } from "@/components/connection-editor-sheet";
 import { TopologyWorkspace } from "@/components/topology-workspace";
 import {
@@ -86,20 +86,24 @@ beforeEach(() => {
   vi.mocked(api.updateEquipment).mockResolvedValue(equipment);
   vi.mocked(api.createEquipment).mockResolvedValue(equipment);
 });
-async function editor(tab = "General", onClose = vi.fn()) {
+async function editor(tab = "General", onLeft = vi.fn()) {
   const view = mount(
-    <EquipmentDetailDrawer id={equipment.id} onClose={onClose} />,
+    <EquipmentEditorHarness id={equipment.id} onLeft={onLeft} />,
   );
-  await screen.findByLabelText("Tag");
-  if (tab !== "General") fireEvent.click(screen.getByText(tab));
+  await screen.findByLabelText("Equipment tag");
+  if (tab !== "General") openTab(tab);
   return view;
 }
-const save = () => screen.getByRole("button", { name: "Save" });
+const openTab = (name: string) =>
+  fireEvent.click(screen.getByRole("tab", { name }));
+const back = () =>
+  fireEvent.click(screen.getByRole("button", { name: "Back to Equipment" }));
+const save = () => screen.getByRole("button", { name: "Save changes" });
 const group = (name: string) => within(screen.getByRole("group", { name }));
 describe("unified equipment editor", () => {
   it("preserves an unsaved draft and its baseline across a cache refetch", async () => {
     const view = await editor();
-    await changeField(screen.getByLabelText("Tag"), {
+    await changeField(screen.getByLabelText("Equipment tag"), {
       target: { value: "My unsaved tag" },
     });
     vi.mocked(api.getEquipmentEditor).mockResolvedValue({
@@ -112,7 +116,9 @@ describe("unified equipment editor", () => {
         queryKey: keys.editor("p", "r", equipment.id),
       }),
     );
-    expect(screen.getByLabelText("Tag")).toHaveValue("My unsaved tag");
+    expect(screen.getByLabelText("Equipment tag")).toHaveValue(
+      "My unsaved tag",
+    );
     expect(save()).toBeEnabled();
     expect(api.saveEquipmentEditor).not.toHaveBeenCalled();
   });
@@ -124,7 +130,9 @@ describe("unified equipment editor", () => {
     });
     await editor();
     expect(save()).toBeDisabled();
-    await changeField(screen.getByLabelText("Tag"), { target: { value: "" } });
+    await changeField(screen.getByLabelText("Equipment tag"), {
+      target: { value: "" },
+    });
     fireEvent.click(save());
     await waitFor(() =>
       expect(api.saveEquipmentEditor).toHaveBeenCalledExactlyOnceWith(
@@ -154,10 +162,10 @@ describe("unified equipment editor", () => {
   });
   it("keeps one draft across tabs and submits General, attributes and custom terminals together", async () => {
     await editor();
-    await changeField(screen.getByLabelText("Tag"), {
+    await changeField(screen.getByLabelText("Equipment tag"), {
       target: { value: "Changed" },
     });
-    fireEvent.click(screen.getByText("Attributes"));
+    openTab("Attributes");
     expect(
       screen
         .getAllByRole("group")
@@ -184,15 +192,15 @@ describe("unified equipment editor", () => {
     await changeField(voltage.getByLabelText("Input unit"), {
       target: { value: "V" },
     });
-    fireEvent.click(screen.getByText("Terminals"));
+    openTab("Terminals");
     fireEvent.click(screen.getByText("Add Custom Terminal"));
     const custom = group("Terminal new");
     await changeField(custom.getByLabelText("Terminal key"), {
       target: { value: "GROUND" },
     });
-    fireEvent.click(screen.getByText("General"));
-    expect(screen.getByLabelText("Tag")).toHaveValue("Changed");
-    fireEvent.click(screen.getByText("Attributes"));
+    openTab("General");
+    expect(screen.getByLabelText("Equipment tag")).toHaveValue("Changed");
+    openTab("Attributes");
     expect(group("Rated voltage").getByLabelText("Value")).toHaveValue(
       "0.1234567890123456789012345678901234",
     );
@@ -238,7 +246,8 @@ describe("unified equipment editor", () => {
       await changeField(field.getByLabelText("Information state"), {
         target: { value: state },
       });
-      expect(field.queryByLabelText("Value")).not.toBeInTheDocument();
+      expect(field.getByLabelText("Value")).toBeDisabled();
+      expect(field.getByLabelText("Value")).toHaveValue("");
       fireEvent.click(save());
       await waitFor(() =>
         expect(api.saveEquipmentEditor).toHaveBeenCalledWith("p", "r", "e1", {
@@ -300,55 +309,66 @@ describe("unified equipment editor", () => {
       }),
     );
   });
-  it("preserves draft on a failed save and failed save-and-close", async () => {
+  it("preserves draft on a failed save and failed save-and-leave", async () => {
     vi.mocked(api.saveEquipmentEditor).mockRejectedValue(
       new Error("Meaningful attributes prevent type change"),
     );
-    const close = vi.fn();
-    await editor("General", close);
-    await changeField(screen.getByLabelText("Equipment Type"), {
+    const left = vi.fn();
+    await editor("General", left);
+    await changeField(screen.getByLabelText("Equipment type"), {
       target: { value: "ALTERNATE" },
     });
     fireEvent.click(save());
     await screen.findByText("Meaningful attributes prevent type change");
-    expect(screen.getByLabelText("Equipment Type")).toHaveTextContent(
+    expect(screen.getByLabelText("Equipment type")).toHaveTextContent(
       "Alternate",
     );
-    fireEvent.click(screen.getByText("Close"));
-    fireEvent.click(screen.getByText("Save changes"));
+    back();
+    fireEvent.click(screen.getByRole("button", { name: "Save and leave" }));
     await waitFor(() =>
       expect(api.saveEquipmentEditor).toHaveBeenCalledTimes(2),
     );
-    expect(close).not.toHaveBeenCalled();
+    expect(left).not.toHaveBeenCalled();
     expect(context.failed).toHaveBeenCalled();
+    expect(
+      screen.getByRole("dialog", { name: "Unsaved changes" }),
+    ).toBeInTheDocument();
   });
-  it("protects dirty close with keep editing, discard, and save choices", async () => {
-    const close = vi.fn();
-    await editor("General", close);
-    await changeField(screen.getByLabelText("Tag"), {
+  it("returns immediately without a draft", async () => {
+    const left = vi.fn();
+    await editor("General", left);
+    back();
+    expect(left).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+  it("protects a dirty return with keep editing, discard, and save choices", async () => {
+    const left = vi.fn();
+    await editor("General", left);
+    await changeField(screen.getByLabelText("Equipment tag"), {
       target: { value: "Draft" },
     });
-    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    back();
     expect(
       screen.getByRole("dialog", { name: "Unsaved changes" }),
     ).toBeInTheDocument();
     fireEvent.click(screen.getByText("Keep editing"));
-    expect(screen.getByLabelText("Tag")).toHaveValue("Draft");
-    expect(close).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByText("Close"));
+    expect(screen.getByLabelText("Equipment tag")).toHaveValue("Draft");
+    expect(left).not.toHaveBeenCalled();
+    back();
     fireEvent.click(screen.getByText("Discard changes"));
-    expect(close).toHaveBeenCalledOnce();
+    expect(left).toHaveBeenCalledOnce();
     expect(api.saveEquipmentEditor).not.toHaveBeenCalled();
   });
-  it("closes only after successful save-and-close", async () => {
-    const close = vi.fn();
-    await editor("General", close);
-    await changeField(screen.getByLabelText("Name"), {
+  it("leaves only after a successful save-and-leave", async () => {
+    const left = vi.fn();
+    await editor("General", left);
+    await changeField(screen.getByLabelText("Equipment name"), {
       target: { value: "New name" },
     });
-    fireEvent.click(screen.getByText("Close"));
-    fireEvent.click(screen.getByText("Save changes"));
-    await waitFor(() => expect(close).toHaveBeenCalledOnce());
+    back();
+    fireEvent.click(screen.getByRole("button", { name: "Save and leave" }));
+    await waitFor(() => expect(left).toHaveBeenCalledOnce());
   });
   it("keeps custom terminal edits in the draft and protects profile keys", async () => {
     vi.mocked(api.getEquipmentEditor).mockResolvedValue({
@@ -366,7 +386,11 @@ describe("unified equipment editor", () => {
     });
     await editor("Terminals");
     const profile = group("Terminal INPUT");
-    expect(profile.getByLabelText("Terminal key")).toBeDisabled();
+    expect(profile.getByText("INPUT")).toBeInTheDocument();
+    expect(profile.queryByLabelText("Terminal key")).not.toBeInTheDocument();
+    expect(
+      profile.getByText("Application-managed · Active"),
+    ).toBeInTheDocument();
     expect(profile.queryByText("Remove terminal")).not.toBeInTheDocument();
     const custom = group("Terminal LINE");
     await changeField(custom.getByLabelText("Label"), {
@@ -377,6 +401,101 @@ describe("unified equipment editor", () => {
       expect(api.saveEquipmentEditor).toHaveBeenCalledWith("p", "r", "e1", {
         update_terminals: [{ id: terminal.id, label: "Custom label" }],
       }),
+    );
+  });
+  it("removes and restores custom terminals through the single editor save", async () => {
+    vi.mocked(api.getEquipmentEditor).mockResolvedValue({
+      equipment,
+      attributes,
+      terminals: [
+        terminal,
+        {
+          ...terminal,
+          id: "neutral",
+          terminal_key: "NEUTRAL",
+          lifecycle_status: "REMOVED",
+        },
+      ],
+    });
+    await editor("Terminals");
+    fireEvent.click(group("Terminal LINE").getByText("Remove terminal"));
+    expect(
+      screen.getByRole("group", { name: "Terminal LINE" }),
+    ).toHaveTextContent("does not automatically restore");
+    expect(group("Terminal LINE").getByLabelText("Label")).toBeDisabled();
+    fireEvent.click(group("Terminal NEUTRAL").getByText("Restore terminal"));
+    fireEvent.click(save());
+    await waitFor(() =>
+      expect(api.saveEquipmentEditor).toHaveBeenCalledExactlyOnceWith(
+        "p",
+        "r",
+        "e1",
+        { remove_terminals: [terminal.id], restore_terminals: ["neutral"] },
+      ),
+    );
+    expect(api.removeNode).not.toHaveBeenCalled();
+    expect(api.restoreNode).not.toHaveBeenCalled();
+  });
+  it("shows CONFLICTING as read-only and does not resubmit it", async () => {
+    vi.mocked(api.getEquipmentEditor).mockResolvedValue({
+      equipment,
+      terminals: [],
+      attributes: [
+        { ...attributes[0], information_state: "CONFLICTING" },
+        ...attributes.slice(1),
+      ],
+    });
+    await editor("Attributes");
+    const field = group("Rated voltage");
+    expect(field.getByLabelText("Information state")).toHaveTextContent(
+      "Conflicting",
+    );
+    expect(field.getByLabelText("Value")).toBeDisabled();
+    fireEvent.keyDown(field.getByLabelText("Information state"), {
+      key: "ArrowDown",
+    });
+    expect(screen.getByRole("option", { name: "Conflicting" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+    expect(save()).toBeDisabled();
+  });
+  it("filters attributes without changing the draft", async () => {
+    await editor("Attributes");
+    await changeField(group("Count").getByLabelText("Information state"), {
+      target: { value: "PRESENT" },
+    });
+    await changeField(group("Count").getByLabelText("Value"), {
+      target: { value: "9007199254740993" },
+    });
+    await changeField(screen.getByLabelText("Show"), {
+      target: { value: "required" },
+    });
+    expect(screen.queryByRole("group", { name: "Count" })).toBeNull();
+    expect(group("Rated voltage")).toBeTruthy();
+    await changeField(screen.getByLabelText("Show"), {
+      target: { value: "all" },
+    });
+    fireEvent.change(screen.getByLabelText("Find an attribute"), {
+      target: { value: "coun" },
+    });
+    expect(screen.queryByRole("group", { name: "Rated voltage" })).toBeNull();
+    expect(group("Count").getByLabelText("Value")).toHaveValue(
+      "9007199254740993",
+    );
+    fireEvent.click(save());
+    await waitFor(() =>
+      expect(api.saveEquipmentEditor).toHaveBeenCalledExactlyOnceWith(
+        "p",
+        "r",
+        "e1",
+        {
+          attributes: {
+            count: { information_state: "PRESENT", value: "9007199254740993" },
+          },
+        },
+      ),
     );
   });
   it.each(["read-only", "removed"])(
@@ -393,8 +512,15 @@ describe("unified equipment editor", () => {
       });
       await editor();
       expect(save()).toBeDisabled();
-      expect(screen.getByLabelText("Tag")).toBeDisabled();
-      fireEvent.click(screen.getByText("Terminals"));
+      expect(screen.getByLabelText("Equipment tag")).toBeDisabled();
+      expect(
+        screen.getByText(
+          mode === "removed"
+            ? "This equipment is removed. Restore it to make changes."
+            : /This revision is read-only/,
+        ),
+      ).toBeInTheDocument();
+      openTab("Terminals");
       expect(screen.queryByText("Add Custom Terminal")).not.toBeInTheDocument();
     },
   );

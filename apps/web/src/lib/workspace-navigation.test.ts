@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { revisionHref } from "./workspace-navigation";
+import { equipmentTab, revisionHref } from "./workspace-navigation";
 
 describe("revision navigation", () => {
   it("keeps unrelated parameters and current equipment selection", () => {
@@ -39,5 +39,23 @@ describe("revision navigation", () => {
     expect(revisionHref("p", "r", "r", old, "topology")).toBe(
       "/projects/p/revisions/r?workspace=model&view=topology&filter=active",
     );
+  });
+  it("keeps editor state with its equipment and drops it with the selection", () => {
+    const editing =
+      "workspace=model&equipment=e&equipmentMode=edit&equipmentTab=terminals";
+    expect(revisionHref("p", "r", "r", editing, "equipment")).toBe(
+      "/projects/p/revisions/r?workspace=model&equipment=e&equipmentMode=edit&equipmentTab=terminals&view=equipment",
+    );
+    for (const href of [
+      revisionHref("p", "next", "r", editing, "equipment"),
+      revisionHref("p", "r", "r", editing, "topology"),
+      revisionHref("p", "r", "r", editing, "documents"),
+    ])
+      expect(href).not.toMatch(/equipment(Mode|Tab)?=/);
+  });
+  it("defaults unknown editor tabs to General", () => {
+    expect(equipmentTab("attributes")).toBe("attributes");
+    expect(equipmentTab("other")).toBe("general");
+    expect(equipmentTab(null)).toBe("general");
   });
 });

@@ -8,7 +8,7 @@ import {
   within,
 } from "@/components/query-test-utils";
 import { afterEach, expect, it, vi } from "vitest";
-import { EquipmentDetailDrawer } from "@/components/equipment-detail-drawer";
+import { EquipmentEditorHarness } from "@/components/equipment-editor-test-utils";
 import { ModelContext } from "@/components/model-shared";
 import {
   attributes,
@@ -58,24 +58,26 @@ it.each(["3", "9007199254740993"])(
           failed: vi.fn(),
         }}
       >
-        <EquipmentDetailDrawer id={equipment.id} onClose={vi.fn()} />
+        <EquipmentEditorHarness id={equipment.id} onLeft={vi.fn()} />
       </ModelContext.Provider>,
     );
-    fireEvent.click(await screen.findByText("Attributes"));
+    fireEvent.click(await screen.findByRole("tab", { name: "Attributes" }));
     const form = within(await screen.findByRole("group", { name: "Count" }));
     const input = form.getByLabelText("Value");
     expect(input).toHaveValue(value);
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
     // A whitespace edit exercises trimming/resubmission without changing the integer.
     fireEvent.change(input, { target: { value: `${value} ` } });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
     expect(fetch.mock.calls[1][1]?.method).toBe("PATCH");
     expect(JSON.parse(fetch.mock.calls[1][1]?.body as string)).toEqual({
       attributes: { count: { information_state: "PRESENT", value } },
     });
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled(),
+      expect(
+        screen.getByRole("button", { name: "Save changes" }),
+      ).toBeDisabled(),
     );
     expect(input).toHaveValue(value);
   },

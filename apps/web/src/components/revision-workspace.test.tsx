@@ -13,6 +13,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const nav = vi.hoisted(() => ({
   search: "",
   replace: vi.fn(),
+  push: vi.fn(),
   refresh: vi.fn(),
 }));
 vi.mock("next/navigation", () => ({
@@ -44,6 +45,8 @@ vi.mock("@/lib/engineering-model", async (original) => ({
   removeEquipment: vi.fn(),
   restoreEquipment: vi.fn(),
   listAttributes: vi.fn(),
+  listNodes: vi.fn(),
+  listConnections: vi.fn(),
 }));
 vi.mock("@/lib/projects", async (original) => ({
   ...(await original<typeof import("@/lib/projects")>()),
@@ -55,8 +58,11 @@ import { RevisionWorkspace } from "@/components/revision-workspace";
 import RevisionPage from "@/app/projects/[projectId]/revisions/[revisionId]/page";
 import {
   attributes,
+  connection,
   equipment,
+  junction,
   registry,
+  terminal,
 } from "@/components/model-test-fixtures";
 import * as api from "@/lib/engineering-model";
 import {
@@ -66,7 +72,23 @@ import {
   type Project,
   type Revision,
 } from "@/lib/projects";
-const props = { projectId: "p", revisionId: "r", canMutate: true };
+const props = {
+  projectId: "p",
+  revisionId: "r",
+  canMutate: true,
+  revisionLabel: "B",
+};
+const path = "/projects/p/revisions/r";
+const editUrl = "workspace=model&equipment=e1&equipmentMode=edit";
+/** Apply the last client navigation to the mocked URL, as the router would. */
+function follow(
+  view: { rerender: (ui: React.ReactElement) => void },
+  method: "replace" | "push" = "replace",
+) {
+  const url: string = nav[method].mock.lastCall![0];
+  nav.search = url.split("?")[1] ?? "";
+  view.rerender(<RevisionWorkspace {...props} />);
+}
 beforeEach(() => {
   vi.resetAllMocks();
   nav.search = "";
@@ -76,10 +98,14 @@ beforeEach(() => {
   vi.mocked(api.getEquipmentEditor).mockResolvedValue({
     equipment,
     attributes,
-    terminals: [],
+    terminals: [terminal],
   });
   vi.mocked(api.listAttributes).mockResolvedValue(attributes);
+  vi.mocked(api.listNodes).mockResolvedValue([terminal, junction]);
+  vi.mocked(api.listConnections).mockResolvedValue([connection]);
 });
+const inspector = () =>
+  screen.findByRole("complementary", { name: "Equipment quick details" });
 describe("revision model workspace", () => {
   it("defaults to Documents and switches URL state without dropping unrelated parameters", async () => {
     nav.search = "document=d1&keep=yes";
@@ -90,24 +116,33 @@ describe("revision model workspace", () => {
     expect(api.getEngineeringRegistry).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText("Engineering Model"));
     expect(nav.replace).toHaveBeenLastCalledWith(
-      "/projects/p/revisions/r?keep=yes&workspace=model",
+      `${path}?keep=yes&workspace=model`,
       { scroll: false },
     );
     nav.search = "keep=yes&workspace=model&equipment=e1";
     view.rerender(<RevisionWorkspace {...props} />);
-    await screen.findByLabelText("Tag");
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
-    nav.search = "keep=yes&workspace=model";
+    await inspector();
+    // Equipment owns the page header; shell navigation replaces the toggles.
+    expect(
+      screen.queryByRole("group", { name: "Revision workspace" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close equipment details" }),
+    );
+    expect(nav.replace).toHaveBeenLastCalledWith(
+      `${path}?keep=yes&workspace=model`,
+      { scroll: false },
+    );
+    nav.search = "keep=yes&workspace=model&view=topology";
     view.rerender(<RevisionWorkspace {...props} />);
     fireEvent.click(
       within(
         screen.getByRole("group", { name: "Revision workspace" }),
       ).getByText("Documents"),
     );
-    expect(nav.replace).toHaveBeenLastCalledWith(
-      "/projects/p/revisions/r?keep=yes",
-      { scroll: false },
-    );
+    expect(nav.replace).toHaveBeenLastCalledWith(`${path}?keep=yes`, {
+      scroll: false,
+    });
     nav.search = "keep=yes";
     view.rerender(<RevisionWorkspace {...props} />);
     expect(screen.getByText("Existing Documents workspace")).toBeVisible();
@@ -119,21 +154,19 @@ describe("revision model workspace", () => {
     nav.search = "workspace=model";
     render(<RevisionWorkspace {...props} />);
     await screen.findByText("SWGR-1");
-    fireEvent.keyDown(screen.getByLabelText("Equipment type filter"), {
+    fireEvent.keyDown(screen.getByLabelText("Filter by type"), {
       key: "ArrowDown",
     });
     expect(
       screen.getByRole("option", { name: "Registry Device" }),
     ).toHaveAttribute("data-value", "TEST_DEVICE");
     fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
-    await changeField(screen.getByLabelText("Equipment type filter"), {
+    await changeField(screen.getByLabelText("Filter by type"), {
       target: { value: "ALTERNATE" },
     });
-    fireEvent.click(
-      within(screen.getByRole("group", { name: "Lifecycle" })).getByText(
-        "Removed",
-      ),
-    );
+    await changeField(screen.getByLabelText("Filter by status"), {
+      target: { value: "REMOVED" },
+    });
     await waitFor(() =>
       expect(api.listEquipment).toHaveBeenLastCalledWith("p", "r", {
         search: "",
@@ -141,9 +174,9 @@ describe("revision model workspace", () => {
         lifecycle_status: "REMOVED",
       }),
     );
-    fireEvent.click(
-      within(screen.getByRole("group", { name: "Lifecycle" })).getByText("All"),
-    );
+    await changeField(screen.getByLabelText("Filter by status"), {
+      target: { value: "ALL" },
+    });
     await waitFor(() =>
       expect(api.listEquipment).toHaveBeenLastCalledWith(
         "p",
@@ -155,9 +188,40 @@ describe("revision model workspace", () => {
       key: "Enter",
     });
     expect(nav.replace).toHaveBeenLastCalledWith(
-      "/projects/p/revisions/r?workspace=model&equipment=e1",
+      `${path}?workspace=model&equipment=e1`,
       { scroll: false },
     );
+  });
+  it("shows truthful counts from one unfiltered lifecycle query", async () => {
+    nav.search = "workspace=model";
+    const removed = {
+      ...equipment,
+      id: "e2",
+      tag: "OLD-1",
+      lifecycle_status: "REMOVED" as const,
+    };
+    vi.mocked(api.listEquipment).mockImplementation(async (_p, _r, query) =>
+      query?.lifecycle_status === "ALL"
+        ? [equipment, removed]
+        : query?.lifecycle_status === "REMOVED"
+          ? [removed]
+          : [equipment],
+    );
+    render(<RevisionWorkspace {...props} />);
+    expect(
+      await screen.findByText("Showing 1 of 1 equipment", { exact: false }),
+    ).toBeInTheDocument();
+    const metric = (label: string) =>
+      screen.getByRole("group", { name: label });
+    expect(metric("Total equipment")).toHaveTextContent("2");
+    expect(metric("Active")).toHaveTextContent("1");
+    expect(metric("Removed")).toHaveTextContent("1");
+    expect(api.listEquipment).toHaveBeenCalledWith("p", "r", {
+      lifecycle_status: "ALL",
+    });
+    expect(
+      screen.getByText("Manage electrical equipment in revision B"),
+    ).toBeInTheDocument();
   });
   it("debounces server search and ignores superseded responses", async () => {
     nav.search = "workspace=model";
@@ -171,10 +235,12 @@ describe("revision model workspace", () => {
     );
     render(<RevisionWorkspace {...props} />);
     await screen.findByText("Initial");
-    await changeField(screen.getByRole("textbox", { name: "Search" }), {
-      target: { value: "old" },
-    });
-    expect(api.listEquipment).toHaveBeenCalledTimes(1);
+    const calls = vi.mocked(api.listEquipment).mock.calls.length;
+    await changeField(
+      screen.getByRole("textbox", { name: "Search equipment" }),
+      { target: { value: "old" } },
+    );
+    expect(api.listEquipment).toHaveBeenCalledTimes(calls);
     await waitFor(() =>
       expect(api.listEquipment).toHaveBeenLastCalledWith(
         "p",
@@ -182,22 +248,44 @@ describe("revision model workspace", () => {
         expect.objectContaining({ search: "old" }),
       ),
     );
-    await changeField(screen.getByRole("textbox", { name: "Search" }), {
-      target: { value: "latest" },
-    });
+    await changeField(
+      screen.getByRole("textbox", { name: "Search equipment" }),
+      { target: { value: "latest" } },
+    );
     await screen.findByText("latest");
     await act(async () => finishOld([{ ...equipment, tag: "Stale" }]));
     expect(screen.queryByText("Stale")).not.toBeInTheDocument();
   });
-  it("opens deep links via GET independently of visible rows and closes via URL", async () => {
+  it("opens nonmodal quick details from deep links via GET and keeps the register usable", async () => {
     nav.search = "workspace=model&equipment=e1&keep=1";
-    vi.mocked(api.listEquipment).mockResolvedValue([]);
+    vi.mocked(api.listEquipment).mockResolvedValue([
+      equipment,
+      { ...equipment, id: "e2", tag: "SWGR-2" },
+    ]);
     render(<RevisionWorkspace {...props} />);
-    await screen.findByLabelText("Tag");
+    const details = within(await inspector());
     expect(api.getEquipmentEditor).toHaveBeenCalledWith("p", "r", "e1");
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(
+      await details.findByRole("heading", { name: "SWGR-1" }),
+    ).toBeVisible();
+    expect(details.getByText("Registry Device")).toBeInTheDocument();
+    expect(details.getByText("ENGINEER_REVIEWED")).toBeInTheDocument();
+    // Critical registry attribute, shown with its truthful state.
+    expect(details.getByText("Count")).toBeInTheDocument();
+    expect(details.getAllByText("Not populated").length).toBeGreaterThan(0);
+    expect(await details.findByText("1 active connection")).toBeInTheDocument();
+    expect(details.getByText(/LINE ↔/)).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText("SWGR-2"));
     expect(nav.replace).toHaveBeenLastCalledWith(
-      "/projects/p/revisions/r?workspace=model&keep=1",
+      `${path}?workspace=model&equipment=e2&keep=1`,
+      { scroll: false },
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Close equipment details" }),
+    );
+    expect(nav.replace).toHaveBeenLastCalledWith(
+      `${path}?workspace=model&keep=1`,
       { scroll: false },
     );
   });
@@ -214,14 +302,28 @@ describe("revision model workspace", () => {
     );
     const view = render(<RevisionWorkspace {...props} />);
     await waitFor(() =>
-      expect(nav.replace).toHaveBeenCalledWith(
-        "/projects/p/revisions/r?workspace=model",
-        { scroll: false },
-      ),
+      expect(nav.replace).toHaveBeenCalledWith(`${path}?workspace=model`, {
+        scroll: false,
+      }),
     );
     nav.search = "workspace=model";
     view.rerender(<RevisionWorkspace {...props} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Equipment not found");
+  });
+  it("clears a missing equipment editor link", async () => {
+    nav.search = `${editUrl}&equipmentTab=terminals`;
+    vi.mocked(api.getEquipmentEditor).mockRejectedValue(
+      Object.assign(new Error("Equipment not found"), {
+        status: 404,
+        apiError: { detail: "Equipment not found" },
+      }),
+    );
+    render(<RevisionWorkspace {...props} />);
+    await waitFor(() =>
+      expect(nav.replace).toHaveBeenCalledWith(`${path}?workspace=model`, {
+        scroll: false,
+      }),
+    );
   });
   it("retries registry loading without affecting Documents", async () => {
     nav.search = "workspace=model";
@@ -233,8 +335,69 @@ describe("revision model workspace", () => {
     fireEvent.click(screen.getByText("Retry"));
     await screen.findByText("SWGR-1");
   });
-  it("shows Restore for removed equipment and confirms cascade consequences for active removal", async () => {
+  it("opens the full editor by URL, switches tabs, and returns to quick details", async () => {
     nav.search = "workspace=model&equipment=e1";
+    const view = render(<RevisionWorkspace {...props} />);
+    const details = within(await inspector());
+    await details.findByRole("heading", { name: "SWGR-1" });
+    fireEvent.click(details.getByRole("button", { name: "Open full editor" }));
+    expect(nav.push).toHaveBeenLastCalledWith(
+      `${path}?${editUrl}&equipmentTab=general`,
+      { scroll: false },
+    );
+    follow(view, "push");
+    await screen.findByLabelText("Equipment tag");
+    expect(
+      screen.getByRole("heading", { level: 1, name: /SWGR-1/ }),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole("complementary", { name: "Equipment quick details" }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Terminals" }));
+    expect(nav.replace).toHaveBeenLastCalledWith(
+      `${path}?${editUrl}&equipmentTab=terminals`,
+      { scroll: false },
+    );
+    follow(view);
+    expect(screen.getByRole("tab", { name: "Terminals" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(screen.getByRole("group", { name: "Terminal LINE" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Back to Equipment" }));
+    expect(nav.replace).toHaveBeenLastCalledWith(
+      `${path}?workspace=model&equipment=e1`,
+      { scroll: false },
+    );
+    follow(view);
+    expect(await inspector()).toBeVisible();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+  it("guards a dirty draft when Back/Forward leaves the editor", async () => {
+    nav.search = `${editUrl}&equipmentTab=general`;
+    const view = render(<RevisionWorkspace {...props} />);
+    await changeField(await screen.findByLabelText("Equipment tag"), {
+      target: { value: "Draft tag" },
+    });
+    nav.search = "workspace=model&equipment=e1";
+    view.rerender(<RevisionWorkspace {...props} />);
+    const dialog = screen.getByRole("dialog", { name: "Unsaved changes" });
+    fireEvent.click(within(dialog).getByText("Keep editing"));
+    expect(nav.replace).toHaveBeenLastCalledWith(
+      `${path}?${editUrl}&equipmentTab=general`,
+      { scroll: false },
+    );
+    follow(view);
+    expect(screen.getByLabelText("Equipment tag")).toHaveValue("Draft tag");
+    nav.search = "workspace=model&equipment=e1";
+    view.rerender(<RevisionWorkspace {...props} />);
+    fireEvent.click(screen.getByText("Discard changes"));
+    expect(await inspector()).toBeVisible();
+    expect(screen.queryByLabelText("Equipment tag")).not.toBeInTheDocument();
+    expect(api.saveEquipmentEditor).not.toHaveBeenCalled();
+  });
+  it("shows Restore for removed equipment and confirms cascade consequences for active removal", async () => {
+    nav.search = `${editUrl}&equipmentTab=general`;
     vi.mocked(api.getEquipmentEditor).mockResolvedValue({
       equipment: { ...equipment, lifecycle_status: "REMOVED" },
       attributes,
@@ -245,7 +408,7 @@ describe("revision model workspace", () => {
     await waitFor(() =>
       expect(api.restoreEquipment).toHaveBeenCalledWith("p", "r", "e1"),
     );
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
     view.unmount();
     vi.mocked(api.getEquipmentEditor).mockResolvedValue({
       equipment,
@@ -263,7 +426,7 @@ describe("revision model workspace", () => {
     await waitFor(() => expect(api.removeEquipment).toHaveBeenCalled());
   });
   it("refreshes attributes after a successful type change", async () => {
-    nav.search = "workspace=model&equipment=e1";
+    nav.search = `${editUrl}&equipmentTab=attributes`;
     vi.mocked(api.saveEquipmentEditor).mockImplementation(async () => {
       const changed = {
         ...equipment,
@@ -274,22 +437,22 @@ describe("revision model workspace", () => {
       vi.mocked(api.getEquipmentEditor).mockResolvedValue(result);
       return result;
     });
-    render(<RevisionWorkspace {...props} />);
-    await screen.findByLabelText("Tag");
-    fireEvent.click(screen.getByText("Attributes"));
+    const view = render(<RevisionWorkspace {...props} />);
     await screen.findByRole("group", { name: "Rated voltage" });
-    fireEvent.click(screen.getByText("General"));
-    await changeField(screen.getByLabelText("Equipment Type"), {
+    nav.search = `${editUrl}&equipmentTab=general`;
+    view.rerender(<RevisionWorkspace {...props} />);
+    await changeField(screen.getByLabelText("Equipment type"), {
       target: { value: "ALTERNATE" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(api.saveEquipmentEditor).toHaveBeenCalled());
     await waitFor(() =>
-      expect(screen.getByLabelText("Equipment Type")).toHaveTextContent(
+      expect(screen.getByLabelText("Equipment type")).toHaveTextContent(
         "Alternate",
       ),
     );
-    fireEvent.click(screen.getByText("Attributes"));
+    nav.search = `${editUrl}&equipmentTab=attributes`;
+    view.rerender(<RevisionWorkspace {...props} />);
     // The confirmed atomic save response replaces the cached snapshot directly.
     expect(api.getEquipmentEditor).toHaveBeenCalledTimes(1);
     expect(
@@ -297,7 +460,7 @@ describe("revision model workspace", () => {
     ).not.toBeInTheDocument();
   });
   it("locks locally and refreshes after a stale read-only response", async () => {
-    nav.search = "workspace=model&equipment=e1";
+    nav.search = `${editUrl}&equipmentTab=general`;
     vi.mocked(api.saveEquipmentEditor).mockRejectedValue(
       Object.assign(new Error("Revision is read-only"), {
         status: 409,
@@ -308,18 +471,19 @@ describe("revision model workspace", () => {
       }),
     );
     render(<RevisionWorkspace {...props} />);
-    await screen.findByLabelText("Tag");
-    await changeField(screen.getByLabelText("Tag"), {
+    await waitFor(() => expect(api.listEquipment).toHaveBeenCalledTimes(2));
+    await changeField(await screen.findByLabelText("Equipment tag"), {
       target: { value: "Changed" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await screen.findByText(
       "This revision is read-only. Further edits are unavailable.",
     );
     expect(nav.refresh).toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
     expect(screen.queryByText("Add Equipment")).not.toBeInTheDocument();
-    await waitFor(() => expect(api.listEquipment).toHaveBeenCalledTimes(2));
+    // Register and summary queries both refetch after the 409 invalidation.
+    await waitFor(() => expect(api.listEquipment).toHaveBeenCalledTimes(4));
   });
   it.each(["", "workspace=model"])(
     "keeps the shared read-only banner above workspace %s",
@@ -346,14 +510,19 @@ describe("revision model workspace", () => {
       const banner = screen.getByText(
         /Engineering model data remains viewable/,
       );
+      const workspace = query
+        ? await screen.findByRole("heading", { level: 1, name: "Equipment" })
+        : screen.getByRole("group", { name: "Revision workspace" });
       expect(
-        banner.compareDocumentPosition(
-          screen.getByRole("group", { name: "Revision workspace" }),
-        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        banner.compareDocumentPosition(workspace) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
       if (query) {
         await screen.findByText("SWGR-1");
         expect(screen.queryByText("Add Equipment")).not.toBeInTheDocument();
+        expect(
+          screen.getByText("Manage electrical equipment in revision 0"),
+        ).toBeInTheDocument();
       } else
         expect(
           screen.getByText("Existing Documents workspace"),

@@ -9,6 +9,17 @@
   }
 }
 
+@keyframes workspace-inspector {
+  from {
+    transform: translateX(10px);
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
 @keyframes workspace-slide {
   from {
     transform: translateX(22px);

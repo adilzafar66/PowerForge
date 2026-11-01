@@ -90,6 +90,18 @@
   --pf-drawer-width: 500px;
   --pf-drawer-project-width: 540px;
   --pf-dialog-width: 440px;
+  --pf-dialog-width-wide: 480px;
+  --pf-equipment-max: 1540px;
+  --pf-equipment-inspector: 372px;
+  --pf-equipment-inspector-compact: 340px;
+  --pf-equipment-editor-aside: 245px;
+
+  /* Equipment workspace surfaces */
+  --pf-equipment-row-hover: #f8fbfd;
+  --pf-equipment-row-selected: #edf4f8;
+  --pf-control-disabled: #f7f9fb;
+  --pf-shadow-inspector: 0 4px 16px rgba(24, 38, 56, 0.035);
+  --pf-shadow-toast: 0 12px 30px rgba(0, 0, 0, 0.15);
 
   /* Corners and elevation */
   --pf-radius-sm: 7px;
@@ -123,6 +135,8 @@
   --shadow-workspace-drawer: var(--pf-shadow-drawer);
   --shadow-workspace-dialog: var(--pf-shadow-dialog);
   --shadow-workspace-tab: var(--pf-shadow-tab);
+  --shadow-workspace-inspector: var(--pf-shadow-inspector);
+  --shadow-workspace-toast: var(--pf-shadow-toast);
   --font-sans: var(--pf-font-sans);
   --font-mono: var(--pf-font-mono);
   --color-surface: var(--pf-canvas);

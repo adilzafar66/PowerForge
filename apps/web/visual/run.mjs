@@ -224,11 +224,29 @@ try {
     console.log(name);
   }
   const p = "/projects/p",
-    r = p + "/revisions/r";
+    r = p + "/revisions/r",
+    model = r + "?workspace=model",
+    edit = (tab) =>
+      `${model}&equipment=e1&equipmentMode=edit&equipmentTab=${tab}`;
   async function go(url) {
     await page.goto(base + url);
     await page.waitForLoadState("networkidle");
     await settle();
+  }
+  async function equipmentStates(prefix) {
+    await go(model + "&equipment=e1");
+    await page
+      .getByRole("complementary", { name: "Equipment quick details" })
+      .getByText("LINE ↔ Main bus")
+      .waitFor();
+    await shot(`${prefix}-equipment-quick`);
+    for (const tab of ["general", "attributes", "terminals"]) {
+      await go(edit(tab));
+      await page
+        .getByRole("tab", { name: tab[0].toUpperCase() + tab.slice(1) })
+        .waitFor();
+      await shot(`${prefix}-equipment-edit-${tab}`);
+    }
   }
   for (const width of process.env.VISUAL_QUICK ? [1440] : [1440, 390]) {
     const prefix = width === 1440 ? "desktop" : "mobile";
@@ -302,9 +320,14 @@ try {
         await go(url);
         await shot(`${prefix}-${name}`);
       }
+      await equipmentStates(prefix);
     }
   }
   if (!process.env.VISUAL_QUICK) {
+    await page.setViewportSize({ width: 1024, height: 1000 });
+    await go(model);
+    await shot("tablet-equipment");
+    await equipmentStates("tablet");
     await page.setViewportSize({ width: 1440, height: 1000 });
     await go(r + "?document=doc");
     await shot("document-drawer");
@@ -312,8 +335,20 @@ try {
     await page.getByRole("menuitem", { name: "Remove from revision" }).click();
     await shot("document-remove-dialog");
     await page.keyboard.press("Escape");
-    await go(r + "?workspace=model&equipment=e1");
-    await shot("equipment-drawer");
+    await go(edit("general"));
+    await page
+      .getByRole("textbox", { name: "Equipment tag", exact: true })
+      .fill("SWGR-1A");
+    await page
+      .getByRole("button", { name: "Back to Equipment", exact: true })
+      .click();
+    await page.getByRole("dialog", { name: "Unsaved changes" }).waitFor();
+    await shot("equipment-unsaved-dialog");
+    await page
+      .getByRole("button", { name: "Discard changes", exact: true })
+      .click();
+    await page.waitForURL((u) => !u.search.includes("equipmentMode"));
+    await go(edit("general"));
     await page
       .getByRole("button", { name: "Remove equipment", exact: true })
       .click();
@@ -336,7 +371,9 @@ try {
       .getByRole("button", { name: "Edit details", exact: true })
       .click();
     await page.keyboard.press("Escape");
-    await page.waitForFunction(() => document.activeElement?.textContent?.trim() === "Edit details");
+    await page.waitForFunction(
+      () => document.activeElement?.textContent?.trim() === "Edit details",
+    );
     assert.equal(
       await page
         .getByRole("button", { name: "Edit details", exact: true })
@@ -352,6 +389,9 @@ try {
       await go(state === "readonly" ? p : "/");
       await shot(state);
     }
+    scenario = "readonly";
+    await go(edit("general"));
+    await shot("equipment-readonly");
     scenario = "normal";
     await go(p);
     await page.emulateMedia({ reducedMotion: "reduce" });
