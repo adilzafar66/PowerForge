@@ -128,11 +128,7 @@ export function TopologyInspector({
               type="button"
               className={topoButtonClass()}
               disabled={restoreDisabled}
-              title={
-                restoreDisabled
-                  ? "Restore both endpoint nodes first"
-                  : undefined
-              }
+              title={restoreDisabled ? (warning ?? undefined) : undefined}
               onClick={onRestore}
             >
               <RotateCcw aria-hidden strokeWidth={1.8} />

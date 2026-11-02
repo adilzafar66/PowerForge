@@ -145,6 +145,11 @@ export function TopologyWorkspace({
   const activeNodeIds = new Set(
     data?.nodes.filter((n) => n.lifecycle_status === "ACTIVE").map((n) => n.id),
   );
+  const activeEquipmentIds = new Set(
+    data?.equipment
+      .filter((row) => row.lifecycle_status === "ACTIVE")
+      .map((row) => row.id),
+  );
 
   const urlSelection: Selection | null = params.get("node")
     ? { kind: "node", id: params.get("node")! }
@@ -502,6 +507,16 @@ export function TopologyWorkspace({
               ? "This terminal is controlled by the equipment profile. Its key and lifecycle cannot be changed independently."
               : "Restoring a node does not automatically restore connections previously removed with it."
           }
+          warning={
+            selectedNode.lifecycle_status === "REMOVED" &&
+            selectedNode.kind === "EQUIPMENT_TERMINAL" &&
+            !(
+              selectedNode.equipment_id &&
+              activeEquipmentIds.has(selectedNode.equipment_id)
+            )
+              ? "Restore the owning equipment before restoring this terminal."
+              : null
+          }
           notice={messageLine("border-b border-border px-[21px] py-3")}
           writable={writable}
           canEdit={selectedNode.lifecycle_status === "ACTIVE"}
@@ -512,6 +527,13 @@ export function TopologyWorkspace({
           canRestore={
             !selectedNode.managed_by_profile &&
             selectedNode.lifecycle_status === "REMOVED"
+          }
+          restoreDisabled={
+            selectedNode.kind === "EQUIPMENT_TERMINAL" &&
+            !(
+              selectedNode.equipment_id &&
+              activeEquipmentIds.has(selectedNode.equipment_id)
+            )
           }
           onClose={hideSelection}
           onEdit={() => setEditor({ kind: "node", id: selectedNode.id })}
@@ -590,7 +612,7 @@ export function TopologyWorkspace({
                   type="submit"
                   form={nodeFormId}
                   className={topoButtonClass("primary")}
-                  disabled={!editorDirty}
+                  disabled={editor.id !== "new" && !editorDirty}
                 >
                   {editor.id === "new" ? "Create" : "Save changes"}
                 </button>

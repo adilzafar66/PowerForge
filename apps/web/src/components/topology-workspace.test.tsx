@@ -260,6 +260,34 @@ describe("topology inspector", () => {
       ),
     ).toBeInTheDocument();
   });
+
+  it("blocks terminal restore until the owning equipment is active", async () => {
+    vi.mocked(api.listEquipment).mockResolvedValue([
+      { ...equipment, lifecycle_status: "REMOVED" },
+    ]);
+    vi.mocked(api.listNodes).mockResolvedValue([
+      { ...terminal, lifecycle_status: "REMOVED" },
+      junction,
+    ]);
+    mount();
+    await changeField(await screen.findByLabelText("Lifecycle"), {
+      target: { value: "ALL" },
+    });
+    fireEvent.click(
+      within(await screen.findByRole("table", { name: "Nodes" })).getByText(
+        "SWGR-1 · LINE",
+      ),
+    );
+    const panel = await inspector("SWGR-1 · LINE");
+    expect(
+      within(panel).getByRole("button", { name: "Restore" }),
+    ).toBeDisabled();
+    expect(
+      within(panel).getByText(
+        "Restore the owning equipment before restoring this terminal.",
+      ),
+    ).toBeInTheDocument();
+  });
 });
 
 describe("topology editors", () => {
@@ -299,6 +327,37 @@ describe("topology editors", () => {
       expect(api.updateNode).toHaveBeenCalledWith("p", "r", "junction1", {
         label: "Updated junction",
       }),
+    );
+  });
+
+  it("creates a standalone electrical node with a blank optional label", async () => {
+    const user = userEvent.setup();
+    mount();
+    await user.click(
+      await screen.findByRole("button", { name: "Add Electrical Node" }),
+    );
+    const drawer = await screen.findByRole("dialog", {
+      name: "Add Electrical Node",
+    });
+    expect(within(drawer).getByLabelText("Display label")).toHaveValue("");
+    expect(
+      within(drawer).getByRole("button", { name: "Create" }),
+    ).toBeEnabled();
+    await user.click(within(drawer).getByRole("button", { name: "Cancel" }));
+    expect(
+      screen.queryByRole("dialog", { name: "Discard unsaved changes?" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", { name: "Add Electrical Node" }),
+    );
+    await user.click(
+      within(
+        await screen.findByRole("dialog", { name: "Add Electrical Node" }),
+      ).getByRole("button", { name: "Create" }),
+    );
+    await waitFor(() =>
+      expect(api.createElectricalNode).toHaveBeenCalledWith("p", "r", null),
     );
   });
 
