@@ -25,7 +25,7 @@ describe("revision navigation", () => {
         "p",
         "next",
         "r",
-        "workspace=model&view=topology&equipment=e&document=d&search=bus",
+        "workspace=model&view=topology&equipment=e&document=d&node=n&connection=c&search=bus",
       ),
     ).toBe(
       "/projects/p/revisions/next?workspace=model&view=topology&search=bus",
@@ -42,6 +42,17 @@ describe("revision navigation", () => {
     );
     expect(revisionHref("p", "r", "r", old, "topology")).toBe(
       "/projects/p/revisions/r?workspace=model&view=topology&filter=active",
+    );
+    expect(
+      revisionHref(
+        "p",
+        "r",
+        "r",
+        "workspace=model&view=topology&node=n&connection=c&keep=yes",
+        "equipment",
+      ),
+    ).toBe(
+      "/projects/p/revisions/r?workspace=model&view=equipment&keep=yes",
     );
   });
   it("keeps editor state with its equipment and drops it with the selection", () => {

@@ -136,14 +136,12 @@ describe("revision model workspace", () => {
     );
     nav.search = "keep=yes&workspace=model&view=topology";
     view.rerender(<RevisionWorkspace {...props} />);
-    fireEvent.click(
-      within(
-        screen.getByRole("group", { name: "Revision workspace" }),
-      ).getByText("Documents"),
-    );
-    expect(nav.replace).toHaveBeenLastCalledWith(`${path}?keep=yes`, {
-      scroll: false,
-    });
+    expect(
+      screen.queryByRole("group", { name: "Revision workspace" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: "Engineering Model view" }),
+    ).not.toBeInTheDocument();
     nav.search = "keep=yes";
     view.rerender(<RevisionWorkspace {...props} />);
     expect(screen.getByText("Existing Documents workspace")).toBeVisible();

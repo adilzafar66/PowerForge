@@ -80,7 +80,9 @@ export function AppFrame({ children }: { children: ReactNode }) {
   const projectBar =
     uiC ||
     (!!revisionId &&
-      (destination === "equipment" || destination === "documents"));
+      (destination === "equipment" ||
+        destination === "documents" ||
+        destination === "topology"));
   const currentLabel =
     pathname === "/status"
       ? "System Status"

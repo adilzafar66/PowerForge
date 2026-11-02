@@ -114,7 +114,11 @@ export const documents = [
     document_number: "E-420",
     description: null,
     added_at: "2026-01-11T12:00:00Z",
-    processing: { ...document.processing, pages_processed: 28, pages_total: 28 },
+    processing: {
+      ...document.processing,
+      pages_processed: 28,
+      pages_total: 28,
+    },
     classification: {
       enabled: true,
       suggestion: {
@@ -176,9 +180,24 @@ export const documents = [
   },
 ];
 const artifacts = [
-  { artifact_type: "ANALYSIS_IMAGE", mime_type: "image/png", width_px: 1700, height_px: 2200 },
-  { artifact_type: "THUMBNAIL", mime_type: "image/webp", width_px: 618, height_px: 800 },
-  { artifact_type: "NATIVE_TEXT", mime_type: "text/plain", width_px: null, height_px: null },
+  {
+    artifact_type: "ANALYSIS_IMAGE",
+    mime_type: "image/png",
+    width_px: 1700,
+    height_px: 2200,
+  },
+  {
+    artifact_type: "THUMBNAIL",
+    mime_type: "image/webp",
+    width_px: 618,
+    height_px: 800,
+  },
+  {
+    artifact_type: "NATIVE_TEXT",
+    mime_type: "text/plain",
+    width_px: null,
+    height_px: null,
+  },
 ];
 export const pages = [1, 2].map((page_number) => ({
   id: `page-${page_number}`,
@@ -335,6 +354,28 @@ export const nodes = [
     inherited_from_node_id: null,
   },
   ...terminals,
+  {
+    ...audit,
+    id: "t3",
+    kind: "EQUIPMENT_TERMINAL",
+    managed_by_profile: false,
+    equipment_id: "e1",
+    terminal_key: "SPARE",
+    label: "Spare stub",
+    inherited_from_node_id: null,
+  },
+  {
+    ...audit,
+    id: "n-removed",
+    kind: "ELECTRICAL_NODE",
+    managed_by_profile: false,
+    equipment_id: null,
+    terminal_key: null,
+    label: "Spare junction",
+    inherited_from_node_id: null,
+    lifecycle_status: "REMOVED",
+    removed_at: stamp,
+  },
 ];
 export const connections = [
   {
@@ -344,11 +385,39 @@ export const connections = [
     to_node_id: "n1",
     connection_kind: "ELECTRICAL",
     direction: "UNDIRECTED",
+    phase_configuration: "3",
+    nominal_voltage: "13.8",
+    nominal_voltage_unit: "kV",
+    confidence: null,
+    inherited_from_connection_id: null,
+  },
+  {
+    ...audit,
+    id: "c2",
+    from_node_id: "t1",
+    to_node_id: "n1",
+    connection_kind: "ELECTRICAL",
+    direction: "NOMINAL_FROM_TO",
+    phase_configuration: null,
+    nominal_voltage: "600",
+    nominal_voltage_unit: "V",
+    confidence: null,
+    inherited_from_connection_id: null,
+  },
+  {
+    ...audit,
+    id: "c-removed",
+    from_node_id: "n-removed",
+    to_node_id: "t2",
+    connection_kind: "GROUNDING",
+    direction: "UNDIRECTED",
     phase_configuration: null,
     nominal_voltage: null,
     nominal_voltage_unit: null,
     confidence: null,
     inherited_from_connection_id: null,
+    lifecycle_status: "REMOVED",
+    removed_at: stamp,
   },
 ];
 const definition = (key, display_name, value_type, extra = {}) => ({

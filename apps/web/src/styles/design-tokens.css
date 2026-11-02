@@ -128,6 +128,14 @@
   --pf-viewer-thumb-active: #92aec0;
   --pf-shadow-viewer-page: 0 8px 26px rgba(24, 38, 56, 0.17);
 
+  /* Topology workspace */
+  --pf-topology-max: 1560px;
+  --pf-topology-inspector: 344px;
+  --pf-topology-drawer: 495px;
+  --pf-topology-notice: #f0f6fa;
+  --pf-topology-notice-border: #d6e1e9;
+  --pf-topology-notice-text: #355a74;
+
   /* Corners and elevation */
   --pf-radius-sm: 7px;
   --pf-radius-md: 9px;

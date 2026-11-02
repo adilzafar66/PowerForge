@@ -12,6 +12,7 @@ import { ReadOnlyBanner } from "@/components/read-only-banner";
 import {
   isDocumentsView,
   isEquipmentView,
+  isTopologyView,
   RevisionWorkspace,
 } from "@/components/revision-workspace";
 import { RevisionLineage } from "@/components/revision-lineage";
@@ -40,6 +41,7 @@ export function RevisionPageContent({
   const overview = params.get("view") === "overview";
   const equipment = isEquipmentView(params);
   const documents = isDocumentsView(params);
+  const topology = isTopologyView(params);
   const p = initialProject.id,
     r = initialRevision.id;
   const pq = useQuery({
@@ -64,7 +66,7 @@ export function RevisionPageContent({
     <AppShell project={project} revision={revision} revisions={revisions}>
       <div
         className={
-          overview || documents
+          overview || documents || topology
             ? "w-full min-w-0"
             : equipment
               ? "mx-auto w-full max-w-[var(--pf-equipment-max)] min-w-0 px-[47px] pt-[39px] pb-[76px] text-ink max-[1230px]:p-7 max-[700px]:px-[15px] max-[700px]:py-[22px]"
@@ -88,10 +90,10 @@ export function RevisionPageContent({
           />
         ) : (
           <>
-            {!equipment && !documents && (
+            {!equipment && !documents && !topology && (
               <RevisionSummary project={project} revision={revision} />
             )}
-            {!documents && (
+            {!documents && !topology && (
               <ReadOnlyBanner project={project} revision={revision} />
             )}
             <Suspense fallback={null}>

@@ -1,13 +1,7 @@
 "use client";
 
-import { useId, useState, type ReactNode, type FormEvent } from "react";
-import {
-  ModelNotice,
-  ModelSelect,
-  ModelSheet,
-  useModel,
-} from "@/components/model-shared";
-import { Button } from "@/components/ui/button";
+import { useEffect, useId, useState, type FormEvent } from "react";
+import { ModelNotice, ModelSelect, useModel } from "@/components/model-shared";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { apiErrorOf } from "@/lib/api";
@@ -21,19 +15,22 @@ import {
   type ModelConnection,
   type ModelNode,
 } from "@/lib/engineering-model";
+import { isPositiveFiniteNumber } from "@/lib/topology-presentation";
 
 export function ConnectionEditorSheet({
   row,
   nodes,
   labels,
+  formId,
   onClose,
-  children,
+  onDirtyChange,
 }: {
   row?: ModelConnection;
   nodes: ModelNode[];
   labels: Map<string, string>;
+  formId?: string;
   onClose: () => void;
-  children?: ReactNode;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const { projectId, revisionId, registry, writable, changed, failed } =
     useModel();
@@ -78,17 +75,41 @@ export function ConnectionEditorSheet({
         : null;
     }
   }
-  const valid =
+  const dirty = row
+    ? Object.keys(patch).length > 0
+    : Boolean(
+        draft.from_node_id ||
+        draft.to_node_id ||
+        draft.phase_configuration ||
+        draft.nominal_voltage ||
+        draft.connection_kind !== "ELECTRICAL" ||
+        draft.direction !== "UNDIRECTED",
+      );
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
+
+  const distinct =
     !!draft.from_node_id &&
     !!draft.to_node_id &&
-    draft.from_node_id !== draft.to_node_id &&
-    [draft.from_node_id, draft.to_node_id].every((id) =>
-      activeNodes.some((n) => n.id === id),
-    );
+    draft.from_node_id !== draft.to_node_id;
+  const activeEndpoints = [draft.from_node_id, draft.to_node_id].every(
+    (nodeId) => activeNodes.some((n) => n.id === nodeId),
+  );
+
   async function save(e: FormEvent) {
     e.preventDefault();
-    if (!editable || busy || !valid || (row && !Object.keys(patch).length))
+    if (!editable || busy) return;
+    if (!distinct || !activeEndpoints) {
+      setError("Select two different active endpoint nodes.");
       return;
+    }
+    if (!isPositiveFiniteNumber(draft.nominal_voltage)) {
+      setError("Nominal voltage must be a positive finite number.");
+      return;
+    }
+    if (row && !Object.keys(patch).length) return;
     setBusy(true);
     setError(null);
     try {
@@ -117,74 +138,81 @@ export function ConnectionEditorSheet({
       setBusy(false);
     }
   }
+
   return (
-    <ModelSheet
-      title={row ? "Edit Connection" : "Add Connection"}
-      onClose={onClose}
+    <form
+      id={formId}
+      aria-label="Connection editor"
+      onSubmit={save}
+      className="space-y-4"
     >
-      {children}
-      <form onSubmit={save} className="space-y-4">
-        {(["from_node_id", "to_node_id"] as const).map((key, i) => (
-          <ModelSelect
-            key={key}
-            label={i === 0 ? "From Node" : "To Node"}
-            value={draft[key]}
-            disabled={!editable || busy}
-            onChange={(value) => setDraft({ ...draft, [key]: value })}
-          >
-            <option value="">Select active node</option>
-            {nodes
-              .filter(
-                (n) =>
-                  n.lifecycle_status === "ACTIVE" ||
-                  n.id === row?.from_node_id ||
-                  n.id === row?.to_node_id,
-              )
-              .map((n) => (
-                <option
-                  key={n.id}
-                  value={n.id}
-                  disabled={
-                    n.id === draft[i === 0 ? "to_node_id" : "from_node_id"]
-                  }
-                >
-                  {labels.get(n.id)}
-                </option>
-              ))}
-          </ModelSelect>
-        ))}
+      {(["from_node_id", "to_node_id"] as const).map((key, i) => (
         <ModelSelect
-          label="Connection Kind"
-          value={draft.connection_kind}
+          key={key}
+          label={i === 0 ? "From node" : "To node"}
+          value={draft[key]}
           disabled={!editable || busy}
-          onChange={(v) =>
-            setDraft({ ...draft, connection_kind: v as ConnectionKind })
+          onChange={(value) => setDraft({ ...draft, [key]: value })}
+        >
+          <option value="">Select active node</option>
+          {nodes
+            .filter(
+              (n) =>
+                n.lifecycle_status === "ACTIVE" ||
+                n.id === row?.from_node_id ||
+                n.id === row?.to_node_id,
+            )
+            .map((n) => (
+              <option
+                key={n.id}
+                value={n.id}
+                disabled={
+                  n.id === draft[i === 0 ? "to_node_id" : "from_node_id"]
+                }
+              >
+                {labels.get(n.id)}
+              </option>
+            ))}
+        </ModelSelect>
+      ))}
+      <p className="m-0 text-workspace-caption text-muted">
+        From and To must be different active nodes.
+      </p>
+      <ModelSelect
+        label="Connection kind"
+        value={draft.connection_kind}
+        disabled={!editable || busy}
+        onChange={(v) =>
+          setDraft({ ...draft, connection_kind: v as ConnectionKind })
+        }
+      >
+        <option value="ELECTRICAL">Electrical</option>
+        <option value="GROUNDING">Grounding</option>
+        <option value="OTHER">Other</option>
+      </ModelSelect>
+      <ModelSelect
+        label="Nominal direction"
+        value={draft.direction}
+        disabled={!editable || busy}
+        onChange={(v) => setDraft({ ...draft, direction: v as Direction })}
+      >
+        <option value="UNDIRECTED">Undirected</option>
+        <option value="NOMINAL_FROM_TO">Nominal from → to</option>
+      </ModelSelect>
+      <Field id={`${id}-phase`} label="Phase configuration">
+        <Input
+          id={`${id}-phase`}
+          value={draft.phase_configuration}
+          maxLength={80}
+          placeholder="e.g. 3"
+          disabled={!editable || busy}
+          onChange={(e) =>
+            setDraft({ ...draft, phase_configuration: e.target.value })
           }
-        >
-          <option value="ELECTRICAL">Electrical</option>
-          <option value="GROUNDING">Grounding</option>
-          <option value="OTHER">Other</option>
-        </ModelSelect>
-        <ModelSelect
-          label="Direction"
-          value={draft.direction}
-          disabled={!editable || busy}
-          onChange={(v) => setDraft({ ...draft, direction: v as Direction })}
-        >
-          <option value="UNDIRECTED">Undirected</option>
-          <option value="NOMINAL_FROM_TO">Nominal from → to</option>
-        </ModelSelect>
-        <Field id={`${id}-phase`} label="Phase Configuration">
-          <Input
-            id={`${id}-phase`}
-            value={draft.phase_configuration}
-            disabled={!editable || busy}
-            onChange={(e) =>
-              setDraft({ ...draft, phase_configuration: e.target.value })
-            }
-          />
-        </Field>
-        <Field id={`${id}-voltage`} label="Nominal Voltage">
+        />
+      </Field>
+      <div className="grid grid-cols-[minmax(0,1fr)_110px] items-end gap-2.5 max-[520px]:grid-cols-1">
+        <Field id={`${id}-voltage`} label="Nominal voltage">
           <Input
             id={`${id}-voltage`}
             inputMode="decimal"
@@ -195,34 +223,24 @@ export function ConnectionEditorSheet({
             }
           />
         </Field>
-        {draft.nominal_voltage.trim() && (
-          <ModelSelect
-            label="Voltage Input Unit"
-            value={draft.nominal_voltage_unit}
-            disabled={!editable || busy}
-            onChange={(v) => setDraft({ ...draft, nominal_voltage_unit: v })}
-          >
-            {voltageFamily?.supported_input_units.map((unit) => (
-              <option key={unit} value={unit}>
-                {unit}
-              </option>
-            ))}
-          </ModelSelect>
-        )}
-        <p className="text-xs text-slate-500">
-          Voltage is converted on save. Nominal direction describes endpoint
-          order, not calculated power flow.
-        </p>
-        {error && <ModelNotice>{error}</ModelNotice>}
-        {editable && (
-          <Button
-            type="submit"
-            disabled={busy || !valid || (!!row && !Object.keys(patch).length)}
-          >
-            {busy ? "Saving…" : row ? "Save connection" : "Create connection"}
-          </Button>
-        )}
-      </form>
-    </ModelSheet>
+        <ModelSelect
+          label="Voltage unit"
+          value={draft.nominal_voltage_unit}
+          disabled={!editable || busy}
+          onChange={(v) => setDraft({ ...draft, nominal_voltage_unit: v })}
+        >
+          {voltageFamily?.supported_input_units.map((unit) => (
+            <option key={unit} value={unit}>
+              {unit}
+            </option>
+          ))}
+        </ModelSelect>
+      </div>
+      <p className="m-0 text-workspace-caption text-muted">
+        Exact decimal input is preserved. The server normalizes to kV. Nominal
+        direction describes stored endpoint order, not electrical power flow.
+      </p>
+      {error ? <ModelNotice>{error}</ModelNotice> : null}
+    </form>
   );
 }

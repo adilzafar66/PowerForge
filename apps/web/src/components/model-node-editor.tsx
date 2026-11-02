@@ -1,8 +1,7 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { ModelNotice, useModel } from "@/components/model-shared";
-import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { apiErrorOf } from "@/lib/api";
@@ -14,19 +13,27 @@ import {
   type ModelNode,
   type NodePatch,
 } from "@/lib/engineering-model";
+import { nodeKindLabel } from "@/lib/topology-presentation";
 
 export function ModelNodeEditor({
   row,
   equipmentId,
+  equipmentName,
+  formId,
   onSaved,
+  onDirtyChange,
 }: {
   row?: ModelNode;
   equipmentId?: string;
+  equipmentName?: string | null;
+  formId?: string;
   onSaved: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const { projectId, revisionId, writable, changed, failed } = useModel();
   const editable = writable && (!row || row.lifecycle_status === "ACTIVE");
   const terminal = !!equipmentId || row?.kind === "EQUIPMENT_TERMINAL";
+  const managed = !!row?.managed_by_profile;
   const [key, setKey] = useState(row?.terminal_key ?? "");
   const [label, setLabel] = useState(row?.label ?? "");
   const [busy, setBusy] = useState(false);
@@ -35,8 +42,16 @@ export function ModelNodeEditor({
   const patch: NodePatch = row
     ? changedText({ label: row.label }, { label })
     : { label: label || null };
-  if (terminal && key !== (row?.terminal_key ?? ""))
+  if (terminal && !managed && key !== (row?.terminal_key ?? ""))
     patch.terminal_key = key.trim();
+  const dirty = row
+    ? Object.keys(patch).length > 0
+    : Boolean(label.trim() || (terminal && key.trim()));
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+  useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
+
   async function save(e: FormEvent) {
     e.preventDefault();
     if (!editable || busy || (row && !Object.keys(patch).length)) return;
@@ -59,45 +74,64 @@ export function ModelNodeEditor({
       setBusy(false);
     }
   }
+
   return (
-    <form onSubmit={save} className="space-y-3">
-      {terminal && (
-        <Field id={`${id}-key`} label="Terminal key" required>
-          <Input
-            id={`${id}-key`}
-            value={key}
-            disabled={!editable || busy || row?.managed_by_profile}
-            onChange={(e) => setKey(e.target.value)}
-          />
-        </Field>
-      )}
-      <Field id={`${id}-label`} label="Label">
+    <form
+      id={formId}
+      aria-label="Node editor"
+      onSubmit={save}
+      className="space-y-4"
+    >
+      <Field id={`${id}-kind`} label="Node kind">
+        <Input
+          id={`${id}-kind`}
+          value={
+            terminal
+              ? nodeKindLabel("EQUIPMENT_TERMINAL")
+              : nodeKindLabel("ELECTRICAL_NODE")
+          }
+          disabled
+        />
+        <p className="m-0 mt-1.5 text-workspace-caption text-muted">
+          Node kind and equipment ownership cannot be changed after creation.
+        </p>
+      </Field>
+      {terminal ? (
+        <>
+          <Field id={`${id}-owner`} label="Owning equipment">
+            <Input id={`${id}-owner`} value={equipmentName ?? "—"} disabled />
+          </Field>
+          <Field id={`${id}-key`} label="Terminal key" required={!managed}>
+            <Input
+              id={`${id}-key`}
+              value={key}
+              maxLength={80}
+              disabled={!editable || busy || managed}
+              onChange={(e) => setKey(e.target.value)}
+            />
+            {managed ? (
+              <p className="m-0 mt-1.5 text-workspace-caption text-muted">
+                Profile-managed terminal keys are controlled by the equipment
+                type.
+              </p>
+            ) : null}
+          </Field>
+        </>
+      ) : null}
+      <Field id={`${id}-label`} label="Display label">
         <Input
           id={`${id}-label`}
           value={label}
+          maxLength={120}
+          placeholder="e.g. LV distribution junction"
           disabled={!editable || busy}
           onChange={(e) => setLabel(e.target.value)}
         />
+        <p className="m-0 mt-1.5 text-workspace-caption text-muted">
+          Leave blank to use a generated display name for standalone nodes.
+        </p>
       </Field>
-      {error && <ModelNotice>{error}</ModelNotice>}
-      {editable && (
-        <Button
-          type="submit"
-          disabled={
-            busy ||
-            (terminal && !key.trim()) ||
-            (!!row && !Object.keys(patch).length)
-          }
-        >
-          {busy
-            ? "Saving…"
-            : row
-              ? "Save node"
-              : terminal
-                ? "Create terminal"
-                : "Create electrical node"}
-        </Button>
-      )}
+      {error ? <ModelNotice>{error}</ModelNotice> : null}
     </form>
   );
 }

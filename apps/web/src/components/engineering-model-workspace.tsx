@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { EquipmentWorkspace } from "@/components/equipment-workspace";
 import { TopologyWorkspace } from "@/components/topology-workspace";
 import {
@@ -9,41 +9,33 @@ import {
   ModelContext,
   ModelNotice,
 } from "@/components/model-shared";
-import { SegmentedControl } from "@/components/ui/segmented-control";
 import { apiErrorOf } from "@/lib/api";
 import { isReadOnlyErrorCode } from "@/lib/documents";
 import { getEngineeringRegistry } from "@/lib/engineering-model";
 import { useQueryClient } from "@tanstack/react-query";
 import { useResource } from "@/lib/query-hooks";
 import { keys } from "@/lib/query-keys";
-import { clearEquipment } from "@/lib/workspace-navigation";
 
 export function EngineeringModelWorkspace({
   projectId,
   revisionId,
   revisionLabel,
   canMutate,
+  readOnlyReason,
   active,
 }: {
   projectId: string;
   revisionId: string;
   revisionLabel?: string;
   canMutate: boolean;
+  readOnlyReason?: string | null;
   active: boolean;
 }) {
   const router = useRouter();
   const client = useQueryClient();
   const registry = useResource(keys.registry, getEngineeringRegistry, active);
   const params = useSearchParams();
-  const path = usePathname();
   const view = params.get("view") === "topology" ? "topology" : "equipment";
-  function setView(value: string) {
-    const next = new URLSearchParams(params.toString());
-    next.set("workspace", "model");
-    next.set("view", value);
-    if (value === "topology") clearEquipment(next);
-    router.replace(`${path}?${next}`, { scroll: false });
-  }
   const [locked, setLocked] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const changed = useCallback(() => {
@@ -83,20 +75,9 @@ export function EngineeringModelWorkspace({
         failed,
       }}
     >
-      {view === "topology" && (
-        <SegmentedControl
-          label="Engineering Model view"
-          className="mb-4 w-fit"
-          value={view}
-          onChange={setView}
-          options={[
-            { value: "equipment", label: "Equipment" },
-            { value: "topology", label: "Topology" },
-          ]}
-        />
-      )}
       <LoadState {...registry} />
       {message &&
+        view !== "topology" &&
         (message === "Saved." ? (
           toast ? (
             <p
@@ -113,7 +94,7 @@ export function EngineeringModelWorkspace({
         ) : (
           <ModelNotice>{message}</ModelNotice>
         ))}
-      {locked && (
+      {locked && view !== "topology" && (
         <p role="status" className="mb-3 text-sm text-amber-800">
           This revision is read-only. Further edits are unavailable.
         </p>
@@ -121,7 +102,15 @@ export function EngineeringModelWorkspace({
       <div hidden={view !== "equipment"}>
         <EquipmentWorkspace active={active && view === "equipment"} />
       </div>
-      {view === "topology" && active && <TopologyWorkspace />}
+      {view === "topology" && active && (
+        <TopologyWorkspace
+          readOnlyReason={
+            locked
+              ? "This revision is read-only. Further edits are unavailable."
+              : readOnlyReason
+          }
+        />
+      )}
     </ModelContext.Provider>
   );
 }

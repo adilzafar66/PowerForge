@@ -251,6 +251,7 @@ try {
     await page
       .getByRole("complementary", { name: "Equipment quick details" })
       .getByText("LINE ↔ Main bus")
+      .first()
       .waitFor();
     await shot(`${prefix}-equipment-quick`);
     for (const tab of ["general", "attributes", "terminals"]) {
@@ -409,7 +410,7 @@ try {
     await page
       .getByRole("textbox", { name: "Description", exact: true })
       .fill("Unsaved fixture draft");
-    await page.getByRole("row", { name: /Substation_SLD/ }).click();
+    await page.getByRole("button", { name: "Close details", exact: true }).click();
     await page
       .getByRole("dialog", { name: "Discard unsaved changes?" })
       .waitFor();
@@ -442,6 +443,50 @@ try {
       .click();
     await shot("topology-editor");
     await page.keyboard.press("Escape");
+    for (const width of [1440, 1024, 390]) {
+      const prefix = `topology-${width}`;
+      await page.setViewportSize({
+        width,
+        height: width === 390 ? 844 : 1000,
+      });
+      const topology = r + "?workspace=model&view=topology";
+      await go(topology);
+      await page.getByRole("table", { name: "Nodes" }).waitFor();
+      await shot(`${prefix}-overview`);
+      await go(`${topology}&node=t1`);
+      await page
+        .getByRole("dialog")
+        .filter({ has: page.getByRole("button", { name: "Close inspector" }) })
+        .waitFor();
+      await shot(`${prefix}-node-inspector`);
+      await go(`${topology}&connection=c1`);
+      await page.getByRole("button", { name: "Edit connection" }).waitFor();
+      await shot(`${prefix}-connection-inspector`);
+      await page.getByRole("button", { name: "Edit connection" }).click();
+      await page.getByRole("dialog", { name: "Edit Connection" }).waitFor();
+      await shot(`${prefix}-edit-connection`);
+      await page.keyboard.press("Escape");
+      await go(topology);
+      await page.getByRole("button", { name: "Add Electrical Node" }).click();
+      await page.getByRole("dialog", { name: "Add Electrical Node" }).waitFor();
+      await shot(`${prefix}-add-node`);
+      await page.keyboard.press("Escape");
+      await go(`${topology}&node=n1`);
+      await page.getByRole("button", { name: "Remove" }).click();
+      await page.getByRole("dialog", { name: "Remove node?" }).waitFor();
+      await shot(`${prefix}-remove-confirm`);
+      await page.keyboard.press("Escape");
+      scenario = "readonly";
+      await go(topology);
+      await page.getByRole("table", { name: "Nodes" }).waitFor();
+      await shot(`${prefix}-readonly`);
+      scenario = "normal";
+      await go(topology);
+      await page.getByLabel("Search topology").fill("zzzzz");
+      await page.getByText("No nodes match this filter.").waitFor();
+      await shot(`${prefix}-empty`);
+    }
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await go("/");
     const rowLink = page.locator("tbody a").first();
     await rowLink.focus();
