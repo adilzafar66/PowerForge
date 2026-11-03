@@ -13,6 +13,7 @@ from powerforge_api.schemas.extraction import (
     Coverage,
     EvidenceDetail,
     EvidenceSummary,
+    ExecutionSummary,
     ExtractionSummary,
     RunDetail,
     RunList,
@@ -31,6 +32,7 @@ from powerforge_document_processing.models import (
     RevisionDocument,
 )
 from powerforge_document_processing.storage.base import ObjectStorage, StorageError
+from powerforge_extraction.controls import RunExecution, UnitExecution
 from powerforge_extraction.enums import (
     CandidateKind,
     EvidenceRole,
@@ -42,12 +44,14 @@ from powerforge_extraction.models import (
     CandidateEvidence,
     Evidence,
     ExtractedTable,
+    ExtractionAICall,
     ExtractionCandidate,
     ExtractionRun,
     ExtractionWorkUnit,
     SourceGroup,
 )
 from powerforge_extraction.persistence import effective_units
+from powerforge_extraction.profiles import ExecutionProfile
 from powerforge_provenance.locations import Region
 
 
@@ -56,6 +60,7 @@ class ExtractionReadService:
         self, session: Session, project_id: UUID, revision_id: UUID, revision_document_id: UUID
     ) -> None:
         self.session = session
+        self.revision_document_id = revision_document_id
         self.revision_id = revision_id
         self.document_id = session.scalar(
             select(RevisionDocument.document_id)
@@ -143,14 +148,76 @@ class ExtractionReadService:
     def detail(self, run_id: UUID) -> RunDetail:
         run = self._run(run_id)
         coverage, rows = self.coverage(run)
+        control = self.session.get(RunExecution, run.id)
+        profile = ExecutionProfile.model_validate(control.configuration) if control else None
+        now = self.session.scalar(select(func.clock_timestamp()))
+        calls = (
+            list(
+                self.session.scalars(
+                    select(ExtractionAICall).where(ExtractionAICall.run_id == run.id)
+                )
+            )
+            if control
+            else []
+        )
+        execution = None
+        if control:
+            started = self.session.scalar(
+                select(func.count())
+                .select_from(UnitExecution)
+                .where(
+                    UnitExecution.run_id == run.id, UnitExecution.provider_started_at.is_not(None)
+                )
+            )
+            all_reported = len(calls) == control.calls_admitted
+            execution = ExecutionSummary(
+                profile_key=profile.key,
+                execution_kind=profile.execution_kind,
+                cancel_requested_at=control.cancel_requested_at,
+                calls_admitted=control.calls_admitted,
+                call_budget=profile.max_calls,
+                reported_calls=len(calls),
+                provider_calls_started=started,
+                unreported_provider_calls=max(0, started - len(calls)),
+                unreported_admissions=control.calls_admitted - len(calls),
+                input_tokens=sum(c.input_tokens for c in calls)
+                if all_reported and calls and all(c.input_tokens is not None for c in calls)
+                else None,
+                output_tokens=sum(c.output_tokens for c in calls)
+                if all_reported and calls and all(c.output_tokens is not None for c in calls)
+                else None,
+                estimated_cost_usd=sum(c.estimated_cost_usd for c in calls)
+                if all_reported and calls and all(c.estimated_cost_usd is not None for c in calls)
+                else None,
+            )
+        computed = {"effective", "retryable", "stale"}
         return RunDetail(
             run=RunResponse.model_validate(run),
             coverage=coverage,
+            execution=execution,
             attempts=[
                 UnitResponse.model_validate(
                     {
-                        **{k: getattr(r, k) for k in UnitResponse.model_fields if k != "effective"},
+                        **{
+                            k: getattr(r, k) for k in UnitResponse.model_fields if k not in computed
+                        },
                         "effective": r.status == WorkUnitStatus.COMPLETED,
+                        "retryable": bool(
+                            profile
+                            and run.status
+                            in {ExtractionRunStatus.FAILED, ExtractionRunStatus.PARTIALLY_COMPLETED}
+                            and r.status in {WorkUnitStatus.FAILED, WorkUnitStatus.CANCELLED}
+                            and r.attempt_number < profile.max_attempts
+                            and control.calls_admitted < profile.max_calls
+                            and not any(
+                                other.unit_key == r.unit_key
+                                and other.attempt_number > r.attempt_number
+                                for other in rows
+                            )
+                        ),
+                        "stale": r.status == WorkUnitStatus.RUNNING
+                        and r.lease_expires_at is not None
+                        and r.lease_expires_at <= now,
                     }
                 )
                 for r in rows

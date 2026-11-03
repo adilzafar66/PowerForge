@@ -26,6 +26,10 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     task_track_started=True,
+    imports=("extraction_worker.extraction_tasks",),
+    worker_prefetch_multiplier=1,
+    broker_connection_timeout=2,
+    broker_transport_options={"socket_connect_timeout": 2, "socket_timeout": 2},
 )
 
 
@@ -50,7 +54,13 @@ def require_openai_credentials(chosen: Settings) -> None:
 
 @lru_cache
 def _engine():
-    return create_engine(get_settings().database_url, pool_pre_ping=True, future=True)
+    return create_engine(
+        get_settings().database_url,
+        pool_pre_ping=True,
+        future=True,
+        connect_args={"connect_timeout": 2},
+        pool_timeout=5,
+    )
 
 
 def _open_session() -> Session:

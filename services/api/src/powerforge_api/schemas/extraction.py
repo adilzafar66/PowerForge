@@ -1,6 +1,8 @@
 """Explicit read allowlists; storage keys and internal execution metadata stay private."""
 
 from datetime import datetime
+from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -65,6 +67,10 @@ class UnitResponse(ReadModel):
     finished_at: datetime | None
     error_code: str | None
     output_counts: dict[str, int]
+    lease_expires_at: datetime | None = None
+    heartbeat_at: datetime | None = None
+    retryable: bool = False
+    stale: bool = False
     effective: bool
 
 
@@ -79,6 +85,7 @@ class RunDetail(BaseModel):
     run: RunResponse
     coverage: Coverage
     attempts: list[UnitResponse]
+    execution: "ExecutionSummary | None" = None
 
 
 class ExtractionSummary(BaseModel):
@@ -173,3 +180,46 @@ class EvidenceDetail(EvidenceSummary):
     created_at: datetime
     artifact_url: str | None
     artifact_url_expires_seconds: int | None
+
+
+class ExtractionStartRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    profile_key: str = Field(default="infrastructure-fake-v1", min_length=1, max_length=100)
+    pages: list[int] | None = Field(default=None, min_length=1, max_length=1000)
+    mode: Literal["ensure", "reextract"] = "ensure"
+
+
+class ProfileInfo(BaseModel):
+    key: str
+    execution_kind: str
+    provider: str
+    model: str
+    enabled: bool
+    production_extractor: bool = False
+    description: str
+
+
+class ProfileList(BaseModel):
+    items: list[ProfileInfo]
+
+
+class ExecutionSummary(BaseModel):
+    profile_key: str
+    execution_kind: str
+    cancel_requested_at: datetime | None
+    calls_admitted: int
+    call_budget: int
+    reported_calls: int
+    provider_calls_started: int
+    unreported_provider_calls: int
+    unreported_admissions: int
+    input_tokens: int | None
+    output_tokens: int | None
+    estimated_cost_usd: Decimal | None
+
+
+RunDetail.model_rebuild()
+
+
+class ExtractionActionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)

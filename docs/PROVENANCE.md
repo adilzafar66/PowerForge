@@ -80,3 +80,10 @@ Specified in `cursor/phase4_specs.txt` and [ADR-006](../decisions/ADR-006-ai-doc
 - **Inheritance and reuse copy that id** together with the type, number, description, and notes. A reuse that supplies its own type clears the id.
 - **Submitting a type clears the id**, even when the submitted value equals the stored type. That keeps a manual choice from looking like an AI accept.
 - **A failed classification is not the suggestion.** Its predictions may remain stored. They are not evidence and they cannot be accepted.
+
+
+## Phase 6B execution provenance
+
+Execution adds immutable versioned profile snapshots and append-only call admission/attempt history without copying source identity. Each source-probe unit pins one exact native-text or analysis-image artifact. Workers verify artifact bytes/hash and enforce byte/pixel bounds before provider invocation. Structured source excerpts must be verbatim substrings of pinned native text; unknown geometry remains null. Fake/test observations carry explicit synthetic diagnostics and their run identifies FAKE_TEST execution. Real infrastructure probes do not manufacture engineering candidates.
+
+Database-fenced leases prevent stale, superseded or cancelled workers from publishing through the 6A boundary. A cancellation preserves previously committed evidence/candidates; a retry appends unsuccessful attempts rather than replacing successful outputs. Cancelled/completed runs remain immutable and require explicit new re-extraction. Call telemetry stores only safe technical identities/usage/errors and optional known-basis cost estimates. Missing usage, interrupted calls and possible crash-window charges remain unknown rather than fabricated zeroes. See [PHASE6B_HANDOFF.md](PHASE6B_HANDOFF.md).

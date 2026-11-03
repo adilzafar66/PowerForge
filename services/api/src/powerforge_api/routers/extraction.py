@@ -1,9 +1,12 @@
 """Phase 6A exposes read-only document extraction resources."""
 
+import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from powerforge_api.db import get_session
@@ -12,7 +15,11 @@ from powerforge_api.routers.errors import http_for, model_api_errors
 from powerforge_api.schemas.extraction import (
     CandidateList,
     EvidenceDetail,
+    ExtractionActionRequest,
+    ExtractionStartRequest,
     ExtractionSummary,
+    ProfileInfo,
+    ProfileList,
     RunDetail,
     RunList,
     TableList,
@@ -20,7 +27,11 @@ from powerforge_api.schemas.extraction import (
 from powerforge_api.services.extraction_service import ExtractionReadService
 from powerforge_document_processing.storage.base import ObjectStorage
 from powerforge_document_processing.storage.factory import get_object_storage
+from powerforge_extraction.enqueue import CeleryExtractionEnqueue, get_extraction_enqueue
 from powerforge_extraction.enums import CandidateKind, MappingStatus
+from powerforge_extraction.errors import ExtractionError
+from powerforge_extraction.orchestration import ExtractionCoordinator
+from powerforge_extraction.profiles import FAKE_PROFILE, OPENAI_PROFILE, resolve_profile
 from powerforge_shared.config import Settings, get_settings
 
 router = APIRouter(
@@ -104,3 +115,113 @@ def evidence(
 ) -> EvidenceDetail:
     with model_api_errors():
         return reader.evidence(evidence_id, storage, settings.s3_signed_url_expires_seconds)
+
+
+@contextmanager
+def action_errors(session: Session) -> Iterator[None]:
+    try:
+        with model_api_errors():
+            yield
+    except ExtractionError as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=exc.status_code, detail={"detail": str(exc), "code": exc.code}
+        ) from None
+    except Exception:
+        session.rollback()
+        raise
+
+
+def dispatch_committed(
+    session: Session, settings: Settings, enqueue: CeleryExtractionEnqueue
+) -> None:
+    try:
+        ExtractionCoordinator(session, settings).dispatch(enqueue)
+        session.commit()
+    except Exception as exc:
+        session.rollback()
+        logging.getLogger(__name__).warning(
+            "extraction delivery awaits recovery", extra={"error_class": type(exc).__name__}
+        )
+
+
+SessionDep = Annotated[Session, Depends(get_session)]
+SettingsDep = Annotated[Settings, Depends(get_settings)]
+EnqueueDep = Annotated[CeleryExtractionEnqueue, Depends(get_extraction_enqueue)]
+
+
+@router.get("/profiles", response_model=ProfileList)
+def profiles(reader: Service, settings: SettingsDep) -> ProfileList:
+    items = []
+    for key in [FAKE_PROFILE, OPENAI_PROFILE]:
+        profile = resolve_profile(key, settings)
+        items.append(
+            ProfileInfo(
+                key=key,
+                execution_kind=profile.execution_kind,
+                provider=profile.provider,
+                model=profile.model,
+                enabled=settings.extraction_enabled
+                and (profile.provider == "fake" or settings.extraction_external_enabled),
+                description="Synthetic test execution; no engineering interpretation"
+                if profile.provider == "fake"
+                else (
+                    "Opt-in provider/source probe; production engineering extraction is unavailable"
+                ),
+            )
+        )
+    return ProfileList(items=items)
+
+
+@router.post("/runs", response_model=RunDetail, status_code=202)
+def start(
+    reader: Service,
+    body: ExtractionStartRequest,
+    session: SessionDep,
+    settings: SettingsDep,
+    enqueue: EnqueueDep,
+) -> RunDetail:
+    with action_errors(session):
+        run = ExtractionCoordinator(session, settings).start(
+            reader.document_id,
+            revision_document_id=reader.revision_document_id,
+            profile_key=body.profile_key,
+            pages=body.pages,
+            mode=body.mode,
+        )
+        run_id = run.id
+        session.commit()
+        dispatch_committed(session, settings, enqueue)
+        return reader.detail(run_id)
+
+
+@router.post("/runs/{run_id}/retry", response_model=RunDetail, status_code=202)
+def retry(
+    reader: Service,
+    run_id: UUID,
+    session: SessionDep,
+    settings: SettingsDep,
+    enqueue: EnqueueDep,
+    body: ExtractionActionRequest | None = None,
+) -> RunDetail:
+    with action_errors(session):
+        reader._run(run_id)
+        ExtractionCoordinator(session, settings).retry(run_id)
+        session.commit()
+        dispatch_committed(session, settings, enqueue)
+        return reader.detail(run_id)
+
+
+@router.post("/runs/{run_id}/cancel", response_model=RunDetail)
+def cancel(
+    reader: Service,
+    run_id: UUID,
+    session: SessionDep,
+    settings: SettingsDep,
+    body: ExtractionActionRequest | None = None,
+) -> RunDetail:
+    with action_errors(session):
+        reader._run(run_id)
+        ExtractionCoordinator(session, settings).cancel(run_id)
+        session.commit()
+        return reader.detail(run_id)

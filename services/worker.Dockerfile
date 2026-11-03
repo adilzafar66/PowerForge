@@ -19,6 +19,8 @@ COPY packages/engineering-model /app/packages/engineering-model
 COPY packages/topology /app/packages/topology
 COPY packages/document-model /app/packages/document-model
 COPY packages/document-processing /app/packages/document-processing
+COPY packages/extraction /app/packages/extraction
+COPY packages/provenance /app/packages/provenance
 COPY packages/ai /app/packages/ai
 COPY packages/document-classification /app/packages/document-classification
 COPY services/${WORKER_PACKAGE} /app/services/worker
@@ -47,6 +49,8 @@ RUN pip install --no-cache-dir --upgrade pip \
             -e /app/packages/document-model \
             -e /app/packages/document-processing \
             -e /app/packages/document-classification \
+            -e /app/packages/extraction \
+            -e /app/packages/provenance \
             -e /app/packages/ai \
             -e /app/services/worker \
             "openai>=2" \

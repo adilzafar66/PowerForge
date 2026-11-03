@@ -1,3 +1,25 @@
+x-extraction-settings: &extraction-settings
+  EXTRACTION_ENABLED: ${EXTRACTION_ENABLED:-true}
+  EXTRACTION_EXTERNAL_ENABLED: ${EXTRACTION_EXTERNAL_ENABLED:-false}
+  EXTRACTION_MODEL: ${EXTRACTION_MODEL:-gpt-6-luna}
+  EXTRACTION_MAX_PAGES: ${EXTRACTION_MAX_PAGES:-50}
+  EXTRACTION_MAX_INPUT_BYTES: ${EXTRACTION_MAX_INPUT_BYTES:-2000000}
+  EXTRACTION_MAX_IMAGE_PIXELS: ${EXTRACTION_MAX_IMAGE_PIXELS:-20000000}
+  EXTRACTION_MAX_DOCUMENT_BYTES: ${EXTRACTION_MAX_DOCUMENT_BYTES:-262144000}
+  EXTRACTION_MAX_OUTPUT_TOKENS: ${EXTRACTION_MAX_OUTPUT_TOKENS:-1024}
+  EXTRACTION_MAX_ATTEMPTS: ${EXTRACTION_MAX_ATTEMPTS:-3}
+  EXTRACTION_MAX_CALLS: ${EXTRACTION_MAX_CALLS:-150}
+  EXTRACTION_MAX_CONCURRENT_PER_RUN: ${EXTRACTION_MAX_CONCURRENT_PER_RUN:-2}
+  EXTRACTION_MAX_CONCURRENT_GLOBAL: ${EXTRACTION_MAX_CONCURRENT_GLOBAL:-4}
+  EXTRACTION_TIMEOUT_SECONDS: ${EXTRACTION_TIMEOUT_SECONDS:-60}
+  EXTRACTION_LEASE_SECONDS: ${EXTRACTION_LEASE_SECONDS:-30}
+  EXTRACTION_BACKOFF_SECONDS: ${EXTRACTION_BACKOFF_SECONDS:-5}
+  EXTRACTION_REDISPATCH_SECONDS: ${EXTRACTION_REDISPATCH_SECONDS:-30}
+  EXTRACTION_RECOVERY_INTERVAL_SECONDS: ${EXTRACTION_RECOVERY_INTERVAL_SECONDS:-15}
+  EXTRACTION_PRICING_BASIS: ${EXTRACTION_PRICING_BASIS:-}
+  EXTRACTION_INPUT_USD_PER_MILLION: ${EXTRACTION_INPUT_USD_PER_MILLION:-}
+  EXTRACTION_OUTPUT_USD_PER_MILLION: ${EXTRACTION_OUTPUT_USD_PER_MILLION:-}
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -53,6 +75,7 @@ services:
       context: .
       dockerfile: services/api/Dockerfile
     environment:
+      <<: *extraction-settings
       DATABASE_URL: postgresql+psycopg://powerforge:powerforge@postgres:5432/powerforge
       REDIS_URL: redis://redis:6379/0
       S3_ENDPOINT_URL: http://minio:9000
@@ -123,8 +146,9 @@ services:
       args:
         WORKER_PACKAGE: extraction-worker
         CELERY_APP: extraction_worker.celery_app
-        CELERY_QUEUE: document_classification
+        CELERY_QUEUE: document_classification,document_extraction
     environment:
+      <<: *extraction-settings
       REDIS_URL: redis://redis:6379/0
       DATABASE_URL: postgresql+psycopg://powerforge:powerforge@postgres:5432/powerforge
       S3_ENDPOINT_URL: http://minio:9000
@@ -143,6 +167,21 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+
+  extraction-scheduler:
+    build:
+      context: .
+      dockerfile: services/worker.Dockerfile
+      args:
+        WORKER_PACKAGE: extraction-worker
+        CELERY_APP: extraction_worker.celery_app
+    command: celery -A extraction_worker.celery_app beat --loglevel=INFO --schedule=/tmp/extraction-beat
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql+psycopg://powerforge:powerforge@postgres:5432/powerforge
+    depends_on:
+      redis:
+        condition: service_healthy
 
   validation-worker:
     build:

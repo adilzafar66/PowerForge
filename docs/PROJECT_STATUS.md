@@ -2,13 +2,13 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** Phase 6A — Evidence and extraction persistence/read APIs. Phase 5 remains frozen.
+**Current implemented phase:** Phase 6B — Extraction orchestration and provider infrastructure. Phase 5 remains frozen.
 
 **UI redesign:** UI-A, UI-B and UI-C implemented — design system/app shell, reactive data/interaction states, and Projects/Revisions workspaces. Next UI milestone: UI-D. See [UI_A_HANDOFF.md](UI_A_HANDOFF.md), [UI_B_HANDOFF.md](UI_B_HANDOFF.md), and [UI_C_HANDOFF.md](UI_C_HANDOFF.md).
 
 UI-C visual fidelity rework follows the approved Projects/Revisions HTML layouts, including register toolbars, unified project details/revision activity, revision summary/workspaces/information, creation guidance rails, and edit sheets. Existing API/query/lifecycle safeguards remain. Validation: 291 frontend tests; desktop/mobile browser comparison; lint, TypeScript and production build. Necessary real-data and accessibility deviations are documented in the UI-C handoff.
 
-**Next engineering phase:** Phase 6B — Orchestration and provider infrastructure. Unimplemented.
+**Next engineering phase:** Phase 6C — Equipment/attribute extraction intelligence. Unimplemented.
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -334,11 +334,21 @@ Validation after review corrections: **1,114 backend tests passed with live Post
 
 Review hardening before 6B adds forward migration `0012_extraction_terminal_guard`: terminal runs cannot retain required or optional pending/running attempts. Text-offset publication verifies/counts the exact pinned UTF-8 artifact through ObjectStorage instead of mutable page metadata. The original migration is preserved. Forty-eight focused checks and all 1,114 backend tests pass, including concurrent transitions, historical-artifact bounds and 0012 fresh/upgrade/downgrade verification; exact results are recorded in the handoff.
 
-6B scheduling/provider execution/retries/recovery/cancellation, 6C extraction, 6D table interpretation, 6E OCR/layout, 6F extraction/evidence UI/evaluation and 6G hardening/freeze remain unimplemented. Historical accepted ADRs and Phase 5 handoffs were preserved.
+The subsequent 6B delivery is recorded below. Production 6C extraction, 6D table interpretation, 6E OCR/layout, 6F extraction/evidence UI/evaluation and 6G hardening/freeze remain unimplemented. Historical accepted ADRs and Phase 5 handoffs were preserved.
+
+## Phase 6B — Extraction orchestration and provider infrastructure
+
+**Status:** Implemented (2026-11-03). Production engineering extraction remains deferred to 6C–6E; Phase 6 as a whole is not complete.
+
+Authority: [Phase 6B prompt](prompts/phase-6b-prompt.md), approved Phase 6 specification and ADR-008. Technical design: [PHASE6B_PLAN.md](PHASE6B_PLAN.md). Contracts, setup, actual validation, reliability guarantees and 6C handoff: [PHASE6B_HANDOFF.md](PHASE6B_HANDOFF.md).
+
+Persistent run planning, equivalent active/completed reuse, intentional re-extraction, versioned infrastructure profiles, durable Celery delivery, token-fenced claims, bounded heartbeat leases, crash/restart recovery, append-only retries, cooperative cancellation and safe usage/call-budget reporting are operational. Migration `0013_extraction_execution` preserves original 6A migrations and terminal/output immutability. Three POST actions and profile discovery extend the six existing GETs under INCLUDED revision-document membership, including inherited/read-only revisions. External OpenAI execution requires explicit enablement and worker credentials; fake probes are clearly synthetic. Production equipment/attribute/table/OCR interpretation, automatic extraction and frontend extraction UI are not implemented.
+
+Validation: **1,157 backend tests passed, no skips**, with six existing dependency warnings, including **43 new Phase 6B cases**. This includes actual disposable PostgreSQL/Redis/MinIO and Celery worker/beat subprocesses, persisted-but-undelivered recovery, signed source access and recovery after killing/restarting a worker. Fresh and 0012 upgrade/downgrade/re-upgrade migrations passed. Mocked OpenAI adapter tests made no real calls. Lint, changed-file formatting, dependency/package builds, Compose configuration, OpenAPI and whitespace checks passed. Normal development data/volumes were not used for test writes. No frontend changes/checks or live-provider smoke test.
 
 ## Later phases
 
-Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A is implemented; Phase 6B–6G remain unimplemented. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A and 6B are implemented; Phase 6C–6G remain unimplemented. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -355,7 +365,8 @@ Phase 5A through 5G and the authoring refinement remain complete and frozen. Pha
 | 5G | Hardening, regression, documentation | Implemented |
 | 5 refinement | Authoring profiles, states and transactional editor | Implemented; Phase 5 re-frozen |
 | 6A | Evidence and extraction persistence/read APIs | Implemented (2026-11-02) |
-| 6B–6G | Orchestration, extraction, OCR, UI/evaluation and hardening | Unimplemented |
+| 6B | Orchestration, provider infrastructure and execution reliability | Implemented (2026-11-03) |
+| 6C–6G | Extraction, OCR, UI/evaluation and hardening | Unimplemented |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |
 | 9 | Reconciliation and conflict management | Not started |

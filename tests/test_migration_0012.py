@@ -17,7 +17,7 @@ PREVIOUS = "0011_extraction_persistence"
 
 
 def test_fresh_head_includes_terminal_guard(scratch_url):
-    _alembic(scratch_url, "upgrade", "head")
+    _alembic(scratch_url, "upgrade", HEAD)
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == HEAD
@@ -87,7 +87,7 @@ def test_upgrade_preserves_existing_attempts_and_downgrade_restores_0011(scratch
                 ]
 
         before = snapshot()
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert _version(engine) == HEAD
         assert snapshot() == before
         with engine.connect() as conn:
@@ -99,7 +99,7 @@ def test_upgrade_preserves_existing_attempts_and_downgrade_restores_0011(scratch
             conn.rollback()
         _alembic(scratch_url, "downgrade", PREVIOUS)
         assert snapshot() == before
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert snapshot() == before
         # Attempts can settle first; the parent then reaches its terminal state normally.
         with engine.begin() as conn:

@@ -130,11 +130,11 @@ def test_telemetry_requires_pricing_basis_and_valid_timing():
         )
 
 
-def test_openapi_is_read_only_and_preserves_integer_decimal_strings():
+def test_openapi_preserves_6a_reads_and_integer_decimal_strings():
     schema = app.openapi()
     paths = {p: v for p, v in schema["paths"].items() if "/extraction" in p}
-    assert len(paths) == 6
-    assert all(set(v) == {"get"} for v in paths.values())
+    assert sum("get" in v for v in paths.values()) == 7
+    assert sum("post" in v for v in paths.values()) == 3
     candidate = schema["components"]["schemas"]["CandidateResponse"]["properties"]
     for field in ["integer_value", "numeric_value"]:
         assert {v["type"] for v in candidate[field]["anyOf"]} == {"string", "null"}
