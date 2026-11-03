@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from powerforge_api.routers.documents import router as documents_router
 from powerforge_api.routers.engineering_model import router as engineering_model_router
+from powerforge_api.routers.extraction import router as extraction_router
 from powerforge_api.routers.health import router as health_router
 from powerforge_api.routers.model import router as model_router
 from powerforge_api.routers.projects import router as projects_router
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
     application.include_router(documents_router)
     application.include_router(engineering_model_router)
     application.include_router(model_router)
+    application.include_router(extraction_router)
     return application
 
 

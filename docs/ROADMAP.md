@@ -4,7 +4,7 @@ This is the authoritative high-level roadmap for intended future scope. [PROJECT
 
 PowerForge keeps **Phase 0–13: fourteen primary numbered phases**. Phase 4.5 is an intentional intermediate document-workspace UX phase. Phase 5 has slices 5A–5G. Completed phases keep their historical numbering; later phases may have internal slices and design gates without adding top-level numbers. Keep the existing Phase 0–13 numbering and use subphases/gates for newly understood work rather than adding or renumbering top-level phases.
 
-Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5G are implemented; Phase 5 is complete and re-frozen after the authoring refinement. Phase 6 is next and has not started.** Later phases are planned. The accepted foundations are [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md), the [Phase 5 specification](specs/phase-5-engineering-model.md), and the [Phase 5G freeze handoff](PHASE5G_HANDOFF.md).
+Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5G are implemented; Phase 5 is complete and re-frozen after the authoring refinement. Phase 6A delivery and validation are recorded in [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md); 6B–6G remain unimplemented.** Later phases are planned. The accepted foundations are [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md), the [Phase 5 specification](specs/phase-5-engineering-model.md), and the [Phase 5G freeze handoff](PHASE5G_HANDOFF.md).
 
 ## Phase map
 
@@ -48,7 +48,7 @@ Phase 5E exposes revision-scoped equipment, attribute, node, and connection APIs
 
 Phase 5F adds the revision Engineering Model workspace alongside the default Documents workspace. Registry-driven equipment/attribute forms and explicit terminal/electrical-node/connection authoring use the existing APIs. Decimal-safe inputs, lifecycle warnings, and read-only handling preserve the accepted model semantics. No graph visualization or later-phase workflow is included. See [PHASE5F_HANDOFF.md](PHASE5F_HANDOFF.md).
 
-Phase 5G resolves INTEGER API/browser precision with consistent string responses, verifies registry-v1 and cross-layer invariants, completes full live/offline/frontend regression and isolated clean-stack validation, and freezes Phase 5. The bounded performance review retains unpaginated lists as documented scaling debt. See [PHASE5G_HANDOFF.md](PHASE5G_HANDOFF.md) for evidence and remaining limitations. Phase 6 functionality has not begun.
+Phase 5G resolves INTEGER API/browser precision with consistent string responses, verifies registry-v1 and cross-layer invariants, completes full live/offline/frontend regression and isolated clean-stack validation, and freezes Phase 5. The bounded performance review retains unpaginated lists as documented scaling debt. See [PHASE5G_HANDOFF.md](PHASE5G_HANDOFF.md) for evidence and remaining limitations. The subsequent Phase 6A foundation is documented below.
 
 The post-5G [authoring refinement](PHASE5_AUTHORING_REFINEMENT_HANDOFF.md) adds automatic terminal profiles, NOT_POPULATED/reset semantics, a transactional unified Equipment editor and clickable topology tables. It does not introduce Phase 6 functionality or alter registry-v1.
 
@@ -79,33 +79,21 @@ The physical registry is not a complete coordination/arc-flash study-settings mo
 
 ## Phase 6 — Evidence, candidates, and structured extraction
 
-Phase 6 establishes persistence as well as extraction:
+The [approved Phase 6 specification](specs/phase-6-evidence-structured-extraction.md) and [ADR-008](../decisions/ADR-008-evidence-candidate-extraction-architecture.md) govern this phase. Document-scoped runs pin a completed processing run, exact artifacts and extractor/profile/registry/provider/model/prompt identity. Append-only work-unit attempts publish evidence, source-local groups, structure-preserving tables and independently queryable candidates atomically. Effective results select successful committed attempts; failed units do not erase successful siblings.
 
-```text
-Document / DocumentPage
-    → native text / OCR / visual / table inputs
-    → Evidence
-    → ExtractionRun
-    → ExtractionCandidate
-    → schema + canonical-registry validation
-    → candidate records for later entity resolution / reconciliation
-```
+Candidates preserve raw expressions, exact typed values, mapping diagnostics and many-to-many source citations. Tagless groups and isolated attributes are valid. Groups do not identify canonical physical equipment. No Phase 6 path writes canonical equipment, attributes, topology or verification states. `system_frequency` and `system_phase_count` remain manual-only revision metadata: extraction neither proposes nor sets them. Source frequency/phase statements may be retained as justified equipment-specific registry values or unmapped observations.
 
-This is a conceptual traceability flow, not a frozen transaction or database schema. Phase 6 owns Evidence persistence, attribute-level/document-page provenance, extraction run metadata and candidate persistence, provider/model/prompt/version provenance, structured equipment/attribute extraction, schedules/tables, and OCR/layout where native text or vision alone is insufficient. Regions use normalized upright DocumentPage coordinates. Candidate keys/types/units map to the canonical registry; confidence belongs at candidate/evidence granularity. Runs need retry/versioning semantics, evaluation, and hardening.
+Approved implementation sequence:
 
-AI output is a candidate, never canonical truth. It must not silently overwrite canonical values or become ENGINEER_VERIFIED. Extraction may also propose approved revision metadata: a title block stating `600 V, 3Ø, 60 Hz` can support `system_frequency` and `system_phase_count` candidates with evidence, but cannot automatically change canonical revision settings. See [EXTRACTION.md](EXTRACTION.md) and [PROVENANCE.md](PROVENANCE.md).
+- **6A — Persistence and read API:** eight logical entities, pure contracts, migration, atomic publication, revision-scoped read APIs and focused integrity tests. See [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md) for validation status.
+- **6B — Orchestration and provider infrastructure:** scheduling, provider/prompt/profile execution, retries, leases/recovery, idempotency, cancellation and telemetry collection. Unimplemented.
+- **6C — Equipment and attribute extraction:** conservative registry mapping, normalization and raw/unmapped retention. Unimplemented.
+- **6D — Tables and schedules:** both equipment-per-row and attribute-per-row interpretation with cell provenance. Unimplemented.
+- **6E — OCR and layout:** scans and hybrid native-text/vision preparation. Unimplemented.
+- **6F — Extraction/evidence UI and evaluation:** read-only browsing, history, source navigation and evaluation harness. Unimplemented.
+- **6G — Hardening and freeze:** full acceptance, regression, migration, cost/performance and accuracy checks. Unimplemented.
 
-Proposed, non-binding implementation slices:
-
-| Slice | Planning scope |
-| --- | --- |
-| 6A | Evidence + ExtractionCandidate persistence |
-| 6B | Extraction runs/provider/prompt infrastructure |
-| 6C | Equipment + attribute extraction |
-| 6D | Schedule/table extraction |
-| 6E | OCR/layout support where required |
-| 6F | Study-domain/protection extraction support, gated by approved target-domain design |
-| 6G | Evaluation + hardening |
+The entire Phase 6 is not complete. Protection/study-domain extraction still requires separately approved target-domain design. See [EXTRACTION.md](EXTRACTION.md) and [PROVENANCE.md](PROVENANCE.md).
 
 ## Phase 7 — Entity resolution
 

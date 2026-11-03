@@ -2,11 +2,11 @@
 
 Every AI-derived value must be traceable to evidence. The provenance module answers “Where did this come from?” at attribute granularity.
 
-Full Evidence/ExtractionCandidate persistence begins in **Phase 6** and is not implemented in Phase 5. Phase 5 is evidence-ready only: canonical rows keep separate information state, origin, verification, nullable confidence, audit fields and inheritance pointers, without document/page shortcuts or verification authority. See [ROADMAP.md](ROADMAP.md) for placement and [EXTRACTION.md](EXTRACTION.md) for the extraction pipeline.
+Evidence/ExtractionCandidate persistence is introduced by **Phase 6A**, separately from the frozen Phase 5 model. See [ADR-008](../decisions/ADR-008-evidence-candidate-extraction-architecture.md), the [approved specification](specs/phase-6-evidence-structured-extraction.md), and [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md). Phase 5 is evidence-ready only: canonical rows keep separate information state, origin, verification, nullable confidence, audit fields and inheritance pointers, without document/page shortcuts or verification authority. See [ROADMAP.md](ROADMAP.md) for placement and [EXTRACTION.md](EXTRACTION.md) for the extraction pipeline.
 
-## Planned ownership
+## Ownership
 
-The provenance module (`packages/provenance`) provides contracts; its planned persistence responsibilities include:
+The provenance module (`packages/provenance`) provides pure source-location contracts. Phase 6A extraction persistence retains:
 
 - Source document references
 - Page references
@@ -35,28 +35,9 @@ Phase 2 defines, and implements, what evidence will point at. See [ADR-004](../d
 
 ## Evidence
 
-Conceptual evidence information, not an approved final schema:
+Evidence records belong to one producing work unit and retain the run/document/processing context, stable DocumentPage, optional exact PageArtifact, source kind, extraction method and concise verbatim snippet. Text offsets use the explicit `UNICODE_CODEPOINT` convention and require a pinned native-text artifact; arbitrary visual offsets are rejected. A region is either null or a complete rectangle inside the normalized upright page. Uncertain geometry remains null.
 
-```
-Evidence
-    document_id
-    document_page_id
-    bbox
-    artifact_id
-    extracted_text
-    confidence
-    extraction_method
-    model_version
-```
-
-Evidence should also support:
-
-- Image crop / page render artifact
-- OCR text
-- Extraction method (`AI_VISION`, `OCR`, `TABLE`, `MANUAL`, …)
-- Timestamp
-- Model / provider when applicable
-- Prompt version when applicable
+Optional table/cell locators reference schema-versioned table layouts. Candidates link to evidence many-to-many with PRIMARY, SUPPORTING or source-grounded CONTRADICTING roles. Group/table evidence references and candidate context are validated before publication. Composite FKs protect document/page/artifact/run ownership, and immutable output is committed atomically with successful work-unit completion.
 
 ## Attribute-level linkage
 
@@ -64,19 +45,19 @@ Provenance is not only “this equipment came from document X”. Each attribute
 
 Phase 6 retains confidence at candidate/evidence granularity, with attribute-level links rather than only equipment-level provenance. Extraction run/provider/model/prompt versions, timestamps, and retry/version history must remain traceable across native-text, OCR, table, and vision inputs. Canonical nullable confidence does not replace this provenance.
 
-Candidates for revision-level `system_frequency` or `system_phase_count` also require evidence. A model-wide assumption or default is not document evidence, and extraction cannot automatically change canonical revision metadata. Later entity resolution, reconciliation, and review determine how candidates relate to canonical data.
+`system_frequency` and `system_phase_count` remain manual-only revision settings. Extraction must not produce revision-level proposals for them. Equipment-specific source statements may be mapped where justified or retained as unmapped observations. Later entity resolution, reconciliation and review determine relationships to canonical data.
 
 ## Source hierarchy
 
 Source types (SLD, shop drawing, nameplate, schedule, photograph, specification) participate in configurable source-priority rules. Provenance records the source type so reconciliation can explain why a value was suggested.
 
-## Planned evidence access
+## Evidence access
 
-Future revision-scoped evidence access should let engineers inspect source page images and normalized regions without embedding entire files in the model payload. The route contract requires a later specification; no evidence API is implemented yet.
+Phase 6A provides revision-document-scoped evidence detail with a source page locator, optional normalized region and a short-lived URL for the exact pinned artifact. INCLUDED document membership is required; inherited and read-only revisions may inspect the same immutable results without copies or canonical writes. Run/candidate/table lists select only successfully committed work-unit attempts. Unsupported candidates are explicitly flagged and excluded from the default sourced list. The browser extraction/evidence workspace remains deferred to 6F.
 
 ## Phase 0
 
-Phase 0 defined evidence contracts in `packages/provenance`. Full Evidence persistence starts in Phase 6 alongside extraction candidates; Phase 5 stores canonical equipment/attributes without document/page references on those rows.
+Phase 0 defined evidence contracts in `packages/provenance`. Full Evidence persistence starts in Phase 6A alongside extraction candidates; Phase 5 stores canonical equipment/attributes without document/page references on those rows.
 
 Phase 2 does not create evidence. It creates the immutable `Document` and revision-scoped `RevisionDocument` records that evidence will reference.
 

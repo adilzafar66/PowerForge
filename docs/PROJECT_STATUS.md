@@ -2,13 +2,13 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** Phase 5 authoring refinement — Phase 5 complete / re-frozen
+**Current implemented phase:** Phase 6A — Evidence and extraction persistence/read APIs. Phase 5 remains frozen.
 
 **UI redesign:** UI-A, UI-B and UI-C implemented — design system/app shell, reactive data/interaction states, and Projects/Revisions workspaces. Next UI milestone: UI-D. See [UI_A_HANDOFF.md](UI_A_HANDOFF.md), [UI_B_HANDOFF.md](UI_B_HANDOFF.md), and [UI_C_HANDOFF.md](UI_C_HANDOFF.md).
 
 UI-C visual fidelity rework follows the approved Projects/Revisions HTML layouts, including register toolbars, unified project details/revision activity, revision summary/workspaces/information, creation guidance rails, and edit sheets. Existing API/query/lifecycle safeguards remain. Validation: 291 frontend tests; desktop/mobile browser comparison; lint, TypeScript and production build. Necessary real-data and accessibility deviations are documented in the UI-C handoff.
 
-**Next engineering phase:** Phase 6 — Evidence, candidates, and structured extraction. Not started
+**Next engineering phase:** Phase 6B — Orchestration and provider infrastructure. Unimplemented.
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -322,9 +322,21 @@ The Equipment sheet now owns one draft across General, Attributes and Terminals,
 
 Validation: **1,064 backend tests passed with live integrations, no skips**; offline **505 passed, 559 skipped**, with six existing dependency warnings. **248 frontend tests passed across 16 files**; lint, typecheck and production build passed. Python lint/changed-file formatting, dependency and whitespace checks passed. Fresh migration to head and representative pre-refinement data upgrade/downgrade/re-upgrade passed on disposable infrastructure. No actual browser interaction test was performed. No dependency or Phase 6 feature was added.
 
+## Phase 6A — Evidence and extraction persistence foundation
+
+**Status:** Implemented (2026-11-02). Phase 6 as a whole is not complete.
+
+Authority: [approved Phase 6 specification](specs/phase-6-evidence-structured-extraction.md), [ADR-008](../decisions/ADR-008-evidence-candidate-extraction-architecture.md) and [implementation prompt](prompts/phase-6a-prompt.md). Plan: [PHASE6A_PLAN.md](PHASE6A_PLAN.md). Exact boundaries, migration, contracts, commands, results and 6B handoff: [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md).
+
+Migration `0011_extraction_persistence` adds extraction runs, append-only work-unit attempts, evidence, source-local groups, versioned structured tables, typed candidates, many-to-many citations and technical call telemetry. Composite ownership, pinned completed processing/artifacts, active identity/attempt uniqueness, immutable output and atomic successful publication protect provenance/history. Tagless and isolated observations remain valid; raw/unmapped/invalid claims and exact Decimal/INTEGER/BOOLEAN semantics are preserved. Six revision-document GET routes provide included-document/inherited/read-only access, deterministic pagination/filtering, effective successful-unit coverage and signed historical artifact references. No canonical equipment/attribute/topology/revision writes or extraction POST operations were added. Revision-wide frequency and phase count remain manual-only.
+
+Validation: **1,098 backend tests passed with live PostgreSQL/MinIO, no skips**, including **32 focused Phase 6A tests** and fresh/0010-upgrade/downgrade/re-upgrade migration checks. Standalone offline contract/OpenAPI suite: **16 passed**. Ruff, changed-file formatting, whitespace, editable package builds, dependency and OpenAPI checks passed. All test writes used disposable PostgreSQL/MinIO with temporary storage; the normal development database/volumes were untouched. No frontend changes or frontend/browser checks. The pre-existing remote CI MinIO image-availability issue remains separate; no remote CI pass is claimed.
+
+6B scheduling/provider execution/retries/recovery/cancellation, 6C extraction, 6D table interpretation, 6E OCR/layout, 6F extraction/evidence UI/evaluation and 6G hardening/freeze remain unimplemented. Historical accepted ADRs and Phase 5 handoffs were preserved.
+
 ## Later phases
 
-Phase 5A through 5G and the authoring refinement are implemented. Phase 5 is complete and re-frozen; Phase 6 is next and has not started. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A is implemented; Phase 6B–6G remain unimplemented. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -340,7 +352,8 @@ Phase 5A through 5G and the authoring refinement are implemented. Phase 5 is com
 | 5F | Basic Engineering Model workspace UI | Implemented |
 | 5G | Hardening, regression, documentation | Implemented |
 | 5 refinement | Authoring profiles, states and transactional editor | Implemented; Phase 5 re-frozen |
-| 6 | Evidence, candidates, and structured extraction | Next; not started |
+| 6A | Evidence and extraction persistence/read APIs | Implemented (2026-11-02) |
+| 6B–6G | Orchestration, extraction, OCR, UI/evaluation and hardening | Unimplemented |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |
 | 9 | Reconciliation and conflict management | Not started |

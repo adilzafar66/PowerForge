@@ -2,7 +2,7 @@
 
 AI extraction proposes candidate engineering data. It does not mutate the verified engineering model.
 
-Phase 0 established interfaces and candidate contracts; Phase 4 classification is implemented. Full Evidence/ExtractionCandidate persistence and structured extraction are planned for Phase 6, as described in [ROADMAP.md](ROADMAP.md). They are not implemented in Phase 5. The manually authored revision-scoped canonical model is their future target, not an extraction result or a second source of truth.
+Phase 6A adds persistence and read access under the [approved specification](specs/phase-6-evidence-structured-extraction.md) and [ADR-008](../decisions/ADR-008-evidence-candidate-extraction-architecture.md). Validation and operational details are recorded in [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md). The canonical model remains manually authored and separate. Actual scheduling and extraction remain unimplemented (6B–6G).
 
 ## Principles
 
@@ -26,9 +26,21 @@ Document / DocumentPage
 
 This is a conceptual traceability flow, not a frozen persistence schema. AI output remains an evidence-linked candidate. Phase 6 owns run metadata, provider/model/prompt versions, retry/versioning semantics, equipment/attribute and schedule/table extraction, OCR/layout where needed, and extraction evaluation/hardening. Candidate keys, types, and units must map to the canonical registry. Confidence is recorded at candidate/evidence level; regions use normalized upright DocumentPage coordinates, as defined in [PROVENANCE.md](PROVENANCE.md).
 
-Candidates proceed to entity resolution (7), reconciliation/conflict management (9), deterministic validation (10), and engineer review (11). They never silently overwrite canonical values or become engineer-verified truth. Extraction may also target approved revision metadata such as `system_frequency` and `system_phase_count`: a title block stating `600 V, 3Ø, 60 Hz` supplies evidence for candidates, not permission to change canonical revision settings.
+Candidates proceed to entity resolution (7), reconciliation/conflict management (9), deterministic validation (10), and engineer review (11). They never silently overwrite canonical values or become engineer-verified truth. `system_frequency` and `system_phase_count` are manual-only. Phase 6 neither proposes nor writes revision-wide settings. Source frequency or phase statements may become justified equipment-specific candidates or raw unmapped observations.
 
-The proposed 6A–6G slices in [ROADMAP.md](ROADMAP.md) are non-binding. Study-domain/protection extraction requires approved target-domain design first.
+The approved 6A–6G slices in [ROADMAP.md](ROADMAP.md) define implementation boundaries. Study-domain/protection extraction requires approved target-domain design first.
+
+## Phase 6A persistence and reads
+
+`powerforge_extraction.contracts` and `powerforge_provenance.locations` are provider-neutral Pydantic contracts. `powerforge_extraction.models` owns the eight extraction ORM mappings on the existing shared Base, following the classification package pattern; `powerforge_extraction.persistence.ExtractionPersistence` is the internal transaction-participating interface. Pure contract modules import no ORM, HTTP, workers or provider SDKs.
+
+`create_run()` pins immutable inputs and computes a deterministic input identity. `create_work_unit()` appends an attempt; neither schedules work. `publish()` locks the run then unit, validates source/registry/association integrity, and writes the entire output plus success marker inside a savepoint. The caller commits or rolls back the outer transaction. No provider calls or object writes occur. `record_ai_call()` can retain technical telemetry before a failed unit terminates; telemetry is immutable and never an effective candidate result.
+
+Migration `0011_extraction_persistence` provides composite ownership FKs, active identity/attempt uniqueness, a single successful attempt per logical key, typed value constraints and immutable output guards. Deferred publication guards prohibit candidate/evidence/group/table output from committing without successful unit completion. A retry appends to unsuccessful history; it cannot replace a successful unit. NUMBER uses Decimal/NUMERIC and INTEGER uses int/BIGINT; both serialize to JSON strings. Explicit false remains false. No candidate is fabricated for an omitted attribute.
+
+Six GET routes beneath `/api/projects/{project_id}/revisions/{revision_id}/documents/{revision_document_id}/extraction` expose summary, `/runs`, `/runs/{run_id}`, `/runs/{run_id}/candidates`, `/runs/{run_id}/tables` and `/evidence/{evidence_id}`. INCLUDED revision-document membership gates all reads, including inherited and superseded revisions. Context-dependent runs are restricted to their explicitly fingerprinted revision. Lists use bounded limit/offset pagination and deterministic timestamp/UUID ordering. Candidate filters include kind, mapping status, group, equipment type and attribute. By default only candidates with PRIMARY/SUPPORTING citations appear; `supported_only=false` also exposes explicitly unsupported observations. No extraction POST routes exist.
+
+Run detail includes all historical attempts and effective successful-unit coverage; candidate/table lists include only effective results and expose partiality. Candidate responses include citations and optional source-local group metadata. Evidence resolves the exact pinned artifact through the established short-lived signing interface, including historical artifacts; raw storage keys are omitted.
 
 ## Specialized extractors
 

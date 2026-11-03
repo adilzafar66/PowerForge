@@ -78,7 +78,7 @@ def test_refinement_migrates_existing_attributes_terminals_and_connections(scrat
                 ),
                 {"e": equipment_ids["BUS"]},
             )
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert _version(engine) == HEAD
         enums = {e["name"]: e["labels"] for e in inspect(engine).get_enums()}
         assert enums["model_information_state"] == [s.value for s in InformationState]
@@ -126,7 +126,7 @@ def test_refinement_migrates_existing_attributes_terminals_and_connections(scrat
             assert tuple(endpoints) == (a, custom)
             before = {n["id"] for n in nodes}
         _alembic(scratch_url, "downgrade", "0009_topology_persistence")
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         with engine.connect() as conn:
             assert set(conn.execute(text("SELECT id FROM model_nodes")).scalars()) == before
             assert tuple(
@@ -143,7 +143,7 @@ def test_refinement_fresh_schema_matches_runtime(scratch_url):
     from powerforge_persistence.engineering import EquipmentAttribute
     from powerforge_persistence.topology import ModelNode
 
-    _alembic(scratch_url, "upgrade", "head")
+    _alembic(scratch_url, "upgrade", HEAD)
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == HEAD

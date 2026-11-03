@@ -3,7 +3,7 @@ name = "powerforge-extraction"
 version = "0.1.0"
 description = "Candidate extraction contracts. Must not mutate the verified engineering model."
 requires-python = ">=3.12"
-dependencies = []
+dependencies = ["pydantic>=2.8", "powerforge-engineering-model", "powerforge-provenance", "powerforge-persistence", "powerforge-document-processing", "sqlalchemy>=2.0.35"]
 
 [build-system]
 requires = ["setuptools>=68"]

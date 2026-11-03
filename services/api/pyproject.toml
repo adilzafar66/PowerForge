@@ -21,6 +21,7 @@ dependencies = [
     "powerforge-document-model",
     "powerforge-document-processing",
     "powerforge-document-classification",
+    "powerforge-extraction",
 ]
 
 [build-system]

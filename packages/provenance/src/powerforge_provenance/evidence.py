@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field
 class EvidenceRef(BaseModel):
     """Traceability for an extracted or reconciled value.
 
-    Persistence of evidence rows is a later phase; this is the shared contract.
+    Legacy lightweight reference; Phase 6A publication uses typed SourceLocation
+    and EvidenceInput contracts with exact persisted provenance.
     """
 
     document_id: str

@@ -103,7 +103,7 @@ Package and service mapping:
 - `packages/document-model` — document vocabulary: classification, origin and status enums, pure file-validation rules, storage-key builder, processing enums, the profile, and artifact key construction (no SQLAlchemy, FastAPI, S3 SDK, Pillow, or PyMuPDF)
 - `packages/persistence` — neutral SQLAlchemy Base, project/revision mappings, and Phase 5B equipment lineage/equipment/typed-attribute mappings; no document-processing or API dependency.
 - `packages/document-processing` — shared `ObjectStorage`, document-specific SQLAlchemy models (`Document`, `RevisionDocument`, `DocumentPage`, `DocumentProcessingRun`, `PageArtifact`), page rendering, and `ProcessingService`. Base/project/revision imports are compatibility re-exports from persistence. The API and `document-worker` both import it. The worker does not import FastAPI
-- `packages/extraction` — candidate extraction contracts
+- `packages/extraction` — pure extraction contracts plus separate shared-Base ORM and internal persistence modules; Phase 6A read services live in the API
 - `packages/topology` — graph contracts
 - `packages/validation` — deterministic rule contracts
 - `packages/provenance` — evidence contracts
@@ -176,7 +176,7 @@ Revision defaults are not copied into equipment attribute rows. For applicable f
 
 Protection functions/settings and operating/study configurations are separate post-core-Phase-5 canonical-domain design gates, not arbitrary equipment attributes. Dedicated decisions must precede implementation and provide targets for extraction and study integration. Canonical design/nameplate values remain distinct from study-adjusted settings; see [ROADMAP.md](ROADMAP.md).
 
-Phase 5G freezes the completed canonical model without a migration or new aggregate. Canonical attribute INTEGER values remain Python integers/BIGINT internally and serialize consistently as JSON strings (or null); frontend types preserve those strings through reads and edits. Decimal response behavior is unchanged. The registry matches its authoritative snapshot and is frozen; future semantic changes need deliberate versioning and a migration strategy. Full live regression, fresh migration/stack checks and the bounded performance review are recorded in [PHASE5G_HANDOFF.md](PHASE5G_HANDOFF.md). Phase 6 is next, with no Evidence/Candidate persistence or extraction workflow implemented yet.
+Phase 5G freezes the completed canonical model without a migration or new aggregate. Canonical attribute INTEGER values remain Python integers/BIGINT internally and serialize consistently as JSON strings (or null); frontend types preserve those strings through reads and edits. Decimal response behavior is unchanged. The registry matches its authoritative snapshot and is frozen; future semantic changes need deliberate versioning and a migration strategy. Full live regression, fresh migration/stack checks and the bounded performance review are recorded in [PHASE5G_HANDOFF.md](PHASE5G_HANDOFF.md). Phase 6A introduces separate Evidence/Candidate persistence and read APIs; execution remains deferred to 6B. See [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md).
 
 ## Asynchronous processing
 
@@ -346,4 +346,11 @@ Backend or domain changes, a generic review queue, and the engineering model.
 
 ### Phase 5 authoring refinement
 
-The post-5G refinement retains the same revision aggregate and frozen registry-v1. Migration 0010 replaces legacy attribute states and adds profile-managed physical terminal roles, safely backfilled without changing connection endpoints. Equipment creation/type changes reconcile these roles atomically. The unified Equipment editor saves General, Attributes and custom terminals in one backend transaction; fine-grained endpoints remain available. Topology uses clickable tables and detail sheets. See [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md), [TOPOLOGY.md](TOPOLOGY.md) and the [refinement handoff](PHASE5_AUTHORING_REFINEMENT_HANDOFF.md). Phase 6 remains unstarted.
+The post-5G refinement retains the same revision aggregate and frozen registry-v1. Migration 0010 replaces legacy attribute states and adds profile-managed physical terminal roles, safely backfilled without changing connection endpoints. Equipment creation/type changes reconcile these roles atomically. The unified Equipment editor saves General, Attributes and custom terminals in one backend transaction; fine-grained endpoints remain available. Topology uses clickable tables and detail sheets. See [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md), [TOPOLOGY.md](TOPOLOGY.md) and the [refinement handoff](PHASE5_AUTHORING_REFINEMENT_HANDOFF.md). Phase 6A is documented in [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md); 6B–6G remain unimplemented.
+
+
+## Phase 6A — Extraction persistence boundary
+
+[ADR-008](../decisions/ADR-008-evidence-candidate-extraction-architecture.md) and the [approved Phase 6 specification](specs/phase-6-evidence-structured-extraction.md) define document-scoped derived results with revision-document-scoped access. Eight entities retain pinned inputs, append-only work attempts, evidence, source-local groups, structured tables, typed candidates, evidence links and call telemetry. The existing SQLAlchemy Base and immutable Document/Page identities are reused. No canonical-model associations or writes are introduced; revision-wide frequency and phase count remain manual-only.
+
+Atomic publication locks the run and producing unit and commits outputs with the success marker in the caller's transaction. DB uniqueness selects at most one successful attempt per logical key; read queries exclude all unsuccessful attempts. Technical AI-call telemetry is retained independently of success. Six explicit, paginated GET contracts provide included-document membership checks, inherited/historical access, honest coverage and exact values. Scheduling, provider execution, retries/recovery/cancellation and extraction UI are deferred. See [EXTRACTION.md](EXTRACTION.md) and [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md).

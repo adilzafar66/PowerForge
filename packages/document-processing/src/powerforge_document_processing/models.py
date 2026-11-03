@@ -672,3 +672,10 @@ RevisionDocument.__table__.append_constraint(
         name="fk_revision_documents_accepted_prediction",
     )
 )
+
+# Exact artifact context available to Phase 6 composite provenance foreign keys.
+PageArtifact.__table__.append_constraint(
+    UniqueConstraint(
+        "id", "processing_run_id", "document_page_id", name="uq_page_artifacts_context"
+    )
+)

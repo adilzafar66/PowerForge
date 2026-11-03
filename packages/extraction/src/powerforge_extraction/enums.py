@@ -7,3 +7,58 @@ class ExtractionMethod(StrEnum):
     OCR = "OCR"
     TABLE = "TABLE"
     MANUAL = "MANUAL"
+
+
+class ExtractionRunStatus(StrEnum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    PARTIALLY_COMPLETED = "PARTIALLY_COMPLETED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
+class WorkUnitStatus(StrEnum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
+class CandidateKind(StrEnum):
+    EQUIPMENT_MENTION = "EQUIPMENT_MENTION"
+    ATTRIBUTE_VALUE = "ATTRIBUTE_VALUE"
+    UNMAPPED_OBSERVATION = "UNMAPPED_OBSERVATION"
+
+
+class MappingStatus(StrEnum):
+    MAPPED = "MAPPED"
+    UNMAPPED = "UNMAPPED"
+    INVALID = "INVALID"
+
+
+class EvidenceRole(StrEnum):
+    PRIMARY = "PRIMARY"
+    SUPPORTING = "SUPPORTING"
+    CONTRADICTING = "CONTRADICTING"
+
+
+class EvidenceSourceKind(StrEnum):
+    NATIVE_TEXT = "NATIVE_TEXT"
+    OCR_TEXT = "OCR_TEXT"
+    VISUAL_REGION = "VISUAL_REGION"
+    TABLE_CELL = "TABLE_CELL"
+
+
+class TableKind(StrEnum):
+    ATTRIBUTE_ROWS = "ATTRIBUTE_ROWS"
+    EQUIPMENT_ROWS = "EQUIPMENT_ROWS"
+    MIXED = "MIXED"
+    UNCLASSIFIED = "UNCLASSIFIED"
+
+
+class AICallOutcome(StrEnum):
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
