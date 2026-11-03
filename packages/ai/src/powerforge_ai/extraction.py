@@ -15,6 +15,7 @@ class ErrorCode(StrEnum):
     REFUSAL = "PROVIDER_REFUSAL"
     INVALID = "INVALID_PROVIDER_RESPONSE"
     INPUT = "INVALID_SOURCE_INPUT"
+    SOURCE_UNAVAILABLE = "SOURCE_UNAVAILABLE"
     INTERRUPTED = "WORKER_INTERRUPTED"
     BUDGET = "CALL_BUDGET_EXHAUSTED"
     DISABLED = "EXTERNAL_PROCESSING_DISABLED"
@@ -52,6 +53,7 @@ class ProviderFailure(Exception):
             ErrorCode.UNAVAILABLE,
             ErrorCode.RATE_LIMIT,
             ErrorCode.INTERRUPTED,
+            ErrorCode.SOURCE_UNAVAILABLE,
         }
 
 

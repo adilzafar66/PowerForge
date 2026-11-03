@@ -6,12 +6,22 @@ This is the only module in this package that imports boto3.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import BinaryIO
 
 import boto3
 from botocore.client import BaseClient
 from botocore.config import Config
-from botocore.exceptions import BotoCoreError, ClientError
+from botocore.exceptions import (
+    BotoCoreError,
+    ClientError,
+    HTTPClientError,
+    IncompleteReadError,
+    ResponseStreamingError,
+)
+from botocore.exceptions import (
+    ConnectionError as BotoConnectionError,
+)
 
 from powerforge_document_processing.storage.base import (
     DispositionType,
@@ -19,6 +29,7 @@ from powerforge_document_processing.storage.base import (
     ObjectNotFound,
     ReadableStream,
     StorageError,
+    TransientStorageError,
 )
 from powerforge_document_processing.storage.disposition import build_content_disposition
 
@@ -41,6 +52,27 @@ def _http_status(exc: Exception) -> int | None:
         status = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
         return int(status) if status is not None else None
     return None
+
+
+class _StorageReadStream:
+    """Keep transport errors during body reads inside the storage port's exception contract."""
+
+    def __init__(
+        self,
+        stream: ReadableStream,
+        failure: Callable[[str, Exception, str | None], StorageError],
+        key: str,
+    ) -> None:
+        self._stream, self._failure, self._key = stream, failure, key
+
+    def read(self, size: int = -1, /) -> bytes:
+        try:
+            return self._stream.read() if size < 0 else self._stream.read(size)
+        except (BotoCoreError, OSError) as exc:
+            raise self._failure("read", exc, self._key) from None
+
+    def close(self) -> None:
+        self._stream.close()
 
 
 class S3ObjectStorage:
@@ -103,7 +135,35 @@ class S3ObjectStorage:
             "object storage operation failed",
             extra={"operation": operation, "error_code": _error_code(exc), "storage_key": key},
         )
-        return StorageError(f"Object storage {operation} failed")
+        status = _http_status(exc)
+        transient = isinstance(
+            exc,
+            (
+                BotoConnectionError,
+                HTTPClientError,
+                IncompleteReadError,
+                ResponseStreamingError,
+                ConnectionError,
+                TimeoutError,
+            ),
+        ) or (
+            isinstance(exc, ClientError)
+            and (
+                status == 429
+                or status is not None
+                and status >= 500
+                or _error_code(exc)
+                in {
+                    "SlowDown",
+                    "RequestTimeout",
+                    "RequestTimeoutException",
+                    "ServiceUnavailable",
+                    "InternalError",
+                }
+            )
+        )
+        error_type = TransientStorageError if transient else StorageError
+        return error_type(f"Object storage {operation} failed")
 
     def ensure_bucket(self) -> None:
         try:
@@ -146,7 +206,7 @@ class S3ObjectStorage:
             if isinstance(exc, ClientError) and _error_code(exc) in _MISSING_KEY_CODES:
                 raise ObjectNotFound("Object not found") from None
             raise self._failure("get", exc, key) from None
-        return response["Body"]
+        return _StorageReadStream(response["Body"], self._failure, key)
 
     def exists(self, key: str) -> bool:
         try:

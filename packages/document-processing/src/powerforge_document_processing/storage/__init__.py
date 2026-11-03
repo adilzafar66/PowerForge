@@ -5,6 +5,7 @@ from powerforge_document_processing.storage.base import (
     ObjectStorage,
     ReadableStream,
     StorageError,
+    TransientStorageError,
 )
 from powerforge_document_processing.storage.memory import InMemoryObjectStorage
 
@@ -16,4 +17,5 @@ __all__ = [
     "ObjectStorage",
     "ReadableStream",
     "StorageError",
+    "TransientStorageError",
 ]

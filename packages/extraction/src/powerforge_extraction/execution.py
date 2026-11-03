@@ -19,7 +19,11 @@ from powerforge_ai.extraction import (
     ExtractionResponse,
     ProviderFailure,
 )
-from powerforge_document_processing.storage.base import ObjectStorage, StorageError
+from powerforge_document_processing.storage.base import (
+    ObjectStorage,
+    StorageError,
+    TransientStorageError,
+)
 from powerforge_extraction.contracts import (
     CandidateEvidenceInput,
     CandidateInput,
@@ -190,6 +194,8 @@ def execute_unit(
             code, usage = exc.code, exc.usage
         elif isinstance(exc, ValidationError):
             code = ErrorCode.INVALID
+        elif isinstance(exc, TransientStorageError):
+            code = ErrorCode.SOURCE_UNAVAILABLE
         elif isinstance(exc, StorageError | UnicodeError | ValueError):
             code = ErrorCode.INPUT
         elif type(exc).__name__ == "SoftTimeLimitExceeded":

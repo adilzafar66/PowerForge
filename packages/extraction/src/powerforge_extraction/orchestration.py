@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import Protocol
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select, text
+from sqlalchemy import exists, func, or_, select, text
 from sqlalchemy.orm import Session
 
 from powerforge_ai.extraction import ErrorCode, ExecutionUsage
@@ -41,6 +41,7 @@ TRANSIENT = {
     ErrorCode.UNAVAILABLE.value,
     ErrorCode.RATE_LIMIT.value,
     ErrorCode.INTERRUPTED.value,
+    ErrorCode.SOURCE_UNAVAILABLE.value,
 }
 
 
@@ -585,12 +586,34 @@ class ExtractionCoordinator:
         return run
 
     def reconcile(self, limit: int = 100) -> int:
+        now = self.now()
+        # Healthy active runs must not consume the bounded recovery window. Once an
+        # expired attempt settles, its pending retry yields the next cycle to other runs.
+        expired_at = (
+            select(func.min(ExtractionWorkUnit.lease_expires_at))
+            .where(
+                ExtractionWorkUnit.run_id == ExtractionRun.id,
+                ExtractionWorkUnit.status == US.RUNNING,
+                ExtractionWorkUnit.lease_expires_at <= now,
+            )
+            .correlate(ExtractionRun)
+            .scalar_subquery()
+        )
+        has_active_units = exists(
+            select(ExtractionWorkUnit.id).where(
+                ExtractionWorkUnit.run_id == ExtractionRun.id,
+                ExtractionWorkUnit.status.in_(UNIT_ACTIVE),
+            )
+        ).correlate(ExtractionRun)
         runs = list(
             self.session.scalars(
                 select(ExtractionRun)
                 .join(RunExecution, RunExecution.run_id == ExtractionRun.id)
-                .where(ExtractionRun.status.in_(ACTIVE))
-                .order_by(ExtractionRun.created_at, ExtractionRun.id)
+                .where(
+                    ExtractionRun.status.in_(ACTIVE),
+                    or_(expired_at.is_not(None), ~has_active_units),
+                )
+                .order_by(expired_at.asc().nulls_last(), ExtractionRun.id)
                 .limit(limit)
                 .with_for_update(of=ExtractionRun, skip_locked=True)
             )

@@ -23,6 +23,8 @@ Completion checks the current token, unexpired lease, active run and absence of 
 
 Failures settle their attempt before bounded transient retries append a new attempt with the same pinned logical inputs, ancestry and exponential available-at backoff. Permanent/invalid responses do not auto-retry. Manual retry of failed/partial runs appends only unsuccessful keys within the same pinned attempt budget; successful keys are never resent. Expired leases settle as interrupted failures and are retried within limits. The reconciler also re-dispatches due pending records and aggregates outcomes after restart.
 
+Temporary object-storage access and streaming failures use a typed storage-port error, recorded as `SOURCE_UNAVAILABLE`, and enter that same bounded retry path. Missing/corrupt/invalid sources and permanent access/configuration failures do not automatically retry. Recovery selects expired leases in expiry order, then parents with only settled work to aggregate; healthy active runs cannot consume the batch ahead of newer expired work.
+
 No parent becomes terminal while any required or optional attempt remains active. After all attempts settle, required-key successes determine COMPLETED/PARTIALLY_COMPLETED/FAILED; optional failures remain visible. Cancellation locks the run, records intent, settles pending/running attempts as CANCELLED, fences late responses and then marks the run CANCELLED, retaining successful units. Repeated cancellation is safe. A completed run cannot be retroactively cancelled.
 
 Cancelled and completed run history remains immutable. POST retry on CANCELLED requests explicit re-extraction instead of weakening 6A guards; POST runs with re-extract creates a new linked historical run. Failed/partial runs can resume as RUNNING. Equivalent active input identities are always reused, even for repeated re-extract requests. Ensure may reuse compatible COMPLETED results. If no completed result exists, repeating ensure returns the compatible failed/partial/cancelled run without creating new billable work; continuing requires explicit retry or re-extraction. This explicitly resolves the cancelled-history ambiguity without an architectural departure.
@@ -35,4 +37,4 @@ Use the existing extraction worker with a separate extraction queue and periodic
 
 ## Completion
 
-Implemented and validated: 1,157 backend tests passed with live isolated PostgreSQL/Redis/MinIO/Celery, no skips, including 43 new 6B cases. Exact implementation boundaries, guarantees, setup, verification and deferred production extraction are recorded in [PHASE6B_HANDOFF.md](PHASE6B_HANDOFF.md).
+Implemented and validated: 1,184 backend tests passed with live isolated PostgreSQL/Redis/MinIO/Celery, no skips, including 70 new 6B cases (27 covering the storage/recovery review corrections). Exact implementation boundaries, guarantees, setup, verification and deferred production extraction are recorded in [PHASE6B_HANDOFF.md](PHASE6B_HANDOFF.md).

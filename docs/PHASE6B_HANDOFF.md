@@ -46,11 +46,15 @@ Delivery records form a durable outbox. Initial API/worker notification happens 
 
 `document_extraction.reconcile` periodically settles expired RUNNING attempts as `WORKER_INTERRUPTED`, appends bounded replacements where eligible and redispatches due pending work. The dedicated Celery beat service keeps invoking it after restarts. Run/unit locks, append-only ancestry and 6A uniqueness make duplicate recovery safe. A healthy heartbeat cannot keep a hung attempt alive beyond the absolute execution deadline. Recovery requires reachable PostgreSQL and running worker/beat services; broker outages delay delivery until transport returns.
 
+Recovery selects runs with expired leases first, ordered by their oldest expired lease, followed by active parents with no active work remaining to aggregate. Healthy older PENDING/RUNNING runs cannot fill the bounded batch. After recovery appends a pending replacement, that run leaves the expiry selection until it has expired work again, allowing successive cycles to advance through the backlog. Run locks still use `SKIP LOCKED` for concurrent recovery.
+
 A crash immediately around a provider request can still cause an unobserved charge and a repeated request after recovery. Exactly-once external execution is not claimed. The call boundary/admission record survives; missing provider usage remains explicitly unreported/unknown. Fencing prevents competing committed results, not the physical cancellation of a request already sent to a vendor.
 
 ## Retry, cancellation and aggregate states
 
 Transient timeout/unavailable/rate-limit/interrupted failures append fresh attempts with identical pinned logical inputs and exponential available-at backoff (capped at 300 seconds). Permanent and invalid responses settle without automatic retry. Both automatic and manual retries obey the original max attempts and admission budget; manual retry cannot reset either limit. Successful keys are never resent merely because a sibling failed.
+
+The storage port exposes `TransientStorageError` for temporary transport/service failures. The S3 adapter translates connection/timeouts, retryable service responses (429/5xx, SlowDown/RequestTimeout) and interrupted streaming reads into this safe category. Execution records `SOURCE_UNAVAILABLE` and applies the same bounded retry path, before a provider call or during atomic evidence publication. Missing objects, denied access/configuration, content size/hash mismatch and invalid source encoding remain permanent `INVALID_SOURCE_INPUT`. A pre-call failure does not fabricate provider telemetry; a publication failure retains telemetry for the actual call after rolling back its output. Failed attempts and successful sibling results remain immutable.
 
 Manual retry can resume FAILED/PARTIALLY_COMPLETED runs as RUNNING and appends only eligible unsuccessful latest attempts. It is idempotent while active. Completed/cancelled runs remain immutable: retry returns a conflict directing the user to explicit re-extraction, which creates a new linked run. This resolves the prompt's cancelled-history ambiguity without weakening the accepted 6A guards or altering old attempts.
 
@@ -96,16 +100,16 @@ Optional OpenAI probe: deliberately enable `EXTRACTION_EXTERNAL_ENABLED=true` in
 
 ## Actual verification
 
-Final full backend suite: **1,157 passed, no skips**, six pre-existing dependency deprecation warnings, in 148.35 seconds. This includes **43 new Phase 6B tests** and all existing Phase 6A/classification/document-processing/canonical-model regressions. Command:
+Final full backend suite: **1,184 passed, no skips**, six pre-existing dependency deprecation warnings, in 160.72 seconds. This includes **70 new Phase 6B tests** (27 covering the review corrections) and all existing Phase 6A/classification/document-processing/canonical-model regressions. Command:
 
 ```sh
-DATABASE_URL=postgresql+psycopg://powerforge:powerforge@localhost:55437/powerforge_phase6b_final \
+DATABASE_URL=postgresql+psycopg://powerforge:powerforge@localhost:55437/powerforge_phase6b \
 S3_ENDPOINT_URL=http://localhost:59007 S3_PUBLIC_ENDPOINT_URL=http://localhost:59007 \
 REDIS_URL=redis://localhost:56387/0 RUN_INTEGRATION=1 \
 .venv/bin/pytest -q --tb=short
 ```
 
-Coverage includes start/reuse/re-extract, unknown classification/profile override, inherited/read-only/unrelated access, fake output/empty/permanent/invalid/transient behavior, no DB transaction over provider execution, concurrent duplicate claiming, backoff/exhaustion, partial retry preserving successful keys, interruption recovery and database fencing, durable notification failure/replay, heartbeats, cancellation/late response, admission budget/concurrency/input/image limits, exact known-basis cost, ungrounded quote rejection, strict API action bodies and mocked OpenAI requests/errors/usage.
+Coverage includes start/reuse/re-extract, unknown classification/profile override, inherited/read-only/unrelated access, fake output/empty/permanent/invalid/transient behavior, no DB transaction over provider execution, concurrent duplicate claiming, backoff/exhaustion, partial retry preserving successful keys, interruption recovery and database fencing, durable notification failure/replay, heartbeats, cancellation/late response, admission budget/concurrency/input/image limits, exact known-basis cost, ungrounded quote rejection, strict API action bodies and mocked OpenAI requests/errors/usage. Review regressions cover S3 service/connection/streaming failures and full-read content-length verification, permanent missing/corrupt/invalid sources, bounded source retries before calls and during publication, successful sibling preservation, and recovery across 101 older healthy runs with progress through successive bounded batches.
 
 The actual Celery integration cases started fresh worker and beat subprocesses over disposable Redis/PostgreSQL/MinIO, completed persisted-but-undelivered work, fetched a signed exact source artifact, then killed a running worker and verified a replacement attempt completed after scheduler recovery/restart. Temporary broker failure was additionally injected at the transport boundary; the live Redis server was not deliberately stopped. No real provider was contacted.
 

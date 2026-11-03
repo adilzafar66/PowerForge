@@ -11,6 +11,10 @@ class StorageError(Exception):
     """Storage failure. The message is generic and never carries SDK text."""
 
 
+class TransientStorageError(StorageError):
+    """Temporary transport/service failure; callers may retry within their own limits."""
+
+
 class ObjectAlreadyExists(StorageError):
     """put() refused to overwrite an existing key."""
 
@@ -36,7 +40,11 @@ class ObjectStorage(Protocol):
         """
 
     def get(self, key: str) -> ReadableStream:
-        """Return a readable stream. Raises ObjectNotFound for a missing key."""
+        """Return a readable stream. Raises ObjectNotFound for a missing key.
+
+        Temporary access/read failures raise TransientStorageError, including after
+        this method returns. Other storage failures raise StorageError.
+        """
 
     def exists(self, key: str) -> bool: ...
 
