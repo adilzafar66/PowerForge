@@ -13,7 +13,7 @@ PREVIOUS = "0010_authoring_refinement"
 
 
 def test_fresh_schema_matches_orm(scratch_url):
-    _alembic(scratch_url, "upgrade", "head")
+    _alembic(scratch_url, "upgrade", HEAD)
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == HEAD
@@ -130,13 +130,13 @@ def test_upgrade_and_downgrade_preserve_all_phase5_data(scratch_url):
                 }
 
         before = snapshot()
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert _version(engine) == HEAD
         assert snapshot() == before
         _alembic(scratch_url, "downgrade", PREVIOUS)
         assert snapshot() == before
         assert "extraction_runs" not in inspect(engine).get_table_names()
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert snapshot() == before
     finally:
         engine.dispose()

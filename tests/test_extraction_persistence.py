@@ -27,7 +27,7 @@ def test_publish_is_atomic_and_success_immutable(ctx):
     with get_session_factory()() as s:
         run, unit = run_and_unit(s, src)
         output = grounded(src)
-        store = ExtractionPersistence(s)
+        store = ExtractionPersistence(s, ctx["storage"])
         store.publish(unit.id, output)
         s.commit()
         assert (
@@ -62,7 +62,7 @@ def test_failure_after_inserting_outputs_rolls_back_savepoint(ctx):
             }
         )
         with pytest.raises(DBAPIError):
-            ExtractionPersistence(s).publish(unit.id, broken)
+            ExtractionPersistence(s, ctx["storage"]).publish(unit.id, broken)
         assert s.get(ExtractionWorkUnit, unit.id).status == WorkUnitStatus.RUNNING
         assert (
             s.scalar(select(func.count()).select_from(Evidence).where(Evidence.run_id == run.id))
@@ -82,7 +82,7 @@ def test_failure_after_inserting_outputs_rolls_back_savepoint(ctx):
 def test_success_survives_failed_sibling_and_retry_preserves_history(ctx):
     src = source(ctx)
     with get_session_factory()() as s:
-        store = ExtractionPersistence(s)
+        store = ExtractionPersistence(s, ctx["storage"])
         run, success = run_and_unit(s, src)
         store.publish(success.id, grounded(src))
         _, failed = run_and_unit(s, src, key="attributes:other", run=run)
@@ -119,7 +119,7 @@ def test_success_survives_failed_sibling_and_retry_preserves_history(ctx):
 def test_equivalent_active_run_prohibited_completed_allows_deliberate_reextract(ctx):
     src = source(ctx)
     with get_session_factory()() as s:
-        store = ExtractionPersistence(s)
+        store = ExtractionPersistence(s, ctx["storage"])
         run = store.create_run(inputs(src))
         s.commit()
         with pytest.raises(DBAPIError):
@@ -137,7 +137,7 @@ def test_equivalent_active_run_prohibited_completed_allows_deliberate_reextract(
 def test_processing_and_page_artifact_provenance(ctx):
     src, other = source(ctx), source(ctx)
     with get_session_factory()() as s:
-        store = ExtractionPersistence(s)
+        store = ExtractionPersistence(s, ctx["storage"])
         bad = inputs(src).model_copy(update={"processing_run_id": other["processing"]})
         with pytest.raises(ValueError):
             store.create_run(bad)
@@ -154,7 +154,7 @@ def test_processing_and_page_artifact_provenance(ctx):
 def test_database_rejects_cross_run_evidence_and_invalid_values(ctx):
     src, other = source(ctx), source(ctx)
     with get_session_factory()() as s:
-        store = ExtractionPersistence(s)
+        store = ExtractionPersistence(s, ctx["storage"])
         run, unit = run_and_unit(s, src)
         foreign_run, foreign_unit = run_and_unit(s, other)
         foreign = grounded(other)
@@ -215,7 +215,7 @@ def test_database_prevents_half_published_commit_and_duplicate_attempt(ctx):
         s.commit()
         with pytest.raises(DBAPIError):
             with s.begin_nested():
-                ExtractionPersistence(s).create_work_unit(
+                ExtractionPersistence(s, ctx["storage"]).create_work_unit(
                     run.id,
                     WorkUnitInput(
                         unit_key=unit.unit_key,
@@ -326,7 +326,7 @@ def test_structured_tables_tagless_groups_many_to_many_citations_and_telemetry(c
                 )
             ],
         )
-        ExtractionPersistence(s).publish(unit.id, output)
+        ExtractionPersistence(s, ctx["storage"]).publish(unit.id, output)
         s.commit()
         assert s.get(SourceGroup, group.id).tag_text is None
         assert s.get(ExtractedTable, tables[0].id).layout["cells"][0]["text"] == "750 kVA"
@@ -350,7 +350,9 @@ def test_structured_tables_tagless_groups_many_to_many_citations_and_telemetry(c
         )
         # A later unit may reuse the committed run-local group without mutating it.
         _, later = run_and_unit(s, src, key="attributes:later", run=run)
-        ExtractionPersistence(s).publish(later.id, grounded(src, [claim(source_group_id=group.id)]))
+        ExtractionPersistence(s, ctx["storage"]).publish(
+            later.id, grounded(src, [claim(source_group_id=group.id)])
+        )
         s.commit()
 
 
@@ -362,7 +364,7 @@ def test_failed_call_telemetry_survives_without_publishing_failed_output(ctx):
     with get_session_factory()() as s:
         run, unit = run_and_unit(s, src)
         now = datetime.now(UTC)
-        call = ExtractionPersistence(s).record_ai_call(
+        call = ExtractionPersistence(s, ctx["storage"]).record_ai_call(
             unit.id,
             AICallInput(
                 provider="fake",

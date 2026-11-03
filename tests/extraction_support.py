@@ -1,6 +1,8 @@
 """Phase 6 fixtures use immutable source identities and an isolated integration DB."""
 
+import hashlib
 from datetime import UTC, datetime
+from io import BytesIO
 
 from documents_support import seed_association
 from powerforge_api.db import get_session_factory
@@ -31,7 +33,8 @@ from powerforge_extraction.persistence import ExtractionPersistence
 from powerforge_provenance.locations import SourceLocation
 
 
-def source(ctx):
+def source(ctx, *, native_text="rated 750 kVA " + "x" * 87):
+    text_bytes = native_text.encode("utf-8")
     association = seed_association(ctx["project_id"], ctx["revision_id"])
     with get_session_factory()() as s:
         doc = s.get(RevisionDocument, association).document_id
@@ -42,7 +45,7 @@ def source(ctx):
             source_height=792,
             source_unit="POINTS",
             rotation_degrees=0,
-            native_text_char_count=100,
+            native_text_char_count=len(native_text),
         )
         processing = DocumentProcessingRun(
             document_id=doc,
@@ -59,9 +62,10 @@ def source(ctx):
             artifact_type=PageArtifactType.NATIVE_TEXT,
             storage_key=f"processing/{processing.id}/text.txt",
             mime_type="text/plain",
-            size_bytes=100,
-            sha256="a" * 64,
+            size_bytes=len(text_bytes),
+            sha256=hashlib.sha256(text_bytes).hexdigest(),
         )
+        ctx["storage"].put(artifact.storage_key, BytesIO(text_bytes), len(text_bytes), "text/plain")
         s.add(artifact)
         s.commit()
         return dict(

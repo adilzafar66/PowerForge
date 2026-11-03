@@ -37,14 +37,14 @@ Immutable-output triggers reject changes/deletes and late inserts. Deferred publ
 
 ## Internal publication boundary
 
-`ExtractionPersistence(session)` participates in the caller's transaction and never commits independently:
+`ExtractionPersistence(session, storage=None)` participates in the caller's transaction and never commits independently:
 
 - `create_run(RunInput)` revalidates inputs and computes an order-stable SHA-256 identity. No work is scheduled.
 - `create_work_unit(run_id, WorkUnitInput)` appends a validated attempt and updates logical-unit totals. There is no retry scheduler or external mutation API.
 - `publish(work_unit_id, WorkUnitOutput)` revalidates inputs, locks parent run then unit, and uses a savepoint to insert groups/tables/evidence/candidates/citations/optional telemetry plus the unit success marker and progress. Failed validation or persistence rolls back the whole publication; the caller still owns the outer commit/rollback.
 - `record_ai_call(work_unit_id, AICallInput)` appends technical telemetry while an attempt is running, even if that attempt subsequently fails.
 
-The caller must use a dedicated session/unit of work, persist the chosen logical plan, transition its run/unit to RUNNING before publication and commit the outer transaction. Publication accepts no canonical IDs and calls no canonical write service. No provider or object-storage writes occur here.
+The caller must use a dedicated session/unit of work, persist the chosen logical plan, transition its run/unit to RUNNING before publication and commit the outer transaction. Publication accepts no canonical IDs and calls no canonical write service. No provider or object-storage writes occur here. Text-offset evidence requires an ObjectStorage argument: publication streams and verifies the exact pinned UTF-8 artifact, counts Unicode codepoints once per artifact, and rejects offsets beyond that immutable representation. It does not use mutable page-level text counts. Missing storage or failed artifact verification aborts publication; non-offset output can still use a database-only instance.
 
 ## Read API and access
 
@@ -67,7 +67,7 @@ Effective queries select only COMPLETED work-unit attempts; database uniqueness 
 
 **Phase 6A is implemented and its acceptance checks passed. Phase 6B–6G remain unimplemented.**
 
-Final full backend regression: **1,098 passed, no skips**, six existing dependency deprecation warnings, in 130.36 seconds, with live isolated PostgreSQL/MinIO. Command:
+Initial delivery full backend regression: **1,098 passed, no skips**, six existing dependency deprecation warnings, in 130.36 seconds, with live isolated PostgreSQL/MinIO. Command:
 
 ```sh
 DATABASE_URL=postgresql+psycopg://powerforge:powerforge@localhost:55436/powerforge_phase6a_final \
@@ -81,7 +81,7 @@ Focused Phase 6A suite: **32 passed**, no skips, against live disposable Postgre
 
 Fresh empty-to-head migration passed. Dedicated scratch-database tests passed for fresh ORM/schema agreement and representative `0010` data-preserving upgrade, downgrade and re-upgrade. Existing projects/revisions/documents/pages/processing/classification/equipment/attributes/nodes/connections were compared before/after. The historical 0010 tests now explicitly target their own revision rather than assuming they are forever Alembic head.
 
-Ruff lint, changed-file formatting, OpenAPI JSON serialization and the six-GET-only contract passed. Editable extraction/API builds and dependency metadata checks passed after registering the already-existing local classification package. `git diff --check` passed. Alembic reports exactly `0011_extraction_persistence` as head; offline SQL generation for `0010_authoring_refinement:head` passed. Full-chain offline SQL generation hits the pre-existing 0006 migration's live catalog query and is not supported; actual fresh online migration passed.
+Ruff lint, changed-file formatting, OpenAPI JSON serialization and the six-GET-only contract passed. Editable extraction/API builds and dependency metadata checks passed after registering the already-existing local classification package. `git diff --check` passed. The initial migration head was `0011_extraction_persistence`; review hardening adds `0012_extraction_terminal_guard` as the current single head; offline SQL generation for `0010_authoring_refinement:head` passed. Full-chain offline SQL generation hits the pre-existing 0006 migration's live catalog query and is not supported; actual fresh online migration passed.
 
 Disposable infrastructure used Compose project `powerforge-phase6a`, PostgreSQL on `127.0.0.1:55436`, MinIO on `127.0.0.1:59006` and tmpfs storage. Final full regression uses database `powerforge_phase6a_final`; migration cases create and drop uniquely named scratch databases on that same disposable PostgreSQL. The normal development database/volumes were not migrated or used for test writes. The disposable containers/network were removed after validation; tmpfs test data was discarded.
 
@@ -93,8 +93,18 @@ No frontend code changed; frontend/browser checks were not run. No live AI calls
 
 The known remote CI MinIO `latest` availability issue remains outside this change. Local live storage checks use the already available image and succeed; no remote GitHub Actions pass is claimed and no infrastructure redesign was introduced.
 
+## Review corrections before 6B
+
+Both reported findings were confirmed and fixed on the existing implementation branch after `c3c9a42`.
+
+Follow-up migration `0012_extraction_terminal_guard` preserves migration 0011 and upgrades databases that already applied it. A database trigger rejects every terminal parent state (COMPLETED, PARTIALLY_COMPLETED, FAILED and CANCELLED) while any required or optional attempt remains PENDING/RUNNING. Settle and flush active attempts before finalizing the run; no automatic cancellation or history rewriting is introduced. Existing parent locking serializes the check with work-unit creation/updates. Regression tests verify rejection leaves the attempt writable, valid terminal transitions after settling, and concurrent unit creation. Fresh upgrade and data-preserving 0011 upgrade/downgrade/re-upgrade are covered.
+
+Text-offset bounds now come from the exact pinned native-text object's UTF-8 codepoints, not the stable page's mutable summary count. The storage stream uses bounded chunks and strict incremental decoding, verifies the artifact's byte size and SHA-256, closes on failures and caches the count only within one publication. Text-offset evidence requires storage; validation never falls back to page metadata. Tests cover both shorter and longer later-processing summaries, Unicode/combining characters and a multibyte character across a chunk boundary, repeated citations, corrupted/truncated/invalid UTF-8 objects, absent storage and publication rollback.
+
+Focused review/Phase 6A checks: **48 passed**, six existing dependency warnings. Final post-review full backend regression: **1,114 passed, no skips**, six existing dependency warnings, in 109.96 seconds. The same disposable stack was recreated for review testing with database `powerforge_phase6a` on port 55436 and MinIO on port 59006, then removed after validation. Ruff lint/changed-file formatting, whitespace, dependency checks, unchanged six-GET OpenAPI contracts and offline 0011-to-head SQL generation passed. The 0011 migration tests now explicitly target 0011 rather than assuming it is forever head.
+
 ## Phase 6B handoff
 
-Implement scheduling, prerequisite/profile selection, input compatibility policy, provider-neutral fake/real execution and explicit provider enablement. Create the stable required-unit plan, then drive controlled run/attempt statuses through the existing persistence boundary. Add leases/heartbeats, stale recovery, bounded retries/backoff/budgets, cancellation and duplicate-delivery/late-completion handling. Never resend or replace a committed successful logical key; retain failures/telemetry and preserve successful siblings. Public start/retry/cancel endpoints belong to that slice. Keep provider credentials on workers and persist only sanitized failure metadata.
+Implement scheduling, prerequisite/profile selection, input compatibility policy, provider-neutral fake/real execution and explicit provider enablement. Supply ObjectStorage for text-offset publication and treat unavailable/unverifiable artifacts as publication failures. Settle/flush all active attempts, including optional ones, before terminal run transitions. Create the stable required-unit plan, then drive controlled run/attempt statuses through the existing persistence boundary. Add leases/heartbeats, stale recovery, bounded retries/backoff/budgets, cancellation and duplicate-delivery/late-completion handling. Never resend or replace a committed successful logical key; retain failures/telemetry and preserve successful siblings. Public start/retry/cancel endpoints belong to that slice. Keep provider credentials on workers and persist only sanitized failure metadata.
 
 Subsequent 6C equipment/attribute extraction, 6D table interpretation, 6E OCR/layout, 6F extraction/evidence UI/evaluation and 6G hardening/freeze remain **unimplemented**. Phase 6 as a whole is **not complete**.

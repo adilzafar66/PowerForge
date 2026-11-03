@@ -35,7 +35,7 @@ Phase 2 defines, and implements, what evidence will point at. See [ADR-004](../d
 
 ## Evidence
 
-Evidence records belong to one producing work unit and retain the run/document/processing context, stable DocumentPage, optional exact PageArtifact, source kind, extraction method and concise verbatim snippet. Text offsets use the explicit `UNICODE_CODEPOINT` convention and require a pinned native-text artifact; arbitrary visual offsets are rejected. A region is either null or a complete rectangle inside the normalized upright page. Uncertain geometry remains null.
+Evidence records belong to one producing work unit and retain the run/document/processing context, stable DocumentPage, optional exact PageArtifact, source kind, extraction method and concise verbatim snippet. Text offsets use the explicit `UNICODE_CODEPOINT` convention and require a pinned native-text artifact; arbitrary visual offsets are rejected. Publication counts codepoints from that exact UTF-8 storage object after verifying its stored size and SHA-256. It never uses `DocumentPage.native_text_char_count`, which later processing may change. Unavailable or unverifiable text rejects publication; there is no page-count fallback. A region is either null or a complete rectangle inside the normalized upright page. Uncertain geometry remains null.
 
 Optional table/cell locators reference schema-versioned table layouts. Candidates link to evidence many-to-many with PRIMARY, SUPPORTING or source-grounded CONTRADICTING roles. Group/table evidence references and candidate context are validated before publication. Composite FKs protect document/page/artifact/run ownership, and immutable output is committed atomically with successful work-unit completion.
 

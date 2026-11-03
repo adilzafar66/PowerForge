@@ -11,4 +11,6 @@ The approved Phase 6 specification and ADR-008 are already committed at the requ
 4. Test domain semantics, live PostgreSQL publication/rollback/ownership/history, HTTP precision/access/read-only behavior and fresh/0010 upgrade/downgrade compatibility. Run backend regression, lint, formatting, dependency and OpenAPI checks.
 5. Reconcile current documentation with the approved 6A–6G slices and record actual validation in PHASE6A_HANDOFF.md. Scheduling, providers, retries/recovery, AI/OCR/table interpretation and frontend remain deferred.
 
-All five steps are complete. Validation: 1,098 live backend tests passed (32 focused Phase 6A cases); see [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md) for exact results and boundaries.
+All five steps are complete. Initial delivery validation: 1,098 live backend tests passed (32 focused Phase 6A cases); see [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md) for exact results and boundaries.
+
+Review follow-up: add forward migration 0012 for terminal-state consistency and validate text-offset bounds from exact verified storage artifacts. Validation after corrections: 1,114 live backend tests passed (48 focused Phase 6A cases). See the handoff review-corrections section for exact results.

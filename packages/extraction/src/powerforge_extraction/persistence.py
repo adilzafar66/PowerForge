@@ -4,6 +4,7 @@ No scheduling, provider calls, canonical writes or independent commits. A savepo
 rolls back all output and the completion marker on any publication failure.
 """
 
+import codecs
 import hashlib
 import json
 from datetime import UTC, datetime
@@ -14,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from powerforge_document_model import PageArtifactType, ProcessingRunStatus
 from powerforge_document_processing.models import DocumentPage, DocumentProcessingRun, PageArtifact
+from powerforge_document_processing.storage.base import ObjectStorage
 from powerforge_extraction.contracts import AICallInput, RunInput, WorkUnitInput, WorkUnitOutput
 from powerforge_extraction.enums import CandidateKind, ExtractionRunStatus, WorkUnitStatus
 from powerforge_extraction.models import (
@@ -37,8 +39,9 @@ def effective_units(run_id: UUID) -> Select[tuple[UUID]]:
 
 
 class ExtractionPersistence:
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, storage: ObjectStorage | None = None) -> None:
         self.session = session
+        self.storage = storage
 
     def create_run(self, inputs: RunInput) -> ExtractionRun:
         inputs = RunInput.model_validate(inputs.model_dump())
@@ -222,14 +225,44 @@ class ExtractionPersistence:
                     or str(artifact.id) not in unit.input_artifact_ids
                 ):
                     raise ValueError("Source artifact is outside pinned inputs")
+        text_lengths: dict[UUID, int] = {}
         for e in output.evidence:
             if e.text_start is not None:
                 artifact = self.session.get(PageArtifact, e.location.page_artifact_id)
                 if artifact.artifact_type != PageArtifactType.NATIVE_TEXT:
                     raise ValueError("Offsets require a versioned text artifact")
-                page = self.session.get(DocumentPage, e.location.document_page_id)
-                if e.text_end > page.native_text_char_count:
-                    raise ValueError("Offsets exceed native text")
+                if artifact.id not in text_lengths:
+                    text_lengths[artifact.id] = self._text_artifact_length(artifact)
+                if e.text_end > text_lengths[artifact.id]:
+                    raise ValueError("Offsets exceed the pinned text artifact")
+
+    def _text_artifact_length(self, artifact: PageArtifact) -> int:
+        """Count Unicode codepoints in the exact immutable UTF-8 object, once per publish.
+
+        Stream verification bounds memory and rejects missing, truncated or changed
+        objects. Page-level character counts may describe a different processing run.
+        """
+        if self.storage is None:
+            raise ValueError("Text-offset validation requires object storage")
+        digest = hashlib.sha256()
+        decoder = codecs.getincrementaldecoder("utf-8")()
+        byte_count = char_count = 0
+        stream = self.storage.get(artifact.storage_key)
+        try:
+            while chunk := stream.read(64 * 1024):
+                byte_count += len(chunk)
+                if byte_count > artifact.size_bytes:
+                    raise ValueError("Pinned text artifact size mismatch")
+                digest.update(chunk)
+                char_count += len(decoder.decode(chunk))
+            char_count += len(decoder.decode(b"", final=True))
+        except UnicodeError:
+            raise ValueError("Pinned text artifact must be valid UTF-8") from None
+        finally:
+            stream.close()
+        if byte_count != artifact.size_bytes or digest.hexdigest() != artifact.sha256:
+            raise ValueError("Pinned text artifact integrity mismatch")
+        return char_count
 
     def _validate_references(self, run_id: UUID, unit_id: UUID, output: WorkUnitOutput) -> None:
         for item in [*output.source_groups, *output.tables]:

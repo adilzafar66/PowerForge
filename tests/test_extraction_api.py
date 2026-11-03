@@ -54,7 +54,7 @@ def published(ctx):
             claim(),
         ]
         output = grounded(src, candidates)
-        ExtractionPersistence(s).publish(unit.id, output)
+        ExtractionPersistence(s, ctx["storage"]).publish(unit.id, output)
         _, failed = run_and_unit(s, src, key="attributes:failed", run=run)
         failed.status = WorkUnitStatus.FAILED
         s.flush()
@@ -152,7 +152,9 @@ def test_unsupported_claims_are_explicit_and_not_default_sourced_results(ctx):
     src = source(ctx)
     with get_session_factory()() as s:
         run, unit = run_and_unit(s, src)
-        ExtractionPersistence(s).publish(unit.id, WorkUnitOutput(candidates=[claim()]))
+        ExtractionPersistence(s, ctx["storage"]).publish(
+            unit.id, WorkUnitOutput(candidates=[claim()])
+        )
         s.commit()
         run_id = run.id
     base = url(ctx, src) + f"/runs/{run_id}/candidates"
@@ -164,7 +166,7 @@ def test_unsupported_claims_are_explicit_and_not_default_sourced_results(ctx):
 def test_context_dependent_run_not_reused_in_another_revision(ctx):
     src = source(ctx)
     with get_session_factory()() as s:
-        run = ExtractionPersistence(s).create_run(
+        run = ExtractionPersistence(s, ctx["storage"]).create_run(
             inputs(
                 src, context_fingerprint="context-v1", context_revision_id=UUID(ctx["revision_id"])
             )
