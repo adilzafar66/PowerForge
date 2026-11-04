@@ -112,6 +112,9 @@ class EvidenceSummary(ReadModel):
     source_snippet: str | None
     table_id: UUID | None
     cell_id: str | None
+    grounding_precision: Literal[
+        "TEXT_OFFSETS", "TEXT_PAGE", "VISUAL_REGION", "VISUAL_PAGE", "PAGE_ONLY"
+    ] = "PAGE_ONLY"
 
 
 class Citation(BaseModel):

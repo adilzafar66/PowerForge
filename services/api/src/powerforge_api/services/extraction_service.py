@@ -55,6 +55,18 @@ from powerforge_extraction.profiles import ExecutionProfile
 from powerforge_provenance.locations import Region
 
 
+def _evidence_summary(row: Evidence) -> EvidenceSummary:
+    precision = "PAGE_ONLY"
+    if row.source_kind in {"NATIVE_TEXT", "OCR_TEXT"}:
+        precision = "TEXT_OFFSETS" if row.text_start is not None else "TEXT_PAGE"
+    elif row.source_kind == "VISUAL_REGION":
+        precision = "VISUAL_REGION" if row.x is not None else "VISUAL_PAGE"
+    return EvidenceSummary(
+        **EvidenceSummary.model_validate(row).model_dump(exclude={"grounding_precision"}),
+        grounding_precision=precision,
+    )
+
+
 class ExtractionReadService:
     def __init__(
         self, session: Session, project_id: UUID, revision_id: UUID, revision_document_id: UUID
@@ -281,7 +293,7 @@ class ExtractionReadService:
         for link, evidence in links:
             grouped.setdefault(link.candidate_id, []).append(
                 Citation(
-                    evidence=EvidenceSummary.model_validate(evidence),
+                    evidence=_evidence_summary(evidence),
                     role=link.role,
                     position=link.position,
                 )
@@ -373,7 +385,7 @@ class ExtractionReadService:
             except StorageError as exc:
                 raise StorageDownloadFailed("Evidence artifact access unavailable") from exc
         return EvidenceDetail(
-            **EvidenceSummary.model_validate(row).model_dump(),
+            **_evidence_summary(row).model_dump(),
             run_id=row.run_id,
             document_id=row.document_id,
             processing_run_id=row.processing_run_id,

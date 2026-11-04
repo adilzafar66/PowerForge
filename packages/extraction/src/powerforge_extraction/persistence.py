@@ -187,8 +187,11 @@ class ExtractionPersistence:
             self.session.flush()
             self._validate_references(run.id, unit.id, output)
             unit.output_counts = {
-                name: len(getattr(output, name)) for name in WorkUnitOutput.model_fields
+                name: len(getattr(output, name))
+                for name in WorkUnitOutput.model_fields
+                if name != "diagnostic_counts"
             }
+            unit.output_counts.update(output.diagnostic_counts)
             unit.status = WorkUnitStatus.COMPLETED
             unit.finished_at = datetime.now(UTC)
             self.session.flush()

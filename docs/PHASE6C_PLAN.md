@@ -1,6 +1,6 @@
 # Phase 6C implementation plan — Engineering extraction
 
-**Status:** M1 and M2 implemented: offline observation/prompt/context definitions and deterministic source-qualified interpretation/normalization. M3–M6 remain pending; production engineering extraction is not executable yet. Delivery and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md), [M2 handoff](PHASE6C_M2_HANDOFF.md).
+**Status:** M1–M3 implemented: observation/prompt/context definitions, deterministic interpretation, verified source grounding and atomic output conversion. M4–M6 remain pending; production engineering extraction is not executable yet. Delivery and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md), [M2 handoff](PHASE6C_M2_HANDOFF.md), [M3 handoff](PHASE6C_M3_HANDOFF.md).
 
 **Planning baseline:** `main` at `3ffb43f8fc5082817c7be5ec3d67dc94f44319f6`, including accepted 6B commit `5042af803d2863d5b49bd241c9f14f87809d6cb4` and the complete 6C prompt/additional clarifications. Refresh latest main before implementation and use `codex/phase-6c-engineering-extraction`.
 
@@ -125,6 +125,8 @@ Implement generic metadata-based resolution, the limited scoped terminology poli
 Implement exact-text grounding, repeated-phrase handling, honest visual grounding, local IDs/groups and conversion to WorkUnitOutput, including use of committed recognition context. Surface safe grounding/rejection metadata through existing publication/read boundaries.
 
 **Gate:** Unicode offsets, duplicate phrases, forged excerpts/tags, image-only inputs, ambiguous associations, shared evidence and competing values behave correctly. Real disposable PostgreSQL publication/read checks prove ownership, same-run links and full rollback; no canonical rows are changed.
+
+**Delivered:** `engineering-grounding-v1` verifies exact pinned page artifacts, produces conservative source-local groups/citations, loads only completed same-run recognition context and converts accepted observations into WorkUnitOutput. Native block/occurrence checks and explicit visual limits prevent model references from becoming association proof. Bounded rejection counts commit with successful unit output; read APIs expose grounding precision. All 1,365 backend tests passed with no skips, including 31 new M3 cases. No schema migration or production scheduling/provider integration was added. See [PHASE6C_M3_HANDOFF.md](PHASE6C_M3_HANDOFF.md).
 
 ### M4 — Stage dependencies, compatibility and multimodal execution
 
