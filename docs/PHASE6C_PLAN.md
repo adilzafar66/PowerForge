@@ -118,7 +118,7 @@ Implement generic metadata-based resolution, the limited scoped terminology poli
 
 **Gate:** representative transformer, LV breaker, cable and utility cases produce exact expected raw/typed values; wrong-but-valid key proposals, ambiguous impedance/ratings, missing units, unknown enums, false booleans, large integers and unsupported conversions are handled conservatively. No canonical requirements/default inference.
 
-**Delivered:** the pure `engineering-interpretation-v1` layer resolves source meanings independently from model proposals and delegates normalization to frozen registry-v1. It requires admitted local source/equipment passages from the future grounding caller; it does not fetch artifacts or establish provenance/association. Rejected source-field assertions are distinct from MAPPED/UNMAPPED/INVALID results. The M2 gate has 102 new passing tests; 262 related offline tests pass in total. See [PHASE6C_M2_HANDOFF.md](PHASE6C_M2_HANDOFF.md).
+**Delivered:** the pure `engineering-interpretation-v1` layer resolves source meanings independently from model proposals and delegates normalization to frozen registry-v1. It requires admitted local source/equipment passages from the future grounding caller; it does not fetch artifacts or establish provenance/association. Rejected source-field assertions are distinct from MAPPED/UNMAPPED/INVALID results. Review hardening preserves nonunit parenthetical qualifiers. The M2 gate has 110 passing tests; 270 related offline tests pass in total. See [PHASE6C_M2_HANDOFF.md](PHASE6C_M2_HANDOFF.md).
 
 ### M3 — Evidence, grouping and atomic output conversion
 

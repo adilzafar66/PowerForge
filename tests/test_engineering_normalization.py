@@ -49,6 +49,73 @@ def test_explicit_source_header_unit_is_used_but_never_assumed_from_registry():
     assert interpret_attribute(invented_unit, context).rejected
 
 
+@pytest.mark.parametrize(
+    "label,value,key,equipment,equipment_type",
+    [
+        (
+            "Normally Closed (not verified)",
+            "Yes",
+            "normally_closed",
+            "LV Breaker CB1",
+            "LV_BREAKER",
+        ),
+        ("Conductor Material (N/A)", "Cu", "conductor_material", "Cable C1", "CABLE"),
+        ("Normally Closed (!)", "Yes", "normally_closed", "LV Breaker CB1", "LV_BREAKER"),
+        ("Normally Closed ()", "Yes", "normally_closed", "LV Breaker CB1", "LV_BREAKER"),
+        (
+            "Secondary Voltage (not verified) (V)",
+            "600",
+            "secondary_voltage",
+            "2-Winding Transformer TX1",
+            "TWO_WINDING_TRANSFORMER",
+        ),
+    ],
+)
+def test_nonunit_parenthetical_qualifiers_remain_unmapped(
+    label, value, key, equipment, equipment_type
+):
+    result = interpret_attribute(
+        *attribute(label, value, None, key, equipment=equipment, equipment_type=equipment_type)
+    )
+    assert result.mapping_status == "UNMAPPED"
+    assert result.raw_text == f"{label}: {value}" and result.raw_value == value
+    assert result.attribute_key is None and result.value_type is None
+    assert result.value is None and result.unit is None
+
+
+def test_full_registered_nonunit_annotation_keeps_its_declared_registry_meaning():
+    result = interpret_attribute(
+        *attribute(
+            "Conductor Material (Al or Cu)",
+            "Cu",
+            None,
+            "conductor_material",
+            equipment="Cable C1",
+            equipment_type="CABLE",
+        )
+    )
+    assert result.mapping_status == "MAPPED" and result.value == "COPPER"
+
+
+@pytest.mark.parametrize(
+    "label,value,key,equipment,equipment_type",
+    [
+        ("Normally Closed (V)", "Yes", "normally_closed", "LV Breaker CB1", "LV_BREAKER"),
+        ("Conductor Material (A)", "Cu", "conductor_material", "Cable C1", "CABLE"),
+    ],
+)
+def test_recognized_unit_annotations_are_not_silently_ignored_on_unitless_fields(
+    label, value, key, equipment, equipment_type
+):
+    result = interpret_attribute(
+        *attribute(label, value, None, key, equipment=equipment, equipment_type=equipment_type)
+    )
+    assert (
+        result.mapping_status == "INVALID" and result.reason_code == "REGISTRY_NORMALIZATION_FAILED"
+    )
+    assert result.value is None and result.attribute_key is None and result.unit is None
+
+
 def test_source_label_unit_prefix_and_multiple_header_units_are_not_canonical_defaults():
     result = interpret_attribute(*attribute("kVA rating", "750", None, "rated_apparent_power"))
     assert result.mapping_status == "MAPPED" and result.value == Decimal("750")

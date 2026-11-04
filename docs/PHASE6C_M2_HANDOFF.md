@@ -74,3 +74,11 @@ The extraction wheel builds and directly imports the new interpreter, reproduces
 ## Next: M3
 
 M3 must admit exact versioned source artifacts and verified local passages, prove associations, compute Unicode offsets, handle repeated phrases, label visual grounding honestly, create source-local groups/citations and convert accepted interpretations to atomic WorkUnitOutput. Rejected claims must remain excluded; an empty valid extraction does not establish document completeness. M4–M6 still own dependent-stage scheduling, production provider/profile integration and measured evaluation. No later milestone has been implemented here.
+
+## Review correction before M3 — Parenthetical qualifiers
+
+The review finding was reproduced: `Normally Closed (not verified): Yes` and `Conductor Material (N/A): Cu` could lose their qualifiers and become MAPPED. Parenthetical suffixes are now stripped only when their complete content is a recognized registry unit. Unresolved qualifiers remain part of the meaning and yield UNMAPPED with raw data preserved and no normalized slots. Punctuation-only/empty qualifiers also cannot disappear during label folding. Exact full display labels already defined by registry-v1, such as `Conductor Material (Al or Cu)`, remain supported without discarding their annotation.
+
+Recognized unit suffixes continue through normalization; units on unitless BOOLEAN/ENUM fields are no longer silently ignored and fail registry validation. Multiple conflicting header units still remain UNMAPPED. The rule-source identity fixture is deliberately updated for this pre-production correction; M1 schemas, prompts, registry-v1 and legacy probe identities are unchanged. No production run configurations exist to reinterpret in this milestone.
+
+Eight added regression cases cover the reviewed labels, punctuation/empty qualifiers, a retained qualifier before a unit suffix, exact registered annotations and unit annotations on unitless fields. Final related offline suite: **270 passed**, five existing dependency warnings, in 1.33 seconds, using the command above. This includes **110 M2 cases** in total. Ruff, changed-file formatting and whitespace checks passed. Earlier packaging verification above belongs to the original M2 delivery; packaging infrastructure was not changed or rebuilt for this correction.

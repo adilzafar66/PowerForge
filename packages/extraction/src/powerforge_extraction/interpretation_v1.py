@@ -170,7 +170,7 @@ def interpret_equipment(
 
 def _label_parts(label: str) -> tuple[str, str | None]:
     parenthesis = re.search(r"\s*\(([^()]*)\)\s*$", label)
-    if parenthesis:
+    if parenthesis and parenthesis[1].strip() in UNITS:
         return label[: parenthesis.start()].strip(), parenthesis[1].strip()
     for unit in sorted(UNITS, key=len, reverse=True):
         if label.endswith(" " + unit):
@@ -225,8 +225,18 @@ def _attribute(
 ) -> AttributeDefinition | None:
     if "?" in label:
         return None
-    wanted = _fold(_label_parts(label)[0])
+    meaning = _label_parts(label)[0]
     equipment = get_equipment_definition(equipment_type)
+    if "(" in meaning or ")" in meaning:
+        # Unknown qualifiers must survive punctuation folding. An exact registered
+        # display label is allowed without discarding its nonunit annotation.
+        matches = [
+            definition
+            for definition in equipment.attributes
+            if meaning.casefold() == _label_parts(definition.display_name)[0].casefold()
+        ]
+        return matches[0] if len(matches) == 1 else None
+    wanted = _fold(meaning)
     keys = {
         definition.key
         for definition in equipment.attributes
@@ -353,6 +363,8 @@ def interpret_attribute(
         return _unmapped(result, "EQUIPMENT_PROPOSAL_CONFLICT")
     definition = _attribute(equipment, label, context)
     if definition is None:
+        if len(_label_units(label)) > 1:
+            return _unmapped(result, "CONFLICTING_SOURCE_UNITS")
         return result
     if observation.proposed_attribute_key not in (None, definition.key):
         return _unmapped(result, "ATTRIBUTE_PROPOSAL_CONFLICT")
@@ -361,7 +373,6 @@ def interpret_attribute(
     if suffix is None:
         return _reject(result, "SOURCE_VALUE_MISMATCH")
     _, header_unit = _label_parts(label)
-    header_unit = header_unit if numeric else None
     label_units = _label_units(label) if numeric else set()
     if len(label_units) > 1:
         return _unmapped(result, "CONFLICTING_SOURCE_UNITS")
