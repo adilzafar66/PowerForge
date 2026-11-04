@@ -315,3 +315,68 @@ def test_missing_live_controls_stop_before_database_or_provider_setup(monkeypatc
             max_calls=2,
             wait_seconds=1,
         )
+
+
+def test_injected_runner_cannot_request_live_provenance():
+    from extraction_worker.evaluation_live import run_live
+
+    with pytest.raises(TypeError, match="provenance"):
+        run_live(None, None, None, None, None, None, None, provenance="LIVE_OPENAI")
+
+
+@pytest.mark.parametrize("successful_calls", [0, 1])
+def test_live_designation_belongs_to_guarded_production_entrypoint(
+    monkeypatch, tmp_path, successful_calls
+):
+    from types import SimpleNamespace
+    from unittest.mock import Mock
+
+    from extraction_worker import evaluation_live, extraction_tasks
+    from powerforge_shared.config import Settings
+
+    settings = Settings(
+        _env_file=None,
+        extraction_enabled=True,
+        extraction_external_enabled=True,
+        openai_api_key="fixture-not-a-live-key",
+    )
+    engine = SimpleNamespace(dispose=Mock())
+    factory, storage = object(), object()
+    digest = load_corpus(CORPUS)[1]
+    bindings_path = tmp_path / "bindings.json"
+    bindings_path.write_text('{"transformer": "fixture-document"}')
+    monkeypatch.setattr(evaluation_live, "get_settings", lambda: settings)
+    monkeypatch.setattr(evaluation_live, "create_engine", lambda *a, **k: engine)
+    monkeypatch.setattr(evaluation_live, "sessionmaker", lambda **k: factory)
+    monkeypatch.setattr(evaluation_live, "build_s3_storage", lambda s: storage)
+
+    def simulated_runner(*args, **kwargs):
+        assert args == (
+            CORPUS,
+            {"transformer": "fixture-document"},
+            {"transformer"},
+            factory,
+            storage,
+            settings,
+            extraction_tasks.provider_for,
+        )
+        assert kwargs == {"wait_seconds": 1, "approved_digest": digest}
+        return {
+            "provenance": "UNVERIFIED_PIPELINE",
+            "live_model_quality_measured": False,
+            "execution": {"transformer": {"successful_calls": successful_calls}},
+        }
+
+    # Verify production-factory wiring without executing any provider/database I/O.
+    monkeypatch.setattr(evaluation_live, "run_live", simulated_runner)
+    result = evaluation_live.evaluate_live(
+        CORPUS,
+        bindings_path,
+        approved_digest=digest,
+        selected={"transformer"},
+        max_calls=2,
+        wait_seconds=1,
+    )
+    assert result["provenance"] == "LIVE_OPENAI"
+    assert result["live_model_quality_measured"] is bool(successful_calls)
+    engine.dispose.assert_called_once_with()

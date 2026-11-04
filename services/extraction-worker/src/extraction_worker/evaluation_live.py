@@ -195,9 +195,9 @@ def run_live(
     provider_factory,
     *,
     wait_seconds=300,
-    provenance="LIVE_OPENAI",
     approved_digest=None,
 ):
+    """Execute with an injected provider; this helper cannot attest live provenance."""
     corpus, digest = load_corpus(corpus_path)
     if not selected or set(selected) - {case.id for case in corpus.cases}:
         raise ValueError("Live selection must name existing corpus cases")
@@ -281,12 +281,13 @@ def run_live(
                 if session.get(ExtractionRun, rid).status in {"PENDING", "RUNNING"}:
                     ExtractionCoordinator(session, bounded).cancel(rid)
     result = report(
-        snapshots, provenance=provenance, corpus_digest=digest, resources=resource_identity()
+        snapshots,
+        provenance="UNVERIFIED_PIPELINE",
+        corpus_digest=digest,
+        resources=resource_identity(),
     )
     result["execution"] = execution
-    result["live_model_quality_measured"] = provenance == "LIVE_OPENAI" and any(
-        item["successful_calls"] for item in execution.values()
-    )
+    result["live_model_quality_measured"] = False
     return result
 
 
@@ -309,7 +310,7 @@ def evaluate_live(
 
     engine = create_engine(settings.database_url, pool_pre_ping=True)
     try:
-        return run_live(
+        result = run_live(
             corpus_path,
             read_json(bindings_path),
             selected,
@@ -320,5 +321,12 @@ def evaluate_live(
             wait_seconds=wait_seconds,
             approved_digest=approved_digest,
         )
+        # Only this guarded entrypoint selects the production factory itself.
+        # An injected provider or its caller's label cannot designate a live run.
+        result["provenance"] = "LIVE_OPENAI"
+        result["live_model_quality_measured"] = any(
+            item["successful_calls"] for item in result["execution"].values()
+        )
+        return result
     finally:
         engine.dispose()

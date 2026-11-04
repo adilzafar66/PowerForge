@@ -103,10 +103,10 @@ def test_bounded_live_path_reuses_real_admission_grounding_and_publication_witho
         ctx["storage"],
         ctx["settings"],
         provider_for(bindings, requests),
-        provenance="MOCK_PIPELINE",
     )
     assert len(requests) == 6 and result["case_count"] == 3
-    assert result["provenance"] == "MOCK_PIPELINE" and not result["live_model_quality_measured"]
+    assert result["provenance"] == "UNVERIFIED_PIPELINE"
+    assert not result["live_model_quality_measured"]
     assert result["metrics"]["normalized_value_correctness"]["numerator"] == 5
     assert result["rejections"]["detached_associations"] == 1
     for entry in result["execution"].values():
@@ -140,7 +140,6 @@ def test_invalid_binding_rolls_back_entire_batch_before_any_admission(execution_
             ctx["storage"],
             ctx["settings"],
             provider_for(bindings, requests),
-            provenance="MOCK_PIPELINE",
         )
     assert not requests
     with ctx["factory"]() as session:
@@ -167,7 +166,6 @@ def test_failed_stage_is_not_retried_or_excluded_from_gold_coverage(execution_ct
         ctx["storage"],
         ctx["settings"],
         provider_for(bindings, requests, fail=True),
-        provenance="MOCK_PIPELINE",
     )
     assert len(requests) == 2
     assert result["execution"]["transformer"]["status"] == "PARTIALLY_COMPLETED"
@@ -197,7 +195,6 @@ def test_timeout_settles_only_evaluation_runs_without_provider_calls(execution_c
             ctx["settings"],
             provider_for(bindings, requests),
             wait_seconds=0,
-            provenance="MOCK_PIPELINE",
         )
     assert not requests
     with ctx["factory"]() as session:

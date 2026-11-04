@@ -75,7 +75,7 @@ The optional CLI live mode requires explicit source-processing authorization exp
 
 Execution uses the normal production profiles, coordinator and `execute_unit()`, not a direct SDK path. Each case pins two admissions, one attempt per stage and one concurrent attempt per run. There are no retry/repair calls in this evaluation envelope. Existing workers may claim its deliveries under the same DB limits/fences. Reports read committed successful outputs, retain failed-case gold denominators, published rejection counts, run/profile/model/admission/call counts and provenance. Timeout/interruption cancels only its own unfinished runs, preserving completed history. The polling deadline does not preempt an already-started I/O operation; pinned timeouts still apply.
 
-Automated runner tests use injected providers and report `MOCK_PIPELINE`. Offline files claiming live origin become `UNVERIFIED_RECORDING`; a label cannot prove provider execution. Only actual successful live calls can mark the live-runner report as measured. No live report is included in this delivery. Private bindings/reports belong under gitignored `evals/extraction/private/`.
+Automated runner tests use injected providers and report `UNVERIFIED_PIPELINE`. The internal runner accepts no provenance override. Only the guarded `evaluate_live()` entrypoint, which selects the normal production worker factory itself, designates `LIVE_OPENAI`, and measured quality still requires a successful call. Offline files claiming live origin become `UNVERIFIED_RECORDING`; a label cannot prove provider execution. No live report is included in this delivery. Private bindings/reports belong under gitignored `evals/extraction/private/`.
 
 - **Architectural support:** all 20 registry-v1 types/296 definitions; metadata-wide and explicit-name interpreter regressions cover them.
 - **Representative engineering fixture coverage:** four priority families—two-winding transformer, LV breaker, cable and utility source—plus unknown/tagless/isolated and adversarial association cases. This is not measured extraction coverage of every type or attribute.
@@ -98,6 +98,10 @@ REDIS_URL=redis://localhost:56391/0 RUN_INTEGRATION=1 \
 ```
 
 Disposable project `powerforge-phase6c-m6` used tmpfs PostgreSQL/Redis/MinIO and was removed after checks. Normal development services/data were untouched. Generated package build directories were removed. No live paid call, model-account check or customer document processing was performed.
+
+### Provenance review correction
+
+The injected-provider helper no longer accepts a provenance label or defaults to LIVE_OPENAI. It always returns UNVERIFIED_PIPELINE with measured quality false. The guarded production entrypoint owns live designation after selecting the normal worker factory itself, and requires successful execution before marking quality measured. **45 focused evaluator tests passed** with six existing dependency warnings in **3.97 seconds**, including three new controls for caller overrides, production-factory wiring and zero/successful-call designation. Real disposable PostgreSQL exercises successful injected execution; production-entrypoint wiring is stubbed without provider I/O. Lint, formatting and whitespace checks pass; no paid calls were made. The earlier full-suite result above remains prior evidence; the full backend suite was not repeated for this localized reporting correction.
 
 ## Evolution and future phases
 
