@@ -58,6 +58,12 @@ Run detail exposes profile kind, safe usage/admission counts, cancellation, retr
 
 The existing extraction worker consumes `document_classification,document_extraction`; the new `extraction-scheduler` runs Celery beat. Both are necessary for automatic recovery. See the [6B handoff](PHASE6B_HANDOFF.md) for setup, exact guarantees, validation and the 6C extension contract.
 
+## Phase 6C M1 — Observation and prompt definitions
+
+The [6C plan](PHASE6C_PLAN.md) is being delivered in milestones. M1 adds offline, provider-neutral recognition/attribute observation schemas, role-based source anchors, registry-derived context for all 20 types/296 attributes, a small qualified terminology policy, versioned composable prompts and canonical stage/resource hashes. Unknown proposed mappings, tagless equipment and standalone attributes remain representable. Response-shape/reference validation does not establish source grounding or mapping correctness.
+
+These definitions are not connected to the worker or public production profiles. Existing fake/probe execution, profile identities and registry-v1 remain unchanged. Deterministic interpretation is M2, evidence/group conversion M3, execution integration M4–M5 and measured evaluation M6. No live model accuracy is claimed. See [PHASE6C_M1_HANDOFF.md](PHASE6C_M1_HANDOFF.md).
+
 ## Specialized extractors
 
 | Extractor | Role |

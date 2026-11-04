@@ -1,0 +1,32 @@
+{
+  "baseline": "5042af803d2863d5b49bd241c9f14f87809d6cb4",
+  "prompt_hash": "c21236625be34dfa14acb70d2cad41addb6ef85f07300d9a72b8fb6c586910d1",
+  "schema_hash": "cddcfcfbc99c358fab8ce110b86e622fc2a0135716ebecba113e967a5e61e394",
+  "settings": {
+    "extraction_model": "fixture-model",
+    "extraction_max_pages": 50,
+    "extraction_max_input_bytes": 2000000,
+    "extraction_max_image_pixels": 20000000,
+    "extraction_max_output_tokens": 1024,
+    "extraction_max_attempts": 3,
+    "extraction_max_calls": 150,
+    "extraction_max_concurrent_per_run": 2,
+    "extraction_timeout_seconds": 60,
+    "extraction_lease_seconds": 30,
+    "extraction_backoff_seconds": 5,
+    "extraction_fake_scenario": "success",
+    "extraction_pricing_basis": null,
+    "extraction_input_usd_per_million": null,
+    "extraction_output_usd_per_million": null
+  },
+  "profiles": {
+    "infrastructure-fake-v1": {
+      "wire_json": "{\"key\":\"infrastructure-fake-v1\",\"version\":\"execution-profile-v1\",\"execution_kind\":\"FAKE_TEST\",\"provider\":\"fake\",\"model\":\"deterministic-fake-v1\",\"stage\":\"SOURCE_PROBE\",\"input_strategy\":\"NATIVE_TEXT_OR_IMAGE\",\"prompt_version\":\"source-probe-v1\",\"prompt_hash\":\"c21236625be34dfa14acb70d2cad41addb6ef85f07300d9a72b8fb6c586910d1\",\"schema_version\":\"source-probe-schema-v1\",\"schema_hash\":\"cddcfcfbc99c358fab8ce110b86e622fc2a0135716ebecba113e967a5e61e394\",\"max_pages\":50,\"max_input_bytes\":2000000,\"max_image_pixels\":20000000,\"max_output_tokens\":1024,\"max_attempts\":3,\"max_calls\":150,\"max_concurrent\":2,\"timeout_seconds\":60,\"lease_seconds\":30,\"backoff_seconds\":5,\"fake_scenario\":\"success\",\"pricing_basis\":null,\"input_usd_per_million\":null,\"output_usd_per_million\":null}",
+      "identity_hash": "7e06e4a80d63857225a4a6422ea2e44afda83dd92d82679a78c33e1727639a59"
+    },
+    "infrastructure-openai-v1": {
+      "wire_json": "{\"key\":\"infrastructure-openai-v1\",\"version\":\"execution-profile-v1\",\"execution_kind\":\"INFRASTRUCTURE_PROBE\",\"provider\":\"openai\",\"model\":\"fixture-model\",\"stage\":\"SOURCE_PROBE\",\"input_strategy\":\"NATIVE_TEXT_OR_IMAGE\",\"prompt_version\":\"source-probe-v1\",\"prompt_hash\":\"c21236625be34dfa14acb70d2cad41addb6ef85f07300d9a72b8fb6c586910d1\",\"schema_version\":\"source-probe-schema-v1\",\"schema_hash\":\"cddcfcfbc99c358fab8ce110b86e622fc2a0135716ebecba113e967a5e61e394\",\"max_pages\":50,\"max_input_bytes\":2000000,\"max_image_pixels\":20000000,\"max_output_tokens\":1024,\"max_attempts\":3,\"max_calls\":150,\"max_concurrent\":2,\"timeout_seconds\":60,\"lease_seconds\":30,\"backoff_seconds\":5,\"fake_scenario\":\"success\",\"pricing_basis\":null,\"input_usd_per_million\":null,\"output_usd_per_million\":null}",
+      "identity_hash": "97405dd4cf3336ae08c45218bf6c50d4893ce61f576af8d99547e5685b1ba0ca"
+    }
+  }
+}

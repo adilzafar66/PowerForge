@@ -1,0 +1,33 @@
+{
+  "manifest": {
+    "version": "engineering-stage-manifest-v1",
+    "registry_version": "registry-v1",
+    "context_version": "engineering-registry-context-v1",
+    "registry_projection_hash": "41ede97ee551463a293c7e56353ef7ce66db2963797d8b96fde3ba52bf36c7aa",
+    "terminology_version": "engineering-terminology-v1",
+    "terminology_hash": "599ded5c5ecedb872a4a8478533bf621997550cec66af16bc9cc7b3b842a3829",
+    "stages": [
+      {
+        "stage": "EQUIPMENT_RECOGNITION",
+        "prerequisite": null,
+        "prompt_version": "engineering-prompts-v1",
+        "template_hash": "1d3daff000ec34db88873a35622de7a31c27cc72d3d111311e899b95fc784ad9",
+        "schema_version": "equipment-recognition-schema-v1",
+        "schema_hash": "b75b3691abcef02c63c222ac38400c164cd3d768912d59d14c0e9860e574d789"
+      },
+      {
+        "stage": "ATTRIBUTE_EXTRACTION",
+        "prerequisite": "EQUIPMENT_RECOGNITION",
+        "prompt_version": "engineering-prompts-v1",
+        "template_hash": "680369eb4df684981ed8b12a7f14f51ca4211e0635c7114a6ab215d2492d9ad8",
+        "schema_version": "attribute-extraction-schema-v1",
+        "schema_hash": "d74ec3efacee12d24d2b7217f0b1c20313160ccfdce935d6d7200d1221dce53b"
+      }
+    ]
+  },
+  "manifest_hash": "35228fc26e37ceafa6ce8952062503c1fedbad935958f41dd9937dc1ad3d87e8",
+  "empty_context_instructions": {
+    "EQUIPMENT_RECOGNITION": "d5424d9b80542f832785f29bba612886a991f09fdd4d83f2501b24da3a8c481b",
+    "ATTRIBUTE_EXTRACTION": "6100d5adce18759ed1ed0213317ae4d294c724f760a161f84d24b410df72f499"
+  }
+}

@@ -1,0 +1,27 @@
+Stage: ATTRIBUTE_EXTRACTION. Return attribute-extraction-schema-v1.
+Extract explicit engineering attribute observations, including isolated values with no
+identified equipment. Use only supplied equipment references where the source justifies
+the association; otherwise equipment_ref=null. Do not create new equipment references or
+force attributes onto the nearest tag. A successful recognition stage may have found no
+equipment: still preserve meaningful standalone and unknown attribute observations.
+
+Preserve source_label, raw_value and raw_unit as source strings, not normalized numbers
+or JSON booleans. Keep large integers and decimal precision exactly as written. Preserve
+explicit false statements. Missing units remain null unless explicit source context supplies
+them; do not assume the registry canonical unit. Anchor the label/value/unit and relevant
+qualifiers, not just a coincidentally matching number. Do not borrow a qualifier from an
+unrelated equipment item or combine unsupported text/image claims.
+
+Propose registry keys only when supported by source meaning and applicable metadata.
+The application independently validates those proposals and normalizes supported values.
+For unknown labels, enums, ambiguous units or equipment context retain the raw claim
+and null/uncertain mapping. Never emit canonical typed values or a mapping-status decision.
+Keep several differing source-stated values as separate observations.
+
+Distinguish transformer winding voltages and normal versus zero-sequence impedance;
+never invent X/R, winding connections or impedance bases. Keep breaker frame, sensor,
+plug, trip and long-time pickup distinct; AF/AT alone does not establish all those values
+or a trip-unit model. Distinguish cable parallel runs from conductor/core count, and utility
+three-phase from SLG fault-current/X/R data. Unqualified impedance or X/R stays ambiguous.
+Never estimate cable impedance, select device curves or convert percent/per-unit values.
+Return at most 128 attribute observations; declare overflow rather than silently dropping more.

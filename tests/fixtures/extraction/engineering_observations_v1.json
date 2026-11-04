@@ -1,0 +1,722 @@
+{
+  "fixture_version": "engineering-observations-v1",
+  "scope": "Curated response-shape fixtures; future expectations are not executed by M1 and are not measured model accuracy.",
+  "cases": [
+    {
+      "id": "transformer-tagged",
+      "native_text": "Two-winding transformer TX-101\nRated Capacity: 750 kVA\nPrimary Voltage: 12.47 kV\nSecondary Voltage: 600 V\nImpedance: 5.75%",
+      "visual_description": null,
+      "available_sources": [
+        "native_text"
+      ],
+      "target_equipment_types": [
+        "TWO_WINDING_TRANSFORMER"
+      ],
+      "recognition": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "raw_expression": "Two-winding transformer TX-101",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Two-winding transformer TX-101",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "observed_tag": "TX-101",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER"
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "raw_expression": "Rated Capacity: 750 kVA",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Rated Capacity: 750 kVA",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "Rated Capacity",
+            "raw_value": "750",
+            "raw_unit": "kVA",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "rated_apparent_power"
+          },
+          {
+            "local_ref": "a2",
+            "raw_expression": "Primary Voltage: 12.47 kV",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Primary Voltage: 12.47 kV",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "Primary Voltage",
+            "raw_value": "12.47",
+            "raw_unit": "kV",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "primary_voltage"
+          },
+          {
+            "local_ref": "a3",
+            "raw_expression": "Secondary Voltage: 600 V",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Secondary Voltage: 600 V",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "Secondary Voltage",
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage"
+          },
+          {
+            "local_ref": "a4",
+            "raw_expression": "Impedance: 5.75%",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Impedance: 5.75%",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "Impedance",
+            "raw_value": "5.75",
+            "raw_unit": "%",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "positive_sequence_impedance"
+          }
+        ]
+      },
+      "future_expectations": {
+        "secondary_voltage": {
+          "mapping_status": "MAPPED",
+          "numeric_value": "0.6",
+          "unit": "kV"
+        },
+        "forbidden_inferences": [
+          "zero_sequence_impedance",
+          "positive_sequence_x_r",
+          "primary_connection"
+        ]
+      }
+    },
+    {
+      "id": "breaker-distinct-ratings-and-false",
+      "native_text": "LV circuit breaker CB-101, thermal-magnetic\n400 AF / 250 AT\nNormally Closed: No",
+      "visual_description": null,
+      "available_sources": [
+        "native_text"
+      ],
+      "target_equipment_types": [
+        "LV_BREAKER"
+      ],
+      "recognition": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "raw_expression": "LV circuit breaker CB-101, thermal-magnetic",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "LV circuit breaker CB-101, thermal-magnetic",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "observed_tag": "CB-101",
+            "observed_name": null,
+            "proposed_equipment_type": "LV_BREAKER"
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "raw_expression": "400 AF",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "400 AF",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "AF",
+            "raw_value": "400",
+            "raw_unit": "AF",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "frame_rating"
+          },
+          {
+            "local_ref": "a2",
+            "raw_expression": "250 AT",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "250 AT",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "AT",
+            "raw_value": "250",
+            "raw_unit": "AT",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "trip_rating"
+          },
+          {
+            "local_ref": "a3",
+            "raw_expression": "Normally Closed: No",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Normally Closed: No",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "Normally Closed",
+            "raw_value": "No",
+            "raw_unit": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "normally_closed"
+          }
+        ]
+      },
+      "future_expectations": {
+        "frame_rating": "400",
+        "trip_rating": "250",
+        "normally_closed": false,
+        "forbidden_inferences": [
+          "sensor_rating",
+          "rating_plug",
+          "long_time_pickup",
+          "trip_unit_model"
+        ]
+      }
+    },
+    {
+      "id": "cable-and-integer-precision",
+      "native_text": "Cable C-1\nConductor Material: Cu\nLength: 30 ft\nParallel Run Count: 9007199254740993",
+      "visual_description": null,
+      "available_sources": [
+        "native_text"
+      ],
+      "target_equipment_types": [
+        "CABLE"
+      ],
+      "recognition": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "raw_expression": "Cable C-1",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Cable C-1",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "observed_tag": "C-1",
+            "observed_name": null,
+            "proposed_equipment_type": "CABLE"
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "raw_expression": "Conductor Material: Cu",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Conductor Material: Cu",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "Conductor Material",
+            "raw_value": "Cu",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "conductor_material"
+          },
+          {
+            "local_ref": "a2",
+            "raw_expression": "Length: 30 ft",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Length: 30 ft",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "Length",
+            "raw_value": "30",
+            "raw_unit": "ft",
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "length"
+          },
+          {
+            "local_ref": "a3",
+            "raw_expression": "Parallel Run Count: 9007199254740993",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Parallel Run Count: 9007199254740993",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "Parallel Run Count",
+            "raw_value": "9007199254740993",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "parallel_run_count"
+          }
+        ]
+      },
+      "future_expectations": {
+        "conductor_material": "COPPER",
+        "length": {
+          "numeric_value": "9.144",
+          "unit": "m"
+        },
+        "parallel_run_count": "9007199254740993",
+        "note": "Synthetic precision stress case; not a realistic installation."
+      }
+    },
+    {
+      "id": "utility-qualified-and-unqualified-fault-data",
+      "native_text": "Utility Source U-1\n3-Phase Fault Current: 25 kA\nSLG Fault Current: 15 kA\nX/R: 10",
+      "visual_description": null,
+      "available_sources": [
+        "native_text"
+      ],
+      "target_equipment_types": [
+        "UTILITY_SOURCE"
+      ],
+      "recognition": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "raw_expression": "Utility Source U-1",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Utility Source U-1",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "observed_tag": "U-1",
+            "observed_name": null,
+            "proposed_equipment_type": "UTILITY_SOURCE"
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "raw_expression": "3-Phase Fault Current: 25 kA",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "3-Phase Fault Current: 25 kA",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "3-Phase Fault Current",
+            "raw_value": "25",
+            "raw_unit": "kA",
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "proposed_attribute_key": "three_phase_fault_current"
+          },
+          {
+            "local_ref": "a2",
+            "raw_expression": "SLG Fault Current: 15 kA",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "SLG Fault Current: 15 kA",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "SLG Fault Current",
+            "raw_value": "15",
+            "raw_unit": "kA",
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "proposed_attribute_key": "slg_fault_current"
+          },
+          {
+            "local_ref": "a3",
+            "raw_expression": "X/R: 10",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "X/R: 10",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": true,
+            "ambiguity_reason": "Attribute meaning or equipment association is uncertain",
+            "equipment_ref": "eq1",
+            "source_label": "X/R",
+            "raw_value": "10",
+            "raw_unit": null,
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "proposed_attribute_key": null
+          }
+        ]
+      },
+      "future_expectations": {
+        "three_phase_fault_current": "25",
+        "slg_fault_current": "15",
+        "unqualified_x_r": "UNMAPPED"
+      }
+    },
+    {
+      "id": "tagless-visual-nameplate",
+      "native_text": null,
+      "visual_description": "Synthetic fixture expectation only: a readable transformer label with secondary voltage 600 V; no image/model evaluation is claimed by M1.",
+      "available_sources": [
+        "analysis_image"
+      ],
+      "target_equipment_types": [
+        "TWO_WINDING_TRANSFORMER"
+      ],
+      "recognition": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "raw_expression": "Two-winding transformer",
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "observed_tag": null,
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER"
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "raw_expression": "Secondary Voltage: 600 V",
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "equipment_ref": "eq1",
+            "source_label": "Secondary Voltage",
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage"
+          }
+        ]
+      },
+      "future_expectations": {
+        "observed_tag": null,
+        "grounding": "VISUAL_PAGE",
+        "text_offsets": null,
+        "region": null
+      }
+    },
+    {
+      "id": "unknown-equipment-and-attribute",
+      "native_text": "Flux conditioner Z-1\nFlux alignment: 42 quux",
+      "visual_description": null,
+      "available_sources": [
+        "native_text"
+      ],
+      "target_equipment_types": [],
+      "recognition": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "raw_expression": "Flux conditioner Z-1",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Flux conditioner Z-1",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": true,
+            "ambiguity_reason": "Equipment category is not established",
+            "observed_tag": "Z-1",
+            "observed_name": null,
+            "proposed_equipment_type": "UNREGISTERED_FLUX_CONDITIONER"
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "raw_expression": "Flux alignment: 42 quux",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Flux alignment: 42 quux",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": true,
+            "ambiguity_reason": "Attribute meaning or equipment association is uncertain",
+            "equipment_ref": "eq1",
+            "source_label": "Flux alignment",
+            "raw_value": "42",
+            "raw_unit": "quux",
+            "proposed_equipment_type": "UNREGISTERED_FLUX_CONDITIONER",
+            "proposed_attribute_key": "flux_alignment"
+          }
+        ]
+      },
+      "future_expectations": {
+        "equipment_mapping_status": "UNMAPPED",
+        "attribute_mapping_status": "UNMAPPED"
+      }
+    },
+    {
+      "id": "isolated-unicode-and-competing-values",
+      "native_text": "Données: Impedance: 5.5%\nRated current: 400 A\nRated current: 500 A",
+      "visual_description": null,
+      "available_sources": [
+        "native_text"
+      ],
+      "target_equipment_types": [],
+      "recognition": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": []
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "raw_expression": "Impedance: 5.5%",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Impedance: 5.5%",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": true,
+            "ambiguity_reason": "Attribute meaning or equipment association is uncertain",
+            "equipment_ref": null,
+            "source_label": "Impedance",
+            "raw_value": "5.5",
+            "raw_unit": "%",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null
+          },
+          {
+            "local_ref": "a2",
+            "raw_expression": "Rated current: 400 A",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Rated current: 400 A",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": true,
+            "ambiguity_reason": "Attribute meaning or equipment association is uncertain",
+            "equipment_ref": null,
+            "source_label": "Rated current",
+            "raw_value": "400",
+            "raw_unit": "A",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null
+          },
+          {
+            "local_ref": "a3",
+            "raw_expression": "Rated current: 500 A",
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Rated current: 500 A",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "ambiguous": true,
+            "ambiguity_reason": "Attribute meaning or equipment association is uncertain",
+            "equipment_ref": null,
+            "source_label": "Rated current",
+            "raw_value": "500",
+            "raw_unit": "A",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null
+          }
+        ]
+      },
+      "future_expectations": {
+        "mapping_status": "UNMAPPED",
+        "equipment_ref": null,
+        "retain_all_observations": true
+      }
+    },
+    {
+      "id": "no-equipment",
+      "native_text": "This page intentionally contains no engineering observations.",
+      "visual_description": null,
+      "available_sources": [
+        "native_text"
+      ],
+      "target_equipment_types": [],
+      "recognition": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": []
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": []
+      },
+      "future_expectations": {
+        "empty_execution_is_not_completeness_proof": true
+      }
+    }
+  ]
+}

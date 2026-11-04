@@ -1,0 +1,11 @@
+Stage: EQUIPMENT_RECOGNITION. Return equipment-recognition-schema-v1.
+Identify equipment mentions using the complete supplied registry equipment catalog.
+For each mention preserve its actual designation/name and observed tag, with null tag
+when none is stated. A tagless transformer nameplate is still an equipment observation.
+Use a proposed_equipment_type only when source context distinguishes that registered
+type; a transformer/breaker word or tag alone may be insufficient to establish its subtype.
+Keep meaningful unknown or ambiguous equipment descriptions with a null proposed type.
+Separate unrelated equipment even when tags repeat. Do not invent source-local groups,
+canonical IDs or tags, merge mentions, extract canonical values or identify physical assets.
+The application will verify the source and decide mapping and grouping separately.
+Return at most 32 equipment observations; declare overflow rather than silently dropping more.
