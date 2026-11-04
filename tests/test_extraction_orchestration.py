@@ -62,8 +62,9 @@ def test_fake_http_execution_reuse_reextract_and_no_canonical_writes(execution_c
 def test_profiles_pages_unknown_classification_and_disabled_external(execution_ctx):
     ctx = execution_ctx
     profiles = client.get(ctx["base"] + "/profiles").json()["items"]
-    assert len(profiles) == 2 and not profiles[1]["enabled"]
-    assert not any(p["production_extractor"] for p in profiles)
+    assert len(profiles) == 4 and not profiles[1]["enabled"]
+    assert not any(p["production_extractor"] for p in profiles[:2])
+    assert all(p["production_extractor"] and not p["enabled"] for p in profiles[2:])
     assert (
         client.post(
             ctx["base"] + "/runs", json={"profile_key": "infrastructure-openai-v1"}

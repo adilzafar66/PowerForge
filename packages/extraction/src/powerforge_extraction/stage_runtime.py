@@ -19,20 +19,33 @@ from powerforge_extraction.profiles import EngineeringProfile
 RUNTIME_VERSION = "engineering-page-runtime-v1"
 
 
-def runtime_identity() -> dict:
+def runtime_identity(version: str = RUNTIME_VERSION) -> dict:
     resources = files("powerforge_extraction")
+    if version not in {RUNTIME_VERSION, "engineering-page-runtime-v2"}:
+        raise ValueError("Pinned engineering runtime is unavailable")
+    names = [
+        "stage_runtime.py",
+        "dependencies.py",
+        "profiles.py",
+        "orchestration.py",
+        "execution.py",
+    ]
+    if version == "engineering-page-runtime-v2":
+        names += ["production_profiles.py", "prompts/openai_input_v1.json"]
+
+    def resource(name: str) -> str:
+        # M4 rendering/claim/publication algorithms remain shared and unchanged.
+        # Retain the two pre-registration identity/reader sources byte-for-byte.
+        if version == RUNTIME_VERSION and name in {"profiles.py", "stage_runtime.py"}:
+            return "runtime_resources/page_v1/" + name.removesuffix(".py") + ".txt"
+        return name
+
     return {
-        "version": RUNTIME_VERSION,
+        "version": version,
         "rules_hash": identity_hash(
             {
-                name: content_hash(resources.joinpath(name).read_text(encoding="utf-8"))
-                for name in (
-                    "stage_runtime.py",
-                    "dependencies.py",
-                    "profiles.py",
-                    "orchestration.py",
-                    "execution.py",
-                )
+                name: content_hash(resources.joinpath(resource(name)).read_text(encoding="utf-8"))
+                for name in names
             }
         ),
     }
@@ -48,9 +61,13 @@ def require_supported(profile: EngineeringProfile) -> None:
         or profile.schema_hash != identity_hash(manifest)
         or profile.interpretation != interpretation_identity()
         or profile.grounding != grounding_identity()
-        or profile.runtime != runtime_identity()
+        or profile.runtime != runtime_identity(profile.runtime.get("version"))
     ):
         raise ValueError("Pinned engineering resources are unavailable")
+    if profile.version == "execution-profile-v3":
+        from powerforge_extraction.production_profiles import require_production_supported
+
+        require_production_supported(profile)
 
 
 def planned_metadata(profile: EngineeringProfile, stage: str, number: int) -> dict:

@@ -40,7 +40,9 @@ def wait_for(check, seconds=25):
 
 
 @contextmanager
-def live_worker(ctx, storage, directory, *, beat):
+def live_worker(
+    ctx, storage, directory, *, beat, app_module="extraction_worker.celery_app", extra_env=None
+):
     directory.mkdir(exist_ok=True)
     name = f"phase6b-{uuid4().hex[:8]}@localhost"
     paths = tomllib.loads((ROOT / "pyproject.toml").read_text())["tool"]["pytest"]["ini_options"][
@@ -48,7 +50,7 @@ def live_worker(ctx, storage, directory, *, beat):
     ]
     env = {
         **os.environ,
-        "PYTHONPATH": os.pathsep.join(str(ROOT / p) for p in paths),
+        "PYTHONPATH": os.pathsep.join(str(ROOT / p) for p in [*paths, "tests"]),
         "DATABASE_URL": ctx["settings"].database_url,
         "REDIS_URL": ctx["settings"].redis_url,
         "S3_ENDPOINT_URL": ctx["settings"].s3_endpoint_url,
@@ -58,6 +60,7 @@ def live_worker(ctx, storage, directory, *, beat):
         "EXTRACTION_EXTERNAL_ENABLED": "false",
         "EXTRACTION_RECOVERY_INTERVAL_SECONDS": "1",
         "EXTRACTION_REDISPATCH_SECONDS": "1",
+        **(extra_env or {}),
     }
     worker_log = (directory / "worker.log").open("w+")
     scheduler_log = (directory / "beat.log").open("w+")
@@ -67,7 +70,7 @@ def live_worker(ctx, storage, directory, *, beat):
             "-m",
             "celery",
             "-A",
-            "extraction_worker.celery_app",
+            app_module,
             "worker",
             "--pool=solo",
             "--concurrency=1",
@@ -95,7 +98,7 @@ def live_worker(ctx, storage, directory, *, beat):
                     "-m",
                     "celery",
                     "-A",
-                    "extraction_worker.celery_app",
+                    app_module,
                     "beat",
                     "--loglevel=WARNING",
                     f"--schedule={directory / 'schedule'}",

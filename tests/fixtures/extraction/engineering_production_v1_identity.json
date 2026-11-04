@@ -1,0 +1,39 @@
+{
+  "settings": {
+    "extraction_model": "fixture-model",
+    "extraction_max_pages": 50,
+    "extraction_max_input_bytes": 2000000,
+    "extraction_max_image_pixels": 20000000,
+    "extraction_max_output_tokens": 1024,
+    "extraction_max_attempts": 3,
+    "extraction_max_calls": 150,
+    "extraction_max_concurrent_per_run": 2,
+    "extraction_timeout_seconds": 60,
+    "extraction_lease_seconds": 30,
+    "extraction_backoff_seconds": 5,
+    "extraction_fake_scenario": "success",
+    "extraction_pricing_basis": null,
+    "extraction_input_usd_per_million": null,
+    "extraction_output_usd_per_million": null,
+    "extraction_engineering_max_output_tokens": 16384,
+    "extraction_engineering_max_total_input_bytes": 4194304,
+    "extraction_engineering_max_text_chars": 100000,
+    "extraction_engineering_max_upstream_bytes": 65536,
+    "extraction_engineering_image_detail": "high",
+    "extraction_engineering_reasoning_effort": "none"
+  },
+  "runtime": {
+    "version": "engineering-page-runtime-v2",
+    "rules_hash": "87ef969ca1f3194ee4568a56b2dd43f15701593a481e48e64b549fca04944775"
+  },
+  "profiles": {
+    "engineering-openai-v1": {
+      "identity_hash": "89f54cc2c58b2a0cfaf9bee60ac469ce6bc7bc46c99de915470028721a1afa21",
+      "wire_json": "{\"key\":\"engineering-openai-v1\",\"version\":\"execution-profile-v3\",\"execution_kind\":\"ENGINEERING_EXTRACTION\",\"provider\":\"openai\",\"model\":\"fixture-model\",\"stage\":\"EQUIPMENT_RECOGNITION\",\"input_strategy\":\"NATIVE_TEXT_AND_IMAGE\",\"prompt_version\":\"engineering-prompts-v1\",\"prompt_hash\":\"35228fc26e37ceafa6ce8952062503c1fedbad935958f41dd9937dc1ad3d87e8\",\"schema_version\":\"engineering-stage-manifest-v1\",\"schema_hash\":\"35228fc26e37ceafa6ce8952062503c1fedbad935958f41dd9937dc1ad3d87e8\",\"max_pages\":50,\"max_input_bytes\":2000000,\"max_image_pixels\":20000000,\"max_output_tokens\":16384,\"max_attempts\":3,\"max_calls\":150,\"max_concurrent\":2,\"timeout_seconds\":60,\"lease_seconds\":30,\"backoff_seconds\":5,\"fake_scenario\":\"success\",\"pricing_basis\":null,\"input_usd_per_million\":null,\"output_usd_per_million\":null,\"stages\":[\"EQUIPMENT_RECOGNITION\",\"ATTRIBUTE_EXTRACTION\"],\"manifest\":{\"version\":\"engineering-stage-manifest-v1\",\"registry_version\":\"registry-v1\",\"context_version\":\"engineering-registry-context-v1\",\"registry_projection_hash\":\"41ede97ee551463a293c7e56353ef7ce66db2963797d8b96fde3ba52bf36c7aa\",\"terminology_version\":\"engineering-terminology-v1\",\"terminology_hash\":\"599ded5c5ecedb872a4a8478533bf621997550cec66af16bc9cc7b3b842a3829\",\"stages\":[{\"stage\":\"EQUIPMENT_RECOGNITION\",\"prerequisite\":null,\"prompt_version\":\"engineering-prompts-v1\",\"template_hash\":\"1d3daff000ec34db88873a35622de7a31c27cc72d3d111311e899b95fc784ad9\",\"schema_version\":\"equipment-recognition-schema-v1\",\"schema_hash\":\"b75b3691abcef02c63c222ac38400c164cd3d768912d59d14c0e9860e574d789\"},{\"stage\":\"ATTRIBUTE_EXTRACTION\",\"prerequisite\":\"EQUIPMENT_RECOGNITION\",\"prompt_version\":\"engineering-prompts-v1\",\"template_hash\":\"680369eb4df684981ed8b12a7f14f51ca4211e0635c7114a6ab215d2492d9ad8\",\"schema_version\":\"attribute-extraction-schema-v1\",\"schema_hash\":\"d74ec3efacee12d24d2b7217f0b1c20313160ccfdce935d6d7200d1221dce53b\"}]},\"interpretation\":{\"version\":\"engineering-interpretation-v1\",\"rules_hash\":\"058e80e3c771510d83e6f59dace505420a5dcb0971444ebee0d2624330f8ef05\",\"registry_projection_hash\":\"41ede97ee551463a293c7e56353ef7ce66db2963797d8b96fde3ba52bf36c7aa\",\"terminology_hash\":\"599ded5c5ecedb872a4a8478533bf621997550cec66af16bc9cc7b3b842a3829\"},\"grounding\":{\"version\":\"engineering-grounding-v1\",\"rules_hash\":\"091706197d044d6ffc5f5212b6a459524f961d4b48dab4e8ac66c9dc13de8eee\"},\"runtime\":{\"version\":\"engineering-page-runtime-v2\",\"rules_hash\":\"87ef969ca1f3194ee4568a56b2dd43f15701593a481e48e64b549fca04944775\"},\"max_total_input_bytes\":4194304,\"max_text_chars\":100000,\"max_instruction_bytes\":131072,\"max_upstream_bytes\":65536,\"image_detail\":\"high\",\"adapter_version\":\"openai-engineering-responses-v1\",\"adapter_hash\":\"a22100f345085e6b8f84f22e04d55c0b325437620a0718e96edf4f65f3c710bf\",\"reasoning_effort\":\"none\"}"
+    },
+    "engineering-openai-text-v1": {
+      "identity_hash": "f1af719f9fe5a8da0d0aa2cf40fe6d09f62739f8507db161bf0803cc53599610",
+      "wire_json": "{\"key\":\"engineering-openai-text-v1\",\"version\":\"execution-profile-v3\",\"execution_kind\":\"ENGINEERING_EXTRACTION\",\"provider\":\"openai\",\"model\":\"fixture-model\",\"stage\":\"EQUIPMENT_RECOGNITION\",\"input_strategy\":\"NATIVE_TEXT_ONLY\",\"prompt_version\":\"engineering-prompts-v1\",\"prompt_hash\":\"35228fc26e37ceafa6ce8952062503c1fedbad935958f41dd9937dc1ad3d87e8\",\"schema_version\":\"engineering-stage-manifest-v1\",\"schema_hash\":\"35228fc26e37ceafa6ce8952062503c1fedbad935958f41dd9937dc1ad3d87e8\",\"max_pages\":50,\"max_input_bytes\":2000000,\"max_image_pixels\":20000000,\"max_output_tokens\":16384,\"max_attempts\":3,\"max_calls\":150,\"max_concurrent\":2,\"timeout_seconds\":60,\"lease_seconds\":30,\"backoff_seconds\":5,\"fake_scenario\":\"success\",\"pricing_basis\":null,\"input_usd_per_million\":null,\"output_usd_per_million\":null,\"stages\":[\"EQUIPMENT_RECOGNITION\",\"ATTRIBUTE_EXTRACTION\"],\"manifest\":{\"version\":\"engineering-stage-manifest-v1\",\"registry_version\":\"registry-v1\",\"context_version\":\"engineering-registry-context-v1\",\"registry_projection_hash\":\"41ede97ee551463a293c7e56353ef7ce66db2963797d8b96fde3ba52bf36c7aa\",\"terminology_version\":\"engineering-terminology-v1\",\"terminology_hash\":\"599ded5c5ecedb872a4a8478533bf621997550cec66af16bc9cc7b3b842a3829\",\"stages\":[{\"stage\":\"EQUIPMENT_RECOGNITION\",\"prerequisite\":null,\"prompt_version\":\"engineering-prompts-v1\",\"template_hash\":\"1d3daff000ec34db88873a35622de7a31c27cc72d3d111311e899b95fc784ad9\",\"schema_version\":\"equipment-recognition-schema-v1\",\"schema_hash\":\"b75b3691abcef02c63c222ac38400c164cd3d768912d59d14c0e9860e574d789\"},{\"stage\":\"ATTRIBUTE_EXTRACTION\",\"prerequisite\":\"EQUIPMENT_RECOGNITION\",\"prompt_version\":\"engineering-prompts-v1\",\"template_hash\":\"680369eb4df684981ed8b12a7f14f51ca4211e0635c7114a6ab215d2492d9ad8\",\"schema_version\":\"attribute-extraction-schema-v1\",\"schema_hash\":\"d74ec3efacee12d24d2b7217f0b1c20313160ccfdce935d6d7200d1221dce53b\"}]},\"interpretation\":{\"version\":\"engineering-interpretation-v1\",\"rules_hash\":\"058e80e3c771510d83e6f59dace505420a5dcb0971444ebee0d2624330f8ef05\",\"registry_projection_hash\":\"41ede97ee551463a293c7e56353ef7ce66db2963797d8b96fde3ba52bf36c7aa\",\"terminology_hash\":\"599ded5c5ecedb872a4a8478533bf621997550cec66af16bc9cc7b3b842a3829\"},\"grounding\":{\"version\":\"engineering-grounding-v1\",\"rules_hash\":\"091706197d044d6ffc5f5212b6a459524f961d4b48dab4e8ac66c9dc13de8eee\"},\"runtime\":{\"version\":\"engineering-page-runtime-v2\",\"rules_hash\":\"87ef969ca1f3194ee4568a56b2dd43f15701593a481e48e64b549fca04944775\"},\"max_total_input_bytes\":4194304,\"max_text_chars\":100000,\"max_instruction_bytes\":131072,\"max_upstream_bytes\":65536,\"image_detail\":\"high\",\"adapter_version\":\"openai-engineering-responses-v1\",\"adapter_hash\":\"a22100f345085e6b8f84f22e04d55c0b325437620a0718e96edf4f65f3c710bf\",\"reasoning_effort\":\"none\"}"
+    }
+  }
+}

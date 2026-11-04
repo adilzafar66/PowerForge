@@ -5,7 +5,7 @@ from io import BytesIO
 from uuid import UUID, uuid4
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 from sqlalchemy import select
 
 from engineering_grounding_support import attribute, attributes, equipment, recognition
@@ -19,7 +19,7 @@ from powerforge_extraction.profiles import ENGINEERING_TEST_PROFILE
 TEXT = "2-Winding Transformer TX-1\nSecondary Voltage: 600 V"
 
 
-def processing(ctx, *, native=TEXT, image=True):
+def processing(ctx, *, native=TEXT, image=True, image_label=None):
     with ctx["factory"].begin() as session:
         run = DocumentProcessingRun(
             document_id=ctx["src"]["document"],
@@ -36,8 +36,12 @@ def processing(ctx, *, native=TEXT, image=True):
             values.append(("NATIVE_TEXT", native.encode(), "text/plain", None, None))
         if image:
             content = BytesIO()
-            Image.new("RGB", (20, 20), "white").save(content, format="PNG")
-            values.append(("ANALYSIS_IMAGE", content.getvalue(), "image/png", 20, 20))
+            width, height = (400, 150) if image_label else (20, 20)
+            frame = Image.new("RGB", (width, height), "white")
+            if image_label:
+                ImageDraw.Draw(frame).multiline_text((10, 10), image_label, fill="black")
+            frame.save(content, format="PNG")
+            values.append(("ANALYSIS_IMAGE", content.getvalue(), "image/png", width, height))
         for kind, data, mime, width, height in values:
             key = f"processing/{run.id}/{kind}"
             artifact = PageArtifact(

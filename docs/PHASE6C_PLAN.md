@@ -1,6 +1,6 @@
 # Phase 6C implementation plan — Engineering extraction
 
-**Status:** M1–M4 implemented: definitions, interpretation, grounding/output conversion and dependent multimodal page-stage execution with synthetic providers. M5–M6 remain pending; production engineering OpenAI extraction is not enabled yet. Delivery and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md), [M2 handoff](PHASE6C_M2_HANDOFF.md), [M3 handoff](PHASE6C_M3_HANDOFF.md), [M4 handoff](PHASE6C_M4_HANDOFF.md).
+**Status:** M1–M5 implemented: definitions, interpretation, grounding/output conversion, dependent page-stage execution and opt-in production OpenAI profiles/adapter. M6 evaluation and final handoff remain pending; live-model quality is unmeasured. Delivery and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md), [M2 handoff](PHASE6C_M2_HANDOFF.md), [M3 handoff](PHASE6C_M3_HANDOFF.md), [M4 handoff](PHASE6C_M4_HANDOFF.md), [M5 handoff](PHASE6C_M5_HANDOFF.md).
 
 **Planning baseline:** `main` at `3ffb43f8fc5082817c7be5ec3d67dc94f44319f6`, including accepted 6B commit `5042af803d2863d5b49bd241c9f14f87809d6cb4` and the complete 6C prompt/additional clarifications. Refresh latest main before implementation and use `codex/phase-6c-engineering-extraction`.
 
@@ -141,6 +141,8 @@ Extend planning, dispatch, claims, aggregate/retry/recovery/cancel handling, art
 Connect stage-specific structured parsing and prompts to the existing adapter; advertise opt-in production profiles and safe results. Pin production-appropriate resource limits and image detail without changing probes. Add actual worker/beat integration on disposable services.
 
 **Gate:** mocked SDK tests verify the precise schema, instructions, modalities, call count, usage and safe failures; real Celery/Redis/PostgreSQL/MinIO tests publish grounded production-shaped candidates through existing APIs. No credentials/source dumps, hidden provider retries or canonical mutations.
+
+**Delivered:** production hybrid/text profiles advertise ENGINEERING_EXTRACTION under existing opt-in controls. The versioned adapter sends named untrusted inputs and the selected stage schema in one bounded Responses call with SDK retries disabled. Actual SDK serialization/parsing is tested over mocked transport; real worker/beat/Redis/PostgreSQL/MinIO tests verify grounded publication, retry and process restart without repeating recognition. Legacy v1/v2 profile/runtime identities remain unchanged through retained resources. All 1,445 backend tests passed with no skips, including 32 new M5 cases; package builds/direct imports and identity checks pass. See [PHASE6C_M5_HANDOFF.md](PHASE6C_M5_HANDOFF.md) for actual results and configuration.
 
 ### M6 — Representative evaluation, regression and handoff
 

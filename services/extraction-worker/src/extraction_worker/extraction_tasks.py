@@ -11,6 +11,7 @@ from powerforge_extraction.enqueue import QUEUE, RECOVER_TASK, UNIT_TASK, Celery
 from powerforge_extraction.execution import execute_unit
 from powerforge_extraction.fake import FakeEngineeringProvider, FakeExtractionProvider
 from powerforge_extraction.orchestration import Claim, ExtractionCoordinator
+from powerforge_extraction.production_profiles import ProductionProfile
 from powerforge_extraction.profiles import EngineeringProfile
 from powerforge_shared.config import get_settings
 
@@ -20,12 +21,16 @@ def provider_for(claim: Claim) -> ExtractionProvider:
         if isinstance(claim.profile, EngineeringProfile):
             return FakeEngineeringProvider(claim.profile.fake_scenario)
         return FakeExtractionProvider(claim.profile.fake_scenario)
-    if isinstance(claim.profile, EngineeringProfile):
-        # M5 must add the stage-aware SDK adapter before enabling production profiles.
+    if isinstance(claim.profile, EngineeringProfile) and not isinstance(
+        claim.profile, ProductionProfile
+    ):
         raise ProviderFailure(ErrorCode.DISABLED)
     from extraction_worker.openai_extraction import OpenAIExtractionProvider
 
-    return OpenAIExtractionProvider(get_settings())
+    return OpenAIExtractionProvider(
+        get_settings(),
+        profile=claim.profile if isinstance(claim.profile, ProductionProfile) else None,
+    )
 
 
 @celery_app.task(

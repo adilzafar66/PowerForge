@@ -104,6 +104,10 @@ def read_profile(configuration: dict) -> ExecutionProfile | EngineeringProfile:
         return ExecutionProfile.model_validate(configuration)
     if version == "execution-profile-v2":
         return EngineeringProfile.model_validate(configuration)
+    if version == "execution-profile-v3":
+        from powerforge_extraction.production_profiles import ProductionProfile
+
+        return ProductionProfile.model_validate(configuration)
     raise ValueError("Unsupported pinned execution profile version")
 
 
@@ -151,6 +155,10 @@ def engineering_profile(key: str, settings: Settings) -> EngineeringProfile:
 
 
 def resolve_profile(key: str, settings: Settings) -> ExecutionProfile:
+    from powerforge_extraction.production_profiles import PRODUCTION_PROFILES, production_profile
+
+    if key in PRODUCTION_PROFILES:
+        return production_profile(key, settings)
     if key in {ENGINEERING_TEST_PROFILE, ENGINEERING_TEXT_TEST_PROFILE}:
         return engineering_profile(key, settings)
     if key not in {FAKE_PROFILE, OPENAI_PROFILE}:

@@ -152,8 +152,10 @@ EnqueueDep = Annotated[CeleryExtractionEnqueue, Depends(get_extraction_enqueue)]
 
 @router.get("/profiles", response_model=ProfileList)
 def profiles(reader: Service, settings: SettingsDep) -> ProfileList:
+    from powerforge_extraction.production_profiles import PRODUCTION_PROFILES
+
     items = []
-    for key in [FAKE_PROFILE, OPENAI_PROFILE]:
+    for key in [FAKE_PROFILE, OPENAI_PROFILE, *PRODUCTION_PROFILES]:
         profile = resolve_profile(key, settings)
         items.append(
             ProfileInfo(
@@ -161,13 +163,14 @@ def profiles(reader: Service, settings: SettingsDep) -> ProfileList:
                 execution_kind=profile.execution_kind,
                 provider=profile.provider,
                 model=profile.model,
+                production_extractor=profile.execution_kind == "ENGINEERING_EXTRACTION",
                 enabled=settings.extraction_enabled
                 and (profile.provider == "fake" or settings.extraction_external_enabled),
-                description="Synthetic test execution; no engineering interpretation"
+                description="Opt-in engineering AI candidates; extraction accuracy is unmeasured"
+                if profile.execution_kind == "ENGINEERING_EXTRACTION"
+                else "Synthetic test execution; no engineering interpretation"
                 if profile.provider == "fake"
-                else (
-                    "Opt-in provider/source probe; production engineering extraction is unavailable"
-                ),
+                else ("Opt-in provider/source probe; no engineering extraction"),
             )
         )
     return ProfileList(items=items)
