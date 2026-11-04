@@ -137,6 +137,63 @@ def test_source_blocks_not_model_references_establish_native_association():
     assert all(candidate.diagnostics["source_scope"] is None for candidate in output.candidates)
 
 
+@pytest.mark.parametrize("field", ["observed_tag", "observed_name"])
+def test_equipment_fields_cannot_be_borrowed_from_outside_the_observed_expression(field):
+    source, _ = page("2-Winding Transformer TX-1 (reference TX-2)")
+    item = equipment("2-Winding Transformer TX-1", tag="TX-1")
+    forged = item.model_copy(update={field: "TX-2"})
+    output = convert_equipment(recognition(forged), source)
+    assert not output.candidates and not output.source_groups and not output.evidence
+    assert output.diagnostic_counts == {"rejected_source_fields": 1}
+
+    valid = convert_equipment(recognition(item), source)
+    assert valid.candidates[0].observed_tag == "TX-1"
+    assert valid.candidates[0].raw_text == source.text
+    assert valid.evidence[0].source_snippet == source.text
+
+
+@pytest.mark.parametrize(
+    "intervening",
+    [
+        "TX-2: Two-Winding Transformer",
+        "TX-2: 2-Winding Transformer",
+        "CB-2: LV circuit breaker",
+        "TX-2: Unknown equipment",
+        "Unrecognized field: TX-2",
+    ],
+)
+def test_missed_colon_headers_and_unknown_fields_do_not_extend_equipment_scope(intervening):
+    source, _ = page(f"2-Winding Transformer TX-1\n{intervening}\nSecondary Voltage: 690 V")
+    eq = convert_equipment(recognition(equipment("2-Winding Transformer TX-1", tag="TX-1")), source)
+    assert eq.candidates[0].diagnostics["source_scope"] is None
+    output = convert_attributes(
+        attributes(attribute("Secondary Voltage: 690 V", value="690")),
+        attribute_sources(source),
+        test_context(source, eq),
+    )
+    candidate = output.candidates[0]
+    assert candidate.mapping_status == "UNMAPPED" and candidate.numeric_value is None
+    assert candidate.source_group_id is None and candidate.equipment_mention_candidate_id is None
+    assert output.diagnostic_counts == {"detached_associations": 1}
+
+
+@pytest.mark.parametrize(
+    "field", ["Secondary Voltage: 600 V", "Secondary Voltage (V): 600", "Rated Capacity: 600 kVA"]
+)
+def test_recognized_attribute_labels_still_extend_equipment_scope(field):
+    source, _ = page(f"2-Winding Transformer TX-1\n{field}\nSecondary Voltage: 690 V")
+    eq = convert_equipment(recognition(equipment("2-Winding Transformer TX-1")), source)
+    assert eq.candidates[0].diagnostics["source_scope"] is not None
+    output = convert_attributes(
+        attributes(attribute("Secondary Voltage: 690 V", value="690")),
+        attribute_sources(source),
+        test_context(source, eq),
+    )
+    assert output.candidates[0].mapping_status == "MAPPED"
+    assert output.candidates[0].numeric_value == Decimal("0.69")
+    assert output.candidates[0].source_group_id == eq.candidates[0].source_group_id
+
+
 def test_tagless_groups_stable_local_keys_and_shared_evidence_do_not_merge_tags():
     source, _ = page("2-Winding Transformer\nSecondary Voltage: 600 V")
     eq = convert_equipment(recognition(equipment("2-Winding Transformer")), source)

@@ -366,6 +366,8 @@ M3 adds verified pinned artifact loading, verbatim/Unicode text grounding, expli
 
 M3 validation: **1,365 backend tests passed, no skips**, including **31 new M3 cases**, with six existing dependency warnings in 155.44 seconds. Disposable PostgreSQL/Redis/MinIO tests verify publication rollback/ownership, historical artifacts, immutable counts, exact HTTP values and source markers; the full suite also retains existing migration/worker/probe regressions. Wheel build/direct imports and rule identity, lint, formatting, dependencies and whitespace checks passed. No paid/live-model call or frontend/browser test was performed. M4 dependency execution and M5 production OpenAI/profile wiring remain pending; extraction accuracy is unmeasured.
 
+M3 review validation: **1,375 backend tests passed, no skips**, including **41 M3 cases**, with six existing dependency warnings in 190.23 seconds. Equipment tags/names are checked against the original observed expression before full-line interpretation. Colon-line continuation requires a registry/terminology attribute label; unknown labels and missed tag-prefixed equipment headers disable block association. Ten added cases cover these corrections and valid continuations. The grounding fingerprint is refreshed before production profiles are enabled; M1/M2 and registry-v1 remain unchanged. See the [M3 review record](PHASE6C_M3_HANDOFF.md#m3-review-corrections).
+
 ## Later phases
 
 Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and 6C M1–M3 are implemented; remaining 6C milestones and 6D–6G are unimplemented. See [ROADMAP.md](ROADMAP.md).

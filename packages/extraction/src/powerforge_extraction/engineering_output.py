@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from uuid import UUID, uuid5
 
 from powerforge_engineering_model.registry import list_equipment_definitions
+from powerforge_engineering_model.units import UNITS
 from powerforge_extraction.contracts import (
     CandidateEvidenceInput,
     CandidateInput,
@@ -61,21 +62,49 @@ def _source_block(
     def words(value: str) -> str:
         return " ".join(re.findall(r"[^\W_]+", value.casefold()))
 
-    type_names = {
-        words(name)
-        for item in list_equipment_definitions()
-        for name in (item.key, item.display_name)
-    }
+    def attribute_label(value: str) -> str:
+        value = value.strip()
+        parenthesis = re.search(r"\s*\(([^()]*)\)\s*$", value)
+        if parenthesis and parenthesis[1].strip() in UNITS:
+            value = value[: parenthesis.start()].strip()
+        else:
+            for unit in sorted(UNITS, key=len, reverse=True):
+                if value.endswith(" " + unit):
+                    value = value[: -len(unit)].strip()
+                    break
+        return words(value)
+
+    definitions = list_equipment_definitions()
+    type_names = {words(name) for item in definitions for name in (item.key, item.display_name)}
     type_names.update(
         words(name)
         for entry in TERMINOLOGY
         if entry.kind == "EQUIPMENT_NAME"
         for name in entry.expressions
     )
+    attribute_labels = {
+        attribute_label(name)
+        for item in definitions
+        for definition in item.attributes
+        for name in (definition.key, definition.display_name)
+    }
+    attribute_labels.update(
+        attribute_label(name)
+        for entry in TERMINOLOGY
+        if entry.kind == "ATTRIBUTE_LABEL"
+        for name in entry.expressions
+    )
     for line in block.splitlines()[1:]:
-        if (":" not in line and not rating_line(line)) or words(
-            line.split(":", 1)[0]
-        ) in type_names:
+        if rating_line(line):
+            continue
+        label, separator, _ = line.partition(":")
+        # A colon alone cannot distinguish a field from a missed TAG: Type header.
+        # Unknown labels disable association while their observations remain retainable.
+        if (
+            not separator
+            or words(label) in type_names
+            or attribute_label(label) not in attribute_labels
+        ):
             return None
     return paragraph
 
@@ -202,18 +231,20 @@ def convert_equipment(
         if admitted is None:
             output.count("rejected_ungrounded")
             continue
+        context = InterpretationContext(
+            admitted.statement,
+            source_kind="NATIVE_TEXT" if admitted.role == "native_text" else "VISUAL_PAGE",
+        )
+        # Full-line context must not lend a tag/name to a narrower model expression.
+        if interpret_equipment(observation, context).rejected:
+            output.count("rejected_source_fields")
+            continue
         local = observation.model_copy(update={"raw_expression": admitted.statement})
         if admitted.role == "native_text" and admitted.own_span is None:
             local = local.model_copy(
                 update={"ambiguous": True, "ambiguity_reason": "Source occurrence is ambiguous"}
             )
-        result = interpret_equipment(
-            local,
-            InterpretationContext(
-                admitted.statement,
-                source_kind="NATIVE_TEXT" if admitted.role == "native_text" else "VISUAL_PAGE",
-            ),
-        )
+        result = interpret_equipment(local, context)
         if result.rejected:
             output.count("rejected_source_fields")
             continue

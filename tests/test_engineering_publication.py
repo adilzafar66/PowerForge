@@ -384,7 +384,9 @@ def test_converter_publication_and_http_preserve_false_and_large_integer(ctx, fa
 
 
 def test_invalid_and_unmapped_observations_survive_beside_rejected_inventions(ctx):
-    body = "2-Winding Transformer TX-1\nSecondary Voltage: 600 A\nFlux alignment: 42 quux"
+    # The unknown field is independent; an unknown line inside the equipment block
+    # would conservatively disable that block's association for every observation.
+    body = "2-Winding Transformer TX-1\nSecondary Voltage: 600 A\n\nFlux alignment: 42 quux"
     src, rid, eqid, aid, factory = plan(ctx, body)
     with factory.begin() as session:
         sources = load_page_sources(page_spec_for_unit(session, eqid), ctx["storage"])
@@ -401,6 +403,7 @@ def test_invalid_and_unmapped_observations_survive_beside_rejected_inventions(ct
             value="42",
             unit="quux",
             key="flux_alignment",
+            equipment_ref=None,
         )
         invented = good.model_copy(update={"local_ref": "a3", "raw_value": "900"})
         output = convert_attributes(
