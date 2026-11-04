@@ -33,6 +33,7 @@ from powerforge_document_processing.models import (
 )
 from powerforge_document_processing.storage.base import ObjectStorage, StorageError
 from powerforge_extraction.controls import RunExecution, UnitExecution
+from powerforge_extraction.dependencies import retryable_keys
 from powerforge_extraction.enums import (
     CandidateKind,
     EvidenceRole,
@@ -51,7 +52,7 @@ from powerforge_extraction.models import (
     SourceGroup,
 )
 from powerforge_extraction.persistence import effective_units
-from powerforge_extraction.profiles import ExecutionProfile
+from powerforge_extraction.profiles import read_profile
 from powerforge_provenance.locations import Region
 
 
@@ -161,7 +162,8 @@ class ExtractionReadService:
         run = self._run(run_id)
         coverage, rows = self.coverage(run)
         control = self.session.get(RunExecution, run.id)
-        profile = ExecutionProfile.model_validate(control.configuration) if control else None
+        profile = read_profile(control.configuration) if control else None
+        eligible = retryable_keys(rows, profile.max_attempts) if profile else set()
         now = self.session.scalar(select(func.clock_timestamp()))
         calls = (
             list(
@@ -220,6 +222,7 @@ class ExtractionReadService:
                             in {ExtractionRunStatus.FAILED, ExtractionRunStatus.PARTIALLY_COMPLETED}
                             and r.status in {WorkUnitStatus.FAILED, WorkUnitStatus.CANCELLED}
                             and r.attempt_number < profile.max_attempts
+                            and r.unit_key in eligible
                             and control.calls_admitted < profile.max_calls
                             and not any(
                                 other.unit_key == r.unit_key

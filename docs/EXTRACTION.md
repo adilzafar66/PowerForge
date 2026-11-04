@@ -76,7 +76,7 @@ The frozen v1 rules have their own reproducible identity. Parenthetical suffixes
 
 Native interpretation retains the complete verified line, with a narrow explicit AF/AT-pair grammar for source clauses. Unresolved repeated occurrences stay page/text-level and lose guessed associations. Native equipment associations require an unambiguous structural source block; a model reference alone is insufficient. Visual context is restricted to the same exact image and conservative local references, with `VISUAL_PAGE`/`VISUAL_REPORTED` metadata and no invented snippet, offsets or region. Verified fragments in unresolved full-line context may survive only as detached UNMAPPED observations with the full-line evidence.
 
-`WorkUnitOutput.diagnostic_counts` adds closed, bounded counts for ungrounded/source-field rejections and detached associations. Publication merges them into the existing `output_counts` before the success marker, inside the same savepoint; failed publication exposes neither partial results nor counts. Evidence list/detail responses now include `grounding_precision`. Exact typed values, shared/cross-unit citations, source-local tags and immutable successes retain the 6A guarantees. See [PHASE6C_M3_HANDOFF.md](PHASE6C_M3_HANDOFF.md). Production profile/dependency execution remains M4–M5.
+`WorkUnitOutput.diagnostic_counts` adds closed, bounded counts for ungrounded/source-field rejections and detached associations. Publication merges them into the existing `output_counts` before the success marker, inside the same savepoint; failed publication exposes neither partial results nor counts. Evidence list/detail responses now include `grounding_precision`. Exact typed values, shared/cross-unit citations, source-local tags and immutable successes retain the 6A guarantees. See [PHASE6C_M3_HANDOFF.md](PHASE6C_M3_HANDOFF.md). M4 adds synthetic dependent-stage execution below; production OpenAI profiles remain M5.
 
 ## Specialized extractors
 
@@ -164,3 +164,11 @@ The provider contract stays vendor-neutral (`ClassificationProvider`). OpenAI is
 - Phase 7: entity resolution
 - Phase 8: SLD extraction
 - Phase 9: reconciliation and persistent conflict management; Phase 11 retains human decision/verification authority
+
+## Phase 6C M4 — Stage execution
+
+Each selected page now has required EQUIPMENT_RECOGNITION and ATTRIBUTE_EXTRACTION keys with immutable prerequisite metadata. Waiting attributes cannot dispatch or claim an admission before committed recognition success. Empty recognition still releases attributes. Permanent/exhausted upstream failure settles blocked attributes with PREREQUISITE_FAILED before aggregation; pending automatic retries keep them waiting. Manual retry eligibility includes satisfiable blocked downstream work and reuses successful recognition. Expiry-first recovery also settles historical unsatisfiable pending dependencies.
+
+The v2 profile reader pins all stage, interpretation, grounding and runtime identities plus multimodal/context limits; v1 serialization and probe hashes are unchanged. Engineering attempts verify their original selected text/image descriptors, build bounded registry/upstream context and revalidate the selected stage schema before M3 conversion and fenced publication. Each attempt allows one provider call; actual schema/rendered-instruction and upstream context identities remain reproducible across retry. No fallback to current artifacts or another modality occurs after failure.
+
+Manual synthetic profiles engineering-test-v1 and engineering-test-text-v1 report FAKE_TEST, mark any candidates synthetic and use empty stage responses in the normal worker; tests inject populated observations. Profile discovery still advertises the two legacy profiles. Production OpenAI engineering keys are not registered and cannot use the legacy probe adapter. There are no new routes, canonical writes, migrations or UI changes. [PHASE6C_M4_HANDOFF.md](PHASE6C_M4_HANDOFF.md) records tests, source limits and the M5 boundary.

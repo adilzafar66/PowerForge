@@ -1,6 +1,6 @@
 # Phase 6C implementation plan — Engineering extraction
 
-**Status:** M1–M3 implemented: observation/prompt/context definitions, deterministic interpretation, verified source grounding and atomic output conversion. M4–M6 remain pending; production engineering extraction is not executable yet. Delivery and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md), [M2 handoff](PHASE6C_M2_HANDOFF.md), [M3 handoff](PHASE6C_M3_HANDOFF.md).
+**Status:** M1–M4 implemented: definitions, interpretation, grounding/output conversion and dependent multimodal page-stage execution with synthetic providers. M5–M6 remain pending; production engineering OpenAI extraction is not enabled yet. Delivery and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md), [M2 handoff](PHASE6C_M2_HANDOFF.md), [M3 handoff](PHASE6C_M3_HANDOFF.md), [M4 handoff](PHASE6C_M4_HANDOFF.md).
 
 **Planning baseline:** `main` at `3ffb43f8fc5082817c7be5ec3d67dc94f44319f6`, including accepted 6B commit `5042af803d2863d5b49bd241c9f14f87809d6cb4` and the complete 6C prompt/additional clarifications. Refresh latest main before implementation and use `codex/phase-6c-engineering-extraction`.
 
@@ -133,6 +133,8 @@ Implement exact-text grounding, repeated-phrase handling, honest visual groundin
 Extend planning, dispatch, claims, aggregate/retry/recovery/cancel handling, artifact descriptors and versioned profile parsing. Use deterministic stage providers to exercise the complete production-shaped pipeline without a real model.
 
 **Gate:** no early attribute call; upstream success survives downstream failure; blocked dependencies terminate correctly; eligible manual retry restores progress without resending successes; budget exhaustion, cancellation, duplicate delivery, restart, stale fencing and >100-run recovery remain sound. Two successful stages report two actual calls. Old profile hashes and historical behavior remain compatible.
+
+**Delivered:** two immutable required page stages, dependency-gated dispatch/claim, blocked failure settlement, dependency-aware manual retry/read flags, expiry-first recovery, versioned v1/v2 profile readers, verified multimodal inputs and selected-schema execution now use the existing coordinator/fences. All 1,413 backend tests passed with no skips, including 38 new M4 cases; package builds/imports and pinned identities pass. Synthetic stage providers exercise the boundary; production SDK/profile registration remains M5. See [PHASE6C_M4_HANDOFF.md](PHASE6C_M4_HANDOFF.md) for actual verification and limits.
 
 ### M5 — OpenAI adapter and production API profiles
 

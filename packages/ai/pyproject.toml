@@ -5,6 +5,7 @@ description = "AI provider interfaces. Domain packages must not import vendor SD
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.8",
+    "typing-extensions>=4.12",
 ]
 
 [build-system]

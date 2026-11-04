@@ -46,3 +46,15 @@ class FakeExtractionProvider:
                 output_tokens=16,
             ),
         )
+
+
+class FakeEngineeringProvider(FakeExtractionProvider):
+    """Empty bounded stage results only; populated fixture responses are injected by tests."""
+
+    def execute(self, request: ExtractionRequest) -> ExtractionResponse:
+        probe = super().execute(request)
+        collection = "equipment" if request.stage == "EQUIPMENT_RECOGNITION" else "attributes"
+        return ExtractionResponse[request.response_model](
+            result={"schema_version": request.schema_version, "overflowed": False, collection: []},
+            usage=probe.usage,
+        )

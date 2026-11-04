@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from powerforge_ai.extraction import (
     ErrorCode,
+    ExecutionUsage,
     ExtractionProvider,
     ExtractionRequest,
     ExtractionResponse,
@@ -32,11 +33,61 @@ from powerforge_extraction.contracts import (
 )
 from powerforge_extraction.errors import LeaseLost
 from powerforge_extraction.orchestration import Claim, ExtractionCoordinator
-from powerforge_extraction.profiles import PROMPT, PROMPT_HASH, SCHEMA_HASH
+from powerforge_extraction.profiles import PROMPT, PROMPT_HASH, SCHEMA_HASH, EngineeringProfile
 from powerforge_provenance.locations import SourceLocation
 from powerforge_shared.config import Settings
 
 logger = logging.getLogger(__name__)
+
+
+def engineering_request(claim: Claim, storage: ObjectStorage, factory: sessionmaker[Session]):
+    from powerforge_extraction.engineering_sources import load_recognition_context
+    from powerforge_extraction.grounding import load_page_sources
+    from powerforge_extraction.models import ExtractionWorkUnit
+    from powerforge_extraction.stage_runtime import require_supported, stage_call
+
+    profile = claim.profile
+    require_supported(profile)
+    if claim.page_spec is None:
+        raise ValueError("Pinned engineering page descriptors are required")
+    sources = load_page_sources(
+        claim.page_spec,
+        storage,
+        max_artifact_bytes=profile.max_input_bytes,
+        max_total_bytes=profile.max_total_input_bytes,
+        max_image_pixels=profile.max_image_pixels,
+    )
+    if sources.text is not None and len(sources.text) > profile.max_text_chars:
+        raise ValueError("Native text exceeds the pinned context limit")
+    with factory.begin() as session:
+        unit = session.get(ExtractionWorkUnit, claim.unit_id)
+        call = stage_call(session, unit, profile)
+        if call.upstream_unit_id != claim.upstream_unit_id:
+            raise ValueError("Recognition attempt differs from claimed context")
+        context = (
+            load_recognition_context(session, sources, call.upstream_unit_id)
+            if call.upstream_unit_id
+            else None
+        )
+    request = ExtractionRequest(
+        work_unit_id=claim.unit_id,
+        unit_key=claim.unit_key,
+        attempt_number=claim.attempt_number,
+        model=profile.model,
+        instructions=call.instructions,
+        schema_version=call.schema_version,
+        timeout_seconds=profile.timeout_seconds,
+        max_output_tokens=profile.max_output_tokens,
+        text=sources.text,
+        image=sources.image,
+        image_mime_type="image/png" if sources.image is not None else None,
+        response_model=call.response_model,
+        stage=claim.page_spec.stage,
+        source_roles=tuple(item.role for item in claim.page_spec.artifacts),
+        upstream_context=call.upstream_context,
+        image_detail=profile.image_detail,
+    )
+    return request, sources, context
 
 
 def request_for(claim: Claim, storage: ObjectStorage) -> ExtractionRequest:
@@ -170,19 +221,56 @@ def execute_unit(
     usage = None
     try:
         with heartbeats(factory, claim, settings):
-            request = request_for(claim, storage)
+            if isinstance(claim.profile, EngineeringProfile):
+                request, sources, context = engineering_request(claim, storage, factory)
+            else:
+                request = request_for(claim, storage)
             provider = provider_factory(claim)
             with factory.begin() as session:
                 ExtractionCoordinator(session, settings).mark_provider_started(
-                    claim.unit_id, claim.token
+                    claim.unit_id, claim.token, request
                 )
             response = provider.execute(request)
             # Revalidate objects even if an adapter bypassed constructors.
-            response = ExtractionResponse.model_validate(response.model_dump())
-            usage = response.usage
+            usage = ExecutionUsage.model_validate(response.usage.model_dump())
+            response = ExtractionResponse[request.response_model].model_validate(
+                response.model_dump()
+            )
             if usage.output_tokens is not None and usage.output_tokens > request.max_output_tokens:
                 raise ProviderFailure(ErrorCode.INVALID, usage)
-            output = output_for(claim, request, response)
+            if isinstance(claim.profile, EngineeringProfile):
+                from powerforge_extraction.engineering_output import (
+                    convert_attributes,
+                    convert_equipment,
+                )
+
+                try:
+                    output = (
+                        convert_equipment(response.result, sources)
+                        if request.stage == "EQUIPMENT_RECOGNITION"
+                        else convert_attributes(response.result, sources, context)
+                    )
+                except (ValueError, ValidationError):
+                    raise ProviderFailure(ErrorCode.INVALID, usage) from None
+                if claim.profile.execution_kind == "FAKE_TEST":
+                    output = output.model_copy(
+                        update={
+                            "candidates": [
+                                candidate.model_copy(
+                                    update={
+                                        "diagnostics": {
+                                            **candidate.diagnostics,
+                                            "synthetic": True,
+                                            "execution_kind": "FAKE_TEST",
+                                        }
+                                    }
+                                )
+                                for candidate in output.candidates
+                            ]
+                        }
+                    )
+            else:
+                output = output_for(claim, request, response)
             with factory.begin() as session:
                 ExtractionCoordinator(session, settings).complete(
                     claim.unit_id, claim.token, output, usage, storage

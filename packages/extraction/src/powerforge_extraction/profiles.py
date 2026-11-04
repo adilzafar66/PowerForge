@@ -20,6 +20,8 @@ SCHEMA_HASH = hashlib.sha256(
 ).hexdigest()
 FAKE_PROFILE = "infrastructure-fake-v1"
 OPENAI_PROFILE = "infrastructure-openai-v1"
+ENGINEERING_TEST_PROFILE = "engineering-test-v1"
+ENGINEERING_TEXT_TEST_PROFILE = "engineering-test-text-v1"
 
 
 class ExecutionProfile(BaseModel):
@@ -64,7 +66,93 @@ class ExecutionProfile(BaseModel):
         return hashlib.sha256(self.model_dump_json().encode()).hexdigest()
 
 
+class EngineeringProfile(ExecutionProfile):
+    """Separate wire format: never add defaults to the accepted v1 serialization."""
+
+    version: Literal["execution-profile-v2"] = "execution-profile-v2"
+    execution_kind: Literal["FAKE_TEST", "ENGINEERING_EXTRACTION"]
+    stage: Literal["EQUIPMENT_RECOGNITION"] = "EQUIPMENT_RECOGNITION"
+    stages: tuple[Literal["EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"], ...] = (
+        "EQUIPMENT_RECOGNITION",
+        "ATTRIBUTE_EXTRACTION",
+    )
+    input_strategy: Literal["NATIVE_TEXT_AND_IMAGE", "NATIVE_TEXT_ONLY"]
+    prompt_version: str = "engineering-prompts-v1"
+    schema_version: str = "engineering-stage-manifest-v1"
+    manifest: dict
+    interpretation: dict
+    grounding: dict
+    runtime: dict
+    max_total_input_bytes: int = Field(ge=1)
+    max_text_chars: int = Field(ge=1)
+    max_instruction_bytes: int = Field(ge=1, le=131072)
+    max_upstream_bytes: int = Field(ge=1, le=131072)
+    image_detail: Literal["high", "auto"] = "high"
+
+    @model_validator(mode="after")
+    def two_stages(self) -> "EngineeringProfile":
+        if self.stages != ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"):
+            raise ValueError("Unsupported engineering stage plan")
+        if (self.provider == "fake") != (self.execution_kind == "FAKE_TEST"):
+            raise ValueError("Synthetic and production execution must remain distinguishable")
+        return self
+
+
+def read_profile(configuration: dict) -> ExecutionProfile | EngineeringProfile:
+    version = configuration.get("version")
+    if version == "execution-profile-v1":
+        return ExecutionProfile.model_validate(configuration)
+    if version == "execution-profile-v2":
+        return EngineeringProfile.model_validate(configuration)
+    raise ValueError("Unsupported pinned execution profile version")
+
+
+def engineering_profile(key: str, settings: Settings) -> EngineeringProfile:
+    """M4 exposes only synthetic stage execution; production registration belongs to M5."""
+    from powerforge_extraction.engineering_stages import engineering_manifest
+    from powerforge_extraction.grounding import grounding_identity
+    from powerforge_extraction.identities import identity_hash
+    from powerforge_extraction.interpretation import interpretation_identity
+    from powerforge_extraction.stage_runtime import runtime_identity
+
+    if key not in {ENGINEERING_TEST_PROFILE, ENGINEERING_TEXT_TEST_PROFILE}:
+        raise ValueError("Unknown engineering test profile")
+    manifest = engineering_manifest()
+    return EngineeringProfile(
+        key=key,
+        execution_kind="FAKE_TEST",
+        provider="fake",
+        model="deterministic-engineering-v1",
+        input_strategy="NATIVE_TEXT_ONLY"
+        if key == ENGINEERING_TEXT_TEST_PROFILE
+        else "NATIVE_TEXT_AND_IMAGE",
+        prompt_hash=identity_hash(manifest),
+        schema_hash=identity_hash(manifest),
+        manifest=manifest,
+        interpretation=interpretation_identity(),
+        grounding=grounding_identity(),
+        runtime=runtime_identity(),
+        max_pages=settings.extraction_max_pages,
+        max_input_bytes=settings.extraction_max_input_bytes,
+        max_total_input_bytes=4 * 1024 * 1024,
+        max_image_pixels=settings.extraction_max_image_pixels,
+        max_text_chars=100000,
+        max_instruction_bytes=128 * 1024,
+        max_upstream_bytes=64 * 1024,
+        max_output_tokens=8192,
+        max_attempts=settings.extraction_max_attempts,
+        max_calls=settings.extraction_max_calls,
+        max_concurrent=settings.extraction_max_concurrent_per_run,
+        timeout_seconds=settings.extraction_timeout_seconds,
+        lease_seconds=settings.extraction_lease_seconds,
+        backoff_seconds=settings.extraction_backoff_seconds,
+        fake_scenario=settings.extraction_fake_scenario,
+    )
+
+
 def resolve_profile(key: str, settings: Settings) -> ExecutionProfile:
+    if key in {ENGINEERING_TEST_PROFILE, ENGINEERING_TEXT_TEST_PROFILE}:
+        return engineering_profile(key, settings)
     if key not in {FAKE_PROFILE, OPENAI_PROFILE}:
         raise ValueError("Unknown extraction profile; production extractors are not available")
     live = key == OPENAI_PROFILE

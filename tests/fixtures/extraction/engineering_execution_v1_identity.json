@@ -1,0 +1,10 @@
+{
+  "runtime": {
+    "version": "engineering-page-runtime-v1",
+    "rules_hash": "2c32d0eac3ddf56e31023e49bf17b2903e592e10bc4270504024bc5e7d0fa8fd"
+  },
+  "profiles": {
+    "engineering-test-v1": "65761bb99c00615a616b19adc3fb59be59aa8c959b002b8bebeeae73427e8678",
+    "engineering-test-text-v1": "ec7bdbccce21e85c9086aeb0163cb26b15bc3db8414494cd05cd31f55c64ef13"
+  }
+}

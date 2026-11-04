@@ -8,7 +8,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 UI-C visual fidelity rework follows the approved Projects/Revisions HTML layouts, including register toolbars, unified project details/revision activity, revision summary/workspaces/information, creation guidance rails, and edit sheets. Existing API/query/lifecycle safeguards remain. Validation: 291 frontend tests; desktop/mobile browser comparison; lint, TypeScript and production build. Necessary real-data and accessibility deviations are documented in the UI-C handoff.
 
-**Current engineering work:** Phase 6C — Equipment/attribute extraction intelligence. M1–M3 definitions, interpretation and grounding/output conversion implemented; M4–M6 pending. Production engineering extraction remains unavailable.
+**Current engineering work:** Phase 6C — Equipment/attribute extraction intelligence. M1–M4 definitions, interpretation, grounding/output conversion and dependent stage execution implemented; M5–M6 pending. Production engineering extraction remains unavailable.
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -348,9 +348,9 @@ Review corrections distinguish temporary storage access/streaming failures (`SOU
 
 Validation: **1,184 backend tests passed, no skips**, with six existing dependency warnings, including **70 new Phase 6B cases** (27 for the storage/recovery review corrections). This includes actual disposable PostgreSQL/Redis/MinIO and Celery worker/beat subprocesses, persisted-but-undelivered recovery, signed source access and recovery after killing/restarting a worker. Fresh and 0012 upgrade/downgrade/re-upgrade migrations passed. Mocked OpenAI adapter tests made no real calls. Lint, changed-file formatting, dependency/package builds, Compose configuration, OpenAPI and whitespace checks passed. Normal development data/volumes were not used for test writes. No frontend changes/checks or live-provider smoke test.
 
-## Phase 6C — Equipment and attribute extraction (M1–M3)
+## Phase 6C — Equipment and attribute extraction (M1–M4)
 
-**Status:** M1–M3 implemented; Phase 6C remains incomplete. Plan: [PHASE6C_PLAN.md](PHASE6C_PLAN.md). Exact delivered contracts, identities, bounds and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md), [M2 handoff](PHASE6C_M2_HANDOFF.md), [M3 handoff](PHASE6C_M3_HANDOFF.md).
+**Status:** M1–M4 implemented; Phase 6C remains incomplete. Plan: [PHASE6C_PLAN.md](PHASE6C_PLAN.md). Exact delivered contracts, identities, bounds and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md), [M2 handoff](PHASE6C_M2_HANDOFF.md), [M3 handoff](PHASE6C_M3_HANDOFF.md), [M4 handoff](PHASE6C_M4_HANDOFF.md).
 
 M1 adds offline strict observation schemas for equipment/attributes and native/visual source roles, generated metadata for all 20 registry types/296 attributes, a small scoped terminology policy, versioned prompt resources and reproducible stage hashes. Tagged/tagless/unknown equipment, isolated claims, exact raw decimal/integer strings and ambiguity are representable. Registry/probe schemas, prompt hashes and profile wire identities remain unchanged.
 
@@ -368,9 +368,13 @@ M3 validation: **1,365 backend tests passed, no skips**, including **31 new M3 c
 
 M3 review validation: **1,375 backend tests passed, no skips**, including **41 M3 cases**, with six existing dependency warnings in 190.23 seconds. Equipment tags/names are checked against the original observed expression before full-line interpretation. Colon-line continuation requires a registry/terminology attribute label; unknown labels and missed tag-prefixed equipment headers disable block association. Ten added cases cover these corrections and valid continuations. The grounding fingerprint is refreshed before production profiles are enabled; M1/M2 and registry-v1 remain unchanged. See the [M3 review record](PHASE6C_M3_HANDOFF.md#m3-review-corrections).
 
+M4 adds two-stage page plans, committed-prerequisite dispatch/claim gates, blocked failure settlement, dependency-aware retries/read flags and expiry-first recovery past healthy runs. The v2 profile reader pins stage/interpretation/grounding/runtime identities and multimodal limits while retaining byte-identical v1 profiles. Selected-schema execution performs verified source I/O and model I/O outside metadata transactions and uses existing atomic publication/fences. Explicit synthetic engineering profiles exercise this path; production OpenAI profiles/adapter and evaluation remain M5–M6. See [PHASE6C_M4_HANDOFF.md](PHASE6C_M4_HANDOFF.md).
+
+M4 validation: **1,413 backend tests passed, no skips**, including **38 new M4 cases**, with six existing dependency warnings in 208.86 seconds. Fresh migration, AI/extraction wheel builds/direct imports, runtime/profile/legacy identities, lint, formatting, dependencies and whitespace checks passed. Disposable PostgreSQL/Redis/MinIO were used and removed; normal development data were untouched. No live provider or frontend/browser test was performed. Production SDK/profile integration remains M5 and measured model quality remains M6.
+
 ## Later phases
 
-Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and 6C M1–M3 are implemented; remaining 6C milestones and 6D–6G are unimplemented. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and 6C M1–M4 are implemented; remaining 6C milestones and 6D–6G are unimplemented. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -388,7 +392,7 @@ Phase 5A through 5G and the authoring refinement remain complete and frozen. Pha
 | 5 refinement | Authoring profiles, states and transactional editor | Implemented; Phase 5 re-frozen |
 | 6A | Evidence and extraction persistence/read APIs | Implemented (2026-11-02) |
 | 6B | Orchestration, provider infrastructure and execution reliability | Implemented (2026-11-03) |
-| 6C | Engineering equipment/attribute extraction | M1–M3 implemented; M4–M6 pending |
+| 6C | Engineering equipment/attribute extraction | M1–M4 implemented; M5–M6 pending |
 | 6D–6G | Tables, OCR, UI/evaluation and hardening | Unimplemented |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |

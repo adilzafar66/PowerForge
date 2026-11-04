@@ -7,9 +7,9 @@ from typing import Protocol
 from uuid import UUID, uuid4
 
 from sqlalchemy import exists, func, or_, select, text
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
-from powerforge_ai.extraction import ErrorCode, ExecutionUsage
+from powerforge_ai.extraction import ErrorCode, ExecutionUsage, ExtractionRequest
 from powerforge_document_model import PageArtifactType, ProcessingRunStatus
 from powerforge_document_processing.models import (
     Document,
@@ -20,6 +20,7 @@ from powerforge_document_processing.models import (
 from powerforge_document_processing.storage.base import ObjectStorage
 from powerforge_extraction.contracts import AICallInput, RunInput, WorkUnitInput, WorkUnitOutput
 from powerforge_extraction.controls import RunExecution, UnitExecution
+from powerforge_extraction.dependencies import latest_units, retryable_keys, unit_key
 from powerforge_extraction.enums import ExtractionRunStatus as RS
 from powerforge_extraction.enums import WorkUnitStatus as US
 from powerforge_extraction.errors import (
@@ -28,9 +29,16 @@ from powerforge_extraction.errors import (
     ExtractionError,
     LeaseLost,
 )
+from powerforge_extraction.grounding import PageSpec
 from powerforge_extraction.models import ExtractionRun, ExtractionWorkUnit
 from powerforge_extraction.persistence import ExtractionPersistence
-from powerforge_extraction.profiles import FAKE_PROFILE, ExecutionProfile, resolve_profile
+from powerforge_extraction.profiles import (
+    FAKE_PROFILE,
+    EngineeringProfile,
+    ExecutionProfile,
+    read_profile,
+    resolve_profile,
+)
 from powerforge_shared.config import Settings
 
 logger = logging.getLogger(__name__)
@@ -65,6 +73,36 @@ class Claim:
     mime_type: str
     size_bytes: int
     sha256: str
+    page_spec: PageSpec | None = None
+    upstream_unit_id: UUID | None = None
+
+
+def dependency_ready():
+    """Correlated SQL gate so blocked deliveries cannot occupy the dispatch window."""
+    upstream = aliased(ExtractionWorkUnit)
+    key = ExtractionWorkUnit.execution_metadata["prerequisite_key"].astext
+    return or_(
+        key.is_(None),
+        exists(
+            select(upstream.id).where(
+                upstream.run_id == ExtractionWorkUnit.run_id,
+                upstream.unit_key == key,
+                upstream.status == US.COMPLETED,
+            )
+        ).correlate(ExtractionWorkUnit),
+    )
+
+
+def blocked_dependency():
+    upstream = aliased(ExtractionWorkUnit)
+    key = ExtractionWorkUnit.execution_metadata["prerequisite_key"].astext
+    return key.is_not(None) & ~exists(
+        select(upstream.id).where(
+            upstream.run_id == ExtractionWorkUnit.run_id,
+            upstream.unit_key == key,
+            upstream.status.in_((*UNIT_ACTIVE, US.COMPLETED)),
+        )
+    ).correlate(ExtractionWorkUnit)
 
 
 class ExtractionCoordinator:
@@ -156,18 +194,41 @@ class ExtractionCoordinator:
             if page is None:
                 raise ExtractionError("Selected page does not belong to the document")
             available = {a.artifact_type: a for a in artifacts if a.document_page_id == page.id}
-            artifact = available.get(PageArtifactType.NATIVE_TEXT) or available.get(
-                PageArtifactType.ANALYSIS_IMAGE
-            )
-            if artifact is None or artifact.size_bytes > profile.max_input_bytes:
-                raise ExtractionError("Selected page lacks a usable bounded processing artifact")
-            if artifact.artifact_type == PageArtifactType.ANALYSIS_IMAGE and (
-                artifact.width_px is None
-                or artifact.height_px is None
-                or artifact.width_px * artifact.height_px > profile.max_image_pixels
+            native = available.get(PageArtifactType.NATIVE_TEXT)
+            image = available.get(PageArtifactType.ANALYSIS_IMAGE)
+            if isinstance(profile, EngineeringProfile):
+                if profile.input_strategy == "NATIVE_TEXT_ONLY" and native is None:
+                    raise ExtractionError("This profile requires pinned native text on every page")
+                selected_artifacts = [
+                    a
+                    for a in (native, image)
+                    if a is not None
+                    and (a is native or profile.input_strategy != "NATIVE_TEXT_ONLY")
+                ]
+                if sum(a.size_bytes for a in selected_artifacts) > profile.max_total_input_bytes:
+                    raise ExtractionError("Selected page exceeds the combined input limit")
+            else:
+                selected_artifacts = [native or image] if native or image else []
+            if not selected_artifacts or any(
+                a.size_bytes > profile.max_input_bytes for a in selected_artifacts
             ):
-                raise ExtractionError("Selected analysis image exceeds the configured pixel limit")
-            chosen.append((page, artifact))
+                raise ExtractionError("Selected page lacks a usable bounded processing artifact")
+            for artifact in selected_artifacts:
+                if isinstance(profile, EngineeringProfile) and artifact.mime_type != (
+                    "text/plain"
+                    if artifact.artifact_type == PageArtifactType.NATIVE_TEXT
+                    else "image/png"
+                ):
+                    raise ExtractionError("Selected artifact has an unsupported media type")
+                if artifact.artifact_type == PageArtifactType.ANALYSIS_IMAGE and (
+                    artifact.width_px is None
+                    or artifact.height_px is None
+                    or artifact.width_px * artifact.height_px > profile.max_image_pixels
+                ):
+                    raise ExtractionError(
+                        "Selected analysis image exceeds the configured pixel limit"
+                    )
+            chosen.append((page, selected_artifacts))
         compatible = select(ExtractionRun).where(
             ExtractionRun.document_id == document_id,
             ExtractionRun.processing_run_id == processing.id,
@@ -221,24 +282,34 @@ class ExtractionCoordinator:
                 prompt_version=profile.prompt_version,
                 prompt_hash=profile.prompt_hash,
                 selected_pages=selected,
-                stages=[profile.stage],
-                input_artifact_ids=[a.id for _, a in chosen],
+                stages=list(profile.stages)
+                if isinstance(profile, EngineeringProfile)
+                else [profile.stage],
+                input_artifact_ids=[a.id for _, artifacts in chosen for a in artifacts],
                 reextracts_run_id=predecessor.id if predecessor else None,
             )
         )
         self.session.add(RunExecution(run_id=run.id, configuration=profile.model_dump(mode="json")))
         self.session.flush()
-        for page, artifact in chosen:
-            unit = self.persistence.create_work_unit(
-                run.id,
-                WorkUnitInput(
-                    unit_key=f"{profile.stage}:page:{page.page_number:06d}",
-                    stage=profile.stage,
-                    page_numbers=[page.page_number],
-                    input_artifact_ids=[artifact.id],
-                ),
-            )
-            self._delivery(unit, self.now())
+        for page, artifacts in chosen:
+            stages = profile.stages if isinstance(profile, EngineeringProfile) else [profile.stage]
+            for stage in stages:
+                metadata = {}
+                if isinstance(profile, EngineeringProfile):
+                    from powerforge_extraction.stage_runtime import planned_metadata
+
+                    metadata = planned_metadata(profile, stage, page.page_number)
+                unit = self.persistence.create_work_unit(
+                    run.id,
+                    WorkUnitInput(
+                        unit_key=unit_key(stage, page.page_number),
+                        stage=stage,
+                        page_numbers=[page.page_number],
+                        input_artifact_ids=[artifact.id for artifact in artifacts],
+                        execution_metadata=metadata,
+                    ),
+                )
+                self._delivery(unit, self.now())
         self.session.flush()
         return run
 
@@ -267,6 +338,23 @@ class ExtractionCoordinator:
 
     def aggregate(self, run: ExtractionRun) -> None:
         units = self._units(run.id)
+        latest = latest_units(units)
+        for unit in latest.values():
+            parent = unit.execution_metadata.get("prerequisite_key")
+            if (
+                unit.status == US.PENDING
+                and parent
+                and (
+                    parent not in latest
+                    or latest[parent].status not in (*UNIT_ACTIVE, US.COMPLETED)
+                )
+            ):
+                unit.status, unit.error_code, unit.finished_at = (
+                    US.FAILED,
+                    ErrorCode.DEPENDENCY.value,
+                    self.now(),
+                )
+        self.session.flush()
         if any(u.status in UNIT_ACTIVE for u in units):
             return
         required = {u.unit_key for u in units if u.required}
@@ -301,7 +389,7 @@ class ExtractionCoordinator:
             return None
         run = self._run(unit.run_id)
         control = self._execution(run.id)
-        profile = ExecutionProfile.model_validate(control.configuration)
+        profile = read_profile(control.configuration)
         unit = self.session.get(ExtractionWorkUnit, unit_id, populate_existing=True)
         delivery = self.session.get(UnitExecution, unit_id, populate_existing=True)
         now = self.now()
@@ -313,6 +401,26 @@ class ExtractionCoordinator:
             or delivery.available_at > now
         ):
             return None
+        if isinstance(profile, EngineeringProfile):
+            from powerforge_extraction.stage_runtime import successful_prerequisite, validate_plan
+
+            try:
+                validate_plan(unit, profile)
+            except (ValueError, KeyError, StopIteration):
+                unit.status, unit.error_code, unit.finished_at = (
+                    US.FAILED,
+                    ErrorCode.INPUT.value,
+                    now,
+                )
+                self.session.flush()
+                self.aggregate(run)
+                return None
+            if (
+                unit.execution_metadata.get("prerequisite_key")
+                and successful_prerequisite(self.session, unit) is None
+            ):
+                self.aggregate(run)
+                return None
         if control.calls_admitted >= profile.max_calls:
             unit.status, unit.error_code, unit.finished_at = US.FAILED, ErrorCode.BUDGET.value, now
             self.session.flush()
@@ -355,6 +463,14 @@ class ExtractionCoordinator:
         self.session.flush()
         artifact = self.session.get(PageArtifact, UUID(unit.input_artifact_ids[0]))
         page = self.session.get(DocumentPage, artifact.document_page_id)
+        page_spec, upstream_id = None, None
+        if isinstance(profile, EngineeringProfile):
+            from powerforge_extraction.engineering_sources import page_spec_for_unit
+            from powerforge_extraction.stage_runtime import successful_prerequisite
+
+            page_spec = page_spec_for_unit(self.session, unit.id)
+            parent = successful_prerequisite(self.session, unit)
+            upstream_id = parent.id if parent else None
         return Claim(
             run.id,
             unit.id,
@@ -370,6 +486,8 @@ class ExtractionCoordinator:
             artifact.mime_type,
             artifact.size_bytes,
             artifact.sha256,
+            page_spec,
+            upstream_id,
         )
 
     def _authorized(self, unit_id: UUID, token: UUID):
@@ -402,7 +520,7 @@ class ExtractionCoordinator:
             run, unit, delivery = self._authorized(unit_id, token)
         except LeaseLost:
             return False
-        profile = ExecutionProfile.model_validate(self._execution(run.id).configuration)
+        profile = read_profile(self._execution(run.id).configuration)
         now = self.now()
         unit.heartbeat_at = now
         unit.lease_expires_at = min(
@@ -411,11 +529,27 @@ class ExtractionCoordinator:
         self.session.flush()
         return True
 
-    def mark_provider_started(self, unit_id: UUID, token: UUID) -> None:
+    def mark_provider_started(
+        self, unit_id: UUID, token: UUID, request: ExtractionRequest | None = None
+    ) -> None:
         """Persist the external-call boundary, with no transaction held over the call."""
-        _, _, delivery = self._authorized(unit_id, token)
+        run, unit, delivery = self._authorized(unit_id, token)
         if delivery.provider_started_at is not None:
             raise LeaseLost("This attempt already crossed the provider-call boundary")
+        profile = read_profile(self._execution(run.id).configuration)
+        if isinstance(profile, EngineeringProfile):
+            from powerforge_extraction.stage_runtime import require_supported, stage_call
+
+            require_supported(profile)
+            call = stage_call(self.session, unit, profile)
+            if request is None or (
+                request.stage != unit.stage
+                or request.instructions != call.instructions
+                or request.schema_version != call.schema_version
+                or request.response_model is not call.response_model
+                or request.upstream_context != call.upstream_context
+            ):
+                raise ValueError("Request differs from its pinned stage context")
         delivery.provider_started_at = self.now()
         self.session.flush()
 
@@ -431,6 +565,14 @@ class ExtractionCoordinator:
         started = self.session.get(UnitExecution, unit.id).provider_started_at
         if started is None:
             return
+        prompt_version, prompt_hash = profile.prompt_version, profile.prompt_hash
+        schema_version, correlation = profile.schema_version, str(unit.id)
+        if isinstance(profile, EngineeringProfile):
+            from powerforge_extraction.stage_runtime import stage_call
+
+            call = stage_call(self.session, unit, profile)
+            prompt_hash, schema_version = call.instruction_hash, call.schema_version
+            correlation = call.correlation_id(unit.id)
         # Missing usage stays unknown; admissions retain interrupted call uncertainty.
         cost = None
         if (
@@ -450,10 +592,10 @@ class ExtractionCoordinator:
             AICallInput(
                 provider=profile.provider,
                 model=profile.model,
-                prompt_version=profile.prompt_version,
-                prompt_hash=profile.prompt_hash,
-                schema_version=profile.schema_version,
-                request_correlation_id=str(unit.id),
+                prompt_version=prompt_version,
+                prompt_hash=prompt_hash,
+                schema_version=schema_version,
+                request_correlation_id=correlation,
                 outcome=outcome,
                 error_code=error,
                 started_at=started,
@@ -476,7 +618,7 @@ class ExtractionCoordinator:
         storage: ObjectStorage,
     ) -> None:
         run, unit, _ = self._authorized(unit_id, token)
-        profile = ExecutionProfile.model_validate(self._execution(run.id).configuration)
+        profile = read_profile(self._execution(run.id).configuration)
         self._telemetry(unit, profile, self.now(), "SUCCEEDED", None, usage)
         ExtractionPersistence(self.session, storage).publish(unit.id, output)
         self.aggregate(run)
@@ -512,7 +654,7 @@ class ExtractionCoordinator:
         self, unit_id: UUID, token: UUID, code: ErrorCode, usage: ExecutionUsage | None = None
     ) -> None:
         run, unit, _ = self._authorized(unit_id, token)
-        profile = ExecutionProfile.model_validate(self._execution(run.id).configuration)
+        profile = read_profile(self._execution(run.id).configuration)
         self._telemetry(unit, profile, self.now(), "FAILED", code.value, usage)
         self._settle_failure(run, unit, profile, code.value)
 
@@ -539,7 +681,7 @@ class ExtractionCoordinator:
                 "Completed/cancelled history is immutable; request explicit re-extraction"
             )
         control = self._execution(run.id)
-        profile = ExecutionProfile.model_validate(control.configuration)
+        profile = read_profile(control.configuration)
         if not self.settings.extraction_enabled or (
             profile.provider == "openai" and not self.settings.extraction_external_enabled
         ):
@@ -548,12 +690,10 @@ class ExtractionCoordinator:
             raise ExtractionConflict(
                 "Provider-call budget exhausted; explicit re-extraction is required"
             )
-        latest = {u.unit_key: u for u in self._units(run.id)}
-        eligible = [
-            u
-            for u in latest.values()
-            if u.status != US.COMPLETED and u.attempt_number < profile.max_attempts
-        ]
+        units = self._units(run.id)
+        latest = latest_units(units)
+        keys = retryable_keys(units, profile.max_attempts)
+        eligible = [u for u in latest.values() if u.unit_key in keys]
         if not eligible:
             raise ExtractionConflict(
                 "No unsuccessful logical units remain within the pinned attempt limit"
@@ -605,13 +745,20 @@ class ExtractionCoordinator:
                 ExtractionWorkUnit.status.in_(UNIT_ACTIVE),
             )
         ).correlate(ExtractionRun)
+        has_blocked_units = exists(
+            select(ExtractionWorkUnit.id).where(
+                ExtractionWorkUnit.run_id == ExtractionRun.id,
+                ExtractionWorkUnit.status == US.PENDING,
+                blocked_dependency(),
+            )
+        ).correlate(ExtractionRun)
         runs = list(
             self.session.scalars(
                 select(ExtractionRun)
                 .join(RunExecution, RunExecution.run_id == ExtractionRun.id)
                 .where(
                     ExtractionRun.status.in_(ACTIVE),
-                    or_(expired_at.is_not(None), ~has_active_units),
+                    or_(expired_at.is_not(None), ~has_active_units, has_blocked_units),
                 )
                 .order_by(expired_at.asc().nulls_last(), ExtractionRun.id)
                 .limit(limit)
@@ -620,7 +767,7 @@ class ExtractionCoordinator:
         )
         recovered = 0
         for run in runs:
-            profile = ExecutionProfile.model_validate(self._execution(run.id).configuration)
+            profile = read_profile(self._execution(run.id).configuration)
             for unit in self._units(run.id):
                 if unit.status == US.RUNNING and unit.lease_expires_at <= self.now():
                     self._settle_failure(run, unit, profile, ErrorCode.INTERRUPTED.value)
@@ -642,6 +789,7 @@ class ExtractionCoordinator:
                     ExtractionRun.status.in_(ACTIVE),
                     UnitExecution.available_at <= now,
                     UnitExecution.dispatch_after <= now,
+                    dependency_ready(),
                 )
                 .order_by(UnitExecution.dispatch_after, UnitExecution.work_unit_id)
                 .limit(limit)

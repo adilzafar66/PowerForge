@@ -5,18 +5,24 @@ from uuid import UUID
 from sqlalchemy.orm import sessionmaker
 
 from extraction_worker.celery_app import _engine, celery_app
-from powerforge_ai.extraction import ExtractionProvider
+from powerforge_ai.extraction import ErrorCode, ExtractionProvider, ProviderFailure
 from powerforge_document_processing.storage.factory import build_s3_storage
 from powerforge_extraction.enqueue import QUEUE, RECOVER_TASK, UNIT_TASK, CeleryExtractionEnqueue
 from powerforge_extraction.execution import execute_unit
-from powerforge_extraction.fake import FakeExtractionProvider
+from powerforge_extraction.fake import FakeEngineeringProvider, FakeExtractionProvider
 from powerforge_extraction.orchestration import Claim, ExtractionCoordinator
+from powerforge_extraction.profiles import EngineeringProfile
 from powerforge_shared.config import get_settings
 
 
 def provider_for(claim: Claim) -> ExtractionProvider:
     if claim.profile.provider == "fake":
+        if isinstance(claim.profile, EngineeringProfile):
+            return FakeEngineeringProvider(claim.profile.fake_scenario)
         return FakeExtractionProvider(claim.profile.fake_scenario)
+    if isinstance(claim.profile, EngineeringProfile):
+        # M5 must add the stage-aware SDK adapter before enabling production profiles.
+        raise ProviderFailure(ErrorCode.DISABLED)
     from extraction_worker.openai_extraction import OpenAIExtractionProvider
 
     return OpenAIExtractionProvider(get_settings())
