@@ -1,0 +1,3 @@
+LV Breaker CB-Q
+Normally Closed (not verified): Yes
+Conductor Material (N/A): Copper

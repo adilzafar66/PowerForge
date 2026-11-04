@@ -1,0 +1,5 @@
+2-Winding Transformer TX-1
+Secondary Voltage: 600 V
+
+2-Winding Transformer TX-1
+Secondary Voltage: 690 V

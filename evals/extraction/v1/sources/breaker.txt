@@ -1,0 +1,3 @@
+LV Breaker CB-101 thermal-magnetic
+400 AF / 250 AT
+Normally Closed: No

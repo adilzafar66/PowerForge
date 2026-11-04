@@ -1,0 +1,5 @@
+Utility Source UTIL-1
+3PH fault current: 25 kA
+SLG fault current: 15 kA
+3-Phase X/R Ratio: 12
+Single Line-to-Ground X/R Ratio: 8

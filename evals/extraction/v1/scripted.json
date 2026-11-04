@@ -1,0 +1,1210 @@
+{
+  "version": "engineering-recordings-v1",
+  "provenance": "SCRIPTED_MOCK",
+  "corpus_sha256": "f9f12cb21012d1083500e1ee1b7737184700627661a3ba4155470af741be6ab3",
+  "resources": {
+    "manifest": "35228fc26e37ceafa6ce8952062503c1fedbad935958f41dd9937dc1ad3d87e8",
+    "interpretation": {
+      "version": "engineering-interpretation-v1",
+      "rules_hash": "058e80e3c771510d83e6f59dace505420a5dcb0971444ebee0d2624330f8ef05",
+      "registry_projection_hash": "41ede97ee551463a293c7e56353ef7ce66db2963797d8b96fde3ba52bf36c7aa",
+      "terminology_hash": "599ded5c5ecedb872a4a8478533bf621997550cec66af16bc9cc7b3b842a3829"
+    },
+    "grounding": {
+      "version": "engineering-grounding-v1",
+      "rules_hash": "091706197d044d6ffc5f5212b6a459524f961d4b48dab4e8ac66c9dc13de8eee"
+    }
+  },
+  "cases": {
+    "transformer": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "2-Winding Transformer TX-101",
+            "observed_name": null,
+            "observed_tag": "TX-101",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer TX-101",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "field0",
+            "raw_expression": "Rated Capacity: 750 kVA",
+            "source_label": "Rated Capacity",
+            "raw_value": "750",
+            "raw_unit": "kVA",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "rated_apparent_power",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Rated Capacity: 750 kVA",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "field1",
+            "raw_expression": "Primary Voltage: 12.47 kV",
+            "source_label": "Primary Voltage",
+            "raw_value": "12.47",
+            "raw_unit": "kV",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "primary_voltage",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Primary Voltage: 12.47 kV",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "field2",
+            "raw_expression": "Secondary Voltage: 600 V",
+            "source_label": "Secondary Voltage",
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Secondary Voltage: 600 V",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "field3",
+            "raw_expression": "Impedance: 5.75%",
+            "source_label": "Impedance",
+            "raw_value": "5.75",
+            "raw_unit": "%",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "positive_sequence_impedance",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Impedance: 5.75%",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "breaker": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "LV Breaker CB-101 thermal-magnetic",
+            "observed_name": null,
+            "observed_tag": "CB-101",
+            "proposed_equipment_type": "LV_BREAKER",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "LV Breaker CB-101 thermal-magnetic",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "field0",
+            "raw_expression": "400 AF",
+            "source_label": "AF",
+            "raw_value": "400",
+            "raw_unit": "AF",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "frame_rating",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "400 AF",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "field1",
+            "raw_expression": "250 AT",
+            "source_label": "AT",
+            "raw_value": "250",
+            "raw_unit": "AT",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "trip_rating",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "250 AT",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "field2",
+            "raw_expression": "Normally Closed: No",
+            "source_label": "Normally Closed",
+            "raw_value": "No",
+            "raw_unit": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "normally_closed",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Normally Closed: No",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "cable": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "Cable CBL-1",
+            "observed_name": null,
+            "observed_tag": "CBL-1",
+            "proposed_equipment_type": "CABLE",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Cable CBL-1",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "field0",
+            "raw_expression": "Conductor Material: Cu",
+            "source_label": "Conductor Material",
+            "raw_value": "Cu",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "conductor_material",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Conductor Material: Cu",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "field1",
+            "raw_expression": "Length: 250 ft",
+            "source_label": "Length",
+            "raw_value": "250",
+            "raw_unit": "ft",
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "length",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Length: 250 ft",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "field2",
+            "raw_expression": "Parallel Run Count: 9007199254740993",
+            "source_label": "Parallel Run Count",
+            "raw_value": "9007199254740993",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "parallel_run_count",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Parallel Run Count: 9007199254740993",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "field3",
+            "raw_expression": "Conductor Size: 4/0 AWG",
+            "source_label": "Conductor Size",
+            "raw_value": "4/0 AWG",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "conductor_size",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Conductor Size: 4/0 AWG",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "utility": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "Utility Source UTIL-1",
+            "observed_name": null,
+            "observed_tag": "UTIL-1",
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Utility Source UTIL-1",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "field0",
+            "raw_expression": "3PH fault current: 25 kA",
+            "source_label": "3PH fault current",
+            "raw_value": "25",
+            "raw_unit": "kA",
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "proposed_attribute_key": "three_phase_fault_current",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "3PH fault current: 25 kA",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "field1",
+            "raw_expression": "SLG fault current: 15 kA",
+            "source_label": "SLG fault current",
+            "raw_value": "15",
+            "raw_unit": "kA",
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "proposed_attribute_key": "slg_fault_current",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "SLG fault current: 15 kA",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "field2",
+            "raw_expression": "3-Phase X/R Ratio: 12",
+            "source_label": "3-Phase X/R Ratio",
+            "raw_value": "12",
+            "raw_unit": null,
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "proposed_attribute_key": "three_phase_x_r",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "3-Phase X/R Ratio: 12",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "field3",
+            "raw_expression": "Single Line-to-Ground X/R Ratio: 8",
+            "source_label": "Single Line-to-Ground X/R Ratio",
+            "raw_value": "8",
+            "raw_unit": null,
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "proposed_attribute_key": "slg_x_r",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Single Line-to-Ground X/R Ratio: 8",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "isolated_unicode": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": []
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "f0",
+            "raw_expression": "Impedance: 5.5%",
+            "source_label": "Impedance",
+            "raw_value": "5.5",
+            "raw_unit": "%",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null,
+            "equipment_ref": null,
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Impedance: 5.5%",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "f1",
+            "raw_expression": "Rated current: 400 A",
+            "source_label": "Rated current",
+            "raw_value": "400",
+            "raw_unit": "A",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null,
+            "equipment_ref": null,
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Rated current: 400 A",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "f2",
+            "raw_expression": "Flux alignment: 42 quux",
+            "source_label": "Flux alignment",
+            "raw_value": "42",
+            "raw_unit": "quux",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null,
+            "equipment_ref": null,
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Flux alignment: 42 quux",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "unknown_equipment": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "Cryogenic Flux Coupler FC-1",
+            "observed_name": null,
+            "observed_tag": "FC-1",
+            "proposed_equipment_type": null,
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Cryogenic Flux Coupler FC-1",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "field0",
+            "raw_expression": "Flux alignment: 42 quux",
+            "source_label": "Flux alignment",
+            "raw_value": "42",
+            "raw_unit": "quux",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null,
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Flux alignment: 42 quux",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "repeated_tags": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "2-Winding Transformer TX-1",
+            "observed_name": null,
+            "observed_tag": "TX-1",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer TX-1\nSecondary Voltage: 600 V",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "different_ref",
+            "raw_expression": "2-Winding Transformer TX-1",
+            "observed_name": null,
+            "observed_tag": "TX-1",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer TX-1\nSecondary Voltage: 690 V",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "field0",
+            "raw_expression": "Secondary Voltage: 600 V",
+            "source_label": "Secondary Voltage",
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Secondary Voltage: 600 V",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "f2",
+            "raw_expression": "Secondary Voltage: 690 V",
+            "source_label": "Secondary Voltage",
+            "raw_value": "690",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "equipment_ref": "different_ref",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Secondary Voltage: 690 V",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "missed_colon_header": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "2-Winding Transformer TX-1",
+            "observed_name": null,
+            "observed_tag": "TX-1",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer TX-1",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "field0",
+            "raw_expression": "Secondary Voltage: 690 V",
+            "source_label": "Secondary Voltage",
+            "raw_value": "690",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Secondary Voltage: 690 V",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "borrowed_tag": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "2-Winding Transformer TX-1",
+            "observed_name": null,
+            "observed_tag": "TX-2",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer TX-1",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": []
+      }
+    },
+    "no_equipment": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": []
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": []
+      }
+    },
+    "qualifiers": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "LV Breaker CB-Q",
+            "observed_name": null,
+            "observed_tag": "CB-Q",
+            "proposed_equipment_type": "LV_BREAKER",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "LV Breaker CB-Q",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "field0",
+            "raw_expression": "Normally Closed (not verified): Yes",
+            "source_label": "Normally Closed (not verified)",
+            "raw_value": "Yes",
+            "raw_unit": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "normally_closed",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Normally Closed (not verified): Yes",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "f1",
+            "raw_expression": "Conductor Material (N/A): Copper",
+            "source_label": "Conductor Material (N/A)",
+            "raw_value": "Copper",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "conductor_material",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Conductor Material (N/A): Copper",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "invalid_values": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "Cable C-9",
+            "observed_name": null,
+            "observed_tag": "C-9",
+            "proposed_equipment_type": "CABLE",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Cable C-9",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "field0",
+            "raw_expression": "Conductor Material: Copper/Aluminum",
+            "source_label": "Conductor Material",
+            "raw_value": "Copper/Aluminum",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "conductor_material",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Conductor Material: Copper/Aluminum",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "f1",
+            "raw_expression": "Length: 10 furlong",
+            "source_label": "Length",
+            "raw_value": "10",
+            "raw_unit": "furlong",
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "length",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Length: 10 furlong",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "f2",
+            "raw_expression": "Parallel Run Count: 9223372036854775808",
+            "source_label": "Parallel Run Count",
+            "raw_value": "9223372036854775808",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "parallel_run_count",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Parallel Run Count: 9223372036854775808",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "tagless_visual": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "2-Winding Transformer",
+            "observed_name": null,
+            "observed_tag": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "field0",
+            "raw_expression": "Rated Capacity: 750 kVA",
+            "source_label": "Rated Capacity",
+            "raw_value": "750",
+            "raw_unit": "kVA",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "rated_apparent_power",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "f1",
+            "raw_expression": "Secondary Voltage: 600 V",
+            "source_label": "Secondary Voltage",
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "breaker_visual": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "LV Breaker CB-2 thermal-magnetic",
+            "observed_name": null,
+            "observed_tag": "CB-2",
+            "proposed_equipment_type": "LV_BREAKER",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "field0",
+            "raw_expression": "400 AF",
+            "source_label": "AF",
+            "raw_value": "400",
+            "raw_unit": "AF",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "frame_rating",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "f1",
+            "raw_expression": "250 AT",
+            "source_label": "AT",
+            "raw_value": "250",
+            "raw_unit": "AT",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "trip_rating",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "f2",
+            "raw_expression": "Normally Closed: No",
+            "source_label": "Normally Closed",
+            "raw_value": "No",
+            "raw_unit": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "normally_closed",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "hybrid_conflict": {
+      "equipment": {
+        "schema_version": "equipment-recognition-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "model0",
+            "raw_expression": "2-Winding Transformer TX-H",
+            "observed_name": null,
+            "observed_tag": "TX-H",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer TX-H",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "visual_ref",
+            "raw_expression": "2-Winding Transformer TX-H",
+            "observed_name": null,
+            "observed_tag": "TX-H",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      },
+      "attributes": {
+        "schema_version": "attribute-extraction-schema-v1",
+        "overflowed": false,
+        "attributes": [
+          {
+            "local_ref": "field0",
+            "raw_expression": "Secondary Voltage: 600 V",
+            "source_label": "Secondary Voltage",
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "equipment_ref": "model0",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Secondary Voltage: 600 V",
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          },
+          {
+            "local_ref": "f1",
+            "raw_expression": "Secondary Voltage: 690 V",
+            "source_label": "Secondary Voltage",
+            "raw_value": "690",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "equipment_ref": "visual_ref",
+            "ambiguous": false,
+            "ambiguity_reason": null,
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

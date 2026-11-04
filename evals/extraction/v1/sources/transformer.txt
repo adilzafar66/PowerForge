@@ -1,0 +1,5 @@
+2-Winding Transformer TX-101
+Rated Capacity: 750 kVA
+Primary Voltage: 12.47 kV
+Secondary Voltage: 600 V
+Impedance: 5.75%

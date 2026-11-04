@@ -4,7 +4,7 @@ This is the authoritative high-level roadmap for intended future scope. [PROJECT
 
 PowerForge keeps **Phase 0–13: fourteen primary numbered phases**. Phase 4.5 is an intentional intermediate document-workspace UX phase. Phase 5 has slices 5A–5G. Completed phases keep their historical numbering; later phases may have internal slices and design gates without adding top-level numbers. Keep the existing Phase 0–13 numbering and use subphases/gates for newly understood work rather than adding or renumbering top-level phases.
 
-Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5G are implemented; Phase 5 is complete and re-frozen after the authoring refinement. Phase 6A delivery and validation are recorded in [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md); Phase 6B execution is documented in [PHASE6B_HANDOFF.md](PHASE6B_HANDOFF.md). Phase 6C M1–M5 definitions, interpretation, grounding/output conversion, dependent execution and opt-in production OpenAI integration are delivered; remaining 6C milestones and 6D–6G are unimplemented.** Later phases are planned. The accepted foundations are [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md), the [Phase 5 specification](specs/phase-5-engineering-model.md), and the [Phase 5G freeze handoff](PHASE5G_HANDOFF.md).
+Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5G are implemented; Phase 5 is complete and re-frozen after the authoring refinement. Phase 6A delivery and validation are recorded in [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md); Phase 6B execution is documented in [PHASE6B_HANDOFF.md](PHASE6B_HANDOFF.md). Phase 6C M1–M6 definitions, interpretation, grounding/output conversion, dependent execution, opt-in production OpenAI integration and representative evaluation tooling are delivered; live-model quality remains unverified and 6D–6G are unimplemented. See the [final 6C handoff](PHASE6C_HANDOFF.md).** Later phases are planned. The accepted foundations are [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md), the [Phase 5 specification](specs/phase-5-engineering-model.md), and the [Phase 5G freeze handoff](PHASE5G_HANDOFF.md).
 
 ## Phase map
 
@@ -17,7 +17,7 @@ Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5G are implemented; 
 | 4 | AI document classification | Complete; unchanged |
 | 4.5 | Document workspace UX | Complete; unchanged |
 | 5 | Canonical engineering model | Complete / re-frozen; 5A–5G plus authoring refinement |
-| 6 | Evidence, candidates, and structured extraction | 6A/6B and 6C M1–M5 implemented; remaining milestones pending |
+| 6 | Evidence, candidates, and structured extraction | 6A/6B and 6C M1–M6 implemented; live quality unverified; 6D–6G pending |
 | 7 | Entity resolution | Planned |
 | 8 | SLD and topology extraction | Planned |
 | 9 | Reconciliation and conflict management | Planned |
@@ -87,7 +87,7 @@ Approved implementation sequence:
 
 - **6A — Persistence and read API:** eight logical entities, pure contracts, migration, atomic publication, revision-scoped read APIs and focused integrity tests. See [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md) for validation status.
 - **6B — Orchestration and provider infrastructure:** scheduling, provider/prompt/profile execution, retries, leases/recovery, idempotency, cancellation and telemetry collection. Implemented with explicitly labeled infrastructure/test profiles; production extraction remains deferred. See [PHASE6B_HANDOFF.md](PHASE6B_HANDOFF.md).
-- **6C — Equipment and attribute extraction:** conservative registry mapping, normalization and raw/unmapped retention. M1–M5 definitions, interpretation, grounding/output conversion, dependent execution and opt-in production profiles/adapter implemented; M6 evaluation/final handoff pending. Live-model quality is unmeasured. See [PHASE6C_PLAN.md](PHASE6C_PLAN.md) and the [M5 handoff](PHASE6C_M5_HANDOFF.md).
+- **6C — Equipment and attribute extraction:** conservative registry mapping, normalization and raw/unmapped retention. M1–M6 definitions, interpretation, grounding/output conversion, dependent execution, opt-in production profiles/adapter and synthetic evaluation tooling implemented. Live-provider evaluation has not been authorized or run; production-model quality remains unverified. See [PHASE6C_PLAN.md](PHASE6C_PLAN.md) and the [final handoff](PHASE6C_HANDOFF.md).
 - **6D — Tables and schedules:** both equipment-per-row and attribute-per-row interpretation with cell provenance. Unimplemented.
 - **6E — OCR and layout:** scans and hybrid native-text/vision preparation. Unimplemented.
 - **6F — Extraction/evidence UI and evaluation:** read-only browsing, history, source navigation and evaluation harness. Unimplemented.

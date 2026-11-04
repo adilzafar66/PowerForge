@@ -1,0 +1,1170 @@
+{
+  "version": "engineering-corpus-v1",
+  "provenance": "SYNTHETIC_AUTHORED",
+  "cases": [
+    {
+      "id": "transformer",
+      "family": "transformer",
+      "note": "Explicit winding/context ratings; no inferred sequence/XR/connection.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/transformer.txt",
+          "sha256": "d8d856125754df6750e1858b82278674428c6ec74eeea4b1216fba1fda3642cd",
+          "size_bytes": 120
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "2-Winding Transformer TX-101",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-101",
+          "span": [
+            0,
+            28
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Rated Capacity: 750 kVA",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "equipment": "g0",
+          "raw_value": "750",
+          "raw_unit": "kVA",
+          "attribute_key": "rated_apparent_power",
+          "value": "750",
+          "unit": "kVA",
+          "value_type": "NUMBER",
+          "span": [
+            29,
+            52
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g2",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Primary Voltage: 12.47 kV",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "equipment": "g0",
+          "raw_value": "12.47",
+          "raw_unit": "kV",
+          "attribute_key": "primary_voltage",
+          "value": "12.47",
+          "unit": "kV",
+          "value_type": "NUMBER",
+          "span": [
+            53,
+            78
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g3",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Secondary Voltage: 600 V",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "equipment": "g0",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "attribute_key": "secondary_voltage",
+          "value": "0.6",
+          "unit": "kV",
+          "value_type": "NUMBER",
+          "span": [
+            79,
+            103
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g4",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Impedance: 5.75%",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "equipment": "g0",
+          "raw_value": "5.75",
+          "raw_unit": "%",
+          "attribute_key": "positive_sequence_impedance",
+          "value": "5.75",
+          "unit": "%",
+          "value_type": "NUMBER",
+          "span": [
+            104,
+            120
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "breaker",
+      "family": "lv_breaker",
+      "note": "AF versus thermal-magnetic AT, explicit false; no sensor/plug defaults.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/breaker.txt",
+          "sha256": "44e8538c0ec464fc8f4012d6ea55943c8106fd36b6ca861460b61149b98cc375",
+          "size_bytes": 70
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "LV Breaker CB-101 thermal-magnetic",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": "CB-101",
+          "span": [
+            0,
+            34
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "400 AF",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "equipment": "g0",
+          "raw_value": "400",
+          "raw_unit": "AF",
+          "attribute_key": "frame_rating",
+          "value": "400",
+          "unit": "A",
+          "value_type": "NUMBER",
+          "span": [
+            35,
+            41
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g2",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "250 AT",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "equipment": "g0",
+          "raw_value": "250",
+          "raw_unit": "AT",
+          "attribute_key": "trip_rating",
+          "value": "250",
+          "unit": "A",
+          "value_type": "NUMBER",
+          "span": [
+            44,
+            50
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g3",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Normally Closed: No",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "equipment": "g0",
+          "raw_value": "No",
+          "raw_unit": null,
+          "attribute_key": "normally_closed",
+          "value": false,
+          "unit": null,
+          "value_type": "BOOLEAN",
+          "span": [
+            51,
+            70
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cable",
+      "family": "cable",
+      "note": "Declared precision stress count; no impedance inferred from size.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/cable.txt",
+          "sha256": "4b1a0ee79a698ae8be62114e2afe6b7b36b02f6cad03c54b081764d379904b22",
+          "size_bytes": 110
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "Cable CBL-1",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "CABLE",
+          "tag": "CBL-1",
+          "span": [
+            0,
+            11
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Conductor Material: Cu",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "CABLE",
+          "equipment": "g0",
+          "raw_value": "Cu",
+          "raw_unit": null,
+          "attribute_key": "conductor_material",
+          "value": "COPPER",
+          "unit": null,
+          "value_type": "ENUM",
+          "span": [
+            12,
+            34
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g2",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Length: 250 ft",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "CABLE",
+          "equipment": "g0",
+          "raw_value": "250",
+          "raw_unit": "ft",
+          "attribute_key": "length",
+          "value": "76.2",
+          "unit": "m",
+          "value_type": "NUMBER",
+          "span": [
+            35,
+            49
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g3",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Parallel Run Count: 9007199254740993",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "CABLE",
+          "equipment": "g0",
+          "raw_value": "9007199254740993",
+          "raw_unit": null,
+          "attribute_key": "parallel_run_count",
+          "value": "9007199254740993",
+          "unit": null,
+          "value_type": "INTEGER",
+          "span": [
+            50,
+            86
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g4",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Conductor Size: 4/0 AWG",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "CABLE",
+          "equipment": "g0",
+          "raw_value": "4/0 AWG",
+          "raw_unit": null,
+          "attribute_key": "conductor_size",
+          "value": "4/0 AWG",
+          "unit": null,
+          "value_type": "TEXT",
+          "span": [
+            87,
+            110
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "utility",
+      "family": "utility",
+      "note": "Separate explicit fault bases; no assumed SLG from three-phase data.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/utility.txt",
+          "sha256": "bb88bd4658cdcd73353af6d974b04b1a4dbc365f9a444543fc6389161f65e1a0",
+          "size_bytes": 128
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "Utility Source UTIL-1",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "UTILITY_SOURCE",
+          "tag": "UTIL-1",
+          "span": [
+            0,
+            21
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "3PH fault current: 25 kA",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "UTILITY_SOURCE",
+          "equipment": "g0",
+          "raw_value": "25",
+          "raw_unit": "kA",
+          "attribute_key": "three_phase_fault_current",
+          "value": "25",
+          "unit": "kA",
+          "value_type": "NUMBER",
+          "span": [
+            22,
+            46
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g2",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "SLG fault current: 15 kA",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "UTILITY_SOURCE",
+          "equipment": "g0",
+          "raw_value": "15",
+          "raw_unit": "kA",
+          "attribute_key": "slg_fault_current",
+          "value": "15",
+          "unit": "kA",
+          "value_type": "NUMBER",
+          "span": [
+            47,
+            71
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g3",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "3-Phase X/R Ratio: 12",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "UTILITY_SOURCE",
+          "equipment": "g0",
+          "raw_value": "12",
+          "raw_unit": null,
+          "attribute_key": "three_phase_x_r",
+          "value": "12",
+          "unit": null,
+          "value_type": "NUMBER",
+          "span": [
+            72,
+            93
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g4",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Single Line-to-Ground X/R Ratio: 8",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "UTILITY_SOURCE",
+          "equipment": "g0",
+          "raw_value": "8",
+          "raw_unit": null,
+          "attribute_key": "slg_x_r",
+          "value": "8",
+          "unit": null,
+          "value_type": "NUMBER",
+          "span": [
+            94,
+            128
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "isolated_unicode",
+      "family": "ambiguous",
+      "note": "No equipment/type inferred from units or proximity.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/isolated_unicode.txt",
+          "sha256": "47ba371449dd7f7f1df9ad4ca6c010a389b916af70c9d9aed01bef8ac0c011c1",
+          "size_bytes": 89
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Impedance: 5.5%",
+          "role": "native_text",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "equipment": null,
+          "raw_value": "5.5",
+          "raw_unit": "%",
+          "span": [
+            25,
+            40
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Rated current: 400 A",
+          "role": "native_text",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "equipment": null,
+          "raw_value": "400",
+          "raw_unit": "A",
+          "span": [
+            41,
+            61
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g2",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Flux alignment: 42 quux",
+          "role": "native_text",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "equipment": null,
+          "raw_value": "42",
+          "raw_unit": "quux",
+          "span": [
+            62,
+            85
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "unknown_equipment",
+      "family": "unknown",
+      "note": "Unknown equipment and field remain raw, not nearest registry category.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/unknown_equipment.txt",
+          "sha256": "1479a61fbf25367e5918cc9d24933bb4c9cc5b45973cea9a63b265570a32342f",
+          "size_bytes": 51
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "Cryogenic Flux Coupler FC-1",
+          "role": "native_text",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "tag": "FC-1",
+          "span": [
+            0,
+            27
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Flux alignment: 42 quux",
+          "role": "native_text",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "equipment": null,
+          "raw_value": "42",
+          "raw_unit": "quux",
+          "span": [
+            28,
+            51
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "repeated_tags",
+      "family": "transformer",
+      "note": "Same tag in distinct blocks is not physical identity; values compete.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/repeated_tags.txt",
+          "sha256": "989b675f52662cbab323e3784c2fe2034ab63cabfa810bf460b21a5cdfb500ed",
+          "size_bytes": 104
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "2-Winding Transformer TX-1",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "span": [
+            0,
+            26
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g2",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "2-Winding Transformer TX-1",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "span": [
+            53,
+            79
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Secondary Voltage: 600 V",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "equipment": "g0",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "attribute_key": "secondary_voltage",
+          "value": "0.6",
+          "unit": "kV",
+          "value_type": "NUMBER",
+          "span": [
+            27,
+            51
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g3",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Secondary Voltage: 690 V",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "equipment": "g2",
+          "raw_value": "690",
+          "raw_unit": "V",
+          "attribute_key": "secondary_voltage",
+          "value": "0.69",
+          "unit": "kV",
+          "value_type": "NUMBER",
+          "span": [
+            80,
+            104
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "missed_colon_header",
+      "family": "ambiguous",
+      "note": "Controlled missed-recognition challenge: gold contains TX-2; recording omits it. Dense block association remains unresolved.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/missed_colon_header.txt",
+          "sha256": "73bbe5f1654ca3abdd0b69114945301e11c1dc72b00ab7956a71585b31556c64",
+          "size_bytes": 81
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "2-Winding Transformer TX-1",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "span": [
+            0,
+            26
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-2: Two-Winding Transformer",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-2",
+          "span": [
+            27,
+            56
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g2",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Secondary Voltage: 690 V",
+          "role": "native_text",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "equipment": null,
+          "raw_value": "690",
+          "raw_unit": "V",
+          "span": [
+            57,
+            81
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "borrowed_tag",
+      "family": "adversarial",
+      "note": "Gold names TX-1. Scripted model borrows reference TX-2; exclusion must reduce recall rather than create a false mapped mention.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/borrowed_tag.txt",
+          "sha256": "ef6edbf5162bc9b817dccff1b2469b1a18a910711612b4c90dc75d442b3c221b",
+          "size_bytes": 43
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "2-Winding Transformer TX-1",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "span": [
+            0,
+            26
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "no_equipment",
+      "family": "negative",
+      "note": "No engineering claims; empty output cannot establish general document completeness.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/no_equipment.txt",
+          "sha256": "c10c1021ec5f8c1ece45a23b3773e97ce95d07bb2f052d16b7962f7332e262a8",
+          "size_bytes": 50
+        }
+      ],
+      "expected": []
+    },
+    {
+      "id": "qualifiers",
+      "family": "ambiguous",
+      "note": "Nonunit parentheticals are material, not discarded units.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/qualifiers.txt",
+          "sha256": "fac4fb12be6a25553a0df4ab58855d40f6d8ceabc4bdd202a4744e64a85e7816",
+          "size_bytes": 84
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "LV Breaker CB-Q",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": "CB-Q",
+          "span": [
+            0,
+            15
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Normally Closed (not verified): Yes",
+          "role": "native_text",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "equipment": null,
+          "raw_value": "Yes",
+          "raw_unit": null,
+          "span": [
+            16,
+            51
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g2",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Conductor Material (N/A): Copper",
+          "role": "native_text",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "equipment": null,
+          "raw_value": "Copper",
+          "raw_unit": null,
+          "span": [
+            52,
+            84
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "invalid_values",
+      "family": "cable",
+      "note": "Mixed unknown enum, unsupported conversion and signed BIGINT overflow.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/invalid_values.txt",
+          "sha256": "63e6137d8e14f9565780f45fbc6901b7e10a3e62c80a81761a48ec303379c330",
+          "size_bytes": 104
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "Cable C-9",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "CABLE",
+          "tag": "C-9",
+          "span": [
+            0,
+            9
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Conductor Material: Copper/Aluminum",
+          "role": "native_text",
+          "status": "UNMAPPED",
+          "equipment_type": "CABLE",
+          "equipment": "g0",
+          "raw_value": "Copper/Aluminum",
+          "raw_unit": null,
+          "span": [
+            10,
+            45
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g2",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Length: 10 furlong",
+          "role": "native_text",
+          "status": "INVALID",
+          "equipment_type": "CABLE",
+          "equipment": "g0",
+          "raw_value": "10",
+          "raw_unit": "furlong",
+          "span": [
+            46,
+            64
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g3",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Parallel Run Count: 9223372036854775808",
+          "role": "native_text",
+          "status": "INVALID",
+          "equipment_type": "CABLE",
+          "equipment": "g0",
+          "raw_value": "9223372036854775808",
+          "raw_unit": null,
+          "span": [
+            65,
+            104
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tagless_visual",
+      "family": "transformer",
+      "note": "Drawn readable label; approved page-level visual limitation, not OCR/pixel verification.",
+      "sources": [
+        {
+          "role": "analysis_image",
+          "path": "sources/tagless_visual.png",
+          "sha256": "9e33074848dfd1636e081ba10e376b11c461ed6cfbaf7a5f99b5771fac14f957",
+          "size_bytes": 20960,
+          "width": 1200,
+          "height": 600
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "2-Winding Transformer",
+          "role": "analysis_image",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "precision": [
+            "VISUAL_PAGE"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Rated Capacity: 750 kVA",
+          "role": "analysis_image",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "equipment": "g0",
+          "raw_value": "750",
+          "raw_unit": "kVA",
+          "attribute_key": "rated_apparent_power",
+          "value": "750",
+          "unit": "kVA",
+          "value_type": "NUMBER",
+          "precision": [
+            "VISUAL_PAGE"
+          ]
+        },
+        {
+          "id": "g2",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Secondary Voltage: 600 V",
+          "role": "analysis_image",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "equipment": "g0",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "attribute_key": "secondary_voltage",
+          "value": "0.6",
+          "unit": "kV",
+          "value_type": "NUMBER",
+          "precision": [
+            "VISUAL_PAGE"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "breaker_visual",
+      "family": "lv_breaker",
+      "note": "Independent image example retains false and distinct frame/trip values.",
+      "sources": [
+        {
+          "role": "analysis_image",
+          "path": "sources/breaker_visual.png",
+          "sha256": "d8c7e5182169922ffe6e156a5af0df83cfb1fd309843176bd636d7dd70423450",
+          "size_bytes": 16904,
+          "width": 1200,
+          "height": 600
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "LV Breaker CB-2 thermal-magnetic",
+          "role": "analysis_image",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": "CB-2",
+          "precision": [
+            "VISUAL_PAGE"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "400 AF",
+          "role": "analysis_image",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "equipment": "g0",
+          "raw_value": "400",
+          "raw_unit": "AF",
+          "attribute_key": "frame_rating",
+          "value": "400",
+          "unit": "A",
+          "value_type": "NUMBER",
+          "precision": [
+            "VISUAL_PAGE"
+          ]
+        },
+        {
+          "id": "g2",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "250 AT",
+          "role": "analysis_image",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "equipment": "g0",
+          "raw_value": "250",
+          "raw_unit": "AT",
+          "attribute_key": "trip_rating",
+          "value": "250",
+          "unit": "A",
+          "value_type": "NUMBER",
+          "precision": [
+            "VISUAL_PAGE"
+          ]
+        },
+        {
+          "id": "g3",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Normally Closed: No",
+          "role": "analysis_image",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "equipment": "g0",
+          "raw_value": "No",
+          "raw_unit": null,
+          "attribute_key": "normally_closed",
+          "value": false,
+          "unit": null,
+          "value_type": "BOOLEAN",
+          "precision": [
+            "VISUAL_PAGE"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hybrid_conflict",
+      "family": "transformer",
+      "note": "Native/image claims remain distinct; neither supplies the other a qualifier.",
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/hybrid_conflict.txt",
+          "sha256": "f6f37b91225d70978092646bd2c8af82fe901090e7f22b6a2538d42576352352",
+          "size_bytes": 51
+        },
+        {
+          "role": "analysis_image",
+          "path": "sources/hybrid_conflict.png",
+          "sha256": "1f6c0ed2c8825efa1b0c993b3b76581318f7ca96857824e4c9cf90a4f093f09c",
+          "size_bytes": 15656,
+          "width": 1200,
+          "height": 600
+        }
+      ],
+      "expected": [
+        {
+          "id": "g0",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "2-Winding Transformer TX-H",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-H",
+          "span": [
+            0,
+            26
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g1",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Secondary Voltage: 600 V",
+          "role": "native_text",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "equipment": "g0",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "attribute_key": "secondary_voltage",
+          "value": "0.6",
+          "unit": "kV",
+          "value_type": "NUMBER",
+          "span": [
+            27,
+            51
+          ],
+          "precision": [
+            "TEXT_OFFSETS"
+          ]
+        },
+        {
+          "id": "g2",
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "2-Winding Transformer TX-H",
+          "role": "analysis_image",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-H",
+          "precision": [
+            "VISUAL_PAGE"
+          ]
+        },
+        {
+          "id": "g3",
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Secondary Voltage: 690 V",
+          "role": "analysis_image",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "equipment": "g2",
+          "raw_value": "690",
+          "raw_unit": "V",
+          "attribute_key": "secondary_voltage",
+          "value": "0.69",
+          "unit": "kV",
+          "value_type": "NUMBER",
+          "precision": [
+            "VISUAL_PAGE"
+          ]
+        }
+      ]
+    }
+  ]
+}

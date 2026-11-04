@@ -2,13 +2,13 @@
 
 Living status of PowerForge phases. Update this file when a phase is specified, started, or completed. Do not treat chat history as the source of truth.
 
-**Current implemented phase:** Phase 6B — Extraction orchestration and provider infrastructure. Phase 5 remains frozen.
+**Current implemented phase:** Phase 6C — Engineering equipment/attribute extraction and evaluation tooling (M1–M6). Live-model quality remains unverified. Phase 5 remains frozen.
 
 **UI redesign:** UI-A, UI-B and UI-C implemented — design system/app shell, reactive data/interaction states, and Projects/Revisions workspaces. Next UI milestone: UI-D. See [UI_A_HANDOFF.md](UI_A_HANDOFF.md), [UI_B_HANDOFF.md](UI_B_HANDOFF.md), and [UI_C_HANDOFF.md](UI_C_HANDOFF.md).
 
 UI-C visual fidelity rework follows the approved Projects/Revisions HTML layouts, including register toolbars, unified project details/revision activity, revision summary/workspaces/information, creation guidance rails, and edit sheets. Existing API/query/lifecycle safeguards remain. Validation: 291 frontend tests; desktop/mobile browser comparison; lint, TypeScript and production build. Necessary real-data and accessibility deviations are documented in the UI-C handoff.
 
-**Current engineering work:** Phase 6C — Equipment/attribute extraction intelligence. M1–M5 definitions, interpretation, grounding/output conversion, stage execution and opt-in production OpenAI profiles/adapter implemented. M6 evaluation/final handoff remain pending; live-model quality is unmeasured.
+**Current engineering work:** Phase 6C implementation and final handoff delivered, including the synthetic corpus, repeatable scorer and separately opt-in bounded live runner. No live provider evaluation was authorized or run. See [PHASE6C_HANDOFF.md](PHASE6C_HANDOFF.md); 6D–6G remain unimplemented.
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -348,9 +348,9 @@ Review corrections distinguish temporary storage access/streaming failures (`SOU
 
 Validation: **1,184 backend tests passed, no skips**, with six existing dependency warnings, including **70 new Phase 6B cases** (27 for the storage/recovery review corrections). This includes actual disposable PostgreSQL/Redis/MinIO and Celery worker/beat subprocesses, persisted-but-undelivered recovery, signed source access and recovery after killing/restarting a worker. Fresh and 0012 upgrade/downgrade/re-upgrade migrations passed. Mocked OpenAI adapter tests made no real calls. Lint, changed-file formatting, dependency/package builds, Compose configuration, OpenAPI and whitespace checks passed. Normal development data/volumes were not used for test writes. No frontend changes/checks or live-provider smoke test.
 
-## Phase 6C — Equipment and attribute extraction (M1–M5)
+## Phase 6C — Equipment and attribute extraction (M1–M6)
 
-**Status:** M1–M5 implemented; Phase 6C remains incomplete. Plan: [PHASE6C_PLAN.md](PHASE6C_PLAN.md). Exact delivered contracts, identities, bounds and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md), [M2 handoff](PHASE6C_M2_HANDOFF.md), [M3 handoff](PHASE6C_M3_HANDOFF.md), [M4 handoff](PHASE6C_M4_HANDOFF.md), [M5 handoff](PHASE6C_M5_HANDOFF.md).
+**Status:** M1–M6 implemented (2026-11-04); production-model accuracy remains unverified. Final delivery: [PHASE6C_HANDOFF.md](PHASE6C_HANDOFF.md). Plan: [PHASE6C_PLAN.md](PHASE6C_PLAN.md). Exact delivered contracts, identities, bounds and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md), [M2 handoff](PHASE6C_M2_HANDOFF.md), [M3 handoff](PHASE6C_M3_HANDOFF.md), [M4 handoff](PHASE6C_M4_HANDOFF.md), [M5 handoff](PHASE6C_M5_HANDOFF.md).
 
 M1 adds offline strict observation schemas for equipment/attributes and native/visual source roles, generated metadata for all 20 registry types/296 attributes, a small scoped terminology policy, versioned prompt resources and reproducible stage hashes. Tagged/tagless/unknown equipment, isolated claims, exact raw decimal/integer strings and ambiguity are representable. Registry/probe schemas, prompt hashes and profile wire identities remain unchanged.
 
@@ -376,9 +376,13 @@ M5 adds opt-in production hybrid/text OpenAI profiles, named untrusted source/up
 
 M5 validation: **1,445 backend tests passed, no skips**, including **32 new M5 cases**, with six existing dependency warnings in 231.07 seconds. Actual OpenAI SDK transport mocks, real Celery/beat/Redis/PostgreSQL/MinIO execution, production profile/opt-in controls, source signing, transient/manual retry and worker restart pass. Wheel builds/direct imports preserve v1/v2/v3 identities; lint, formatting, dependencies, whitespace and resolved Compose configuration pass. Tests use disposable infrastructure and no live paid calls; M6 model evaluation remains outstanding.
 
+M6 adds 15 synthetic text/image/hybrid cases with 50 independent gold claims, versioned recorded replay and source-based one-to-one scoring with explicit denominators. The committed scripted baseline publishes 48 candidates: equipment precision 14/14, recall 14/16, attribute mapping 34/34, exact value/unit correctness 24/24, UNMAPPED retention 8/8 and false candidates 0/48. Two deliberate recognition challenges cost recall. These are converter checks, not model accuracy. A separately opt-in live runner checks approved source hashes for the entire batch and uses normal admission/publication with exactly two admissions and one attempt per stage per case. See the [corpus guide](../evals/extraction/README.md).
+
+M6 validation: **1,487 backend tests passed, no skips**, including **42 M6 cases**, with six existing dependency warnings in 249.99 seconds. The four live-runner integration cases passed again after the final diagnostic-count reporting correction. Fresh migration to head 0013, extraction/worker wheel imports and exact replay, lint, formatting, dependencies and whitespace checks pass. Disposable PostgreSQL/Redis/MinIO were used and removed; normal development data were untouched. No frontend/browser tests or live paid provider calls were performed. The [final handoff](PHASE6C_HANDOFF.md) distinguishes all-registry architectural support, four-family fixtures and zero live-model evaluation coverage.
+
 ## Later phases
 
-Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and 6C M1–M5 are implemented; remaining 6C milestones and 6D–6G are unimplemented. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and 6C M1–M6 are implemented; live-model evaluation remains outstanding and 6D–6G are unimplemented. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -396,7 +400,7 @@ Phase 5A through 5G and the authoring refinement remain complete and frozen. Pha
 | 5 refinement | Authoring profiles, states and transactional editor | Implemented; Phase 5 re-frozen |
 | 6A | Evidence and extraction persistence/read APIs | Implemented (2026-11-02) |
 | 6B | Orchestration, provider infrastructure and execution reliability | Implemented (2026-11-03) |
-| 6C | Engineering equipment/attribute extraction | M1–M5 implemented; M6 pending |
+| 6C | Engineering equipment/attribute extraction | M1–M6 implemented; live quality unverified |
 | 6D–6G | Tables, OCR, UI/evaluation and hardening | Unimplemented |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |

@@ -1,0 +1,4 @@
+Cable C-9
+Conductor Material: Copper/Aluminum
+Length: 10 furlong
+Parallel Run Count: 9223372036854775808

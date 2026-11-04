@@ -23,6 +23,7 @@ htmlcov
 
 # Local labeled evaluation documents. Do not commit customer or engineering PDFs.
 evals/classification/private/
+evals/extraction/private/
 
 # Local deterministic visual baselines, font cache, and comparison artifacts.
 apps/web/.visual-artifacts/

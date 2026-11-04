@@ -1,0 +1,5 @@
+Cable CBL-1
+Conductor Material: Cu
+Length: 250 ft
+Parallel Run Count: 9007199254740993
+Conductor Size: 4/0 AWG
