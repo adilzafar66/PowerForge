@@ -1192,3 +1192,19 @@ Preserve the source's meaning and uncertainty.
 Use focused tests that establish behavioral correctness. Avoid repetitive trivial tests, unnecessary abstractions, and premature implementation of later phases.
 
 Implement on the dedicated Phase 6C branch, run the relevant validation suite, and provide a detailed handoff explaining what was actually implemented, tested, and left for subsequent phases.
+
+---
+
+## 21. Additional Clarifications
+
+The following requirements supplement the existing prompt without changing its scope or architectural direction.
+
+1. **Execution versus extraction success:** A `COMPLETED` run means its planned work units executed successfully, not that all engineering information was discovered. Empty results are permissible but do not establish that the document contains no extractable information. Extraction completeness and accuracy must be evaluated independently.
+
+2. **Grounded uncertainty:** Preserve meaningful, source-grounded observations as `UNMAPPED` when their equipment or attribute meaning is uncertain, and as `INVALID` when normalization fails. Never promote unsupported or hallucinated model claims into trusted extraction candidates.
+
+3. **Deterministic engineering authority:** The LLM is not authoritative over registry attribute meanings, types, enums, or conversions. Application-side validation must independently establish that a proposed mapping and normalized value are justified by the source and registry-v1 semantics.
+
+4. **Initial accuracy validation:** Design for all 20 registry equipment types, but prioritize transformers, LV breakers, cables, and utility sources for representative evaluation. Include an opt-in live OpenAI evaluation on approved engineering fixtures before claiming real-model extraction quality is validated. If unavailable, explicitly document that verification as outstanding.
+
+5. **Multistage compatibility:** If extraction uses multiple model calls or stages, each call must respect Phase 6B's admission, budget, retry, telemetry, and provenance guarantees. Stage-specific prompt/schema identities must be reproducible, and retrying failed stages must not unnecessarily repeat successfully committed work. Codex may choose the implementation architecture.
