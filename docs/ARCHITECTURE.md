@@ -346,7 +346,7 @@ Backend or domain changes, a generic review queue, and the engineering model.
 
 ### Phase 5 authoring refinement
 
-The post-5G refinement retains the same revision aggregate and frozen registry-v1. Migration 0010 replaces legacy attribute states and adds profile-managed physical terminal roles, safely backfilled without changing connection endpoints. Equipment creation/type changes reconcile these roles atomically. The unified Equipment editor saves General, Attributes and custom terminals in one backend transaction; fine-grained endpoints remain available. Topology uses clickable tables and detail sheets. See [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md), [TOPOLOGY.md](TOPOLOGY.md) and the [refinement handoff](PHASE5_AUTHORING_REFINEMENT_HANDOFF.md). Phase 6A is documented in [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md); 6B execution and the partial 6C M1 delivery are documented below; production 6C extraction and 6D–6G remain unimplemented.
+The post-5G refinement retains the same revision aggregate and frozen registry-v1. Migration 0010 replaces legacy attribute states and adds profile-managed physical terminal roles, safely backfilled without changing connection endpoints. Equipment creation/type changes reconcile these roles atomically. The unified Equipment editor saves General, Attributes and custom terminals in one backend transaction; fine-grained endpoints remain available. Topology uses clickable tables and detail sheets. See [ENGINEERING_MODEL.md](ENGINEERING_MODEL.md), [TOPOLOGY.md](TOPOLOGY.md) and the [refinement handoff](PHASE5_AUTHORING_REFINEMENT_HANDOFF.md). Phase 6A is documented in [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md); 6B execution and the partial 6C M1/M2 delivery are documented below; production 6C extraction and 6D–6G remain unimplemented.
 
 
 ## Phase 6A — Extraction persistence boundary
@@ -367,3 +367,7 @@ The extraction worker consumes its classification queue and a separate document_
 ## Phase 6C M1 — Offline engineering definitions
 
 The extraction package now owns bounded intermediate engineering observations, composable recognition/attribute prompt resources, registry-derived context, qualified terminology data and deterministic stage/resource identities. These modules import no ORM, HTTP, task transport or vendor SDK. They do not normalize, ground, publish or execute observations. The existing AI envelope, provider adapter, coordinator, profiles, persistence and frozen registry remain unchanged. [PHASE6C_PLAN.md](PHASE6C_PLAN.md) defines the two-stage integration planned for later milestones; [PHASE6C_M1_HANDOFF.md](PHASE6C_M1_HANDOFF.md) records the delivered boundary.
+
+## Phase 6C M2 — Pure interpretation boundary
+
+The extraction package's versioned interpreter now resolves semantic meanings from admitted local statements and associated equipment context, checks model assertions and delegates typed normalization to the frozen engineering registry. It returns immutable mapped/unmapped/invalid interpretations or explicit source-field rejection, without constructing persistence output or performing provider/storage I/O. The rules' source hash and registry/terminology identities are reproducible in the built wheel. Artifact admission, association proof, offsets and publication remain M3; worker/profile integration remains M4–M5. See [PHASE6C_M2_HANDOFF.md](PHASE6C_M2_HANDOFF.md).

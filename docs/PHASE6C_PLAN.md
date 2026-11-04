@@ -1,6 +1,6 @@
 # Phase 6C implementation plan — Engineering extraction
 
-**Status:** M1 implemented: offline observation contracts, registry context, terminology and prompt definitions. M2–M6 remain pending; production engineering extraction is not executable yet. Delivery and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md).
+**Status:** M1 and M2 implemented: offline observation/prompt/context definitions and deterministic source-qualified interpretation/normalization. M3–M6 remain pending; production engineering extraction is not executable yet. Delivery and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md), [M2 handoff](PHASE6C_M2_HANDOFF.md).
 
 **Planning baseline:** `main` at `3ffb43f8fc5082817c7be5ec3d67dc94f44319f6`, including accepted 6B commit `5042af803d2863d5b49bd241c9f14f87809d6cb4` and the complete 6C prompt/additional clarifications. Refresh latest main before implementation and use `codex/phase-6c-engineering-extraction`.
 
@@ -117,6 +117,8 @@ Define bounded/versioned recognition and attribute schemas, source anchors, stag
 Implement generic metadata-based resolution, the limited scoped terminology policy, source-value checks, registry normalization and mapping-status diagnostics. Keep this independent of ORM/provider code.
 
 **Gate:** representative transformer, LV breaker, cable and utility cases produce exact expected raw/typed values; wrong-but-valid key proposals, ambiguous impedance/ratings, missing units, unknown enums, false booleans, large integers and unsupported conversions are handled conservatively. No canonical requirements/default inference.
+
+**Delivered:** the pure `engineering-interpretation-v1` layer resolves source meanings independently from model proposals and delegates normalization to frozen registry-v1. It requires admitted local source/equipment passages from the future grounding caller; it does not fetch artifacts or establish provenance/association. Rejected source-field assertions are distinct from MAPPED/UNMAPPED/INVALID results. The M2 gate has 102 new passing tests; 262 related offline tests pass in total. See [PHASE6C_M2_HANDOFF.md](PHASE6C_M2_HANDOFF.md).
 
 ### M3 — Evidence, grouping and atomic output conversion
 

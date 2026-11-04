@@ -62,7 +62,13 @@ The existing extraction worker consumes `document_classification,document_extrac
 
 The [6C plan](PHASE6C_PLAN.md) is being delivered in milestones. M1 adds offline, provider-neutral recognition/attribute observation schemas, role-based source anchors, registry-derived context for all 20 types/296 attributes, a small qualified terminology policy, versioned composable prompts and canonical stage/resource hashes. Unknown proposed mappings, tagless equipment and standalone attributes remain representable. Response-shape/reference validation does not establish source grounding or mapping correctness.
 
-These definitions are not connected to the worker or public production profiles. Existing fake/probe execution, profile identities and registry-v1 remain unchanged. Deterministic interpretation is M2, evidence/group conversion M3, execution integration M4–M5 and measured evaluation M6. No live model accuracy is claimed. See [PHASE6C_M1_HANDOFF.md](PHASE6C_M1_HANDOFF.md).
+These definitions are not connected to the worker or public production profiles. Existing fake/probe execution, profile identities and registry-v1 remain unchanged. M2 supplies the offline interpretation layer below; evidence/group conversion is M3, execution integration M4–M5 and measured evaluation M6. No live model accuracy is claimed. See [PHASE6C_M1_HANDOFF.md](PHASE6C_M1_HANDOFF.md).
+
+## Phase 6C M2 — Deterministic interpretation
+
+`powerforge_extraction.interpretation` accepts M1 observations plus admitted local source/equipment passages. It checks asserted fields against the statement, derives type/attribute meanings from registry labels/keys and explicitly qualified terminology, checks model proposals for conflicts, and uses registry normalization with Decimal/int values. Missing/ambiguous context or units and unknown enums remain UNMAPPED; failed normalization remains INVALID with raw data and no normalized slots. Fabricated source fields are rejected separately and must not become candidates. Source label/header units are allowed when explicit; registry default units are never inferred for extraction.
+
+The frozen v1 rules have their own reproducible identity. This layer does not admit artifacts, verify pixels, create evidence/groups/candidates, schedule work or mutate canonical data. M3 must supply proven local context and preserve page-level visual limitations. Lexical interpretation deliberately leaves unsupported synonyms, uncertain associations and complex notation unresolved. See [PHASE6C_M2_HANDOFF.md](PHASE6C_M2_HANDOFF.md).
 
 ## Specialized extractors
 

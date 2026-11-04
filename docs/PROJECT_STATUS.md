@@ -8,7 +8,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 UI-C visual fidelity rework follows the approved Projects/Revisions HTML layouts, including register toolbars, unified project details/revision activity, revision summary/workspaces/information, creation guidance rails, and edit sheets. Existing API/query/lifecycle safeguards remain. Validation: 291 frontend tests; desktop/mobile browser comparison; lint, TypeScript and production build. Necessary real-data and accessibility deviations are documented in the UI-C handoff.
 
-**Current engineering work:** Phase 6C — Equipment/attribute extraction intelligence. M1 observation contracts/context/prompts implemented; M2–M6 pending. Production engineering extraction remains unavailable.
+**Current engineering work:** Phase 6C — Equipment/attribute extraction intelligence. M1 definitions and M2 deterministic interpretation implemented; M3–M6 pending. Production engineering extraction remains unavailable.
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -348,19 +348,23 @@ Review corrections distinguish temporary storage access/streaming failures (`SOU
 
 Validation: **1,184 backend tests passed, no skips**, with six existing dependency warnings, including **70 new Phase 6B cases** (27 for the storage/recovery review corrections). This includes actual disposable PostgreSQL/Redis/MinIO and Celery worker/beat subprocesses, persisted-but-undelivered recovery, signed source access and recovery after killing/restarting a worker. Fresh and 0012 upgrade/downgrade/re-upgrade migrations passed. Mocked OpenAI adapter tests made no real calls. Lint, changed-file formatting, dependency/package builds, Compose configuration, OpenAPI and whitespace checks passed. Normal development data/volumes were not used for test writes. No frontend changes/checks or live-provider smoke test.
 
-## Phase 6C — Equipment and attribute extraction (M1 only)
+## Phase 6C — Equipment and attribute extraction (M1/M2 only)
 
-**Status:** M1 implemented (2026-11-03); Phase 6C remains incomplete. Plan: [PHASE6C_PLAN.md](PHASE6C_PLAN.md). Exact delivered contracts, identities, bounds and checks: [PHASE6C_M1_HANDOFF.md](PHASE6C_M1_HANDOFF.md).
+**Status:** M1 and M2 implemented (2026-11-03); Phase 6C remains incomplete. Plan: [PHASE6C_PLAN.md](PHASE6C_PLAN.md). Exact delivered contracts, identities, bounds and checks: [M1 handoff](PHASE6C_M1_HANDOFF.md), [M2 handoff](PHASE6C_M2_HANDOFF.md).
 
 M1 adds offline strict observation schemas for equipment/attributes and native/visual source roles, generated metadata for all 20 registry types/296 attributes, a small scoped terminology policy, versioned prompt resources and reproducible stage hashes. Tagged/tagless/unknown equipment, isolated claims, exact raw decimal/integer strings and ambiguity are representable. Registry/probe schemas, prompt hashes and profile wire identities remain unchanged.
 
 Validation: **40 new offline tests passed; 160 focused/regression tests passed in total**, with five existing dependency warnings in the combined run. This covers independent approved-registry comparison, semantic unit metadata, bounded shapes/references/overflow, raw precision, resource hashes, pure imports and probe compatibility. The extraction wheel builds and contains all four prompt resources; direct wheel import/rendering passed. Ruff, changed-file formatting, dependency and whitespace checks passed. No database, frontend, worker or live-model run was needed or performed for M1.
 
-No deterministic mapping/normalization, source grounding, Evidence/Candidate publication, production profiles or execution integration is delivered by M1. The curated fixture responses include future expectations, not model accuracy measurements. M2 is next; no production extraction accuracy is claimed.
+No deterministic mapping/normalization, source grounding, Evidence/Candidate publication, production profiles or execution integration is delivered by M1. Its curated fixture responses include future expectations, not model accuracy measurements.
+
+M2 adds a versioned pure interpreter that independently resolves source meanings against registry metadata and scoped terminology, checks proposed labels/values/units/types for conflicts, and delegates normalization to registry-v1. Raw observations survive meaningful ambiguity or normalization failure; fabricated source fields are rejected separately. Original precision, explicit false, isolated observations and competing values are retained without canonical writes. The interpreter requires admitted local source/equipment passages from M3; it does not establish artifact provenance or equipment association itself.
+
+M2 validation: **102 new tests passed; 262 focused/regression tests passed in total**, with five existing dependency warnings. This includes all 20 explicit registry type names, priority-family semantic fixtures, wrong-but-valid key proposals, source-field mismatches, units/header conflicts, percent/per-unit separation, exact Decimal/INTEGER/BOOLEAN behavior, enum uncertainty, storage bounds, rule hashes and import isolation. Wheel import/rule-identity reproduction, Ruff, formatting, dependency and whitespace checks passed. No database, worker, frontend or live-model test was performed for this pure offline layer. M3 grounding/grouping is next; no production-model accuracy is claimed.
 
 ## Later phases
 
-Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and the offline 6C M1 foundation are implemented; remaining 6C milestones and 6D–6G are unimplemented. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and the offline 6C M1/M2 layers are implemented; remaining 6C milestones and 6D–6G are unimplemented. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -378,7 +382,7 @@ Phase 5A through 5G and the authoring refinement remain complete and frozen. Pha
 | 5 refinement | Authoring profiles, states and transactional editor | Implemented; Phase 5 re-frozen |
 | 6A | Evidence and extraction persistence/read APIs | Implemented (2026-11-02) |
 | 6B | Orchestration, provider infrastructure and execution reliability | Implemented (2026-11-03) |
-| 6C | Engineering equipment/attribute extraction | M1 implemented; M2–M6 pending |
+| 6C | Engineering equipment/attribute extraction | M1/M2 implemented; M3–M6 pending |
 | 6D–6G | Tables, OCR, UI/evaluation and hardening | Unimplemented |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |
