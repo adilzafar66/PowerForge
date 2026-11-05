@@ -14,7 +14,7 @@ The approved ownership remains table-only. Ordinary prose extraction requires a 
 
 Reconstruction supports all existing orientations, sparse row/column grids, several tables, optional titles/scoped notes, merged spans, readable VALUE cells, explicit BLANK cells with empty strings, and UNREADABLE cells with null or exact partial text and an uncertainty reason. Absent slots stay absent. Source truncation has a separate reason and does not excuse response overflow. Empty page-level table lists are valid; a claimed table with no cells is invalid.
 
-Validation enforces distinct rows/columns and table-local cell/caption/note references, nonoverlapping in-grid spans, readable header targets, axis-consistent header relationships and acyclic hierarchy. These are consistency checks on a proposed grid, not proof that the document has that structure. Interpretation cannot add or replace tables/cells; equipment and attributes reference only existing items in the selected table. Equipment references cannot cross tables. Blank cells cannot serve as attribute value cells. Unknown proposed keys, tagless equipment, detached attributes, conflicting readings and multiple claims per cell remain representable.
+Validation enforces distinct rows/columns and table-local cell/caption/note references, nonoverlapping in-grid spans, readable header targets, axis-consistent header relationships and acyclic hierarchy. These are consistency checks on a proposed grid, not proof that the document has that structure. Interpretation cannot add or replace tables/cells; equipment and attributes reference only existing items in the selected table. Equipment references cannot cross tables. Blank cells and entirely unreadable cells without source text cannot serve as attribute value cells. Partial unreadable text remains an uncertain observation for M2 grounding. Unknown proposed keys, tagless equipment, detached attributes, conflicting readings and multiple claims per cell remain representable.
 
 `table_layout.inspect_layout()` returns a revalidated sparse observation, a conservative orientation hint and server-metadata shape. An ambiguous table, or a conventional orientation with no header relationships, receives an UNCLASSIFIED hint. It does not classify engineering meanings. `observation_context()` supplies a bounded offline projection with raw content, states, header links, qualifiers and truncation; it is separate untrusted data, not trusted instructions or a committed database prerequisite.
 
@@ -28,8 +28,8 @@ No artifact is opened or verified by these modules. A source quote can be invent
 - Response schemas: `table-reconstruction-schema-v1`, `table-interpretation-schema-v1`.
 - Layout inspection/reference rules: `table-layout-observations-v1`.
 - Server metadata: `table-source-metadata-v1`; offline projection: `table-observation-context-v1`.
-- Manifest hash: `51c01f7893b53c96c501577ffd702b164679c8bb98c5057bde13a9c55ce21c82`.
-- Layout/rule hash: `ac6e44cc0fc7972ebb27e2d18b899196593c044e193524753b75851f1c5d7f60`.
+- Manifest hash: `c19982254fa1d7d640d2a989be2acbc9ac26864e6414349bf49ea8d4636bc8f6`.
+- Layout/rule hash: `23dc0e390bfc252f90f7675ef1bef1d4e85dae0bfe3c1ef9d04d139a56380556`.
 
 `tests/fixtures/extraction/table_identities_v1.json` pins exact schema/template/instruction/registry/rule identities and payload measurements. Rules cover the new observation/layout/stage sources and the unchanged reused 6C anchor contract. The established `table-layout-v1` persistence contract is unchanged; the similarly named observation rules do not introduce a second persisted table layout.
 
@@ -43,7 +43,7 @@ Existing v1/v2/v3 profile, runtime, registry, prompt, interpretation and groundi
 
 ## Actual verification
 
-**77 new M1 offline cases passed** as part of **338 passing related tests**, with two explicitly deselected integration cases and six existing dependency warnings in **2.47 seconds**. No backend integration test or full backend regression was run for this offline-only change. The initial combined invocation named a nonexistent test file and collected no tests; the corrected final command below passed.
+Initial delivery: **77 new M1 offline cases passed** as part of **338 passing related tests**, with two explicitly deselected integration cases and six existing dependency warnings in **2.47 seconds**. No backend integration test or full backend regression was run for this offline-only change. The initial combined invocation named a nonexistent test file and collected no tests; the corrected final command below passed.
 
 ```sh
 RUN_INTEGRATION=0 .venv/bin/pytest -q -m 'not integration' --tb=short \
@@ -61,3 +61,10 @@ New checks cover all orientations, lossless raw round trips, sparse/blank/unread
 The extraction wheel builds. Direct imports from the final wheel reproduce new schema/rule/prompt identities and all eight fixtures, accepted v1/v2/v3 wire/runtime identities and the exact complete 6C scripted evaluation report. Packaged prompts are present. Pure imports reject ORM, API, task, storage, image and vendor-SDK dependencies. Ruff, changed-file formatting, dependency and whitespace checks pass. Generated build output is removed after verification.
 
 No database, migration, broker, object-storage service, provider credentials, frontend/browser test or paid/live call was needed or performed. Visual fixtures are scripted observation shapes, not actual image recognition. Native relationships are not verified by this milestone. The M1 acceptance gate is satisfied for its offline boundary; real grounding, semantic interpretation and atomic publication/read verification remain M2, orchestration/production execution M3 and measured table evaluation M4. Stop for M1 review before starting M2.
+
+
+## M1 review — Entirely unreadable value cells
+
+Reference validation now rejects an attribute value cell whose raw_text is null, even if its UNREADABLE layout state is valid. The regression proposes 400 A against an entirely unreadable cell and verifies rejection before M2. A paired case preserves the partial reading 2?0 AT as uncertain, with no normalized value; M2 still owns source/semantic admission. The cell itself remains inspectable in reconstruction.
+
+Final related offline regression: **340 passed, two integration cases explicitly deselected**, six existing dependency warnings in **2.64 seconds**, including **79 M1 cases** (two added by this review). The same corrected test command above was used. The pre-execution M1 rules/manifest fixture and current hashes above are refreshed; no table profile has yet been registered or persisted execution enabled. Accepted 6C resources and its exact scripted baseline remain unchanged. Wheel/direct import, lint, formatting and whitespace checks pass. No DB/provider call was made.

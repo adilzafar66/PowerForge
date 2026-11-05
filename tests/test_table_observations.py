@@ -250,6 +250,29 @@ def test_interpretation_cannot_rewrite_tables_or_escape_its_reference_scope(fail
         )
 
 
+@pytest.mark.parametrize("source_text", [None, "2?0 AT"])
+def test_unreadable_value_cells_require_some_source_text_before_interpretation(source_text):
+    case = fixture("visual-merged-sparse-unreadable")
+    case["reconstruction"]["tables"][0]["cells"][-1]["raw_text"] = source_text
+    context = reconstruct(case)  # Entirely unreadable cells remain valid layout observations.
+    if source_text is None:
+        case["interpretation"]["attributes"][-1].update(
+            raw_expression="400 A", raw_value="400", raw_unit="A"
+        )
+        with pytest.raises(ValueError, match="readable source text"):
+            get_table_stage("TABLE_INTERPRETATION").validate_result(
+                case["interpretation"], available_sources=["analysis_image"], table_context=context
+            )
+    else:
+        result = get_table_stage("TABLE_INTERPRETATION").validate_result(
+            case["interpretation"], available_sources=["analysis_image"], table_context=context
+        )
+        assert result.attributes[-1].ambiguous
+        assert result.attributes[-1].raw_expression == source_text
+        assert result.attributes[-1].raw_value is None
+        # Partial text remains an uncertain observation; M2 must establish actual grounding.
+
+
 def test_unknown_mapping_tagless_equipment_and_wrong_but_local_association_are_not_verified():
     case = fixture()
     case["interpretation"]["equipment"][0]["observed_tag"] = None

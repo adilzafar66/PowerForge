@@ -142,8 +142,8 @@ def validate_claim_references(
                 *claim.qualifier_refs,
             ]
             cell = next((c for c in table.cells if c.local_ref == claim.value_cell_ref), None)
-            if cell is None or cell.state == "BLANK":
-                raise ValueError("Attribute needs an existing nonblank value cell")
+            if cell is None or cell.state == "BLANK" or cell.raw_text is None:
+                raise ValueError("Attribute needs an existing value cell with readable source text")
             if claim.equipment_ref is not None and (
                 claim.equipment_ref not in equipment
                 or equipment[claim.equipment_ref].table_ref != claim.table_ref

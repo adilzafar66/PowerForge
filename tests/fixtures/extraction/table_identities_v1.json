@@ -7,7 +7,7 @@
     "terminology_hash": "599ded5c5ecedb872a4a8478533bf621997550cec66af16bc9cc7b3b842a3829",
     "layout": {
       "version": "table-layout-observations-v1",
-      "rules_hash": "ac6e44cc0fc7972ebb27e2d18b899196593c044e193524753b75851f1c5d7f60",
+      "rules_hash": "23dc0e390bfc252f90f7675ef1bef1d4e85dae0bfe3c1ef9d04d139a56380556",
       "metadata_version": "table-source-metadata-v1",
       "metadata_schema_hash": "89a24c57240dc7281935eff24a7a7fb3648401694cdfab33054c9373ebe52f95",
       "context_version": "table-observation-context-v1"
@@ -43,7 +43,7 @@
       }
     ]
   },
-  "manifest_hash": "51c01f7893b53c96c501577ffd702b164679c8bb98c5057bde13a9c55ce21c82",
+  "manifest_hash": "c19982254fa1d7d640d2a989be2acbc9ac26864e6414349bf49ea8d4636bc8f6",
   "instructions": {
     "TABLE_RECONSTRUCTION": "3b3d0967286e0f7df28473c3136919d9d1bacc5d7881adf55a331ae9b50d013a",
     "TABLE_INTERPRETATION": "25dd724f5d499a22daa62307722338d2cf8a6df799e1ac4821ef4cb209d22ef8"
