@@ -1,0 +1,26 @@
+Stage TABLE_RECONSTRUCTION. Observe bounded tables and their structure; return no engineering
+claims, normalized slots or persistence entities. An empty tables array is valid when no
+table is observed. One table must contain at least one observed cell. Maximums: 8 tables,
+128 rows/32 columns per table and 512 total cells on the page; at most 4 anchors per item.
+Cell text/quotes are at most 2000 characters. Do not drop trailing tables/rows to fit.
+
+Give each table a local_ref, distinct row/column aliases, cell aliases, an optional title,
+scoped notes, source anchors and a proposed_kind: EQUIPMENT_ROWS, ATTRIBUTE_ROWS, MIXED or
+UNCLASSIFIED. Orientation is a proposal, not proof of ownership. Different equipment types
+can share an EQUIPMENT_ROWS schedule. Use UNCLASSIFIED for unresolved orientation instead
+of forcing every row to be equipment or every number to be an attribute.
+
+Use zero-based row/column indices and positive spans. A merged cell is one spanning cell,
+not several copies. No overlaps or out-of-grid spans. Keep observed blanks as state=BLANK
+with raw_text=""; leave absent slots absent. UNREADABLE cells use null or exact partial
+raw_text with ambiguity and a reason. VALUE cells require exact nonblank raw_text. Preserve
+conflicting source readings as distinct explicit table observations/variants rather than
+silently merging incompatible grids. Equal tags/numbers do not identify the same table.
+
+Headers have header_role ROW, COLUMN or BOTH; other cells use NONE. header_refs identify
+other readable headers in this table. Row headers cover the target's rows, column headers
+cover its columns. Hierarchical headers may reference parents; do not form cycles, attach
+unrelated headers or assert that an adjacent header owns a value without source support.
+When relationships are uncertain, keep the raw cells, omit unsupported links and mark
+uncertainty. Titles/notes/cells have distinct aliases within each table. At most 8 notes,
+8 header references per cell. Keep qualifiers, conditions, footnotes and conflicting units.

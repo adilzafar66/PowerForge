@@ -1,0 +1,2257 @@
+{
+  "version": "table-shape-fixtures-v1",
+  "provenance": "SYNTHETIC_AUTHORED",
+  "cases": [
+    {
+      "id": "transformer-equipment-rows",
+      "available_sources": [
+        "native_text"
+      ],
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "caption",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1",
+              "r2"
+            ],
+            "columns": [
+              "c0",
+              "c1",
+              "c2",
+              "c3"
+            ],
+            "cells": [
+              {
+                "local_ref": "h0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "h1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Capacity (kVA)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Capacity (kVA)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "h2",
+                "row": 0,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Primary (kV)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Primary (kV)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "h3",
+                "row": 0,
+                "column": 3,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "750",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "750",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v1_2",
+                "row": 1,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "12.47",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "12.47",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v1_3",
+                "row": 1,
+                "column": 3,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h3"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v2_0",
+                "row": 2,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-2",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-2",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v2_1",
+                "row": 2,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "500",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "500",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v2_2",
+                "row": 2,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "12.47",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "12.47",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v2_3",
+                "row": 2,
+                "column": 3,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "480",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h3"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "480",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "e1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "v1_0",
+              "caption"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "e2",
+            "table_ref": "t1",
+            "raw_expression": "TX-2",
+            "source_refs": [
+              "v2_0",
+              "caption"
+            ],
+            "observed_tag": "TX-2",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1_1",
+            "table_ref": "t1",
+            "equipment_ref": "e1",
+            "value_cell_ref": "v1_1",
+            "label_refs": [
+              "h1"
+            ],
+            "unit_refs": [
+              "h1"
+            ],
+            "qualifier_refs": [],
+            "raw_expression": "750",
+            "source_label": "Capacity (kVA)",
+            "raw_value": "750",
+            "raw_unit": "kVA",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "rated_apparent_power",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a1_2",
+            "table_ref": "t1",
+            "equipment_ref": "e1",
+            "value_cell_ref": "v1_2",
+            "label_refs": [
+              "h2"
+            ],
+            "unit_refs": [
+              "h2"
+            ],
+            "qualifier_refs": [],
+            "raw_expression": "12.47",
+            "source_label": "Primary (kV)",
+            "raw_value": "12.47",
+            "raw_unit": "kV",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "primary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a1_3",
+            "table_ref": "t1",
+            "equipment_ref": "e1",
+            "value_cell_ref": "v1_3",
+            "label_refs": [
+              "h3"
+            ],
+            "unit_refs": [
+              "h3"
+            ],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": "Secondary (V)",
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2_1",
+            "table_ref": "t1",
+            "equipment_ref": "e2",
+            "value_cell_ref": "v2_1",
+            "label_refs": [
+              "h1"
+            ],
+            "unit_refs": [
+              "h1"
+            ],
+            "qualifier_refs": [],
+            "raw_expression": "500",
+            "source_label": "Capacity (kVA)",
+            "raw_value": "500",
+            "raw_unit": "kVA",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "rated_apparent_power",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2_2",
+            "table_ref": "t1",
+            "equipment_ref": "e2",
+            "value_cell_ref": "v2_2",
+            "label_refs": [
+              "h2"
+            ],
+            "unit_refs": [
+              "h2"
+            ],
+            "qualifier_refs": [],
+            "raw_expression": "12.47",
+            "source_label": "Primary (kV)",
+            "raw_value": "12.47",
+            "raw_unit": "kV",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "primary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2_3",
+            "table_ref": "t1",
+            "equipment_ref": "e2",
+            "value_cell_ref": "v2_3",
+            "label_refs": [
+              "h3"
+            ],
+            "unit_refs": [
+              "h3"
+            ],
+            "qualifier_refs": [],
+            "raw_expression": "480",
+            "source_label": "Secondary (V)",
+            "raw_value": "480",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "single-equipment-attribute-rows",
+      "available_sources": [
+        "native_text"
+      ],
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "ATTRIBUTE_ROWS",
+            "title": {
+              "local_ref": "caption",
+              "raw_text": "2-Winding Transformer Specification",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Specification",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1",
+              "r2",
+              "r3"
+            ],
+            "columns": [
+              "c0",
+              "c1"
+            ],
+            "cells": [
+              {
+                "local_ref": "p0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "ROW",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v0",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "p0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "p1",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Rated Capacity",
+                "header_role": "ROW",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Rated Capacity",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "750 kVA",
+                "header_role": "NONE",
+                "header_refs": [
+                  "p1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "750 kVA",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "p2",
+                "row": 2,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary Voltage",
+                "header_role": "ROW",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary Voltage",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v2",
+                "row": 2,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600 V",
+                "header_role": "NONE",
+                "header_refs": [
+                  "p2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600 V",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "p3",
+                "row": 3,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Impedance",
+                "header_role": "ROW",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Impedance",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v3",
+                "row": 3,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "5.75%",
+                "header_role": "NONE",
+                "header_refs": [
+                  "p3"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "5.75%",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Specification",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "e1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "v0",
+              "caption"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "e1",
+            "value_cell_ref": "v1",
+            "label_refs": [
+              "p1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "750 kVA",
+            "source_label": "Rated Capacity",
+            "raw_value": "750",
+            "raw_unit": "kVA",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "rated_apparent_power",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": "e1",
+            "value_cell_ref": "v2",
+            "label_refs": [
+              "p2"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600 V",
+            "source_label": "Secondary Voltage",
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a3",
+            "table_ref": "t1",
+            "equipment_ref": "e1",
+            "value_cell_ref": "v3",
+            "label_refs": [
+              "p3"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "5.75%",
+            "source_label": "Impedance",
+            "raw_value": "5.75",
+            "raw_unit": "%",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "positive_sequence_impedance",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "mixed-conditional-readings",
+      "available_sources": [
+        "native_text"
+      ],
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "MIXED",
+            "title": {
+              "local_ref": "caption",
+              "raw_text": "Conditional Equipment Ratings",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "Conditional Equipment Ratings",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [
+              {
+                "local_ref": "note",
+                "raw_text": "Normally Closed (not verified): Yes",
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Normally Closed (not verified): Yes",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "c0",
+              "c1",
+              "c2"
+            ],
+            "cells": [
+              {
+                "local_ref": "label",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "normal",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Normal (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Normal (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "emergency",
+                "row": 0,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Emergency (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Emergency (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "tag",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "label"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "normal"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v2",
+                "row": 1,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "690",
+                "header_role": "NONE",
+                "header_refs": [
+                  "emergency"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "690",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Conditional Equipment Ratings",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "e1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "tag",
+              "caption"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": null,
+            "value_cell_ref": "v1",
+            "label_refs": [
+              "normal"
+            ],
+            "unit_refs": [
+              "normal"
+            ],
+            "qualifier_refs": [
+              "note"
+            ],
+            "raw_expression": "600",
+            "source_label": "Normal (V)",
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null,
+            "ambiguous": true,
+            "ambiguity_reason": "Meaning or source reading remains uncertain"
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": null,
+            "value_cell_ref": "v2",
+            "label_refs": [
+              "emergency"
+            ],
+            "unit_refs": [
+              "emergency"
+            ],
+            "qualifier_refs": [],
+            "raw_expression": "690",
+            "source_label": null,
+            "raw_value": "690",
+            "raw_unit": "V",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null,
+            "ambiguous": true,
+            "ambiguity_reason": "Meaning or source reading remains uncertain"
+          }
+        ]
+      }
+    },
+    {
+      "id": "flattened-unclassified",
+      "available_sources": [
+        "native_text"
+      ],
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "UNCLASSIFIED",
+            "title": null,
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1",
+              "r2",
+              "r3"
+            ],
+            "columns": [
+              "c0"
+            ],
+            "cells": [
+              {
+                "local_ref": "v0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v1",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v2",
+                "row": 2,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-2",
+                "header_role": "NONE",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-2",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v3",
+                "row": 3,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "690",
+                "header_role": "NONE",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "690",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "TX-1",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": true,
+            "ambiguity_reason": "Layout orientation cannot be established"
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": null,
+            "value_cell_ref": "v1",
+            "label_refs": [],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": null,
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null,
+            "ambiguous": true,
+            "ambiguity_reason": "Meaning or source reading remains uncertain"
+          }
+        ]
+      }
+    },
+    {
+      "id": "visual-merged-sparse-unreadable",
+      "available_sources": [
+        "analysis_image"
+      ],
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "caption",
+              "raw_text": "LV Breaker thermal-magnetic schedule",
+              "anchors": [
+                {
+                  "kind": "VISUAL_PAGE",
+                  "source_ref": "analysis_image",
+                  "quote": null,
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1",
+              "r2",
+              "r3"
+            ],
+            "columns": [
+              "c0",
+              "c1",
+              "c2"
+            ],
+            "cells": [
+              {
+                "local_ref": "top",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 3,
+                "state": "VALUE",
+                "raw_text": "Breaker Ratings",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "h0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [
+                  "top"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "h1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Frame",
+                "header_role": "COLUMN",
+                "header_refs": [
+                  "top"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "h2",
+                "row": 1,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Trip",
+                "header_role": "COLUMN",
+                "header_refs": [
+                  "top"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "tag",
+                "row": 2,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "CB-2",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "frame",
+                "row": 2,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "400 AF",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "blank",
+                "row": 2,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "BLANK",
+                "raw_text": "",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "partial",
+                "row": 3,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "UNREADABLE",
+                "raw_text": "2?0 AT",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": true,
+                "ambiguity_reason": "Partially obscured source cell"
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": true,
+            "truncation_reason": "Bottom of source table is cut off",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "e1",
+            "table_ref": "t1",
+            "raw_expression": "CB-2",
+            "source_refs": [
+              "tag",
+              "caption"
+            ],
+            "observed_tag": "CB-2",
+            "observed_name": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "e1",
+            "value_cell_ref": "frame",
+            "label_refs": [
+              "h1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "400 AF",
+            "source_label": null,
+            "raw_value": "400",
+            "raw_unit": "AF",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "frame_rating",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": null,
+            "value_cell_ref": "partial",
+            "label_refs": [
+              "h2"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "2?0 AT",
+            "source_label": null,
+            "raw_value": null,
+            "raw_unit": "AT",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null,
+            "ambiguous": true,
+            "ambiguity_reason": "Meaning or source reading remains uncertain"
+          }
+        ]
+      }
+    },
+    {
+      "id": "no-tables",
+      "available_sources": [
+        "native_text"
+      ],
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": []
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [],
+        "attributes": []
+      }
+    },
+    {
+      "id": "multiple-tables-repeated-tags",
+      "available_sources": [
+        "native_text"
+      ],
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "caption",
+              "raw_text": "LV Breaker Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "LV Breaker Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "c0",
+              "c1"
+            ],
+            "cells": [
+              {
+                "local_ref": "tagh",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "stateh",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Normally Closed",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Normally Closed",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "tag",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "CB-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "tagh"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "CB-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "value",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "No",
+                "header_role": "NONE",
+                "header_refs": [
+                  "stateh"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "No",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "LV Breaker Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "t2",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "caption",
+              "raw_text": "LV Breaker Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "LV Breaker Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "c0",
+              "c1"
+            ],
+            "cells": [
+              {
+                "local_ref": "tagh",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "stateh",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Normally Closed",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Normally Closed",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "tag",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "CB-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "tagh"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "CB-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "value",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Yes",
+                "header_role": "NONE",
+                "header_refs": [
+                  "stateh"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Yes",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "LV Breaker Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "e1",
+            "table_ref": "t1",
+            "raw_expression": "CB-1",
+            "source_refs": [
+              "tag",
+              "caption"
+            ],
+            "observed_tag": "CB-1",
+            "observed_name": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "e2",
+            "table_ref": "t2",
+            "raw_expression": "CB-1",
+            "source_refs": [
+              "tag",
+              "caption"
+            ],
+            "observed_tag": "CB-1",
+            "observed_name": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "e1",
+            "value_cell_ref": "value",
+            "label_refs": [
+              "stateh"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "No",
+            "source_label": "Normally Closed",
+            "raw_value": "No",
+            "raw_unit": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "normally_closed",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t2",
+            "equipment_ref": "e2",
+            "value_cell_ref": "value",
+            "label_refs": [
+              "stateh"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "Yes",
+            "source_label": "Normally Closed",
+            "raw_value": "Yes",
+            "raw_unit": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "normally_closed",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    {
+      "id": "cable-exact-source-strings",
+      "available_sources": [
+        "native_text"
+      ],
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "caption",
+              "raw_text": "Cable Schedule é🙂",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "Cable Schedule é🙂",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "c0",
+              "c1",
+              "c2",
+              "c3"
+            ],
+            "cells": [
+              {
+                "local_ref": "h0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "h1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Material",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Material",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "h2",
+                "row": 0,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Parallel Runs",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Parallel Runs",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "h3",
+                "row": 0,
+                "column": 3,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Conductor Size",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Conductor Size",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "C-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "C-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Cu",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Cu",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v2",
+                "row": 1,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "9007199254740993",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "9007199254740993",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "v3",
+                "row": 1,
+                "column": 3,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "4/0 AWG",
+                "header_role": "NONE",
+                "header_refs": [
+                  "h3"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "4/0 AWG",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Cable Schedule é🙂",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "e1",
+            "table_ref": "t1",
+            "raw_expression": "C-1",
+            "source_refs": [
+              "v0",
+              "caption"
+            ],
+            "observed_tag": "C-1",
+            "observed_name": null,
+            "proposed_equipment_type": "CABLE",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "e1",
+            "value_cell_ref": "v1",
+            "label_refs": [
+              "h1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "Cu",
+            "source_label": null,
+            "raw_value": "Cu",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "conductor_material",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": "e1",
+            "value_cell_ref": "v2",
+            "label_refs": [
+              "h2"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "9007199254740993",
+            "source_label": null,
+            "raw_value": "9007199254740993",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "number_of_parallel_runs",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a3",
+            "table_ref": "t1",
+            "equipment_ref": "e1",
+            "value_cell_ref": "v3",
+            "label_refs": [
+              "h3"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "4/0 AWG",
+            "source_label": null,
+            "raw_value": "4/0 AWG",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "conductor_size",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    }
+  ]
+}

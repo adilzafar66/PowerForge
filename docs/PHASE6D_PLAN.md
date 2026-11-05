@@ -1,12 +1,12 @@
 # Phase 6D implementation plan — Tables and schedules
 
-**Status:** planning only; awaiting plan review before M1. No Phase 6D implementation or acceptance tests have run. Date: 2026-11-05 (America/Vancouver).
+**Status:** approved for M1, which is implemented and has passed its offline gate. M2–M4 remain pending milestone review. Actual delivery, identities, bounds and checks: [M1 handoff](PHASE6D_M1_HANDOFF.md). Date: 2026-11-05 (America/Vancouver).
 
-**Baseline:** refreshed `origin/main` and local `main` both at `ce12a8f2d26a18f3935450eaaa59552435d8925a`, including all accepted 6C work and the live-evaluation provenance correction. Proposed implementation branch: `codex/phase-6d-tables-schedules`, created after plan approval. Planning adds this document alongside the user-supplied 6D prompt, which is preserved unchanged.
+**Baseline:** planning refreshed `origin/main` at `ce12a8f2d26a18f3935450eaaa59552435d8925a`, including all accepted 6C work and the live-evaluation provenance correction. Implementation branch `codex/phase-6d-tables-schedules` was created after M1 approval from refreshed `main` at planning commit `1b0afd11a34e35c3bb682b5af28f348f64371587`, carrying the approved review clarifications. The user-supplied 6D prompt is preserved unchanged.
 
 **Authority:** [6D prompt](prompts/phase-6d-prompt.md), [approved Phase 6 specification](specs/phase-6-evidence-structured-extraction.md), [ADR-008](../decisions/ADR-008-evidence-candidate-extraction-architecture.md), accepted [6A](PHASE6A_HANDOFF.md), [6B](PHASE6B_HANDOFF.md), [6C plan](PHASE6C_PLAN.md) and [6C handoff](PHASE6C_HANDOFF.md). Current extraction/provenance/architecture/roadmap documentation and the actual contracts, database guards, execution, provider, interpretation and tests were inspected. Historical documents and frozen registry-v1 remain unchanged.
 
-**Confirmed during planning:** the first 6D production profile is table-only. Ordinary prose remains the responsibility of the existing 6C profile in a separate run. The four proposed milestones are retained, sequentially, with a review gate after each. No combined table/prose workflow is included in this release.
+**Approved design choice:** the first 6D production profile is table-only, as explicitly confirmed by the user. Extracting both tables and ordinary prose from a document requires separate runs: a 6D table run and an existing 6C engineering run. Neither run replaces or combines the other's results. The four proposed milestones are retained, sequentially, with a review gate after each. No combined table/prose workflow is included in this release. M1 was subsequently authorized explicitly; that does not authorize starting M2–M4 without their review gates.
 
 ## 1. Selected architecture
 
@@ -136,6 +136,16 @@ The confirmed first profile owns only tables and their directly scoped captions/
 - Interpretation retries reference immutable prior reconstruction and cannot recreate its tables or an already successful interpretation's candidates. Duplicate deliveries retain existing claim/publication fencing.
 - Separate 6C and 6D runs remain separate result histories. Do not globally combine/deduplicate them in the existing candidate API or silently hide one run's observations. A future combined profile requires its own ownership design and version.
 
+### Document-level summary across profiles
+
+Preserve the existing `ExtractionReadService.summary()` behavior for 6D. It considers all applicable profiles for the document, ordered by run creation time descending with the run ID as tie-breaker. `latest_result` selects the newest COMPLETED or PARTIALLY_COMPLETED run; `current_run` selects the newest run regardless of status. Neither field is a profile-specific result selector or a cumulative document-wide extraction view.
+
+For example, completed 6C run A followed by completed 6D table run B makes B the document's `latest_result`, even though A's prose results still exist. The same is true if B is PARTIALLY_COMPLETED after reconstruction succeeds but interpretation fails. While B is pending/running, or if it fails/is cancelled without a later eligible result, `current_run` can identify B while `latest_result` remains A. A completed table run with no detected tables can also become the latest result; that does not mean A's prose candidates disappeared.
+
+Both runs must remain discoverable in paginated `GET /extraction/runs`, and each run's candidates, tables and evidence must remain accessible by its run/evidence IDs under existing membership checks. Consumers should use run/profile identity and coverage to choose which results to display. This release does not add per-profile summary fields, merge outputs across runs, or redesign the summary API. Document this behavior in the delivery handoff and current extraction documentation.
+
+The M3 acceptance gate must include an actual same-document 6C/6D sequence proving summary selection and access to both histories/results, including partial table output. Cover reversed profile order, a newer non-result status and an empty successful table run; test history pagination so the previous profile's results are not effectively hidden on another history page. Re-read the older run and its signed evidence after the summary changes to prove that it remains intact.
+
 ## 8. Execution, profiles and historical compatibility
 
 Use a new `execution-profile-v4` table profile/read path and dedicated table manifest/runtime/provider-input identities. Do not widen the accepted 6C `EngineeringProfile` stage tuple or relabel its `EQUIPMENT_RECOGNITION → ATTRIBUTE_EXTRACTION` plan. Proposed new resources are `table-stage-manifest-v1`, table observation schemas/prompts, table grounding/interpretation identities and `table-page-runtime-v1`; exact names are finalized in M1 and material settings are pinned in M3.
@@ -177,6 +187,8 @@ Deliver strict reconstruction/interpretation schemas, source-role/local-referenc
 
 **Gate:** offline tests cover equipment rows, attribute rows, mixed/unclassified layouts, sparse/blank cells, merged/hierarchical headers, repeated headings, malformed/duplicate/cyclic references, overlapping/out-of-range spans, unavailable roles, empty responses/tables, unsupported assertions and size/overflow. Exact raw strings and no fabricated cell filling are demonstrated. Resources load and hash from a built wheel; existing 6C identities/import boundaries remain unchanged. No DB/provider execution or profile registration yet.
 
+**Delivered:** strict reconstruction/interpretation observations, sparse-grid/header validation, conservative unverified layout inspection, bounded offline context and server metadata contracts, three prompt resources and reproducible identities. Bounds are eight tables/512 cells per page, 128 rows/32 columns per table, 64 equipment/256 attribute claims, 1 MiB/512 KiB response bytes and 128 KiB instructions/context. A 512-cell structural probe produces 98,355 context bytes; instructions are 8,030/66,699 bytes. All 77 new offline cases pass within a 338-test related suite (two integration cases explicitly deselected). Wheel identities, old v1/v2/v3 profiles and exact 6C replay reproduce. No source admission, normalization, publication or production execution is implemented by M1. See [PHASE6D_M1_HANDOFF.md](PHASE6D_M1_HANDOFF.md).
+
 ### M2 — Grounding, table interpretation and publication conversion
 
 Deliver exact-source admission with separate text/structure reliability, the structured-cell interpretation adapter, source-local groups, `TableInput`/cell evidence/candidate conversion and the committed-table loader. Reuse registry normalization and 6C conservative qualifications without manufacturing quotations. Add cross-unit table/cell producer/page/artifact checks and any read-summary precision handling needed for cell evidence.
@@ -185,7 +197,7 @@ Deliver exact-source admission with separate text/structure reliability, the str
 
 ### M3 — Production profiles, OpenAI and fixed-plan orchestration
 
-Deliver v4 table profiles and explicit stage/runtime/provider dispatch through the existing coordinator, worker and APIs. Pin context, model, transport and resource limits. Add durable dependent execution, empty-table settlement, dependency-aware retry/partial completion and safe production discovery under existing opt-in controls. Implement the retained-resource compatibility strategy before shared fingerprinted edits.
+Deliver v4 table profiles and explicit stage/runtime/provider dispatch through the existing coordinator, worker and APIs. Pin context, model, transport and resource limits. Add durable dependent execution, empty-table settlement, dependency-aware retry/partial completion and safe production discovery under existing opt-in controls. Implement the retained-resource compatibility strategy before shared fingerprinted edits. The gate also requires the cross-profile summary/history/result-access cases defined in section 7; selecting a newer table summary must not make the earlier 6C results inaccessible.
 
 **Gate:** actual SDK serialization/parsing runs over mocked transport with the exact selected schemas, untrusted inputs and usage/error limits. Real Celery/beat/Redis/PostgreSQL/MinIO tests prove table publication before interpretation, two calls for a nonempty page, zero dependent calls for empty tables, no per-table fan-out, blocked failure settlement, call-budget exhaustion, cancellation, expired leases, duplicate delivery, worker interruption/restart and interpretation retry without repeating reconstruction or duplicating candidates. Layouts remain readable after downstream failure. Test partial runs and cross-unit evidence through public APIs, no canonical mutations, and prior 6C/fake/probe active execution plus byte-identical identities. No paid calls in tests.
 
@@ -211,7 +223,7 @@ For integration, use disposable infrastructure and actual SDK transport mocks, f
 
 Key risks and mitigations:
 
-- **Native text order is not geometry:** require explicit structural proof or honest visual/unresolved status; accept lower text-only recall.
+- **Native text order is not geometry:** require explicit structural proof or honest visual/unresolved status; accept potentially lower text-only recall and measure the impact on representative processed PDF schedules at M4 rather than relying only on delimiter-friendly fixtures.
 - **Model-reported visual structure is not independent verification:** retain page-level markers, no coordinates/OCR claims, and separate structural reliability from text matching.
 - **Context growth on large schedules:** bounded page-level responses/projections, measured payloads and explicit overflow; no truncation or unaccounted fan-out. Very large schedules may need later versioned partitioning.
 - **Overconfident type/header interpretation:** require explicit scoped type/meaning, retain ambiguous/conditional claims and preserve raw cell/context evidence.
@@ -224,8 +236,8 @@ Full multi-page table stitching is deferred. Each page's continuation/header rea
 
 ## 12. Review decisions and planning outcome
 
-The profile-ownership question is resolved: **table-only first**, as explicitly confirmed by the user. The recommended remaining design is the two-stage table pipeline, conservative text/visual structural policy, existing table-layout-v1 persistence, and no new route or migration unless a concrete invariant cannot be represented safely.
+The profile-ownership question is resolved as an **approved design choice: table-only first, with separate runs required for tables and ordinary prose**. The existing cross-profile latest-run summary behavior is retained and explicitly covered by M3 history/result-access tests. Conservative native PDF structure coverage is a monitored M4 evaluation limitation. The recommended remaining design is the two-stage table pipeline, existing table-layout-v1 persistence, and no new route or migration unless a concrete invariant cannot be represented safely.
 
-No other architectural blocker is currently identified. M1 will finalize measured bounds and concrete schema/resource names within this reviewed design. An incompatibility with accepted registry, immutability, provenance or execution guarantees must be brought back as a specific architecture decision rather than silently resolved by weakening those guarantees.
+No other architectural blocker is currently identified. M1 has finalized measured offline bounds and schema/resource names within this reviewed design. An incompatibility with accepted registry, immutability, provenance or execution guarantees must be brought back as a specific architecture decision rather than silently resolved by weakening those guarantees.
 
-**Stop here for plan review.** This file is the planning deliverable; no M1 code, production configuration, database, provider call or implementation branch has been created by this task.
+**Stop for M1 review before M2.** Only offline M1 definitions are delivered. Production configuration, database, provider execution and M2–M4 implementation remain unchanged/pending; Phase 6D is not complete.

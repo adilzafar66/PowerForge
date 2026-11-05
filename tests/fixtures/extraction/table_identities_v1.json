@@ -1,0 +1,107 @@
+{
+  "manifest": {
+    "version": "table-stage-manifest-v1",
+    "registry_version": "registry-v1",
+    "registry_context_version": "engineering-registry-context-v1",
+    "registry_projection_hash": "41ede97ee551463a293c7e56353ef7ce66db2963797d8b96fde3ba52bf36c7aa",
+    "terminology_hash": "599ded5c5ecedb872a4a8478533bf621997550cec66af16bc9cc7b3b842a3829",
+    "layout": {
+      "version": "table-layout-observations-v1",
+      "rules_hash": "ac6e44cc0fc7972ebb27e2d18b899196593c044e193524753b75851f1c5d7f60",
+      "metadata_version": "table-source-metadata-v1",
+      "metadata_schema_hash": "89a24c57240dc7281935eff24a7a7fb3648401694cdfab33054c9373ebe52f95",
+      "context_version": "table-observation-context-v1"
+    },
+    "bounds": {
+      "tables_per_page": 8,
+      "rows_per_table": 128,
+      "columns_per_table": 32,
+      "cells_per_page": 512,
+      "equipment_per_page": 64,
+      "attributes_per_page": 256,
+      "reconstruction_bytes": 1048576,
+      "interpretation_bytes": 524288,
+      "instruction_bytes": 131072,
+      "upstream_bytes": 131072
+    },
+    "stages": [
+      {
+        "stage": "TABLE_RECONSTRUCTION",
+        "prerequisite": null,
+        "prompt_version": "table-prompts-v1",
+        "template_hash": "b8ae8dee61c11ea4ed026c4b3935ba4e213e47142d6ae9292dbb4ec080879892",
+        "schema_version": "table-reconstruction-schema-v1",
+        "schema_hash": "aa20276e37d8eba1448974e9b041fe7f8ae80ed965ed143f70e16bdf6bb15e06"
+      },
+      {
+        "stage": "TABLE_INTERPRETATION",
+        "prerequisite": "TABLE_RECONSTRUCTION",
+        "prompt_version": "table-prompts-v1",
+        "template_hash": "8f7058ac5151db6e72d513a0c1f02990acf01735c01692143354f4de4b9f2e8a",
+        "schema_version": "table-interpretation-schema-v1",
+        "schema_hash": "34b95207ec8163497988d3274545aaf3ee6667d6e196e6505cb8ab396416ef44"
+      }
+    ]
+  },
+  "manifest_hash": "51c01f7893b53c96c501577ffd702b164679c8bb98c5057bde13a9c55ce21c82",
+  "instructions": {
+    "TABLE_RECONSTRUCTION": "3b3d0967286e0f7df28473c3136919d9d1bacc5d7881adf55a331ae9b50d013a",
+    "TABLE_INTERPRETATION": "25dd724f5d499a22daa62307722338d2cf8a6df799e1ac4821ef4cb209d22ef8"
+  },
+  "contexts": {
+    "TABLE_RECONSTRUCTION": "095626f7448114eb9853e07d12c2e0aaf51a14e80d55be9aa94ee564ebcba92c",
+    "TABLE_INTERPRETATION": "107a0c01d5e46bae04c53478b1ae0134df5927c76180424c47e5717bb2548faf"
+  },
+  "measurements": {
+    "transformer-equipment-rows": {
+      "reconstruction_bytes": 4223,
+      "interpretation_bytes": 2783,
+      "context_bytes": 2674
+    },
+    "single-equipment-attribute-rows": {
+      "reconstruction_bytes": 3061,
+      "interpretation_bytes": 1432,
+      "context_bytes": 1914
+    },
+    "mixed-conditional-readings": {
+      "reconstruction_bytes": 2699,
+      "interpretation_bytes": 1057,
+      "context_bytes": 1658
+    },
+    "flattened-unclassified": {
+      "reconstruction_bytes": 1578,
+      "interpretation_bytes": 450,
+      "context_bytes": 1058
+    },
+    "visual-merged-sparse-unreadable": {
+      "reconstruction_bytes": 3058,
+      "interpretation_bytes": 1014,
+      "context_bytes": 2001
+    },
+    "no-tables": {
+      "reconstruction_bytes": 82,
+      "interpretation_bytes": 101,
+      "context_bytes": 54
+    },
+    "multiple-tables-repeated-tags": {
+      "reconstruction_bytes": 3575,
+      "interpretation_bytes": 1239,
+      "context_bytes": 2260
+    },
+    "cable-exact-source-strings": {
+      "reconstruction_bytes": 3035,
+      "interpretation_bytes": 1339,
+      "context_bytes": 1914
+    }
+  },
+  "large_schedules": {
+    "32": {
+      "response_bytes": 76366,
+      "context_bytes": 49267
+    },
+    "64": {
+      "response_bytes": 152334,
+      "context_bytes": 98355
+    }
+  }
+}

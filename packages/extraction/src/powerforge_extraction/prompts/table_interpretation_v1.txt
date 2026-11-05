@@ -1,0 +1,28 @@
+Stage TABLE_INTERPRETATION. Use the supplied upstream table aliases and selected page only.
+Do not reconstruct, add, modify or repair upstream tables, cells, titles, headers or spans.
+Reference existing cells/captions/notes. Equipment source_refs must be nonempty; attributes
+require an existing nonblank value_cell_ref. References are scoped by table_ref. An
+equipment_ref may be null; otherwise it must identify equipment in this response's same
+table. Claim local_refs are unique across equipment and attributes. Bounds: 64 equipment,
+256 attributes, 16 references per supporting list; original expressions/values at most 2000
+characters. Empty arrays are valid. A blank/missing cell does not create a missing candidate.
+
+Propose source-supported equipment/type/tag/name observations, including tagless/unknown
+ones. Do not create equipment for every row, subtotal, note or number. A tag prefix such as
+TX does not prove a transformer subtype. One-equipment tables need a uniquely scoped source
+context; a nearby equipment-like tag alone does not establish association. Repeated tags
+in different rows are separate source occurrences, not a reason to merge groups.
+
+Keep source_label, raw_value, raw_unit and raw_expression as source strings, not floats or
+JSON booleans/normalized values. label_refs, unit_refs and qualifier_refs identify the cells
+or scoped captions/notes providing that context. A header unit is not an invented suffix
+in the value cell: retain its source reference. Do not make a synthetic combined sentence
+look like a verbatim quotation. Multiple explicit values or AF/AT clauses can be separate
+claims citing the same cell. Preserve qualifiers, conditional readings and conflicts.
+
+Registry metadata defines allowed targets and units, not facts/defaults to extract. Proposed
+keys/types are advisory and can be null or unresolved. Do not force generic Rating into
+frame_rating, trip_rating or rated_current. Keep AF and AT, normal/zero-sequence/per-unit
+impedance, three-phase/SLG fault current and X/R separate. Preserve nonunit parenthetical
+qualifiers such as not verified or N/A. Backend source admission and registry interpretation
+will decide mapping/normalization; a model equipment reference cannot prove row ownership.
