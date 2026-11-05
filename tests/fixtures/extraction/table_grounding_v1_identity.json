@@ -1,6 +1,6 @@
 {
   "version": "table-grounding-interpretation-v1",
-  "rules_hash": "ba58d0688482185bd32f6e43417caa8bcf1bc949fb221bcc29612fd2b9884040",
+  "rules_hash": "3458ebd06f271ab669f96629e5cf5a566cbdb8de5b28408a1d275f667e164ebe",
   "layout": {
     "version": "table-layout-observations-v1",
     "rules_hash": "23dc0e390bfc252f90f7675ef1bef1d4e85dae0bfe3c1ef9d04d139a56380556",

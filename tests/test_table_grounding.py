@@ -596,3 +596,155 @@ def test_header_and_value_designations_must_agree_with_the_resolved_attribute(
     )
     *_, result, _ = converted(recon, claims([eq], [a]), text=text)
     assert result.candidates[-1].mapping_status == status
+
+
+@pytest.mark.parametrize(
+    "identity", ["TX-1 / TX-2", "TX-1, TX-2", "TX1 / TX2", "MSB-A / MSB-B", "TX-1 / tx-1"]
+)
+@pytest.mark.parametrize("expression_is_short", [False, True])
+@pytest.mark.parametrize("visual", [False, True])
+def test_single_reported_equipment_does_not_hide_other_tags_in_its_identity_cell(
+    identity, expression_is_short, visual
+):
+    tag = identity.replace(",", " /").split(" /")[0]
+    recon, text = schedule([["Equipment", "Secondary (V)"], [identity, "600"]], visual=visual)
+    eq = equipment(expression=tag if expression_is_short else identity, tag=tag)
+    _, output, _, _, result, _ = converted(
+        recon,
+        claims([eq], [attribute(cell="c1_1", label="c0_1")]),
+        text=None if visual else text,
+        image=visual,
+    )
+    assert len(output.tables) == 1 and len(result.candidates) == 2
+    assert not result.source_groups
+    assert all(c.mapping_status == "UNMAPPED" for c in result.candidates)
+    attr = result.candidates[-1]
+    assert attr.source_group_id is None and attr.equipment_mention_candidate_id is None
+
+
+@pytest.mark.parametrize("whole_expression", [False, True])
+@pytest.mark.parametrize("visual", [False, True])
+def test_distinct_conditional_readings_in_one_cell_are_both_retained(whole_expression, visual):
+    raw = "600 V Normal / 480 V Standby"
+    recon, text = schedule([["Equipment", "Secondary Voltage"], ["TX-1", raw]], visual=visual)
+    attrs = [
+        attribute(
+            f"a{i}",
+            cell="c1_1",
+            label="c0_1",
+            value=value,
+            expression=raw if whole_expression else expression,
+        )
+        for i, (value, expression) in enumerate([("600", "600 V Normal"), ("480", "480 V Standby")])
+    ]
+    _, output, _, _, result, _ = converted(
+        recon, claims(attrs=attrs), text=None if visual else text, image=visual
+    )
+    candidates = [c for c in result.candidates if c.kind == "ATTRIBUTE_VALUE"]
+    assert len(candidates) == 2 and len({c.id for c in candidates}) == 2
+    assert {c.raw_value for c in candidates} == {"600", "480"}
+    assert all(
+        c.raw_unit == "V" and c.mapping_status == "UNMAPPED" and c.numeric_value is None
+        for c in candidates
+    )
+    by_id = {e.id: e for e in output.evidence}
+    for candidate in candidates:
+        primary = [
+            by_id[link.evidence_id]
+            for link in result.candidate_evidence
+            if link.candidate_id == candidate.id and link.role == "PRIMARY"
+        ]
+        assert len(primary) == 1 and primary[0].cell_id == "c1_1"
+        assert primary[0].source_snippet == (None if visual else raw)
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_conflicting_equipment_association_is_not_lost_as_a_duplicate(reverse):
+    eqs = [equipment(), equipment("e2", cell="c2_0", expression="TX-2", tag="TX-2")]
+    attrs = [attribute(), attribute("a2", eq="e2")]
+    if reverse:
+        attrs.reverse()
+    *_, result, _ = converted(interpretation=claims(eqs, attrs))
+    candidates = [c for c in result.candidates if c.kind == "ATTRIBUTE_VALUE"]
+    assert len(candidates) == 2
+    mapped = next(c for c in candidates if c.mapping_status == "MAPPED")
+    detached = next(c for c in candidates if c.mapping_status == "UNMAPPED")
+    assert mapped.numeric_value == Decimal("0.6") and mapped.equipment_mention_candidate_id
+    assert detached.raw_value == "600" and detached.equipment_mention_candidate_id is None
+    assert detached.source_group_id is None
+    proposed = next(c for c in result.candidates if c.observed_tag == "TX-2")
+    assert detached.diagnostics["reported_equipment_mention_id"] == str(proposed.id)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    ["invented_value", "numeric_prefix", "truncated_prefix", "invented_unit", "borrowed_value"],
+)
+def test_limited_readings_still_require_exact_source_fields(mutation):
+    raw = "600 V Normal / 480 V Standby"
+    recon, text = schedule([["Equipment", "Secondary Voltage"], ["TX-1", raw]])
+    a = attribute(cell="c1_1", label="c0_1", value="480", expression="480 V Standby")
+    if mutation == "invented_value":
+        a["raw_value"] = "490"
+    elif mutation == "numeric_prefix":
+        a["raw_value"] = "48"
+    elif mutation == "truncated_prefix":
+        a.update(raw_expression="48", raw_value="48", raw_unit=None)
+    elif mutation == "invented_unit":
+        a["raw_unit"] = "kV"
+    else:
+        a["raw_expression"] = "600 V Normal"
+    *_, result, _ = converted(recon, claims(attrs=[a]), text=text)
+    assert len(result.candidates) == 1
+    assert result.diagnostic_counts["rejected_source_fields"] == 1
+
+
+def test_same_value_with_distinct_grounded_qualifier_contexts_is_not_deduplicated():
+    recon, text = schedule()
+    notes = ["Normal operation", "Standby operation"]
+    recon["tables"][0]["notes"] = [
+        dict(
+            local_ref=f"note{i}",
+            raw_text=note,
+            anchors=[anchor(note)],
+            ambiguous=False,
+            ambiguity_reason=None,
+        )
+        for i, note in enumerate(notes)
+    ]
+    attrs = [dict(attribute(f"a{i}"), qualifier_refs=[f"note{i}"]) for i in range(2)]
+    *_, result, _ = converted(recon, claims(attrs=attrs), text=text + "\n" + "\n".join(notes))
+    candidates = [c for c in result.candidates if c.kind == "ATTRIBUTE_VALUE"]
+    assert len(candidates) == 2 and all(c.mapping_status == "UNMAPPED" for c in candidates)
+    assert len({tuple(c.diagnostics["reported_qualifier_evidence_ids"]) for c in candidates}) == 2
+
+
+def test_repeated_identical_source_tag_is_not_multiple_equipment():
+    recon, text = schedule([["Equipment", "Secondary (V)"], ["TX-1 / TX-1", "600"]])
+    eq = equipment(expression="TX-1 / TX-1")
+    *_, result, _ = converted(
+        recon, claims([eq], [attribute(cell="c1_1", label="c0_1")]), text=text
+    )
+    assert len(result.candidates) == 2 and all(
+        c.mapping_status == "MAPPED" for c in result.candidates
+    )
+
+
+def test_duplicate_limited_readings_collapse_while_distinct_conditions_survive():
+    raw = "600 V Normal / 600 V Standby"
+    recon, text = schedule([["Equipment", "Secondary Voltage"], ["TX-1", raw]])
+    attrs = [
+        attribute(f"a{i}", cell="c1_1", label="c0_1", expression=expression)
+        for i, expression in enumerate(["600 V Normal", "600 V Normal", "600 V Standby"])
+    ]
+    *_, result, _ = converted(recon, claims(attrs=attrs), text=text)
+    values = [c for c in result.candidates if c.kind == "ATTRIBUTE_VALUE"]
+    assert len(values) == 2 and {c.raw_text for c in values} == {"600 V Normal", "600 V Standby"}
+    assert all(c.raw_value == "600" and c.mapping_status == "UNMAPPED" for c in values)
+
+
+def test_equivalent_equipment_aliases_do_not_duplicate_an_attribute_reading():
+    attrs = [attribute(), attribute("a2", eq="e2")]
+    *_, result, _ = converted(interpretation=claims([equipment(), equipment("e2")], attrs))
+    assert len(result.candidates) == 2
+    assert all(c.mapping_status == "MAPPED" for c in result.candidates)

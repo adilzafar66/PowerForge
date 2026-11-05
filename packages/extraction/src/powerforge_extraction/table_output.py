@@ -10,14 +10,18 @@ from powerforge_extraction.contracts import (
     SourceGroupInput,
     WorkUnitOutput,
 )
-from powerforge_extraction.grounding import _RATING_PAIR
 from powerforge_extraction.identities import identity_hash
 from powerforge_extraction.table_grounding import TableContext, context_from_output, identifier
 from powerforge_extraction.table_observations import TableReconstructionResponse
-from powerforge_extraction.table_semantics import attribute_meaning, equipment_meaning
+from powerforge_extraction.table_semantics import (
+    attribute_meaning,
+    equipment_meaning,
+    source_reading,
+)
 from powerforge_extraction.table_stages import get_table_stage
 
 IDENTITY_LABELS = {"equipment", "tag", "equipment tag", "name", "equipment name", "device"}
+_TAG = re.compile(r"(?<![\w-])[A-Za-z][A-Za-z0-9_-]*\d[A-Za-z0-9_-]*(?![\w-])")
 
 
 def headers(table, cell):
@@ -71,13 +75,37 @@ def _identity_cells(table):
     ]
 
 
+def _multiple_identity_entries(text):
+    entries = {
+        part
+        for part in re.split(r"\s*(?:[/,;&]|\band\b)\s*", text.strip(), flags=re.I)
+        if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", part)
+    }
+    return len(entries) > 1
+
+
 def _scope(table, claim):
+    identities = _identity_cells(table)
     cells = [
         c
-        for c in _identity_cells(table)
+        for c in identities
         if c.local_ref in claim.source_refs and claim.raw_expression in c.raw_text
     ]
     if table.basis == "UNRESOLVED" or table.observation.ambiguous or table.observation.truncated:
+        return None, cells
+    identity_texts = [
+        c.raw_text
+        for c in identities
+        if table.kind == "ATTRIBUTE_ROWS" or cells and c.row == cells[0].row
+    ]
+    if not cells and table.observation.title:
+        identity_texts = [table.observation.title.raw_text]
+    # Count source tags, not model observations. This only disqualifies ownership;
+    # a tag pattern never establishes an equipment type or physical identity.
+    if (
+        any(_multiple_identity_entries(text) for text in identity_texts)
+        or len({match[0] for text in identity_texts for match in _TAG.finditer(text)}) > 1
+    ):
         return None, cells
     if table.kind == "EQUIPMENT_ROWS" and len(cells) == 1 and cells[0].row_span == 1:
         return f"row:{cells[0].row}", cells
@@ -294,6 +322,7 @@ def convert_table_interpretation(response, sources, context: TableContext) -> Wo
             count("rejected_source_fields")
             continue
         mention = mentions.get(claim.equipment_ref)
+        reported_mention_id = str(mention[0].id) if mention else None
         expected_scope = (
             f"row:{cell.row}" if table.observation.proposed_kind == "EQUIPMENT_ROWS" else "spec"
         )
@@ -322,13 +351,16 @@ def convert_table_interpretation(response, sources, context: TableContext) -> Wo
         if result.rejected:
             count("rejected_source_fields")
             continue
-        pair = _RATING_PAIR.fullmatch((cell.raw_text or "").strip())
-        clauses = [i for i in (1, 2) if claim.raw_expression in pair[i]] if pair else []
-        # Deduplicate the admitted source field, rather than alternate model excerpts
-        # such as "400" and "400 AF". AF and AT remain distinct source clauses.
-        source_clause = clauses[0] if len(clauses) == 1 else "whole"
+        # Canonical whole fields/AF-AT clauses still collapse alternate excerpts.
+        # Limited readings, qualifier context and conflicting proposals stay distinct.
         key = f"attribute/{table.table_id}/" + identity_hash(
-            [claim.value_cell_ref, source_clause, [h.local_ref for h in hs]]
+            [
+                claim.value_cell_ref,
+                source_reading(claim, cell).identity,
+                [h.local_ref for h in hs],
+                sorted(claim.qualifier_refs),
+                reported_mention_id,
+            ]
         )
         if key in seen:
             continue
@@ -343,6 +375,12 @@ def convert_table_interpretation(response, sources, context: TableContext) -> Wo
             group=mention[0].source_group_id if mention else None,
             mention=mention[0].id if mention else None,
         )
+        if reported_mention_id and mention is None:
+            candidate.diagnostics["reported_equipment_mention_id"] = reported_mention_id
+        if claim.qualifier_refs:
+            candidate.diagnostics["reported_qualifier_evidence_ids"] = [
+                str(e.id) for ref in sorted(claim.qualifier_refs) for e in table.items[ref]
+            ]
         candidates.append(candidate)
         supporting = [e for h in hs for e in table.items[h.local_ref]]
         supporting += [e for ref in table.scoped for e in table.items[ref]]

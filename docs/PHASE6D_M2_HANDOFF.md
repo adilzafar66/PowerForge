@@ -62,8 +62,33 @@ A dedicated tmpfs PostgreSQL/Redis/MinIO Compose project was migrated fresh to h
 
 Final extraction/API wheels build and direct imports reproduce the new grounding identity, unchanged M1 manifest, legacy v1/v2/v3 profiles and the exact complete committed 6C scripted report. The pure M2 converter imports no ORM, vendor SDK, API or task framework; the separate database loader imports SQLAlchemy intentionally. Ruff, changed-file formatting, dependency and whitespace checks pass. An initial no-build-isolation wheel attempt could not import setuptools from the workspace virtualenv; isolated builds succeeded without changing project dependencies.
 
-The final M2 rules hash is `ba58d0688482185bd32f6e43417caa8bcf1bc949fb221bcc29612fd2b9884040`. Accepted M1 identities and historical 6C fixture bytes were not regenerated. New fixtures are independently authored source text and scripted observations. Image fixtures test source/provenance plumbing, not image recognition accuracy. No paid provider call, frontend change, OCR or new document ingestion format is included.
+The initial M2 rules hash, before the review corrections below, was `ba58d0688482185bd32f6e43417caa8bcf1bc949fb221bcc29612fd2b9884040`. Accepted M1 identities and historical 6C fixture bytes were not regenerated. New fixtures are independently authored source text and scripted observations. Image fixtures test source/provenance plumbing, not image recognition accuracy. No paid provider call, frontend change, OCR or new document ingestion format is included.
 
 The conservative native grid recognizer intentionally does not reconstruct ordinary PDF whitespace geometry, Markdown separator rows, sparse native grids or merged native cells. Such inputs need explicit page-level visual interpretation or remain unresolved. Unknown header paths, complex mixed tables and conditional notes may reduce recall. Representative processed PDF documents and model quality remain the M4 evaluation gate; no accuracy claim follows from these deterministic tests. No complete Phase 6D production runtime is delivered until M3/M4 pass.
+
+## M2 review — Multi-tag ownership and distinct cell readings
+
+The ownership check now inspects the complete admitted identity cell and other identity fields on that row. Distinct tag-shaped strings or explicit lists of identifiers prevent unique row ownership even when the model emits only one equipment observation or quotes only one tag. The same conservative check applies to a single-equipment specification. Original observations/evidence survive as UNMAPPED, with no source group or accepted attribute-to-equipment association. Matching tag text does not infer an equipment type or physical identity; exact repeated entries remain supported, and case-distinct strings are not silently equated.
+
+A shared source-reading helper now distinguishes canonical scalar fields, the supported AF/AT clauses and limited exact excerpts. Multiple conditional readings from one cell survive as separate UNMAPPED candidates, including a second value that does not start at the beginning of the cell. Their values and units must still be grounded in the actual source excerpt; invented values, numeric prefixes, borrowed values and unsupported units are rejected. Limited excerpts cannot become normalized registry values merely because their individual numbers look valid.
+
+Deduplication retains distinct source readings, declared qualifier context and proposed equipment associations. Alternate excerpts of one ordinary scalar or one AF/AT clause still collapse, as do equivalent aliases for the same equipment mention. A wrong-row association remains detached and UNMAPPED without discarding the independently justified observation for the correct row. Detached proposals retain their reported equipment candidate ID in diagnostics, and declared qualifier evidence IDs distinguish reported contexts without accepting them as proven conditions. Primary citations still identify the original committed value cell, and visual evidence retains page-level limits.
+
+The review adds **39 regression cases**: 35 deterministic cases and four native/visual PostgreSQL publication/API cases. The final review gate passed **409 tests, no skips**, with six existing dependency warnings in **12.18 seconds**, including all 93 M2 grounding cases and 21 M2 publication cases. Extraction/API wheel builds and direct packaged imports reproduce the updated M2 identity, unchanged M1 manifest, historical v1/v2/v3 profiles and exact full 6C scripted report. Ruff, formatting, dependency and whitespace checks pass. A fresh disposable database was migrated to head 0013; its services and generated build output were removed afterward. The full backend suite was not rerun for this localized adapter correction; the original broad M2 result above is historical. No paid provider call was made.
+
+Using the same isolated service environment as the initial M2 gate, the final review command was:
+
+```sh
+.venv/bin/pytest -q --tb=short \
+  tests/test_table_observations.py tests/test_table_stages.py \
+  tests/test_table_grounding.py tests/test_table_publication.py \
+  tests/test_extraction_persistence.py tests/test_engineering_publication.py \
+  tests/test_extraction_api.py tests/test_engineering_grounding.py \
+  tests/test_engineering_interpretation.py tests/test_engineering_interpretation_boundaries.py \
+  tests/test_engineering_normalization.py tests/test_engineering_execution_profiles.py \
+  tests/test_engineering_openai_profiles.py tests/test_engineering_evaluation.py
+```
+
+The pre-production M2 fingerprint is refreshed to `3458ebd06f271ab669f96629e5cf5a566cbdb8de5b28408a1d275f667e164ebe`; M1, registry-v1 and historical 6C resources/identities remain unchanged. No production table profile, migration or M3 implementation is introduced.
 
 **Stop for M2 review before M3.**

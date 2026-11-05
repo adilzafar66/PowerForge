@@ -355,3 +355,56 @@ def test_hybrid_cell_can_publish_both_explicit_source_representations(ctx):
         ExtractionPersistence(session, ctx["storage"]).publish(interpretation, result)
         session.get(ExtractionRun, rid).status = "COMPLETED"
         assert result.candidates[-1].numeric_value == Decimal("0.6")
+
+
+@pytest.mark.parametrize("visual", [False, True])
+@pytest.mark.parametrize("case", ["multiple_tags", "conditional_values"])
+def test_review_ambiguities_survive_atomic_publication_and_public_reads(ctx, visual, case):
+    from table_grounding_support import attribute, equipment
+
+    raw = "600 V Normal / 480 V Standby" if case == "conditional_values" else "600 V"
+    identity = "TX-1 / TX-2" if case == "multiple_tags" else "TX-1"
+    recon, source_text = schedule(
+        [["Equipment", "Secondary Voltage"], [identity, raw]], visual=visual
+    )
+    src, rid, reconstruction, interpretation, factory, recon = plan(
+        ctx, reconstruction=recon, text=source_text, image=visual
+    )
+    eq = equipment(expression=identity)
+    attrs = [
+        attribute(f"a{i}", cell="c1_1", label="c0_1", value=value, expression=expression)
+        for i, (value, expression) in enumerate(
+            [("600", "600 V Normal"), ("480", "480 V Standby")]
+            if case == "conditional_values"
+            else [("600", "600 V")]
+        )
+    ]
+    with factory.begin() as session:
+        sources = load_page_sources(page_spec_for_unit(session, reconstruction), ctx["storage"])
+        ExtractionPersistence(session, ctx["storage"]).publish(
+            reconstruction, convert_table_reconstruction(recon, sources)
+        )
+    with factory.begin() as session:
+        target = load_page_sources(page_spec_for_unit(session, interpretation), ctx["storage"])
+        result = convert_table_interpretation(
+            claims([eq], attrs), target, load_table_context(session, target, reconstruction)
+        )
+        ExtractionPersistence(session, ctx["storage"]).publish(interpretation, result)
+        session.get(ExtractionRun, rid).status = "COMPLETED"
+    response = client.get(url(ctx, src) + f"/runs/{rid}/candidates")
+    assert response.status_code == 200
+    candidates = response.json()["items"]
+    values = [c for c in candidates if c["kind"] == "ATTRIBUTE_VALUE"]
+    assert len(values) == len(attrs)
+    assert all(c["mapping_status"] == "UNMAPPED" and c["numeric_value"] is None for c in values)
+    if case == "multiple_tags":
+        assert all(
+            c["mapping_status"] == "UNMAPPED" and c["source_group_id"] is None for c in candidates
+        )
+        assert values[0]["equipment_mention_candidate_id"] is None
+    else:
+        assert {c["raw_value"] for c in values} == {"600", "480"}
+    for candidate in values:
+        primary = next(c["evidence"] for c in candidate["evidence"] if c["role"] == "PRIMARY")
+        assert primary["source_kind"] == "TABLE_CELL" and primary["cell_id"] == "c1_1"
+        assert primary["grounding_precision"] == ("VISUAL_PAGE" if visual else "TEXT_OFFSETS")

@@ -1,7 +1,7 @@
 """Structured-cell meaning and exact normalization. No synthetic source-quote verification."""
 
 import re
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from decimal import Decimal, DecimalException
 
 from powerforge_engineering_model.errors import EngineeringModelError
@@ -113,6 +113,50 @@ def _definition(typ, labels, context):
     return definition
 
 
+@dataclass(frozen=True)
+class SourceReading:
+    text: str
+    identity: tuple
+    limited: bool
+
+
+def source_reading(claim, cell):
+    """Identify an admitted field or retain an exact, semantically unresolved excerpt."""
+    raw = (cell.raw_text or "").strip()
+    pair = _RATING_PAIR.fullmatch(raw)
+    if pair:
+        selected = [i for i in (1, 2) if claim.raw_expression in pair[i]]
+        if len(selected) == 1:
+            index = selected[0]
+            return SourceReading(pair[index], ("rating", index), False)
+    suffix = (
+        v1._value_body(raw, claim.raw_value, numeric=True) if claim.raw_value is not None else None
+    )
+    if (
+        pair
+        or suffix is None
+        or _CONDITIONAL.search(raw)
+        or suffix not in {"", "AF", "AT", "%Z", *v1.UNITS}
+        and (v1._NUMBER.search(suffix) or re.search(r"[/;|\n]", raw))
+    ):
+        return SourceReading(
+            claim.raw_expression,
+            ("reading", claim.raw_expression, claim.raw_value, claim.raw_unit),
+            True,
+        )
+    return SourceReading(raw, ("whole",), False)
+
+
+def _contains_value(text, value):
+    if v1._NUMBER.fullmatch(value):
+        return any(
+            match[0] == value
+            and (match.start() == 0 or not re.match(r"[\w.]", text[match.start() - 1]))
+            for match in v1._NUMBER.finditer(text)
+        )
+    return v1._literal(value, text)
+
+
 def attribute_meaning(claim, cell, labels, equipment, equipment_text, *, uncertain=False, notes=()):
     result = unresolved(claim.raw_expression, claim.raw_value, claim.raw_unit)
     raw = cell.raw_text
@@ -120,20 +164,30 @@ def attribute_meaning(claim, cell, labels, equipment, equipment_text, *, uncerta
         return replace(result, mapping_status=None, reason_code="SOURCE_FIELD_MISMATCH")
     if claim.source_label is not None and claim.source_label not in labels:
         return replace(result, mapping_status=None, reason_code="SOURCE_LABEL_MISMATCH")
-    clause = raw.strip()
-    paired = _RATING_PAIR.fullmatch(clause)
+    reading = source_reading(claim, cell)
+    clause = reading.text
     shorthand = None
-    if paired:
-        clauses = [paired[1], paired[2]]
-        selected = [p for p in clauses if claim.raw_expression in p]
-        if len(selected) != 1:
-            return replace(result, reason_code="UNRESOLVED_SOURCE_FIELD")
-        clause = selected[0]
-        shorthand = "AF" if clause.endswith("AF") else "AT"
-    elif re.fullmatch(r"[+-]?[0-9]+(?:\.[0-9]+)?\s*(AF|AT|%Z)", clause):
+    if re.fullmatch(r"[+-]?[0-9]+(?:\.[0-9]+)?\s*(AF|AT|%Z)", clause):
         shorthand = re.search(r"(AF|AT|%Z)$", clause)[0]
     if claim.raw_value is None:
         return replace(result, reason_code="UNRESOLVED_SOURCE_FIELD")
+    if reading.limited:
+        # Exact excerpts can retain several readings from one cell. They do not
+        # establish independent conditions or a safely normalizable scalar.
+        if not _contains_value(claim.raw_expression, claim.raw_value) or not _contains_value(
+            raw, claim.raw_value
+        ):
+            return replace(result, mapping_status=None, reason_code="SOURCE_VALUE_MISMATCH")
+        header_units = {_label_parts(label)[1] for label in labels} | set(labels) & v1.UNITS.keys()
+        if (
+            claim.raw_unit is not None
+            and claim.raw_unit not in header_units
+            and not re.search(
+                r"(?<![A-Za-z])" + re.escape(claim.raw_unit) + r"(?![\w])", claim.raw_expression
+            )
+        ):
+            return replace(result, mapping_status=None, reason_code="SOURCE_UNIT_MISMATCH")
+        return replace(result, reason_code="AMBIGUOUS_TABLE_CONTEXT")
     suffix = v1._value_body(clause, claim.raw_value, numeric=True)
     if suffix is None:
         return replace(result, mapping_status=None, reason_code="SOURCE_VALUE_MISMATCH")
