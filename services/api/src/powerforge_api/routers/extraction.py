@@ -153,9 +153,10 @@ EnqueueDep = Annotated[CeleryExtractionEnqueue, Depends(get_extraction_enqueue)]
 @router.get("/profiles", response_model=ProfileList)
 def profiles(reader: Service, settings: SettingsDep) -> ProfileList:
     from powerforge_extraction.production_profiles import PRODUCTION_PROFILES
+    from powerforge_extraction.table_profiles import TABLE_PRODUCTION_PROFILES
 
     items = []
-    for key in [FAKE_PROFILE, OPENAI_PROFILE, *PRODUCTION_PROFILES]:
+    for key in [FAKE_PROFILE, OPENAI_PROFILE, *PRODUCTION_PROFILES, *TABLE_PRODUCTION_PROFILES]:
         profile = resolve_profile(key, settings)
         items.append(
             ProfileInfo(
@@ -163,10 +164,16 @@ def profiles(reader: Service, settings: SettingsDep) -> ProfileList:
                 execution_kind=profile.execution_kind,
                 provider=profile.provider,
                 model=profile.model,
-                production_extractor=profile.execution_kind == "ENGINEERING_EXTRACTION",
+                production_extractor=profile.execution_kind
+                in {"ENGINEERING_EXTRACTION", "TABLE_EXTRACTION"},
                 enabled=settings.extraction_enabled
                 and (profile.provider == "fake" or settings.extraction_external_enabled),
-                description="Opt-in engineering AI candidates; extraction accuracy is unmeasured"
+                description=(
+                    "Opt-in table-only AI candidates; ordinary prose requires a separate run; "
+                    "accuracy is unmeasured"
+                )
+                if profile.execution_kind == "TABLE_EXTRACTION"
+                else "Opt-in engineering AI candidates; extraction accuracy is unmeasured"
                 if profile.execution_kind == "ENGINEERING_EXTRACTION"
                 else "Synthetic test execution; no engineering interpretation"
                 if profile.provider == "fake"

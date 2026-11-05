@@ -319,7 +319,12 @@ class WorkUnitOutput(Contract):
     candidate_evidence: list[CandidateEvidenceInput] = Field(default_factory=list, max_length=50000)
     ai_calls: list[AICallInput] = Field(default_factory=list, max_length=1000)
     diagnostic_counts: dict[
-        Literal["rejected_ungrounded", "rejected_source_fields", "detached_associations"],
+        Literal[
+            "rejected_ungrounded",
+            "rejected_source_fields",
+            "detached_associations",
+            "skipped_empty_tables",
+        ],
         Annotated[int, Field(strict=True, ge=0, le=10000)],
     ] = Field(default_factory=dict)
 

@@ -22,6 +22,7 @@ from powerforge_extraction.production_profiles import (
     input_contract,
     require_production_supported,
 )
+from powerforge_extraction.table_profiles import TableProfile
 from powerforge_shared.config import Settings
 
 
@@ -116,7 +117,7 @@ class OpenAIExtractionProvider:
         settings: Settings,
         client: Any | None = None,
         *,
-        profile: ProductionProfile | None = None,
+        profile: ProductionProfile | TableProfile | None = None,
     ) -> None:
         if not settings.extraction_external_enabled:
             raise ProviderFailure(ErrorCode.DISABLED)
@@ -136,7 +137,12 @@ class OpenAIExtractionProvider:
     def execute(self, request: ExtractionRequest) -> ExtractionResponse:
         if self.profile is not None:
             try:
-                messages = production_input(request, self.profile)
+                if isinstance(self.profile, TableProfile):
+                    from powerforge_extraction.table_input import table_production_input
+
+                    messages = table_production_input(request, self.profile)
+                else:
+                    messages = production_input(request, self.profile)
             except (ValueError, KeyError):
                 raise ProviderFailure(ErrorCode.INPUT) from None
         elif request.stage != "SOURCE_PROBE" or request.response_model is not ProbeResult:

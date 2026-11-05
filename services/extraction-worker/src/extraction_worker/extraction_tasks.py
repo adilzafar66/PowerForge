@@ -13,11 +13,16 @@ from powerforge_extraction.fake import FakeEngineeringProvider, FakeExtractionPr
 from powerforge_extraction.orchestration import Claim, ExtractionCoordinator
 from powerforge_extraction.production_profiles import ProductionProfile
 from powerforge_extraction.profiles import EngineeringProfile
+from powerforge_extraction.table_profiles import TableProfile
 from powerforge_shared.config import get_settings
 
 
 def provider_for(claim: Claim) -> ExtractionProvider:
     if claim.profile.provider == "fake":
+        if isinstance(claim.profile, TableProfile):
+            from powerforge_extraction.table_fake import FakeTableProvider
+
+            return FakeTableProvider(claim.profile.fake_scenario)
         if isinstance(claim.profile, EngineeringProfile):
             return FakeEngineeringProvider(claim.profile.fake_scenario)
         return FakeExtractionProvider(claim.profile.fake_scenario)
@@ -29,7 +34,9 @@ def provider_for(claim: Claim) -> ExtractionProvider:
 
     return OpenAIExtractionProvider(
         get_settings(),
-        profile=claim.profile if isinstance(claim.profile, ProductionProfile) else None,
+        profile=claim.profile
+        if isinstance(claim.profile, (ProductionProfile, TableProfile))
+        else None,
     )
 
 

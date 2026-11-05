@@ -34,6 +34,7 @@ from powerforge_extraction.contracts import (
 from powerforge_extraction.errors import LeaseLost
 from powerforge_extraction.orchestration import Claim, ExtractionCoordinator
 from powerforge_extraction.profiles import PROMPT, PROMPT_HASH, SCHEMA_HASH, EngineeringProfile
+from powerforge_extraction.table_profiles import TableProfile
 from powerforge_provenance.locations import SourceLocation
 from powerforge_shared.config import Settings
 
@@ -221,7 +222,17 @@ def execute_unit(
     usage = None
     try:
         with heartbeats(factory, claim, settings):
-            if isinstance(claim.profile, EngineeringProfile):
+            if isinstance(claim.profile, TableProfile):
+                from powerforge_extraction.table_execution import table_request
+
+                request, sources, context = table_request(claim, storage, factory)
+                if context is not None and not context.tables:
+                    with factory.begin() as session:
+                        ExtractionCoordinator(session, settings).complete_empty_table(
+                            claim.unit_id, claim.token, storage
+                        )
+                    return True
+            elif isinstance(claim.profile, EngineeringProfile):
                 request, sources, context = engineering_request(claim, storage, factory)
             else:
                 request = request_for(claim, storage)
@@ -238,7 +249,36 @@ def execute_unit(
             )
             if usage.output_tokens is not None and usage.output_tokens > request.max_output_tokens:
                 raise ProviderFailure(ErrorCode.INVALID, usage)
-            if isinstance(claim.profile, EngineeringProfile):
+            if isinstance(claim.profile, TableProfile):
+                from powerforge_extraction.table_grounding import convert_table_reconstruction
+                from powerforge_extraction.table_output import convert_table_interpretation
+
+                try:
+                    output = (
+                        convert_table_reconstruction(response.result, sources)
+                        if request.stage == "TABLE_RECONSTRUCTION"
+                        else convert_table_interpretation(response.result, sources, context)
+                    )
+                except (ValueError, ValidationError):
+                    raise ProviderFailure(ErrorCode.INVALID, usage) from None
+                if claim.profile.execution_kind == "FAKE_TEST":
+                    output = output.model_copy(
+                        update={
+                            "candidates": [
+                                c.model_copy(
+                                    update={
+                                        "diagnostics": {
+                                            **c.diagnostics,
+                                            "synthetic": True,
+                                            "execution_kind": "FAKE_TEST",
+                                        }
+                                    }
+                                )
+                                for c in output.candidates
+                            ]
+                        }
+                    )
+            elif isinstance(claim.profile, EngineeringProfile):
                 from powerforge_extraction.engineering_output import (
                     convert_attributes,
                     convert_equipment,

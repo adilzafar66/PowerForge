@@ -15,6 +15,7 @@ from powerforge_extraction.identities import canonical_json, content_hash, ident
 from powerforge_extraction.interpretation import interpretation_identity
 from powerforge_extraction.models import ExtractionCandidate, ExtractionWorkUnit
 from powerforge_extraction.profiles import EngineeringProfile
+from powerforge_extraction.table_profiles import TableProfile
 
 RUNTIME_VERSION = "engineering-page-runtime-v1"
 
@@ -34,11 +35,11 @@ def runtime_identity(version: str = RUNTIME_VERSION) -> dict:
         names += ["production_profiles.py", "prompts/openai_input_v1.json"]
 
     def resource(name: str) -> str:
-        # M4 rendering/claim/publication algorithms remain shared and unchanged.
-        # Retain the two pre-registration identity/reader sources byte-for-byte.
+        # Archives are identity data only. Old profile readers keep their accepted
+        # source bytes while explicit table dispatch uses its own runtime identity.
         if version == RUNTIME_VERSION and name in {"profiles.py", "stage_runtime.py"}:
             return "runtime_resources/page_v1/" + name.removesuffix(".py") + ".txt"
-        return name
+        return "runtime_resources/page_v2/" + name.rsplit("/", 1)[-1].removesuffix(".py") + ".txt"
 
     return {
         "version": version,
@@ -51,7 +52,12 @@ def runtime_identity(version: str = RUNTIME_VERSION) -> dict:
     }
 
 
-def require_supported(profile: EngineeringProfile) -> None:
+def require_supported(profile: EngineeringProfile | TableProfile) -> None:
+    if isinstance(profile, TableProfile):
+        from powerforge_extraction.table_runtime import require_table_supported
+
+        require_table_supported(profile)
+        return
     manifest = engineering_manifest()
     if (
         profile.manifest != manifest
@@ -70,7 +76,7 @@ def require_supported(profile: EngineeringProfile) -> None:
         require_production_supported(profile)
 
 
-def planned_metadata(profile: EngineeringProfile, stage: str, number: int) -> dict:
+def planned_metadata(profile: EngineeringProfile | TableProfile, stage: str, number: int) -> dict:
     identity = next(item for item in profile.manifest["stages"] if item["stage"] == stage)
     return {
         "prerequisite_key": prerequisite(stage, number),
@@ -79,7 +85,7 @@ def planned_metadata(profile: EngineeringProfile, stage: str, number: int) -> di
     }
 
 
-def validate_plan(unit: ExtractionWorkUnit, profile: EngineeringProfile) -> None:
+def validate_plan(unit: ExtractionWorkUnit, profile: EngineeringProfile | TableProfile) -> None:
     if (
         unit.stage not in profile.stages
         or len(unit.page_numbers) != 1
@@ -98,7 +104,12 @@ def successful_prerequisite(
         select(ExtractionWorkUnit).where(
             ExtractionWorkUnit.run_id == unit.run_id,
             ExtractionWorkUnit.unit_key == key,
-            ExtractionWorkUnit.stage == "EQUIPMENT_RECOGNITION",
+            ExtractionWorkUnit.stage
+            == (
+                "TABLE_RECONSTRUCTION"
+                if unit.stage == "TABLE_INTERPRETATION"
+                else "EQUIPMENT_RECOGNITION"
+            ),
             ExtractionWorkUnit.page_numbers == unit.page_numbers,
             ExtractionWorkUnit.status == "COMPLETED",
         )
@@ -127,8 +138,12 @@ class StageCall:
 
 
 def stage_call(
-    session: Session, unit: ExtractionWorkUnit, profile: EngineeringProfile
+    session: Session, unit: ExtractionWorkUnit, profile: EngineeringProfile | TableProfile
 ) -> StageCall:
+    if isinstance(profile, TableProfile):
+        from powerforge_extraction.table_runtime import table_stage_call
+
+        return table_stage_call(session, unit, profile)
     validate_plan(unit, profile)
     stage = get_engineering_stage(unit.stage, profile.manifest["version"])
     parent = successful_prerequisite(session, unit)

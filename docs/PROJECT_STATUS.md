@@ -8,7 +8,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 UI-C visual fidelity rework follows the approved Projects/Revisions HTML layouts, including register toolbars, unified project details/revision activity, revision summary/workspaces/information, creation guidance rails, and edit sheets. Existing API/query/lifecycle safeguards remain. Validation: 291 frontend tests; desktop/mobile browser comparison; lint, TypeScript and production build. Necessary real-data and accessibility deviations are documented in the UI-C handoff.
 
-**Current engineering work:** Phase 6D M1–M2 table contracts, source grounding, interpretation and publication implemented; M2 awaits review and M3–M4 production execution/evaluation remain pending. See [PHASE6D_PLAN.md](PHASE6D_PLAN.md) and [PHASE6D_M2_HANDOFF.md](PHASE6D_M2_HANDOFF.md). Phase 6C remains delivered with live-model quality unverified.
+**Current engineering work:** Phase 6D M1–M3 table contracts, grounding, interpretation/publication and opt-in production execution implemented; M3 awaits review and M4 table evaluation/final acceptance remains pending. See [PHASE6D_PLAN.md](PHASE6D_PLAN.md) and [PHASE6D_M3_HANDOFF.md](PHASE6D_M3_HANDOFF.md). Phase 6C remains delivered with live-model quality unverified.
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -380,9 +380,11 @@ M6 adds 15 synthetic text/image/hybrid cases with 50 independent gold claims, ve
 
 M6 validation: **1,487 backend tests passed, no skips**, including **42 M6 cases**, with six existing dependency warnings in 249.99 seconds. The four live-runner integration cases passed again after the final diagnostic-count reporting correction. Fresh migration to head 0013, extraction/worker wheel imports and exact replay, lint, formatting, dependencies and whitespace checks pass. Disposable PostgreSQL/Redis/MinIO were used and removed; normal development data were untouched. No frontend/browser tests or live paid provider calls were performed. The [final handoff](PHASE6C_HANDOFF.md) distinguishes all-registry architectural support, four-family fixtures and zero live-model evaluation coverage.
 
-## Phase 6D — Tables and schedules (M1–M2)
+## Phase 6D — Tables and schedules (M1–M3)
 
-M2 delivery adds exact source admission, structured-cell interpretation, committed reconstruction loading, atomic publication reference hardening and honest table-cell API precision. M2 awaits review before M3. The broad backend regression passed 1,635 tests with no skips; after final adapter refinements the 178-test focused gate passed, including all 75 M2 cases. Final wheel imports reproduce unchanged M1/6C identities and the exact 6C scripted report. Full commands, timing and limits are recorded in [PHASE6D_M2_HANDOFF.md](PHASE6D_M2_HANDOFF.md). M2 review now rejects multi-tag ownership independently of model observation count and retains distinct conditional readings and association proposals. Its final review gate passes 409 tests with no skips, including 39 added regressions; historical M1/6C identities and exact replay remain unchanged. No production table profile or live accuracy measurement is enabled.
+M3 adds opt-in v4 table production profiles, fixed page-stage execution, committed context, budgeted empty-table skips and production Responses integration through the existing coordinator/worker/API. Historical runtime inputs and active-run behavior remain compatible. Cross-profile summaries and paginated historical access remain intact. Final validation: **1,754 backend tests pass, no skips**, including **71 new M3 cases**, six existing warnings in **292.16 seconds**. Extraction/worker/API wheels reproduce new v4 and unchanged historical identities plus the exact 6C scripted report. Fresh migration, lint, formatting, dependency and whitespace checks pass. No paid model call was made. Full commands and remaining M4 limits: [PHASE6D_M3_HANDOFF.md](PHASE6D_M3_HANDOFF.md).
+
+M2 delivery adds exact source admission, structured-cell interpretation, committed reconstruction loading, atomic publication reference hardening and honest table-cell API precision. M2 delivery/review validation follows. The broad backend regression passed 1,635 tests with no skips; after final adapter refinements the 178-test focused gate passed, including all 75 M2 cases. Final wheel imports reproduce unchanged M1/6C identities and the exact 6C scripted report. Full commands, timing and limits are recorded in [PHASE6D_M2_HANDOFF.md](PHASE6D_M2_HANDOFF.md). M2 review now rejects multi-tag ownership independently of model observation count and retains distinct conditional readings and association proposals. Its final review gate passes 409 tests with no skips, including 39 added regressions; historical M1/6C identities and exact replay remain unchanged. M2 introduced no production profile or live accuracy measurement; M3 execution delivery follows.
 
 **M1 status:** implemented (2026-11-05); historical offline validation follows. 6D remains incomplete. Strict offline reconstruction/interpretation schemas preserve all four orientations, sparse/blank/unreadable cells, spans, headers, uncertainty and source-local aliases. Pure inspection/reference checks create no persistence entities and establish no source/semantic proof. Versioned prompts and identities reuse all-registry metadata without changing 6C resources. Table-only ownership and separate prose runs are approved; cross-profile latest-summary/history tests remain M3.
 
@@ -390,7 +392,7 @@ Validation: **79 M1 offline cases pass within 340 related passing tests**, inclu
 
 ## Later phases
 
-Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and 6C M1–M6 are implemented; live-model evaluation remains outstanding; 6D M1–M2 are implemented and 6D M3–M4/6E–6G remain unimplemented. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and 6C M1–M6 are implemented; live-model evaluation remains outstanding; 6D M1–M3 are implemented and 6D M4/6E–6G remain unimplemented. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -409,7 +411,7 @@ Phase 5A through 5G and the authoring refinement remain complete and frozen. Pha
 | 6A | Evidence and extraction persistence/read APIs | Implemented (2026-11-02) |
 | 6B | Orchestration, provider infrastructure and execution reliability | Implemented (2026-11-03) |
 | 6C | Engineering equipment/attribute extraction | M1–M6 implemented; live quality unverified |
-| 6D–6G | Tables, OCR, UI/evaluation and hardening | 6D M1–M2 implemented; production table execution/evaluation pending |
+| 6D–6G | Tables, OCR, UI/evaluation and hardening | 6D M1–M3 implemented; table evaluation/final acceptance pending |
 | 6.5 | Spreadsheet ingestion after 6G and before 7 | Deferred; unimplemented |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |

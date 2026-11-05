@@ -8,6 +8,8 @@ def unit_key(stage: str, page_number: int) -> str:
 
 
 def prerequisite(stage: str, page_number: int) -> str | None:
+    if stage == "TABLE_INTERPRETATION":
+        return unit_key("TABLE_RECONSTRUCTION", page_number)
     return (
         unit_key("EQUIPMENT_RECOGNITION", page_number) if stage == "ATTRIBUTE_EXTRACTION" else None
     )

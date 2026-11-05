@@ -1,12 +1,12 @@
 # Phase 6D implementation plan — Tables and schedules
 
-**Status:** M1 and M2 implemented; M2 awaits review before M3. M3–M4 remain pending. Actual delivery, identities, bounds and checks: [M1 handoff](PHASE6D_M1_HANDOFF.md) and [M2 handoff](PHASE6D_M2_HANDOFF.md). Date: 2026-11-05 (America/Vancouver).
+**Status:** M1–M3 implemented; M3 awaits review before M4. M4 remains pending. Actual delivery, identities, bounds and checks: [M1 handoff](PHASE6D_M1_HANDOFF.md), [M2 handoff](PHASE6D_M2_HANDOFF.md) and [M3 handoff](PHASE6D_M3_HANDOFF.md). Date: 2026-11-05 (America/Vancouver).
 
 **Baseline:** planning refreshed `origin/main` at `ce12a8f2d26a18f3935450eaaa59552435d8925a`, including all accepted 6C work and the live-evaluation provenance correction. Implementation branch `codex/phase-6d-tables-schedules` was created after M1 approval from refreshed `main` at planning commit `1b0afd11a34e35c3bb682b5af28f348f64371587`, carrying the approved review clarifications. The user-supplied 6D prompt is preserved unchanged.
 
 **Authority:** [6D prompt](prompts/phase-6d-prompt.md), [approved Phase 6 specification](specs/phase-6-evidence-structured-extraction.md), [ADR-008](../decisions/ADR-008-evidence-candidate-extraction-architecture.md), accepted [6A](PHASE6A_HANDOFF.md), [6B](PHASE6B_HANDOFF.md), [6C plan](PHASE6C_PLAN.md) and [6C handoff](PHASE6C_HANDOFF.md). Current extraction/provenance/architecture/roadmap documentation and the actual contracts, database guards, execution, provider, interpretation and tests were inspected. Historical documents and frozen registry-v1 remain unchanged.
 
-**Approved design choice:** the first 6D production profile is table-only, as explicitly confirmed by the user. Extracting both tables and ordinary prose from a document requires separate runs: a 6D table run and an existing 6C engineering run. Neither run replaces or combines the other's results. The four proposed milestones are retained, sequentially, with a review gate after each. No combined table/prose workflow is included in this release. M1 and M2 were subsequently authorized explicitly; M3–M4 still require their review gates.
+**Approved design choice:** the first 6D production profile is table-only, as explicitly confirmed by the user. Extracting both tables and ordinary prose from a document requires separate runs: a 6D table run and an existing 6C engineering run. Neither run replaces or combines the other's results. The four proposed milestones are retained, sequentially, with a review gate after each. No combined table/prose workflow is included in this release. M1–M3 were subsequently authorized explicitly; M4 still requires its review gate.
 
 ## 1. Selected architecture
 
@@ -203,6 +203,8 @@ Deliver v4 table profiles and explicit stage/runtime/provider dispatch through t
 
 **Gate:** actual SDK serialization/parsing runs over mocked transport with the exact selected schemas, untrusted inputs and usage/error limits. Real Celery/beat/Redis/PostgreSQL/MinIO tests prove table publication before interpretation, two calls for a nonempty page, zero dependent calls for empty tables, no per-table fan-out, blocked failure settlement, call-budget exhaustion, cancellation, expired leases, duplicate delivery, worker interruption/restart and interpretation retry without repeating reconstruction or duplicating candidates. Layouts remain readable after downstream failure. Test partial runs and cross-unit evidence through public APIs, no canonical mutations, and prior 6C/fake/probe active execution plus byte-identical identities. No paid calls in tests.
 
+**Delivered:** v4 table-only production/synthetic profiles, fixed-plan dispatch through the existing coordinator/worker/Responses adapter, committed context and correlation, budgeted empty-table completion, opt-in discovery/settings and retained 6C runtime identity inputs. Real worker/beat/Redis/PostgreSQL/MinIO tests cover production SDK requests via mocked transport, retry/restart/cancellation, multiple tables without fan-out, empty skips and cross-profile history/summary access. Old accepted configurations still claim/retry/publish. Actual verification and limits: [PHASE6D_M3_HANDOFF.md](PHASE6D_M3_HANDOFF.md).
+
 ### M4 — Table evaluation, full regression and final handoff
 
 Deliver an independently annotated synthetic/anonymized corpus and versioned table scorer/replay that understand layout as well as claims. Cover transformer, LV breaker AF/AT, cable and utility schedules; single-equipment specifications; mixed tables; repeated tags/headers; blank/missing cells; merged/hierarchical headers; ambiguous association; conflicts; several tables per page; native, visual and hybrid evidence; and negative tabular-looking content. Include unknown types and tag-prefix-only contexts that must not map.
@@ -242,4 +244,4 @@ The profile-ownership question is resolved as an **approved design choice: table
 
 No other architectural blocker is currently identified. M1 has finalized measured offline bounds and schema/resource names within this reviewed design. An incompatibility with accepted registry, immutability, provenance or execution guarantees must be brought back as a specific architecture decision rather than silently resolved by weakening those guarantees.
 
-**Stop for M2 review before M3.** M1 definitions and M2 grounding/interpretation/publication are delivered. Production table configuration, provider execution and M3–M4 implementation remain pending; Phase 6D is not complete.
+**Stop for M3 review before M4.** M1 definitions, M2 grounding/interpretation/publication and M3 opt-in production execution are delivered. M4 table evaluation/final acceptance remains pending; Phase 6D is not complete.

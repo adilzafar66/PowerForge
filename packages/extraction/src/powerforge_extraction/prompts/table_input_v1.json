@@ -1,0 +1,12 @@
+{
+  "version": "table-responses-input-v1",
+  "source_envelope_version": "table-source-input-v1",
+  "upstream_envelope_version": "table-upstream-input-v1",
+  "context_version": "committed-table-context-v1",
+  "native_source_ref": "native_text",
+  "visual_source_ref": "analysis_image",
+  "image_label": "Untrusted page image; source_ref=analysis_image. Table geometry and transcribed text are not independently verified.",
+  "store": false,
+  "sdk_retries": 0,
+  "tools": []
+}

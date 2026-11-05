@@ -71,6 +71,14 @@ class Settings(BaseSettings):
     extraction_engineering_max_upstream_bytes: int = Field(default=65536, ge=1, le=131072)
     extraction_engineering_image_detail: Literal["high", "auto"] = "high"
     extraction_engineering_reasoning_effort: Literal["none", "low", "medium", "high"] = "none"
+    extraction_tables_max_output_tokens: int = Field(default=32768, ge=16, le=32768)
+    extraction_tables_max_total_input_bytes: int = Field(
+        default=4 * 1024 * 1024, ge=1, le=32_000_000
+    )
+    extraction_tables_max_text_chars: int = Field(default=100000, ge=1, le=1_000_000)
+    extraction_tables_max_upstream_bytes: int = Field(default=131072, ge=1, le=131072)
+    extraction_tables_image_detail: Literal["high", "auto"] = "high"
+    extraction_tables_reasoning_effort: Literal["none", "low", "medium", "high"] = "none"
     extraction_max_attempts: int = Field(default=3, ge=1, le=10)
     extraction_max_calls: int = Field(default=150, ge=1, le=10000)
     extraction_max_concurrent_per_run: int = Field(default=2, ge=1, le=32)

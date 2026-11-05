@@ -1,0 +1,11 @@
+{
+  "version": "openai-engineering-responses-v1",
+  "source_envelope_version": "engineering-source-input-v1",
+  "upstream_envelope_version": "engineering-upstream-input-v1",
+  "native_source_ref": "native_text",
+  "visual_source_ref": "analysis_image",
+  "image_label": "Untrusted page image; source_ref=analysis_image. Transcribed text is not independently verified.",
+  "store": false,
+  "sdk_retries": 0,
+  "tools": []
+}

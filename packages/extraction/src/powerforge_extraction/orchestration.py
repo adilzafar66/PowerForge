@@ -39,6 +39,7 @@ from powerforge_extraction.profiles import (
     read_profile,
     resolve_profile,
 )
+from powerforge_extraction.table_profiles import TableProfile
 from powerforge_shared.config import Settings
 
 logger = logging.getLogger(__name__)
@@ -196,7 +197,7 @@ class ExtractionCoordinator:
             available = {a.artifact_type: a for a in artifacts if a.document_page_id == page.id}
             native = available.get(PageArtifactType.NATIVE_TEXT)
             image = available.get(PageArtifactType.ANALYSIS_IMAGE)
-            if isinstance(profile, EngineeringProfile):
+            if isinstance(profile, (EngineeringProfile, TableProfile)):
                 if profile.input_strategy == "NATIVE_TEXT_ONLY" and native is None:
                     raise ExtractionError("This profile requires pinned native text on every page")
                 selected_artifacts = [
@@ -214,7 +215,9 @@ class ExtractionCoordinator:
             ):
                 raise ExtractionError("Selected page lacks a usable bounded processing artifact")
             for artifact in selected_artifacts:
-                if isinstance(profile, EngineeringProfile) and artifact.mime_type != (
+                if isinstance(
+                    profile, (EngineeringProfile, TableProfile)
+                ) and artifact.mime_type != (
                     "text/plain"
                     if artifact.artifact_type == PageArtifactType.NATIVE_TEXT
                     else "image/png"
@@ -283,7 +286,7 @@ class ExtractionCoordinator:
                 prompt_hash=profile.prompt_hash,
                 selected_pages=selected,
                 stages=list(profile.stages)
-                if isinstance(profile, EngineeringProfile)
+                if isinstance(profile, (EngineeringProfile, TableProfile))
                 else [profile.stage],
                 input_artifact_ids=[a.id for _, artifacts in chosen for a in artifacts],
                 reextracts_run_id=predecessor.id if predecessor else None,
@@ -292,10 +295,14 @@ class ExtractionCoordinator:
         self.session.add(RunExecution(run_id=run.id, configuration=profile.model_dump(mode="json")))
         self.session.flush()
         for page, artifacts in chosen:
-            stages = profile.stages if isinstance(profile, EngineeringProfile) else [profile.stage]
+            stages = (
+                profile.stages
+                if isinstance(profile, (EngineeringProfile, TableProfile))
+                else [profile.stage]
+            )
             for stage in stages:
                 metadata = {}
-                if isinstance(profile, EngineeringProfile):
+                if isinstance(profile, (EngineeringProfile, TableProfile)):
                     from powerforge_extraction.stage_runtime import planned_metadata
 
                     metadata = planned_metadata(profile, stage, page.page_number)
@@ -401,7 +408,7 @@ class ExtractionCoordinator:
             or delivery.available_at > now
         ):
             return None
-        if isinstance(profile, EngineeringProfile):
+        if isinstance(profile, (EngineeringProfile, TableProfile)):
             from powerforge_extraction.stage_runtime import successful_prerequisite, validate_plan
 
             try:
@@ -464,7 +471,7 @@ class ExtractionCoordinator:
         artifact = self.session.get(PageArtifact, UUID(unit.input_artifact_ids[0]))
         page = self.session.get(DocumentPage, artifact.document_page_id)
         page_spec, upstream_id = None, None
-        if isinstance(profile, EngineeringProfile):
+        if isinstance(profile, (EngineeringProfile, TableProfile)):
             from powerforge_extraction.engineering_sources import page_spec_for_unit
             from powerforge_extraction.stage_runtime import successful_prerequisite
 
@@ -537,7 +544,7 @@ class ExtractionCoordinator:
         if delivery.provider_started_at is not None:
             raise LeaseLost("This attempt already crossed the provider-call boundary")
         profile = read_profile(self._execution(run.id).configuration)
-        if isinstance(profile, EngineeringProfile):
+        if isinstance(profile, (EngineeringProfile, TableProfile)):
             from powerforge_extraction.stage_runtime import require_supported, stage_call
 
             require_supported(profile)
@@ -567,7 +574,7 @@ class ExtractionCoordinator:
             return
         prompt_version, prompt_hash = profile.prompt_version, profile.prompt_hash
         schema_version, correlation = profile.schema_version, str(unit.id)
-        if isinstance(profile, EngineeringProfile):
+        if isinstance(profile, (EngineeringProfile, TableProfile)):
             from powerforge_extraction.stage_runtime import stage_call
 
             call = stage_call(self.session, unit, profile)
@@ -621,6 +628,29 @@ class ExtractionCoordinator:
         profile = read_profile(self._execution(run.id).configuration)
         self._telemetry(unit, profile, self.now(), "SUCCEEDED", None, usage)
         ExtractionPersistence(self.session, storage).publish(unit.id, output)
+        self.aggregate(run)
+
+    def complete_empty_table(self, unit_id: UUID, token: UUID, storage: ObjectStorage) -> None:
+        """An ordinary leased admission; no external-call row or invented zero usage."""
+        import json
+
+        from powerforge_extraction.stage_runtime import require_supported, stage_call
+
+        run, unit, delivery = self._authorized(unit_id, token)
+        profile = read_profile(self._execution(run.id).configuration)
+        if (
+            not isinstance(profile, TableProfile)
+            or unit.stage != "TABLE_INTERPRETATION"
+            or delivery.provider_started_at is not None
+        ):
+            raise ValueError("Empty completion requires an uncalled table interpretation")
+        require_supported(profile)
+        call = stage_call(self.session, unit, profile)
+        if json.loads(call.upstream_context)["tables"]:
+            raise ValueError("Nonempty tables require ordinary interpretation execution")
+        ExtractionPersistence(self.session, storage).publish(
+            unit.id, WorkUnitOutput(diagnostic_counts={"skipped_empty_tables": 1})
+        )
         self.aggregate(run)
 
     def _append_retry(

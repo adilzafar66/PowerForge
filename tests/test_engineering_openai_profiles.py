@@ -105,7 +105,7 @@ def test_production_discovery_disabled_defaults_and_explicit_start_use_existing_
         "infrastructure-fake-v1",
         "infrastructure-openai-v1",
     ]
-    production = [p for p in profiles if p["production_extractor"]]
+    production = [p for p in profiles if p["execution_kind"] == "ENGINEERING_EXTRACTION"]
     assert {p["key"] for p in production} == set(PRODUCTION_PROFILES)
     assert all(
         not p["enabled"] and p["execution_kind"] == "ENGINEERING_EXTRACTION" for p in production
