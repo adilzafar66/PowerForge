@@ -1,12 +1,12 @@
 # Phase 6D implementation plan — Tables and schedules
 
-**Status:** M1–M3 implemented; M3 awaits review before M4. M4 remains pending. Actual delivery, identities, bounds and checks: [M1 handoff](PHASE6D_M1_HANDOFF.md), [M2 handoff](PHASE6D_M2_HANDOFF.md) and [M3 handoff](PHASE6D_M3_HANDOFF.md). Date: 2026-11-05 (America/Vancouver).
+**Status:** M1–M4 implemented for review. M4 adds the independent table corpus/scorer and final handoff; at the user's explicit request, previously verified M3 checks are carried forward instead of repeated. Actual delivery, identities, bounds and checks: [M1 handoff](PHASE6D_M1_HANDOFF.md), [M2 handoff](PHASE6D_M2_HANDOFF.md), [M3 handoff](PHASE6D_M3_HANDOFF.md) and [final handoff](PHASE6D_HANDOFF.md). Date: 2026-11-05 (America/Vancouver).
 
 **Baseline:** planning refreshed `origin/main` at `ce12a8f2d26a18f3935450eaaa59552435d8925a`, including all accepted 6C work and the live-evaluation provenance correction. Implementation branch `codex/phase-6d-tables-schedules` was created after M1 approval from refreshed `main` at planning commit `1b0afd11a34e35c3bb682b5af28f348f64371587`, carrying the approved review clarifications. The user-supplied 6D prompt is preserved unchanged.
 
 **Authority:** [6D prompt](prompts/phase-6d-prompt.md), [approved Phase 6 specification](specs/phase-6-evidence-structured-extraction.md), [ADR-008](../decisions/ADR-008-evidence-candidate-extraction-architecture.md), accepted [6A](PHASE6A_HANDOFF.md), [6B](PHASE6B_HANDOFF.md), [6C plan](PHASE6C_PLAN.md) and [6C handoff](PHASE6C_HANDOFF.md). Current extraction/provenance/architecture/roadmap documentation and the actual contracts, database guards, execution, provider, interpretation and tests were inspected. Historical documents and frozen registry-v1 remain unchanged.
 
-**Approved design choice:** the first 6D production profile is table-only, as explicitly confirmed by the user. Extracting both tables and ordinary prose from a document requires separate runs: a 6D table run and an existing 6C engineering run. Neither run replaces or combines the other's results. The four proposed milestones are retained, sequentially, with a review gate after each. No combined table/prose workflow is included in this release. M1–M3 were subsequently authorized explicitly; M4 still requires its review gate.
+**Approved design choice:** the first 6D production profile is table-only, as explicitly confirmed by the user. Extracting both tables and ordinary prose from a document requires separate runs: a 6D table run and an existing 6C engineering run. Neither run replaces or combines the other's results. The four proposed milestones are retained, sequentially, with a review gate after each. No combined table/prose workflow is included in this release. M1–M4 were subsequently authorized explicitly. M4 implementation is delivered for user review; no later phase is authorized.
 
 ## 1. Selected architecture
 
@@ -215,6 +215,8 @@ Extend evaluation via a separate versioned table entrypoint/resources so the exi
 
 **Gate:** full relevant backend regression passes with required real integrations and no hidden skips; existing identity fixtures and 6C scripted baseline remain valid. Verify wheels/direct imports and packaged resource identities, fresh/migration/schema checks as applicable, OpenAPI/API reads, lint, formatting, dependency and whitespace checks. Record actual commands/results and limitations in `PHASE6D_HANDOFF.md` and current docs. Live evaluation is optional and requires separately authorized fixtures/provider access; none is authorized by this planning task.
 
+**Delivered:** separate offline `table-evaluation-v1` entrypoint/resources; 27 synthetic cases with 27 independently annotated tables, 146 cells and 73 claims; source/structure matching before meaning and exact-value checks; literal/visual/relationship reliability, retention and failed-stage coverage metrics; complete scripted report and mutation tests. The actual processed-PDF pair keeps source gold independent of conservative native abstention. The 6C evaluator/baseline and M1–M3 production resources remain unchanged. Optional live table execution is not included. Verification follows the user-approved carried-forward baseline as recorded in the final handoff.
+
 Each milestone ends with a reviewable commit/branch state and a concise handoff describing components, actual checks, remaining limits and gate status. Do not start the next milestone before its review gate is accepted. Do not label 6D complete before M4 and its final handoff pass.
 
 ## 11. Focused test strategy and risks
@@ -244,4 +246,4 @@ The profile-ownership question is resolved as an **approved design choice: table
 
 No other architectural blocker is currently identified. M1 has finalized measured offline bounds and schema/resource names within this reviewed design. An incompatibility with accepted registry, immutability, provenance or execution guarantees must be brought back as a specific architecture decision rather than silently resolved by weakening those guarantees.
 
-**Stop for M3 review before M4.** M1 definitions, M2 grounding/interpretation/publication and M3 opt-in production execution are delivered. M4 table evaluation/final acceptance remains pending; Phase 6D is not complete.
+**M4 delivered for review.** M1 definitions, M2 grounding/interpretation/publication, M3 opt-in production execution and M4 table evaluation/final handoff are implemented. The new 100-test M4 gate, extraction wheel/direct imports and changed-file checks pass. At the user's explicit request, the already verified M3 full backend/integration/migration/API/dependency gates are carried forward. This is not a new full-suite run. See [PHASE6D_HANDOFF.md](PHASE6D_HANDOFF.md) for actual evidence, scripted scores and limitations. No paid model accuracy measurement or later-phase implementation is claimed.

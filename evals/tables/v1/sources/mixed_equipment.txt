@@ -1,0 +1,4 @@
+Equipment Schedule
+Equipment|Type|Secondary (V)
+TX-1|2-Winding Transformer|600
+CB-1|LV Breaker|400

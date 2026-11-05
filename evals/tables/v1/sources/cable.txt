@@ -1,0 +1,3 @@
+Cable Schedule
+Equipment|Length (ft)|Conductor Material|Conductor Size|Parallel Run Count
+C-1|250|Copper|4/0 AWG|9007199254740993

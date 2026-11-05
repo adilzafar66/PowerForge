@@ -1,0 +1,2 @@
+2-Winding Transformer
+Secondary Voltage (V)|600

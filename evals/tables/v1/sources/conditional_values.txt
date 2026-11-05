@@ -1,0 +1,3 @@
+2-Winding Transformer Schedule
+Equipment|Secondary (V)
+TX-1|600 V Normal / 480 V Standby

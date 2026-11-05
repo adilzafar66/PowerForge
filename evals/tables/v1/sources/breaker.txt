@@ -1,0 +1,3 @@
+LV Breaker thermal-magnetic schedule
+Equipment|Rating|Normally Closed
+CB-1|400 AF / 250 AT|No

@@ -1,0 +1,5610 @@
+{
+  "version": "table-corpus-v1",
+  "cases": [
+    {
+      "id": "transformer",
+      "family": "transformer",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/transformer.txt",
+          "sha256": "e442b56829d111b68ee33fdb0ef83c23896e82400ca5d68176c885bd9095ae78",
+          "size_bytes": 119,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Schedule",
+          "span": [
+            0,
+            30
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Schedule",
+          "rows": 3,
+          "columns": 4,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                31,
+                40
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Capacity (kVA)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                41,
+                55
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                2
+              ],
+              "text": "Primary (kV)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                56,
+                68
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                3
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                69,
+                82
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                83,
+                87
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "750",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                88,
+                91
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                2
+              ],
+              "text": "12.47",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  2
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                92,
+                97
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                3
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  3
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                98,
+                101
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "text": "TX-2",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                102,
+                106
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                1
+              ],
+              "text": "500",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                107,
+                110
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                2
+              ],
+              "text": "13.8",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  2
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                111,
+                115
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                3
+              ],
+              "text": "480",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  3
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                116,
+                119
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "e2",
+          "table": "table",
+          "cell": [
+            2,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-2",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-2",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "750",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "rated_apparent_power",
+          "value_type": "NUMBER",
+          "value": "750",
+          "unit": "kVA",
+          "raw_value": "750",
+          "raw_unit": "kVA",
+          "equipment": "e1"
+        },
+        {
+          "id": "a2",
+          "table": "table",
+          "cell": [
+            1,
+            2
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "12.47",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "primary_voltage",
+          "value_type": "NUMBER",
+          "value": "12.47",
+          "unit": "kV",
+          "raw_value": "12.47",
+          "raw_unit": "kV",
+          "equipment": "e1"
+        },
+        {
+          "id": "a3",
+          "table": "table",
+          "cell": [
+            1,
+            3
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.6",
+          "unit": "kV",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        },
+        {
+          "id": "a4",
+          "table": "table",
+          "cell": [
+            2,
+            3
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "480",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.48",
+          "unit": "kV",
+          "raw_value": "480",
+          "raw_unit": "V",
+          "equipment": "e2"
+        }
+      ]
+    },
+    {
+      "id": "breaker",
+      "family": "lv_breaker",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/breaker.txt",
+          "sha256": "3526ab920b0d09977acf4414d14738a10c866b9a7b133217f7e02e361f319695",
+          "size_bytes": 93,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "LV Breaker thermal-magnetic schedule",
+          "span": [
+            0,
+            36
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "LV Breaker thermal-magnetic schedule",
+          "rows": 2,
+          "columns": 3,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                37,
+                46
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Rating",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                47,
+                53
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                2
+              ],
+              "text": "Normally Closed",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                54,
+                69
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "CB-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                70,
+                74
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "400 AF / 250 AT",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                75,
+                90
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                2
+              ],
+              "text": "No",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  2
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                91,
+                93
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "CB-1",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": "CB-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "400 AF",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": null,
+          "attribute_key": "frame_rating",
+          "value_type": "NUMBER",
+          "value": "400",
+          "unit": "A",
+          "raw_value": "400",
+          "raw_unit": "AF",
+          "equipment": "e1"
+        },
+        {
+          "id": "a2",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "250 AT",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": null,
+          "attribute_key": "trip_rating",
+          "value_type": "NUMBER",
+          "value": "250",
+          "unit": "A",
+          "raw_value": "250",
+          "raw_unit": "AT",
+          "equipment": "e1"
+        },
+        {
+          "id": "a3",
+          "table": "table",
+          "cell": [
+            1,
+            2
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "No",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": null,
+          "attribute_key": "normally_closed",
+          "value_type": "BOOLEAN",
+          "value": false,
+          "unit": null,
+          "raw_value": "No",
+          "raw_unit": null,
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "cable",
+      "family": "cable",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/cable.txt",
+          "sha256": "433e3f808f79684777d419cd40caf896c1ec0595682a50634b0a76248c1187bd",
+          "size_bytes": 129,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "Cable Schedule",
+          "span": [
+            0,
+            14
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "Cable Schedule",
+          "rows": 2,
+          "columns": 5,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                15,
+                24
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Length (ft)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                25,
+                36
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                2
+              ],
+              "text": "Conductor Material",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                37,
+                55
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                3
+              ],
+              "text": "Conductor Size",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                56,
+                70
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                4
+              ],
+              "text": "Parallel Run Count",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                71,
+                89
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "C-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                90,
+                93
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "250",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                94,
+                97
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                2
+              ],
+              "text": "Copper",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  2
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                98,
+                104
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                3
+              ],
+              "text": "4/0 AWG",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  3
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                105,
+                112
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                4
+              ],
+              "text": "9007199254740993",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  4
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                113,
+                129
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "C-1",
+          "status": "MAPPED",
+          "equipment_type": "CABLE",
+          "tag": "C-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "250",
+          "status": "MAPPED",
+          "equipment_type": "CABLE",
+          "tag": null,
+          "attribute_key": "length",
+          "value_type": "NUMBER",
+          "value": "76.2",
+          "unit": "m",
+          "raw_value": "250",
+          "raw_unit": "ft",
+          "equipment": "e1"
+        },
+        {
+          "id": "a2",
+          "table": "table",
+          "cell": [
+            1,
+            2
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "Copper",
+          "status": "MAPPED",
+          "equipment_type": "CABLE",
+          "tag": null,
+          "attribute_key": "conductor_material",
+          "value_type": "ENUM",
+          "value": "COPPER",
+          "unit": null,
+          "raw_value": "Copper",
+          "raw_unit": null,
+          "equipment": "e1"
+        },
+        {
+          "id": "a3",
+          "table": "table",
+          "cell": [
+            1,
+            3
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "4/0 AWG",
+          "status": "MAPPED",
+          "equipment_type": "CABLE",
+          "tag": null,
+          "attribute_key": "conductor_size",
+          "value_type": "TEXT",
+          "value": "4/0 AWG",
+          "unit": null,
+          "raw_value": "4/0 AWG",
+          "raw_unit": null,
+          "equipment": "e1"
+        },
+        {
+          "id": "a4",
+          "table": "table",
+          "cell": [
+            1,
+            4
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "9007199254740993",
+          "status": "MAPPED",
+          "equipment_type": "CABLE",
+          "tag": null,
+          "attribute_key": "parallel_run_count",
+          "value_type": "INTEGER",
+          "value": "9007199254740993",
+          "unit": null,
+          "raw_value": "9007199254740993",
+          "raw_unit": null,
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "utility",
+      "family": "utility",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/utility.txt",
+          "sha256": "15c7d7e72a8f59a71ee6d75487a7119267eb859906dfdc071a6cb498c7cc5508",
+          "size_bytes": 126,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "Utility Source Schedule",
+          "span": [
+            0,
+            23
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "Utility Source Schedule",
+          "rows": 2,
+          "columns": 5,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                24,
+                33
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Three-Phase Fault Current (kA)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                34,
+                64
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                2
+              ],
+              "text": "SLG Fault Current (kA)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                65,
+                87
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                3
+              ],
+              "text": "Three-Phase X/R",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                88,
+                103
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                4
+              ],
+              "text": "SLG X/R",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                104,
+                111
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "U-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                112,
+                115
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "25",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                116,
+                118
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                2
+              ],
+              "text": "18",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  2
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                119,
+                121
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                3
+              ],
+              "text": "10",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  3
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                122,
+                124
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                4
+              ],
+              "text": "8",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  4
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                125,
+                126
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "U-1",
+          "status": "MAPPED",
+          "equipment_type": "UTILITY_SOURCE",
+          "tag": "U-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "25",
+          "status": "MAPPED",
+          "equipment_type": "UTILITY_SOURCE",
+          "tag": null,
+          "attribute_key": "three_phase_fault_current",
+          "value_type": "NUMBER",
+          "value": "25",
+          "unit": "kA",
+          "raw_value": "25",
+          "raw_unit": "kA",
+          "equipment": "e1"
+        },
+        {
+          "id": "a2",
+          "table": "table",
+          "cell": [
+            1,
+            2
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "18",
+          "status": "MAPPED",
+          "equipment_type": "UTILITY_SOURCE",
+          "tag": null,
+          "attribute_key": "slg_fault_current",
+          "value_type": "NUMBER",
+          "value": "18",
+          "unit": "kA",
+          "raw_value": "18",
+          "raw_unit": "kA",
+          "equipment": "e1"
+        },
+        {
+          "id": "a3",
+          "table": "table",
+          "cell": [
+            1,
+            3
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "10",
+          "status": "MAPPED",
+          "equipment_type": "UTILITY_SOURCE",
+          "tag": null,
+          "attribute_key": "three_phase_x_r",
+          "value_type": "NUMBER",
+          "value": "10",
+          "unit": null,
+          "raw_value": "10",
+          "raw_unit": null,
+          "equipment": "e1"
+        },
+        {
+          "id": "a4",
+          "table": "table",
+          "cell": [
+            1,
+            4
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "8",
+          "status": "MAPPED",
+          "equipment_type": "UTILITY_SOURCE",
+          "tag": null,
+          "attribute_key": "slg_x_r",
+          "value_type": "NUMBER",
+          "value": "8",
+          "unit": null,
+          "raw_value": "8",
+          "raw_unit": null,
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "single_spec",
+      "family": "attribute_rows",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/single_spec.txt",
+          "sha256": "3fb8b0dd83619c3e3f27ae58ffaa6aa03e3cfd2c241eba87ba38e073776be63c",
+          "size_bytes": 76,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Specification",
+          "span": [
+            0,
+            35
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Specification",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "ATTRIBUTE_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "ROW",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                36,
+                45
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                46,
+                50
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "Secondary Voltage (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "ROW",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                51,
+                72
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "690",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  1,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                73,
+                76
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            0,
+            1
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "690",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.69",
+          "unit": "kV",
+          "raw_value": "690",
+          "raw_unit": "V",
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "tagless_spec",
+      "family": "attribute_rows",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/tagless_spec.txt",
+          "sha256": "68edd8a70c0d9a949687109dc9fe51707fa7bc4e5936de73d8cd2dfd4eee2585",
+          "size_bytes": 47,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer",
+          "span": [
+            0,
+            21
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer",
+          "rows": 1,
+          "columns": 2,
+          "orientation": "ATTRIBUTE_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Secondary Voltage (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "ROW",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                22,
+                43
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                44,
+                47
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": null,
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "2-Winding Transformer",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            0,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.6",
+          "unit": "kV",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "mixed_equipment",
+      "family": "mixed",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/mixed_equipment.txt",
+          "sha256": "214ce452a83464cede16948515d67a170928c4a347b9725f05025fe496c00dcf",
+          "size_bytes": 98,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "Equipment Schedule",
+          "span": [
+            0,
+            18
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "Equipment Schedule",
+          "rows": 3,
+          "columns": 3,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                19,
+                28
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Type",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                29,
+                33
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                2
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                34,
+                47
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                48,
+                52
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "2-Winding Transformer",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                53,
+                74
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                2
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  2
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                75,
+                78
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "text": "CB-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                79,
+                83
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                1
+              ],
+              "text": "LV Breaker",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                84,
+                94
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                2
+              ],
+              "text": "400",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  2
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                95,
+                98
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "e2",
+          "table": "table",
+          "cell": [
+            2,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "CB-1",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": "CB-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            2
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.6",
+          "unit": "kV",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        },
+        {
+          "id": "a2",
+          "table": "table",
+          "cell": [
+            2,
+            2
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "400",
+          "status": "UNMAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": null,
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": "400",
+          "raw_unit": "V",
+          "equipment": "e2"
+        }
+      ]
+    },
+    {
+      "id": "repeated_tags",
+      "family": "repeated",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/repeated_tags.txt",
+          "sha256": "2aa86ce6c39eb47d785965573197bf8f803208811c57f8ae6881dea389969237",
+          "size_bytes": 96,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Schedule",
+          "span": [
+            0,
+            30
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Schedule",
+          "rows": 4,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                31,
+                40
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                41,
+                54
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                55,
+                59
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                60,
+                63
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                64,
+                73
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                74,
+                87
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                3,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                88,
+                92
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                3,
+                1
+              ],
+              "text": "480",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                93,
+                96
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "e2",
+          "table": "table",
+          "cell": [
+            3,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.6",
+          "unit": "kV",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        },
+        {
+          "id": "a2",
+          "table": "table",
+          "cell": [
+            3,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "480",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.48",
+          "unit": "kV",
+          "raw_value": "480",
+          "raw_unit": "V",
+          "equipment": "e2"
+        }
+      ]
+    },
+    {
+      "id": "blank_value",
+      "family": "blank_missing",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/blank_value.txt",
+          "sha256": "41a936b4801a706da2626e3fb4e636930783f38b6a48de0a762e4466b08f6149",
+          "size_bytes": 60,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Schedule",
+          "span": [
+            0,
+            30
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Schedule",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                31,
+                40
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                41,
+                54
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                55,
+                59
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "",
+              "state": "BLANK",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": null,
+              "text_basis": "UNVERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        }
+      ]
+    },
+    {
+      "id": "ambiguous_tags",
+      "family": "ambiguous",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/ambiguous_tags.txt",
+          "sha256": "ee9220e122660224e8ac5ff2a454d65465a380ccd06a4957ee2a148a228b58f1",
+          "size_bytes": 70,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Schedule",
+          "span": [
+            0,
+            30
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Schedule",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                31,
+                40
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                41,
+                54
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1 / TX-2",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                55,
+                66
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                67,
+                70
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1 / TX-2",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "tag": null,
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": null
+        }
+      ]
+    },
+    {
+      "id": "conditional_values",
+      "family": "conflicts",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/conditional_values.txt",
+          "sha256": "8fbf91c96cfffdef76e6ece9c61d6e8cd356cb2e2cd8a9f11ff41a18588b2b6d",
+          "size_bytes": 88,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Schedule",
+          "span": [
+            0,
+            30
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Schedule",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                31,
+                40
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                41,
+                54
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                55,
+                59
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600 V Normal / 480 V Standby",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                60,
+                88
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600 V Normal",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "tag": null,
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        },
+        {
+          "id": "a2",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "480 V Standby",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "tag": null,
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": "480",
+          "raw_unit": "V",
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "conflicting_values",
+      "family": "conflicts",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/conflicting_values.txt",
+          "sha256": "adbf8930827e7db354eeb188a1114499dfb60b6466b82b84ff4864293e5f6a4d",
+          "size_bytes": 72,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Schedule",
+          "span": [
+            0,
+            30
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Schedule",
+          "rows": 3,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                31,
+                40
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                41,
+                54
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                55,
+                59
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                60,
+                63
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                64,
+                68
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                1
+              ],
+              "text": "480",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                69,
+                72
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "e2",
+          "table": "table",
+          "cell": [
+            2,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.6",
+          "unit": "kV",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        },
+        {
+          "id": "a2",
+          "table": "table",
+          "cell": [
+            2,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "480",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.48",
+          "unit": "kV",
+          "raw_value": "480",
+          "raw_unit": "V",
+          "equipment": "e2"
+        }
+      ]
+    },
+    {
+      "id": "wrong_row_proposal",
+      "family": "ambiguous",
+      "note": "Intentional wrong-row model proposal; independent gold retains true TX-2 association and mapped value.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/wrong_row_proposal.txt",
+          "sha256": "149d92432190c86fdfd1a0c5830ab67bc00494ccecdde1e381c196695b7d3dd6",
+          "size_bytes": 72,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Schedule",
+          "span": [
+            0,
+            30
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Schedule",
+          "rows": 3,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                31,
+                40
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                41,
+                54
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                55,
+                59
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                60,
+                63
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "text": "TX-2",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                64,
+                68
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                2,
+                1
+              ],
+              "text": "480",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                69,
+                72
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "e2",
+          "table": "table",
+          "cell": [
+            2,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-2",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-2",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            2,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "480",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.48",
+          "unit": "kV",
+          "raw_value": "480",
+          "raw_unit": "V",
+          "equipment": "e2"
+        }
+      ]
+    },
+    {
+      "id": "unknown_type",
+      "family": "negative",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/unknown_type.txt",
+          "sha256": "de4fcf374337488d4aead4aa8f090f2b628f6a71ebc8e229fd67eab5bca8e8f2",
+          "size_bytes": 55,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "Quantum Regulator Schedule",
+          "span": [
+            0,
+            26
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "Quantum Regulator Schedule",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                27,
+                36
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Rating (A)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                37,
+                47
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "Q-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                48,
+                51
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "400",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                52,
+                55
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "Q-1",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "tag": "Q-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "400",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "tag": null,
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": "400",
+          "raw_unit": "A",
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "tag_prefix_only",
+      "family": "negative",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/tag_prefix_only.txt",
+          "sha256": "abc6f063f3e046f71d69542adc30fed00e967dbd49a77946c0c50a7f6e54e61d",
+          "size_bytes": 51,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "Equipment Schedule",
+          "span": [
+            0,
+            18
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "Equipment Schedule",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                19,
+                28
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                29,
+                42
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                43,
+                47
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                48,
+                51
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "tag": null,
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "invalid_value",
+      "family": "invalid",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/invalid_value.txt",
+          "sha256": "9bd4a0b60bb68115a32c854c90eaa11b521e7aef26180e9671683763d36320e2",
+          "size_bytes": 46,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "Cable Schedule",
+          "span": [
+            0,
+            14
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "Cable Schedule",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                15,
+                24
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Length",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                25,
+                31
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "C-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                32,
+                35
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "10 furlong",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                36,
+                46
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "C-1",
+          "status": "MAPPED",
+          "equipment_type": "CABLE",
+          "tag": "C-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "10 furlong",
+          "status": "INVALID",
+          "equipment_type": "CABLE",
+          "tag": null,
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": "10",
+          "raw_unit": "furlong",
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "breaker_visual",
+      "family": "visual",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "analysis_image",
+          "path": "sources/breaker_visual.png",
+          "sha256": "c3632119fd31f8e962fcc382dad5b21f248711b9e08d3308e5cac2aa9eb301b5",
+          "size_bytes": 9231,
+          "width": 385,
+          "height": 206
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "analysis_image",
+          "anchor": "LV Breaker thermal-magnetic schedule",
+          "span": null,
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "LV Breaker thermal-magnetic schedule",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "VISUAL_REPORTED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Rating",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "CB-2",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "400 AF / 250 AT",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "CB-2",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": "CB-2",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "400 AF",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": null,
+          "attribute_key": "frame_rating",
+          "value_type": "NUMBER",
+          "value": "400",
+          "unit": "A",
+          "raw_value": "400",
+          "raw_unit": "AF",
+          "equipment": "e1"
+        },
+        {
+          "id": "a2",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "250 AT",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": null,
+          "attribute_key": "trip_rating",
+          "value_type": "NUMBER",
+          "value": "250",
+          "unit": "A",
+          "raw_value": "250",
+          "raw_unit": "AT",
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "hierarchical_merged",
+      "family": "merged",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "analysis_image",
+          "path": "sources/hierarchical_merged.png",
+          "sha256": "cbf688e13bb59edaa8826d6d43476f42b2f8bb416deb11189ad02066c3daf320",
+          "size_bytes": 12736,
+          "width": 495,
+          "height": 254
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "analysis_image",
+          "anchor": "LV Breaker thermal-magnetic schedule",
+          "span": null,
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "LV Breaker thermal-magnetic schedule",
+          "rows": 3,
+          "columns": 3,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "VISUAL_REPORTED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Breaker Ratings",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 2,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "Frame (A)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                1,
+                2
+              ],
+              "text": "Trip (A)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "text": "CB-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                2,
+                1
+              ],
+              "text": "400",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  1
+                ]
+              ],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                2,
+                2
+              ],
+              "text": "250",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ]
+              ],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            2,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "CB-1",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": "CB-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            2,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "400",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": null,
+          "attribute_key": "frame_rating",
+          "value_type": "NUMBER",
+          "value": "400",
+          "unit": "A",
+          "raw_value": "400",
+          "raw_unit": "A",
+          "equipment": "e1"
+        },
+        {
+          "id": "a2",
+          "table": "table",
+          "cell": [
+            2,
+            2
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "250",
+          "status": "MAPPED",
+          "equipment_type": "LV_BREAKER",
+          "tag": null,
+          "attribute_key": "trip_rating",
+          "value_type": "NUMBER",
+          "value": "250",
+          "unit": "A",
+          "raw_value": "250",
+          "raw_unit": "A",
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "missing_cell",
+      "family": "blank_missing",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "analysis_image",
+          "path": "sources/missing_cell.png",
+          "sha256": "1d31e3c44da18abcd03799743ce222b1b8c9ed3c7afe48655e227546513f8cee",
+          "size_bytes": 11255,
+          "width": 340,
+          "height": 254
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "analysis_image",
+          "anchor": "2-Winding Transformer Schedule",
+          "span": null,
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Schedule",
+          "rows": 3,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "VISUAL_REPORTED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "text": "TX-2",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "e2",
+          "table": "table",
+          "cell": [
+            2,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-2",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-2",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.6",
+          "unit": "kV",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "mixed_orientation",
+      "family": "mixed",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "analysis_image",
+          "path": "sources/mixed_orientation.png",
+          "sha256": "39ea9f96501b0c148a26edd2eb5844bc7717b0d3a059438f25323aeab1d47a6c",
+          "size_bytes": 6260,
+          "width": 320,
+          "height": 206
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "analysis_image",
+          "anchor": "Equipment data",
+          "span": null,
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "Equipment data",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "MIXED",
+          "structure_basis": "VISUAL_REPORTED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "600 V",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "CB-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "400 A",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [],
+              "role": "analysis_image",
+              "span": null,
+              "text_basis": "VISUAL_REPORTED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            0,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600 V",
+          "status": "UNMAPPED",
+          "equipment_type": null,
+          "tag": null,
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": null
+        }
+      ]
+    },
+    {
+      "id": "multiple_tables",
+      "family": "multiple",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/multiple_tables.txt",
+          "sha256": "52c82d11b8de44824bb5a7ecfab4c7e859c89053e28d1208f976d1e934e0963a",
+          "size_bytes": 124,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Normal",
+          "span": [
+            0,
+            28
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Normal",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                29,
+                38
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                39,
+                52
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                53,
+                57
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                58,
+                61
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        },
+        {
+          "id": "standby",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Standby",
+          "span": [
+            62,
+            91
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Standby",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                92,
+                101
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                102,
+                115
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-2",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                116,
+                120
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "480",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                121,
+                124
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "e2",
+          "table": "standby",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-2",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-2",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.6",
+          "unit": "kV",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        },
+        {
+          "id": "a2",
+          "table": "standby",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "480",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.48",
+          "unit": "kV",
+          "raw_value": "480",
+          "raw_unit": "V",
+          "equipment": "e2"
+        }
+      ]
+    },
+    {
+      "id": "negative_tabular",
+      "family": "negative",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/negative_tabular.txt",
+          "sha256": "fb71c053a52c9df311be43eb9bb700cf2a72786f41b9ae893ab1a592bf85d122",
+          "size_bytes": 41,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "Purchase checklist",
+          "span": [
+            0,
+            18
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "Purchase checklist",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "UNCLASSIFIED",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Code",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                19,
+                23
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Quantity",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                24,
+                32
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                33,
+                37
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                38,
+                41
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": []
+    },
+    {
+      "id": "no_table",
+      "family": "negative",
+      "note": "Independently authored synthetic source, layout and engineering constants.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/no_table.txt",
+          "sha256": "b7ab68d3513798d5c30518be7073671ac45c02a43c85b7213802881920403b3f",
+          "size_bytes": 66,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [],
+      "claims": []
+    },
+    {
+      "id": "failed_reconstruction",
+      "family": "failed_stage",
+      "note": "Intentional reconstruction overflow; gold denominator remains.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/failed_reconstruction.txt",
+          "sha256": "0a33a57bd8882efc53c6288962b026850b96b388809fb9874c0f732529535e70",
+          "size_bytes": 63,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Schedule",
+          "span": [
+            0,
+            30
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Schedule",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                31,
+                40
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                41,
+                54
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                55,
+                59
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                60,
+                63
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.6",
+          "unit": "kV",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "failed_interpretation",
+      "family": "failed_stage",
+      "note": "Intentional interpretation overflow; gold denominator remains.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": null,
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/failed_interpretation.txt",
+          "sha256": "0a33a57bd8882efc53c6288962b026850b96b388809fb9874c0f732529535e70",
+          "size_bytes": 63,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Schedule",
+          "span": [
+            0,
+            30
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Schedule",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "NATIVE_DELIMITED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                31,
+                40
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                41,
+                54
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                55,
+                59
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                60,
+                63
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.6",
+          "unit": "kV",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "pdf_native_unresolved",
+      "family": "processed_pdf",
+      "note": "Actual positioned PDF with independent visible grid/claims gold. Flattened native tokens cannot prove the grid; conservative UNMAPPED outputs intentionally lose semantic recall.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": {
+        "format": "pdf",
+        "path": "sources/positioned_schedule.pdf",
+        "sha256": "bd21efd868337a72d5e3eeb8d8f5621635de5a22c851a6aa6eacd14776adc26a",
+        "size_bytes": 2131
+      },
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/pdf_native_unresolved.txt",
+          "sha256": "32cc68dd58bb26fffbbd05590a643e376e336fa2dca660322d07a63419fbc7f5",
+          "size_bytes": 63,
+          "width": null,
+          "height": null
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "native_text",
+          "anchor": "2-Winding Transformer Schedule",
+          "span": [
+            0,
+            30
+          ],
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Schedule",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "UNRESOLVED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                31,
+                40
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                41,
+                54
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                55,
+                59
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                60,
+                63
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.6",
+          "unit": "kV",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        }
+      ]
+    },
+    {
+      "id": "pdf_hybrid",
+      "family": "processed_pdf",
+      "note": "Actual document renderer output from authored positioned PDF; no delimiter-based native structure proof.",
+      "provenance": "SYNTHETIC_AUTHORED",
+      "provenance_note": "Created for this repository; no customer or anonymized data.",
+      "source_document": {
+        "format": "pdf",
+        "path": "sources/positioned_schedule.pdf",
+        "sha256": "bd21efd868337a72d5e3eeb8d8f5621635de5a22c851a6aa6eacd14776adc26a",
+        "size_bytes": 2131
+      },
+      "sources": [
+        {
+          "role": "native_text",
+          "path": "sources/pdf_hybrid.txt",
+          "sha256": "32cc68dd58bb26fffbbd05590a643e376e336fa2dca660322d07a63419fbc7f5",
+          "size_bytes": 63,
+          "width": null,
+          "height": null
+        },
+        {
+          "role": "analysis_image",
+          "path": "sources/pdf_hybrid.png",
+          "sha256": "332802d6d161e3d00dbf01bae84839ca45809c5efda41a31693b6f02121f15fe",
+          "size_bytes": 25411,
+          "width": 1389,
+          "height": 667
+        }
+      ],
+      "tables": [
+        {
+          "id": "table",
+          "role": "analysis_image",
+          "anchor": "2-Winding Transformer Schedule",
+          "span": null,
+          "landmarks": [
+            [
+              0,
+              0
+            ]
+          ],
+          "title": "2-Winding Transformer Schedule",
+          "rows": 2,
+          "columns": 2,
+          "orientation": "EQUIPMENT_ROWS",
+          "structure_basis": "VISUAL_REPORTED",
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "text": "Equipment",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                31,
+                40
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "text": "Secondary (V)",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "COLUMN",
+              "headers": [],
+              "role": "native_text",
+              "span": [
+                41,
+                54
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "text": "TX-1",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                55,
+                59
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "text": "600",
+              "state": "VALUE",
+              "row_span": 1,
+              "column_span": 1,
+              "header_role": "NONE",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ],
+              "role": "native_text",
+              "span": [
+                60,
+                63
+              ],
+              "text_basis": "NATIVE_VERIFIED"
+            }
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "e1",
+          "table": "table",
+          "cell": [
+            1,
+            0
+          ],
+          "kind": "EQUIPMENT_MENTION",
+          "expression": "TX-1",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute_key": null,
+          "value_type": null,
+          "value": null,
+          "unit": null,
+          "raw_value": null,
+          "raw_unit": null,
+          "equipment": null
+        },
+        {
+          "id": "a1",
+          "table": "table",
+          "cell": [
+            1,
+            1
+          ],
+          "kind": "ATTRIBUTE_VALUE",
+          "expression": "600",
+          "status": "MAPPED",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute_key": "secondary_voltage",
+          "value_type": "NUMBER",
+          "value": "0.6",
+          "unit": "kV",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "equipment": "e1"
+        }
+      ]
+    }
+  ]
+}

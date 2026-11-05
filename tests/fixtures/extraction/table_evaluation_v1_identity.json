@@ -1,0 +1,36 @@
+{
+  "evaluation_rules_hash": "842e8c23b77379af1781f846edda77d1c4c7e7e19011f0c93958719a4ae43ed8",
+  "corpus_sha256": "9c4622cf22cfa3017242bed5cefd6dacf205c4f8ffd08ac51f8814524c74e3b3",
+  "resources": {
+    "manifest": "c19982254fa1d7d640d2a989be2acbc9ac26864e6414349bf49ea8d4636bc8f6",
+    "grounding": {
+      "version": "table-grounding-interpretation-v1",
+      "rules_hash": "3458ebd06f271ab669f96629e5cf5a566cbdb8de5b28408a1d275f667e164ebe",
+      "layout": {
+        "version": "table-layout-observations-v1",
+        "rules_hash": "23dc0e390bfc252f90f7675ef1bef1d4e85dae0bfe3c1ef9d04d139a56380556",
+        "metadata_version": "table-source-metadata-v1",
+        "metadata_schema_hash": "89a24c57240dc7281935eff24a7a7fb3648401694cdfab33054c9373ebe52f95",
+        "context_version": "table-observation-context-v1"
+      },
+      "source_rules": {
+        "version": "engineering-grounding-v1",
+        "rules_hash": "091706197d044d6ffc5f5212b6a459524f961d4b48dab4e8ac66c9dc13de8eee"
+      },
+      "meaning_rules": {
+        "version": "engineering-interpretation-v1",
+        "rules_hash": "058e80e3c771510d83e6f59dace505420a5dcb0971444ebee0d2624330f8ef05",
+        "registry_projection_hash": "41ede97ee551463a293c7e56353ef7ce66db2963797d8b96fde3ba52bf36c7aa",
+        "terminology_hash": "599ded5c5ecedb872a4a8478533bf621997550cec66af16bc9cc7b3b842a3829"
+      }
+    }
+  },
+  "frozen_6c_files": {
+    "packages/extraction/src/powerforge_extraction/evaluation.py": "e16060eca32e4963cda06468cbe08d8bccf4542ecd55a4008f248ffacd9fbaea",
+    "packages/extraction/src/powerforge_extraction/evaluation_scoring.py": "36fa114ba1a5c6f252508ffb971f6647ee690e5741e48bfcfe1887c38a77390e",
+    "packages/extraction/src/powerforge_extraction/eval.py": "18445649d1e39cbd0c0daca16f5b16e55b8ec4c74be6f6dc19a588d9ad0dc5e6",
+    "evals/extraction/v1/corpus.json": "7564f3c8741e4264aed634cefd31592d7d130f095543889a1d387aeae4ea94be",
+    "evals/extraction/v1/scripted.json": "577cf7a26f888f738bc301dcb3cbcbd16b709bf422636cb689f2f31e274f4ebf",
+    "evals/extraction/v1/scripted-report.json": "b0aa299394a2b9e70c7b012cefb0b35ce78c5b1c658caec437eea3c6669fb812"
+  }
+}

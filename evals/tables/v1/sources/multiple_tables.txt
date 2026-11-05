@@ -1,0 +1,6 @@
+2-Winding Transformer Normal
+Equipment|Secondary (V)
+TX-1|600
+2-Winding Transformer Standby
+Equipment|Secondary (V)
+TX-2|480

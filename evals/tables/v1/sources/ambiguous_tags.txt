@@ -1,0 +1,3 @@
+2-Winding Transformer Schedule
+Equipment|Secondary (V)
+TX-1 / TX-2|600

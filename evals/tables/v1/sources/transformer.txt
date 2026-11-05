@@ -1,0 +1,4 @@
+2-Winding Transformer Schedule
+Equipment|Capacity (kVA)|Primary (kV)|Secondary (V)
+TX-1|750|12.47|600
+TX-2|500|13.8|480

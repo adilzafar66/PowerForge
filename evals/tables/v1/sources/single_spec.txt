@@ -1,0 +1,3 @@
+2-Winding Transformer Specification
+Equipment|TX-1
+Secondary Voltage (V)|690

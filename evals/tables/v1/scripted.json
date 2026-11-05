@@ -1,0 +1,6262 @@
+{
+  "version": "table-recordings-v1",
+  "provenance": "SCRIPTED_MOCK",
+  "corpus_sha256": "9c4622cf22cfa3017242bed5cefd6dacf205c4f8ffd08ac51f8814524c74e3b3",
+  "resources": {
+    "manifest": "c19982254fa1d7d640d2a989be2acbc9ac26864e6414349bf49ea8d4636bc8f6",
+    "grounding": {
+      "version": "table-grounding-interpretation-v1",
+      "rules_hash": "3458ebd06f271ab669f96629e5cf5a566cbdb8de5b28408a1d275f667e164ebe",
+      "layout": {
+        "version": "table-layout-observations-v1",
+        "rules_hash": "23dc0e390bfc252f90f7675ef1bef1d4e85dae0bfe3c1ef9d04d139a56380556",
+        "metadata_version": "table-source-metadata-v1",
+        "metadata_schema_hash": "89a24c57240dc7281935eff24a7a7fb3648401694cdfab33054c9373ebe52f95",
+        "context_version": "table-observation-context-v1"
+      },
+      "source_rules": {
+        "version": "engineering-grounding-v1",
+        "rules_hash": "091706197d044d6ffc5f5212b6a459524f961d4b48dab4e8ac66c9dc13de8eee"
+      },
+      "meaning_rules": {
+        "version": "engineering-interpretation-v1",
+        "rules_hash": "058e80e3c771510d83e6f59dace505420a5dcb0971444ebee0d2624330f8ef05",
+        "registry_projection_hash": "41ede97ee551463a293c7e56353ef7ce66db2963797d8b96fde3ba52bf36c7aa",
+        "terminology_hash": "599ded5c5ecedb872a4a8478533bf621997550cec66af16bc9cc7b3b842a3829"
+      }
+    }
+  },
+  "cases": {
+    "transformer": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1",
+              "r2"
+            ],
+            "columns": [
+              "v0",
+              "v1",
+              "v2",
+              "v3"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Capacity (kVA)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Capacity (kVA)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_2",
+                "row": 0,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Primary (kV)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Primary (kV)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_3",
+                "row": 0,
+                "column": 3,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "750",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "750",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_2",
+                "row": 1,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "12.47",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "12.47",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_3",
+                "row": 1,
+                "column": 3,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_3"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_0",
+                "row": 2,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-2",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-2",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_1",
+                "row": 2,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "500",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "500",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_2",
+                "row": 2,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "13.8",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "13.8",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_3",
+                "row": 2,
+                "column": 3,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "480",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_3"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "480",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "eq2",
+            "table_ref": "t1",
+            "raw_expression": "TX-2",
+            "source_refs": [
+              "c2_0",
+              "title"
+            ],
+            "observed_tag": "TX-2",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "750",
+            "source_label": null,
+            "raw_value": "750",
+            "raw_unit": "kVA",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "rated_apparent_power",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_2",
+            "label_refs": [
+              "c0_2"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "12.47",
+            "source_label": null,
+            "raw_value": "12.47",
+            "raw_unit": "kV",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "primary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a3",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_3",
+            "label_refs": [
+              "c0_3"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a4",
+            "table_ref": "t1",
+            "equipment_ref": "eq2",
+            "value_cell_ref": "c2_3",
+            "label_refs": [
+              "c0_3"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "480",
+            "source_label": null,
+            "raw_value": "480",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "breaker": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "LV Breaker thermal-magnetic schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "LV Breaker thermal-magnetic schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1",
+              "v2"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Rating",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Rating",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_2",
+                "row": 0,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Normally Closed",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Normally Closed",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "CB-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "CB-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "400 AF / 250 AT",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "400 AF / 250 AT",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_2",
+                "row": 1,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "No",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "No",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "LV Breaker thermal-magnetic schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "CB-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "CB-1",
+            "observed_name": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "400 AF",
+            "source_label": null,
+            "raw_value": "400",
+            "raw_unit": "AF",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "frame_rating",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "250 AT",
+            "source_label": null,
+            "raw_value": "250",
+            "raw_unit": "AT",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "trip_rating",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a3",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_2",
+            "label_refs": [
+              "c0_2"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "No",
+            "source_label": null,
+            "raw_value": "No",
+            "raw_unit": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "normally_closed",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "cable": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "Cable Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "Cable Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1",
+              "v2",
+              "v3",
+              "v4"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Length (ft)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Length (ft)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_2",
+                "row": 0,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Conductor Material",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Conductor Material",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_3",
+                "row": 0,
+                "column": 3,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Conductor Size",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Conductor Size",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_4",
+                "row": 0,
+                "column": 4,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Parallel Run Count",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Parallel Run Count",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "C-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "C-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "250",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "250",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_2",
+                "row": 1,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Copper",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Copper",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_3",
+                "row": 1,
+                "column": 3,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "4/0 AWG",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_3"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "4/0 AWG",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_4",
+                "row": 1,
+                "column": 4,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "9007199254740993",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_4"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "9007199254740993",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Cable Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "C-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "C-1",
+            "observed_name": null,
+            "proposed_equipment_type": "CABLE",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "250",
+            "source_label": null,
+            "raw_value": "250",
+            "raw_unit": "ft",
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "length",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_2",
+            "label_refs": [
+              "c0_2"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "Copper",
+            "source_label": null,
+            "raw_value": "Copper",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "conductor_material",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a3",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_3",
+            "label_refs": [
+              "c0_3"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "4/0 AWG",
+            "source_label": null,
+            "raw_value": "4/0 AWG",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "conductor_size",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a4",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_4",
+            "label_refs": [
+              "c0_4"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "9007199254740993",
+            "source_label": null,
+            "raw_value": "9007199254740993",
+            "raw_unit": null,
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "parallel_run_count",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "utility": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "Utility Source Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "Utility Source Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1",
+              "v2",
+              "v3",
+              "v4"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Three-Phase Fault Current (kA)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Three-Phase Fault Current (kA)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_2",
+                "row": 0,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "SLG Fault Current (kA)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "SLG Fault Current (kA)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_3",
+                "row": 0,
+                "column": 3,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Three-Phase X/R",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Three-Phase X/R",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_4",
+                "row": 0,
+                "column": 4,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "SLG X/R",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "SLG X/R",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "U-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "U-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "25",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "25",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_2",
+                "row": 1,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "18",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "18",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_3",
+                "row": 1,
+                "column": 3,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "10",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_3"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "10",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_4",
+                "row": 1,
+                "column": 4,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "8",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_4"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "8",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Utility Source Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "U-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "U-1",
+            "observed_name": null,
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "25",
+            "source_label": null,
+            "raw_value": "25",
+            "raw_unit": "kA",
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "proposed_attribute_key": "three_phase_fault_current",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_2",
+            "label_refs": [
+              "c0_2"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "18",
+            "source_label": null,
+            "raw_value": "18",
+            "raw_unit": "kA",
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "proposed_attribute_key": "slg_fault_current",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a3",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_3",
+            "label_refs": [
+              "c0_3"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "10",
+            "source_label": null,
+            "raw_value": "10",
+            "raw_unit": null,
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "proposed_attribute_key": "three_phase_x_r",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a4",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_4",
+            "label_refs": [
+              "c0_4"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "8",
+            "source_label": null,
+            "raw_value": "8",
+            "raw_unit": null,
+            "proposed_equipment_type": "UTILITY_SOURCE",
+            "proposed_attribute_key": "slg_x_r",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "single_spec": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "ATTRIBUTE_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Specification",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Specification",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "ROW",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary Voltage (V)",
+                "header_role": "ROW",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary Voltage (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "690",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c1_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "690",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Specification",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c0_1",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c1_0"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "690",
+            "source_label": null,
+            "raw_value": "690",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "tagless_spec": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "ATTRIBUTE_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary Voltage (V)",
+                "header_role": "ROW",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary Voltage (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "2-Winding Transformer",
+            "source_refs": [
+              "title"
+            ],
+            "observed_tag": null,
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c0_1",
+            "label_refs": [
+              "c0_0"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "mixed_equipment": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "Equipment Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "Equipment Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1",
+              "r2"
+            ],
+            "columns": [
+              "v0",
+              "v1",
+              "v2"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Type",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Type",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_2",
+                "row": 0,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "2-Winding Transformer",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "2-Winding Transformer",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_2",
+                "row": 1,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_0",
+                "row": 2,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "CB-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "CB-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_1",
+                "row": 2,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "LV Breaker",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "LV Breaker",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_2",
+                "row": 2,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "400",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "400",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Equipment Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "eq2",
+            "table_ref": "t1",
+            "raw_expression": "CB-1",
+            "source_refs": [
+              "c2_0"
+            ],
+            "observed_tag": "CB-1",
+            "observed_name": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_2",
+            "label_refs": [
+              "c0_2"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": "eq2",
+            "value_cell_ref": "c2_2",
+            "label_refs": [
+              "c0_2"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "400",
+            "source_label": null,
+            "raw_value": "400",
+            "raw_unit": "V",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "repeated_tags": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1",
+              "r2",
+              "r3"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_0",
+                "row": 2,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_1",
+                "row": 2,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c3_0",
+                "row": 3,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c3_1",
+                "row": 3,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "480",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "480",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "eq2",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c3_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": "eq2",
+            "value_cell_ref": "c3_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "480",
+            "source_label": null,
+            "raw_value": "480",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "blank_value": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "BLANK",
+                "raw_text": "",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1|",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": []
+      }
+    },
+    "ambiguous_tags": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1 / TX-2",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1 / TX-2",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1 / TX-2",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "conditional_values": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600 V Normal / 480 V Standby",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600 V Normal / 480 V Standby",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600 V Normal",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "480 V Standby",
+            "source_label": null,
+            "raw_value": "480",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "conflicting_values": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1",
+              "r2"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_0",
+                "row": 2,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_1",
+                "row": 2,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "480",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "480",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "eq2",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c2_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": "eq2",
+            "value_cell_ref": "c2_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "480",
+            "source_label": null,
+            "raw_value": "480",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "wrong_row_proposal": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1",
+              "r2"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_0",
+                "row": 2,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-2",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-2",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_1",
+                "row": 2,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "480",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "480",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "eq2",
+            "table_ref": "t1",
+            "raw_expression": "TX-2",
+            "source_refs": [
+              "c2_0",
+              "title"
+            ],
+            "observed_tag": "TX-2",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c2_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "480",
+            "source_label": null,
+            "raw_value": "480",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "unknown_type": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "Quantum Regulator Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "Quantum Regulator Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Rating (A)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Rating (A)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Q-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Q-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "400",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "400",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Quantum Regulator Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "Q-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "Q-1",
+            "observed_name": null,
+            "proposed_equipment_type": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "400",
+            "source_label": null,
+            "raw_value": "400",
+            "raw_unit": "A",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "tag_prefix_only": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "Equipment Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "Equipment Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Equipment Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "invalid_value": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "Cable Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "Cable Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Length",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Length",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "C-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "C-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "10 furlong",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "10 furlong",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Cable Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "C-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "C-1",
+            "observed_name": null,
+            "proposed_equipment_type": "CABLE",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "10 furlong",
+            "source_label": null,
+            "raw_value": "10",
+            "raw_unit": "furlong",
+            "proposed_equipment_type": "CABLE",
+            "proposed_attribute_key": "length",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "breaker_visual": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "LV Breaker thermal-magnetic schedule",
+              "anchors": [
+                {
+                  "kind": "VISUAL_PAGE",
+                  "source_ref": "analysis_image",
+                  "quote": null,
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Rating",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "CB-2",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "400 AF / 250 AT",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "CB-2",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "CB-2",
+            "observed_name": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "400 AF",
+            "source_label": null,
+            "raw_value": "400",
+            "raw_unit": "AF",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "frame_rating",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "250 AT",
+            "source_label": null,
+            "raw_value": "250",
+            "raw_unit": "AT",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "trip_rating",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "hierarchical_merged": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "LV Breaker thermal-magnetic schedule",
+              "anchors": [
+                {
+                  "kind": "VISUAL_PAGE",
+                  "source_ref": "analysis_image",
+                  "quote": null,
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1",
+              "r2"
+            ],
+            "columns": [
+              "v0",
+              "v1",
+              "v2"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 2,
+                "state": "VALUE",
+                "raw_text": "Breaker Ratings",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Frame (A)",
+                "header_role": "COLUMN",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_2",
+                "row": 1,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Trip (A)",
+                "header_role": "COLUMN",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_0",
+                "row": 2,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "CB-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_1",
+                "row": 2,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "400",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1",
+                  "c1_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_2",
+                "row": 2,
+                "column": 2,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "250",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1",
+                  "c1_2"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "CB-1",
+            "source_refs": [
+              "c2_0",
+              "title"
+            ],
+            "observed_tag": "CB-1",
+            "observed_name": null,
+            "proposed_equipment_type": "LV_BREAKER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c2_1",
+            "label_refs": [
+              "c1_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "400",
+            "source_label": null,
+            "raw_value": "400",
+            "raw_unit": "A",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "frame_rating",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c2_2",
+            "label_refs": [
+              "c1_2"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "250",
+            "source_label": null,
+            "raw_value": "250",
+            "raw_unit": "A",
+            "proposed_equipment_type": "LV_BREAKER",
+            "proposed_attribute_key": "trip_rating",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "missing_cell": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "VISUAL_PAGE",
+                  "source_ref": "analysis_image",
+                  "quote": null,
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1",
+              "r2"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c2_0",
+                "row": 2,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-2",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "eq2",
+            "table_ref": "t1",
+            "raw_expression": "TX-2",
+            "source_refs": [
+              "c2_0",
+              "title"
+            ],
+            "observed_tag": "TX-2",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "mixed_orientation": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "MIXED",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "Equipment data",
+              "anchors": [
+                {
+                  "kind": "VISUAL_PAGE",
+                  "source_ref": "analysis_image",
+                  "quote": null,
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600 V",
+                "header_role": "NONE",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "CB-1",
+                "header_role": "NONE",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "400 A",
+                "header_role": "NONE",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": null,
+            "value_cell_ref": "c0_1",
+            "label_refs": [
+              "c0_0"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600 V",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": null,
+            "proposed_attribute_key": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "multiple_tables": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Normal",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Normal",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Normal",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "t2",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Standby",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Standby",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-2",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-2",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "480",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "480",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Standby",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "eq2",
+            "table_ref": "t2",
+            "raw_expression": "TX-2",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-2",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          },
+          {
+            "local_ref": "a2",
+            "table_ref": "t2",
+            "equipment_ref": "eq2",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "480",
+            "source_label": null,
+            "raw_value": "480",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "negative_tabular": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "UNCLASSIFIED",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "Purchase checklist",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "Purchase checklist",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Code",
+                "header_role": "NONE",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Code",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Quantity",
+                "header_role": "NONE",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Quantity",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "Purchase checklist",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [],
+        "attributes": []
+      }
+    },
+    "no_table": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": []
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [],
+        "attributes": []
+      }
+    },
+    "failed_reconstruction": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": true,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "failed_interpretation": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": true,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "pdf_native_unresolved": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "NATIVE_TEXT",
+                  "source_ref": "native_text",
+                  "quote": "2-Winding Transformer Schedule",
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "NATIVE_TEXT",
+                "source_ref": "native_text",
+                "quote": "2-Winding Transformer Schedule",
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    },
+    "pdf_hybrid": {
+      "reconstruction": {
+        "schema_version": "table-reconstruction-schema-v1",
+        "overflowed": false,
+        "tables": [
+          {
+            "local_ref": "t1",
+            "proposed_kind": "EQUIPMENT_ROWS",
+            "title": {
+              "local_ref": "title",
+              "raw_text": "2-Winding Transformer Schedule",
+              "anchors": [
+                {
+                  "kind": "VISUAL_PAGE",
+                  "source_ref": "analysis_image",
+                  "quote": null,
+                  "prefix": null,
+                  "suffix": null
+                }
+              ],
+              "ambiguous": false,
+              "ambiguity_reason": null
+            },
+            "notes": [],
+            "rows": [
+              "r0",
+              "r1"
+            ],
+            "columns": [
+              "v0",
+              "v1"
+            ],
+            "cells": [
+              {
+                "local_ref": "c0_0",
+                "row": 0,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Equipment",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Equipment",
+                    "prefix": null,
+                    "suffix": null
+                  },
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c0_1",
+                "row": 0,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "Secondary (V)",
+                "header_role": "COLUMN",
+                "header_refs": [],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "Secondary (V)",
+                    "prefix": null,
+                    "suffix": null
+                  },
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_0",
+                "row": 1,
+                "column": 0,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "TX-1",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_0"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "TX-1",
+                    "prefix": null,
+                    "suffix": null
+                  },
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              },
+              {
+                "local_ref": "c1_1",
+                "row": 1,
+                "column": 1,
+                "row_span": 1,
+                "column_span": 1,
+                "state": "VALUE",
+                "raw_text": "600",
+                "header_role": "NONE",
+                "header_refs": [
+                  "c0_1"
+                ],
+                "anchors": [
+                  {
+                    "kind": "NATIVE_TEXT",
+                    "source_ref": "native_text",
+                    "quote": "600",
+                    "prefix": null,
+                    "suffix": null
+                  },
+                  {
+                    "kind": "VISUAL_PAGE",
+                    "source_ref": "analysis_image",
+                    "quote": null,
+                    "prefix": null,
+                    "suffix": null
+                  }
+                ],
+                "ambiguous": false,
+                "ambiguity_reason": null
+              }
+            ],
+            "anchors": [
+              {
+                "kind": "VISUAL_PAGE",
+                "source_ref": "analysis_image",
+                "quote": null,
+                "prefix": null,
+                "suffix": null
+              }
+            ],
+            "truncated": false,
+            "truncation_reason": null,
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      },
+      "interpretation": {
+        "schema_version": "table-interpretation-schema-v1",
+        "overflowed": false,
+        "equipment": [
+          {
+            "local_ref": "eq1",
+            "table_ref": "t1",
+            "raw_expression": "TX-1",
+            "source_refs": [
+              "c1_0",
+              "title"
+            ],
+            "observed_tag": "TX-1",
+            "observed_name": null,
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ],
+        "attributes": [
+          {
+            "local_ref": "a1",
+            "table_ref": "t1",
+            "equipment_ref": "eq1",
+            "value_cell_ref": "c1_1",
+            "label_refs": [
+              "c0_1"
+            ],
+            "unit_refs": [],
+            "qualifier_refs": [],
+            "raw_expression": "600",
+            "source_label": null,
+            "raw_value": "600",
+            "raw_unit": "V",
+            "proposed_equipment_type": "TWO_WINDING_TRANSFORMER",
+            "proposed_attribute_key": "secondary_voltage",
+            "ambiguous": false,
+            "ambiguity_reason": null
+          }
+        ]
+      }
+    }
+  }
+}
