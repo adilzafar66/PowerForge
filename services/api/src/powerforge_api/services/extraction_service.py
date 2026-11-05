@@ -56,12 +56,17 @@ from powerforge_extraction.profiles import read_profile
 from powerforge_provenance.locations import Region
 
 
-def _evidence_summary(row: Evidence) -> EvidenceSummary:
+def _evidence_summary(row: Evidence, artifact_type: str | None = None) -> EvidenceSummary:
     precision = "PAGE_ONLY"
     if row.source_kind in {"NATIVE_TEXT", "OCR_TEXT"}:
         precision = "TEXT_OFFSETS" if row.text_start is not None else "TEXT_PAGE"
     elif row.source_kind == "VISUAL_REGION":
         precision = "VISUAL_REGION" if row.x is not None else "VISUAL_PAGE"
+    elif row.source_kind == "TABLE_CELL":
+        if artifact_type == "NATIVE_TEXT" and row.source_snippet is not None:
+            precision = "TEXT_OFFSETS" if row.text_start is not None else "TEXT_PAGE"
+        elif artifact_type == "ANALYSIS_IMAGE":
+            precision = "VISUAL_REGION" if row.x is not None else "VISUAL_PAGE"
     return EvidenceSummary(
         **EvidenceSummary.model_validate(row).model_dump(exclude={"grounding_precision"}),
         grounding_precision=precision,
@@ -292,11 +297,26 @@ class ExtractionReadService:
             if rows
             else []
         )
+        artifact_types = (
+            dict(
+                self.session.execute(
+                    select(PageArtifact.id, PageArtifact.artifact_type).where(
+                        PageArtifact.id.in_(
+                            [e.page_artifact_id for _, e in links if e.source_kind == "TABLE_CELL"]
+                        )
+                    )
+                ).all()
+            )
+            if links
+            else {}
+        )
         grouped = {}
         for link, evidence in links:
             grouped.setdefault(link.candidate_id, []).append(
                 Citation(
-                    evidence=_evidence_summary(evidence),
+                    evidence=_evidence_summary(
+                        evidence, artifact_types.get(evidence.page_artifact_id)
+                    ),
                     role=link.role,
                     position=link.position,
                 )
@@ -374,7 +394,7 @@ class ExtractionReadService:
             raise RevisionDocumentNotFound("Extraction evidence not found")
         self._run(row.run_id)
         page = self.session.get(DocumentPage, row.document_page_id)
-        url = None
+        url, artifact = None, None
         if row.page_artifact_id:
             artifact = self.session.get(PageArtifact, row.page_artifact_id)
             try:
@@ -388,7 +408,7 @@ class ExtractionReadService:
             except StorageError as exc:
                 raise StorageDownloadFailed("Evidence artifact access unavailable") from exc
         return EvidenceDetail(
-            **_evidence_summary(row).model_dump(),
+            **_evidence_summary(row, artifact.artifact_type if artifact else None).model_dump(),
             run_id=row.run_id,
             document_id=row.document_id,
             processing_run_id=row.processing_run_id,

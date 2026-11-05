@@ -1,12 +1,12 @@
 # Phase 6D implementation plan — Tables and schedules
 
-**Status:** approved for M1, which is implemented and has passed its offline gate. M2–M4 remain pending milestone review. Actual delivery, identities, bounds and checks: [M1 handoff](PHASE6D_M1_HANDOFF.md). Date: 2026-11-05 (America/Vancouver).
+**Status:** M1 and M2 implemented; M2 awaits review before M3. M3–M4 remain pending. Actual delivery, identities, bounds and checks: [M1 handoff](PHASE6D_M1_HANDOFF.md) and [M2 handoff](PHASE6D_M2_HANDOFF.md). Date: 2026-11-05 (America/Vancouver).
 
 **Baseline:** planning refreshed `origin/main` at `ce12a8f2d26a18f3935450eaaa59552435d8925a`, including all accepted 6C work and the live-evaluation provenance correction. Implementation branch `codex/phase-6d-tables-schedules` was created after M1 approval from refreshed `main` at planning commit `1b0afd11a34e35c3bb682b5af28f348f64371587`, carrying the approved review clarifications. The user-supplied 6D prompt is preserved unchanged.
 
 **Authority:** [6D prompt](prompts/phase-6d-prompt.md), [approved Phase 6 specification](specs/phase-6-evidence-structured-extraction.md), [ADR-008](../decisions/ADR-008-evidence-candidate-extraction-architecture.md), accepted [6A](PHASE6A_HANDOFF.md), [6B](PHASE6B_HANDOFF.md), [6C plan](PHASE6C_PLAN.md) and [6C handoff](PHASE6C_HANDOFF.md). Current extraction/provenance/architecture/roadmap documentation and the actual contracts, database guards, execution, provider, interpretation and tests were inspected. Historical documents and frozen registry-v1 remain unchanged.
 
-**Approved design choice:** the first 6D production profile is table-only, as explicitly confirmed by the user. Extracting both tables and ordinary prose from a document requires separate runs: a 6D table run and an existing 6C engineering run. Neither run replaces or combines the other's results. The four proposed milestones are retained, sequentially, with a review gate after each. No combined table/prose workflow is included in this release. M1 was subsequently authorized explicitly; that does not authorize starting M2–M4 without their review gates.
+**Approved design choice:** the first 6D production profile is table-only, as explicitly confirmed by the user. Extracting both tables and ordinary prose from a document requires separate runs: a 6D table run and an existing 6C engineering run. Neither run replaces or combines the other's results. The four proposed milestones are retained, sequentially, with a review gate after each. No combined table/prose workflow is included in this release. M1 and M2 were subsequently authorized explicitly; M3–M4 still require their review gates.
 
 ## 1. Selected architecture
 
@@ -195,6 +195,8 @@ Deliver exact-source admission with separate text/structure reliability, the str
 
 **Gate:** deterministic native and visually limited fixtures produce correct layouts, claims and citations. Prove TX-1/TX-2 isolation, single-equipment table scope, explicit type context, tagless/unknown/detached observations, header-unit normalization, exact large integers/Decimal/false/enums/text, ambiguous Rating/qualifiers, AF/AT separation, conflicting/blank cells and no guessed defaults. Wrong local IDs, forged structure, mismatched modality/occurrence, unrelated captions and foreign/active/failed/page-mismatched upstream references cannot establish ownership. Image-only output has no fabricated offsets/geometry. Real disposable PostgreSQL publication/read tests prove atomic rollback, committed upstream reuse, locator integrity, historical artifact signing and immutable outputs. No production OpenAI/orchestration registration yet.
 
+**Delivered:** exact pinned reconstruction admission, separate text/structure reliability, structured-cell registry interpretation, source-local groups, existing layout/evidence/candidate conversion, committed-context revalidation, table/cell publication ownership checks and honest evidence precision through existing APIs. Deterministic and real disposable PostgreSQL tests exercise associations, normalization, rollback, immutable history and artifact signing. Production profiles/orchestration remain unregistered. See [PHASE6D_M2_HANDOFF.md](PHASE6D_M2_HANDOFF.md) for actual validation and conservative limits.
+
 ### M3 — Production profiles, OpenAI and fixed-plan orchestration
 
 Deliver v4 table profiles and explicit stage/runtime/provider dispatch through the existing coordinator, worker and APIs. Pin context, model, transport and resource limits. Add durable dependent execution, empty-table settlement, dependency-aware retry/partial completion and safe production discovery under existing opt-in controls. Implement the retained-resource compatibility strategy before shared fingerprinted edits. The gate also requires the cross-profile summary/history/result-access cases defined in section 7; selecting a newer table summary must not make the earlier 6C results inaccessible.
@@ -240,4 +242,4 @@ The profile-ownership question is resolved as an **approved design choice: table
 
 No other architectural blocker is currently identified. M1 has finalized measured offline bounds and schema/resource names within this reviewed design. An incompatibility with accepted registry, immutability, provenance or execution guarantees must be brought back as a specific architecture decision rather than silently resolved by weakening those guarantees.
 
-**Stop for M1 review before M2.** Only offline M1 definitions are delivered. Production configuration, database, provider execution and M2–M4 implementation remain unchanged/pending; Phase 6D is not complete.
+**Stop for M2 review before M3.** M1 definitions and M2 grounding/interpretation/publication are delivered. Production table configuration, provider execution and M3–M4 implementation remain pending; Phase 6D is not complete.

@@ -16,7 +16,13 @@ from sqlalchemy.orm import Session
 from powerforge_document_model import PageArtifactType, ProcessingRunStatus
 from powerforge_document_processing.models import DocumentPage, DocumentProcessingRun, PageArtifact
 from powerforge_document_processing.storage.base import ObjectStorage
-from powerforge_extraction.contracts import AICallInput, RunInput, WorkUnitInput, WorkUnitOutput
+from powerforge_extraction.contracts import (
+    AICallInput,
+    EvidenceInput,
+    RunInput,
+    WorkUnitInput,
+    WorkUnitOutput,
+)
 from powerforge_extraction.enums import CandidateKind, ExtractionRunStatus, WorkUnitStatus
 from powerforge_extraction.models import (
     CandidateEvidence,
@@ -268,6 +274,7 @@ class ExtractionPersistence:
         return char_count
 
     def _validate_references(self, run_id: UUID, unit_id: UUID, output: WorkUnitOutput) -> None:
+        table_reference_cache = {}
         for item in [*output.source_groups, *output.tables]:
             for evidence_id in item.evidence_ids:
                 e = self.session.get(Evidence, evidence_id)
@@ -282,10 +289,7 @@ class ExtractionPersistence:
                 ):
                     raise ValueError("Grouping evidence must be committed in the same run")
         for e in output.evidence:
-            if e.cell_id is not None:
-                table = self.session.get(ExtractedTable, e.table_id)
-                if table is None or e.cell_id not in {c["id"] for c in table.layout["cells"]}:
-                    raise ValueError("Unknown source table cell")
+            self._validate_table_evidence(run_id, unit_id, e, table_reference_cache)
         for c in output.candidates:
             for model, ref in [
                 (SourceGroup, c.source_group_id),
@@ -318,3 +322,83 @@ class ExtractionPersistence:
                 )
             ):
                 raise ValueError("Invalid candidate evidence ownership")
+            self._validate_table_evidence(run_id, unit_id, evidence, table_reference_cache)
+
+    def _validate_table_evidence(self, run_id: UUID, unit_id: UUID, evidence, cache: dict) -> None:
+        if evidence.table_id is None:
+            if evidence.source_kind == "TABLE_CELL":
+                raise ValueError("Table-cell evidence requires a table/cell locator")
+            return
+        if ("checked", evidence.id) in cache:
+            return
+
+        def cached(model, uid):
+            key = (model, uid)
+            if key not in cache:
+                cache[key] = self.session.get(model, uid)
+            return cache[key]
+
+        unit = cached(ExtractionWorkUnit, unit_id)
+        table = cached(ExtractedTable, evidence.table_id)
+        producer = cached(ExtractionWorkUnit, table.work_unit_id) if table else None
+        if (
+            table is None
+            or table.run_id != run_id
+            or producer is None
+            or (
+                table.processing_run_id != unit.processing_run_id
+                or producer.id != unit.id
+                and producer.status != WorkUnitStatus.COMPLETED
+            )
+        ):
+            raise ValueError("Table evidence requires an owned, committed table producer")
+        if unit.stage == "TABLE_INTERPRETATION" and (
+            producer.stage != "TABLE_RECONSTRUCTION"
+            or producer.page_numbers != unit.page_numbers
+            or set(producer.input_artifact_ids) != set(unit.input_artifact_ids)
+        ):
+            raise ValueError("Table interpretation requires its planned page/artifact producer")
+        locations = table.source_locations
+        if evidence.source_kind == "TABLE_CELL" and evidence.cell_id is None:
+            raise ValueError("Table-cell evidence requires a table/cell locator")
+        if evidence.cell_id is not None:
+            cells = [c for c in table.layout["cells"] if c["id"] == evidence.cell_id]
+            if len(cells) != 1:
+                raise ValueError("Unknown source table cell")
+            if cells[0].get("location") is not None:
+                locations = [cells[0]["location"]]
+            # A hybrid cell may explicitly cite both immutable representations.
+            # These server-authored locators are rederived by the 6D context loader.
+            metadata = table.layout.get("metadata", {})
+            if (
+                isinstance(metadata.get("producer"), dict)
+                and metadata["producer"].get("version") == "table-grounding-interpretation-v1"
+            ):
+                locations = metadata.get("cell_source_locations", {}).get(
+                    evidence.cell_id, locations
+                )
+        location = evidence.location if isinstance(evidence, EvidenceInput) else None
+        page_id = location.document_page_id if location else evidence.document_page_id
+        artifact_id = location.page_artifact_id if location else evidence.page_artifact_id
+        page = cached(DocumentPage, page_id)
+        if (
+            page is None
+            or page.page_number not in unit.page_numbers
+            or (
+                artifact_id is not None
+                and (
+                    str(artifact_id) not in unit.input_artifact_ids
+                    or str(artifact_id) not in producer.input_artifact_ids
+                )
+            )
+            or not any(
+                loc["document_page_id"] == str(page_id)
+                and (
+                    loc.get("page_artifact_id") is None
+                    or loc["page_artifact_id"] == str(artifact_id)
+                )
+                for loc in locations
+            )
+        ):
+            raise ValueError("Table/cell evidence differs from pinned page/artifact ownership")
+        cache["checked", evidence.id] = True

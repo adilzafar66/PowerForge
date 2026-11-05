@@ -1,0 +1,21 @@
+{
+  "version": "table-grounding-interpretation-v1",
+  "rules_hash": "ba58d0688482185bd32f6e43417caa8bcf1bc949fb221bcc29612fd2b9884040",
+  "layout": {
+    "version": "table-layout-observations-v1",
+    "rules_hash": "23dc0e390bfc252f90f7675ef1bef1d4e85dae0bfe3c1ef9d04d139a56380556",
+    "metadata_version": "table-source-metadata-v1",
+    "metadata_schema_hash": "89a24c57240dc7281935eff24a7a7fb3648401694cdfab33054c9373ebe52f95",
+    "context_version": "table-observation-context-v1"
+  },
+  "source_rules": {
+    "version": "engineering-grounding-v1",
+    "rules_hash": "091706197d044d6ffc5f5212b6a459524f961d4b48dab4e8ac66c9dc13de8eee"
+  },
+  "meaning_rules": {
+    "version": "engineering-interpretation-v1",
+    "rules_hash": "058e80e3c771510d83e6f59dace505420a5dcb0971444ebee0d2624330f8ef05",
+    "registry_projection_hash": "41ede97ee551463a293c7e56353ef7ce66db2963797d8b96fde3ba52bf36c7aa",
+    "terminology_hash": "599ded5c5ecedb872a4a8478533bf621997550cec66af16bc9cc7b3b842a3829"
+  }
+}
