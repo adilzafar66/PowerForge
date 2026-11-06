@@ -8,7 +8,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 UI-C visual fidelity rework follows the approved Projects/Revisions HTML layouts, including register toolbars, unified project details/revision activity, revision summary/workspaces/information, creation guidance rails, and edit sheets. Existing API/query/lifecycle safeguards remain. Validation: 291 frontend tests; desktop/mobile browser comparison; lint, TypeScript and production build. Necessary real-data and accessibility deviations are documented in the UI-C handoff.
 
-**Current engineering work:** Phase 6D M1–M4 table contracts, grounding, interpretation/publication, opt-in production execution and independent table evaluation implemented for review. M4 passes 100 new tests and its extraction-wheel checks; previously verified M3 full/integration checks are carried forward at the user's request. See [PHASE6D_PLAN.md](PHASE6D_PLAN.md) and [PHASE6D_HANDOFF.md](PHASE6D_HANDOFF.md). Phase 6C remains delivered with live-model quality unverified.
+**Current engineering work:** Phase 6E M1 pure spatial source/geometry/offset/binding contracts and typed OCR protocol implemented for review. All 92 focused tests pass with no skips; provenance/AI wheels reproduce new identities and accepted v1–v4 wires/resources plus both frozen 6C/6D reports. Actual OCR, durable enrichment and enhanced extraction remain M2–M5. See [PHASE6E_PLAN.md](PHASE6E_PLAN.md) and [PHASE6E_M1_HANDOFF.md](PHASE6E_M1_HANDOFF.md). Phase 6C/6D remain delivered with live-model quality unverified.
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -392,9 +392,15 @@ M2 delivery adds exact source admission, structured-cell interpretation, committ
 
 Validation: **79 M1 offline cases pass within 340 related passing tests**, including the entirely unreadable-value-cell review correction, with two integration cases explicitly deselected and six existing dependency warnings in 2.64 seconds. A 512-cell schedule's context is 98,355 bytes within the 128 KiB bound. Extraction wheel/direct imports reproduce new resources, unchanged v1/v2/v3 profile/runtime identities and the complete 6C scripted report. Lint, formatting, dependency and whitespace checks pass. No database/provider/worker/frontend test or live paid call was performed. M2 source grounding, registry interpretation and publication are delivered in the subsequent milestone below. See [PHASE6D_M1_HANDOFF.md](PHASE6D_M1_HANDOFF.md).
 
+## Phase 6E — OCR/layout (M1 foundation)
+
+**M1 implemented for review (2026-11-06).** New pure contracts preserve separate native/OCR representations, immutable producer/artifact/page identities, exact Unicode occurrences and conditional shared-origin mappings. Explicit crop/scale/mirror/quarter-turn transforms and token/native-primitive support can resolve geometry while structure remains UNRESOLVED and printed text is not independently verified. Typed positioned OCR requests/results preserve raw words, engine confidence and local usage without running an engine.
+
+Validation: **92 focused tests pass, no skips or warnings, in 0.70 seconds**. Six authored contract fixtures, a 3,708,510-byte minimal 20,000-token body, independent UTF-8 overflow rejection, pure imports and 130 accepted file hashes are checked. Built provenance/AI wheels reproduce the new resources and accepted v1–v4 identities and both full 6C/6D reports. Lint/formatting/dependency/whitespace checks pass. No actual OCR/native adapter, migration, API/worker/frontend change, infrastructure integration or paid call occurred. Enrichment-before-extraction, coherent future 6F guidance, every-path purpose separation and observable eligibility remain the approved design; M2–M5 are pending. Full details: [PHASE6E_M1_HANDOFF.md](PHASE6E_M1_HANDOFF.md).
+
 ## Later phases
 
-Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and 6C M1–M6 are implemented; live-model evaluation remains outstanding; 6D M1–M4 are implemented for review and 6E–6G remain unimplemented. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and 6C M1–M6 are implemented; live-model evaluation remains outstanding; 6D M1–M4 and 6E M1 are implemented for review; actual OCR/enhanced extraction in 6E M2–M5 and 6F–6G remain pending. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -413,7 +419,7 @@ Phase 5A through 5G and the authoring refinement remain complete and frozen. Pha
 | 6A | Evidence and extraction persistence/read APIs | Implemented (2026-11-02) |
 | 6B | Orchestration, provider infrastructure and execution reliability | Implemented (2026-11-03) |
 | 6C | Engineering equipment/attribute extraction | M1–M6 implemented; live quality unverified |
-| 6D–6G | Tables, OCR, UI/evaluation and hardening | 6D M1–M4 implemented for review; live quality unmeasured; 6E–6G pending |
+| 6D–6G | Tables, OCR, UI/evaluation and hardening | 6D delivered; 6E M1 contracts implemented for review; actual OCR and M2–M5/6F–6G pending; live quality unmeasured |
 | 6.5 | Spreadsheet ingestion after 6G and before 7 | Deferred; unimplemented |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |

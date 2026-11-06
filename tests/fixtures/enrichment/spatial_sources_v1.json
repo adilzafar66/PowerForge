@@ -1,0 +1,1712 @@
+{
+  "version": "spatial-contract-fixtures-v1",
+  "provenance": "SYNTHETIC_AUTHORED_CONTRACTS",
+  "cases": [
+    {
+      "id": "native_repeated",
+      "description": "Authored native producer shape: repeated readings have separate offsets/boxes.",
+      "text": "TX-1\n600\n600",
+      "prepared": {
+        "version": "prepared-source-page-v1",
+        "id": "0666e386-8315-54ff-b530-4b70f65493a2",
+        "owner": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+          "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+          "page_number": 1
+        },
+        "original": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "sha256": "b0fe90aa5bb5b4068f3524be8844bb6309ac341e48e23eef951d60535b547d1a",
+          "size_bytes": 43,
+          "format": "pdf"
+        },
+        "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+        "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+        "preparation_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "page_frame": {
+          "unit": "PDF_POINTS",
+          "width": "500",
+          "height": "500",
+          "origin_x": "0",
+          "origin_y": "0"
+        },
+        "base_artifacts": [
+          {
+            "kind": "PAGE_ARTIFACT",
+            "id": "3ba5b58f-6bb1-527c-9b2e-f8a7099b189d",
+            "owner": {
+              "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+              "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+              "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+              "page_number": 1
+            },
+            "role": "ANALYSIS_IMAGE",
+            "sha256": "9d15aa05109934e971bbb6bff2e27e19a874443612b61695a3019dd0b3d4eef9",
+            "size_bytes": 44,
+            "width_px": 1000,
+            "height_px": 1000
+          }
+        ],
+        "derived_images": [],
+        "representations": [
+          {
+            "ref": "native",
+            "text_artifact": {
+              "kind": "ENRICHMENT_ARTIFACT",
+              "id": "523ffb2d-26ac-557e-a871-d2212e905f3c",
+              "owner": {
+                "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+                "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+                "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+                "page_number": 1
+              },
+              "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+              "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+              "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+              "role": "NATIVE_POSITIONED_TEXT",
+              "sha256": "4f3ecf60dbf3bec35b81780bf3eed30bbb5a0d93e71b5eaa14a62f211c0ac31f",
+              "size_bytes": 12,
+              "width_px": null,
+              "height_px": null
+            },
+            "geometry_artifact": {
+              "kind": "ENRICHMENT_ARTIFACT",
+              "id": "28e82729-cc62-5db2-ac51-850bed2be714",
+              "owner": {
+                "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+                "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+                "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+                "page_number": 1
+              },
+              "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+              "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+              "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+              "role": "POSITIONED_READINGS",
+              "sha256": "f01557ce55a333ba86f1aa7dbc48f4109eb5afc571d6cf99cc1bba4473e9f985",
+              "size_bytes": 2745,
+              "width_px": null,
+              "height_px": null
+            },
+            "producer_sha256": "bfc0ac432474d1bef5140b76a56a45e1abf367b9eeb96ffdc8157fd1517d6a18",
+            "character_count": 12,
+            "token_count": 3,
+            "line_count": 3,
+            "block_count": 1,
+            "primitive_count": 0
+          }
+        ],
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT",
+        "ocr_reason": "AUTHORED_CONTRACT_CASE",
+        "text_coverage": "UNKNOWN",
+        "limitations": []
+      },
+      "positioned": {
+        "version": "positioned-text-v1",
+        "id": "28e82729-cc62-5db2-ac51-850bed2be714",
+        "owner": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+          "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+          "page_number": 1
+        },
+        "producer": {
+          "version": "source-producer-v1",
+          "kind": "NATIVE_PDF",
+          "adapter": "authored-contract-fixture",
+          "adapter_version": "1",
+          "engine": "fixture-not-a-live-engine",
+          "engine_version": "fixture-1",
+          "build_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        "text_artifact": {
+          "kind": "ENRICHMENT_ARTIFACT",
+          "id": "523ffb2d-26ac-557e-a871-d2212e905f3c",
+          "owner": {
+            "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+            "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+            "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+            "page_number": 1
+          },
+          "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+          "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+          "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+          "role": "NATIVE_POSITIONED_TEXT",
+          "sha256": "4f3ecf60dbf3bec35b81780bf3eed30bbb5a0d93e71b5eaa14a62f211c0ac31f",
+          "size_bytes": 12,
+          "width_px": null,
+          "height_px": null
+        },
+        "input_image": null,
+        "transform": {
+          "version": "upright-orthogonal-transform-v1",
+          "source_frame": {
+            "unit": "PDF_POINTS",
+            "width": "1000",
+            "height": "1000",
+            "origin_x": "0",
+            "origin_y": "0"
+          },
+          "target_frame": {
+            "unit": "PDF_POINTS",
+            "width": "500",
+            "height": "500",
+            "origin_x": "0",
+            "origin_y": "0"
+          },
+          "source_region": {
+            "x": "0",
+            "y": "0",
+            "width": "1000",
+            "height": "1000"
+          },
+          "target_region": {
+            "x": "0",
+            "y": "0",
+            "width": "500",
+            "height": "500"
+          },
+          "rotation_degrees": 0,
+          "mirror_x": false,
+          "mirror_y": false
+        },
+        "serialization": "native-emission-v1",
+        "offset_convention": "UNICODE_CODEPOINT",
+        "tokens": [
+          {
+            "ref": "w0",
+            "raw_text": "TX-1",
+            "span": {
+              "start": 0,
+              "end": 4
+            },
+            "engine_order": 0,
+            "source_box": {
+              "x": "100",
+              "y": "100",
+              "width": "100",
+              "height": "20"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          },
+          {
+            "ref": "w1",
+            "raw_text": "600",
+            "span": {
+              "start": 5,
+              "end": 8
+            },
+            "engine_order": 1,
+            "source_box": {
+              "x": "100",
+              "y": "200",
+              "width": "100",
+              "height": "20"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          },
+          {
+            "ref": "w2",
+            "raw_text": "600",
+            "span": {
+              "start": 9,
+              "end": 12
+            },
+            "engine_order": 2,
+            "source_box": {
+              "x": "100",
+              "y": "300",
+              "width": "100",
+              "height": "20"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          }
+        ],
+        "lines": [
+          {
+            "ref": "line0",
+            "engine_order": 0,
+            "token_refs": [
+              "w0"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line1",
+            "engine_order": 1,
+            "token_refs": [
+              "w1"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line2",
+            "engine_order": 2,
+            "token_refs": [
+              "w2"
+            ],
+            "direction": null
+          }
+        ],
+        "blocks": [
+          {
+            "ref": "block",
+            "engine_order": 0,
+            "line_refs": [
+              "line0",
+              "line1",
+              "line2"
+            ]
+          }
+        ],
+        "native_primitives": []
+      },
+      "expected_support": {
+        "ref": "w1",
+        "region": {
+          "x": "0.1",
+          "y": "0.2",
+          "width": "0.1",
+          "height": "0.02"
+        },
+        "basis": "PDF_NATIVE_GEOMETRY"
+      }
+    },
+    {
+      "id": "ocr_uncertain_not_corrected",
+      "description": "Synthetic OCR reading retains letter O; no recognition or engineering normalization occurred.",
+      "text": "TX-1\n75O kVA\n400 AF / 250 AT",
+      "prepared": {
+        "version": "prepared-source-page-v1",
+        "id": "0666e386-8315-54ff-b530-4b70f65493a2",
+        "owner": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+          "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+          "page_number": 1
+        },
+        "original": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "sha256": "444ca8a401cd331bedf0d28200fd99d3f8b4a6ba38d262d9ce0b3e82af1c9099",
+          "size_bytes": 59,
+          "format": "pdf"
+        },
+        "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+        "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+        "preparation_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "page_frame": {
+          "unit": "PDF_POINTS",
+          "width": "500",
+          "height": "500",
+          "origin_x": "0",
+          "origin_y": "0"
+        },
+        "base_artifacts": [
+          {
+            "kind": "PAGE_ARTIFACT",
+            "id": "3ba5b58f-6bb1-527c-9b2e-f8a7099b189d",
+            "owner": {
+              "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+              "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+              "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+              "page_number": 1
+            },
+            "role": "ANALYSIS_IMAGE",
+            "sha256": "9d15aa05109934e971bbb6bff2e27e19a874443612b61695a3019dd0b3d4eef9",
+            "size_bytes": 44,
+            "width_px": 1000,
+            "height_px": 1000
+          }
+        ],
+        "derived_images": [],
+        "representations": [
+          {
+            "ref": "ocr",
+            "text_artifact": {
+              "kind": "ENRICHMENT_ARTIFACT",
+              "id": "987414d2-5be5-5e39-8a25-1c17a9dff971",
+              "owner": {
+                "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+                "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+                "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+                "page_number": 1
+              },
+              "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+              "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+              "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+              "role": "OCR_TEXT",
+              "sha256": "2cf7ba61afcbe74eba086cdf01e5f0f2ba7db6fc5041fc6fa85d37f1c5c63524",
+              "size_bytes": 28,
+              "width_px": null,
+              "height_px": null
+            },
+            "geometry_artifact": {
+              "kind": "ENRICHMENT_ARTIFACT",
+              "id": "34ed7836-7e9f-5b34-8d09-c59527317de5",
+              "owner": {
+                "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+                "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+                "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+                "page_number": 1
+              },
+              "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+              "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+              "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+              "role": "POSITIONED_READINGS",
+              "sha256": "9afed26fa6b6666d38b38383db1e2e2f3a353806581c7d8d2e5d0049518f31b8",
+              "size_bytes": 3148,
+              "width_px": null,
+              "height_px": null
+            },
+            "producer_sha256": "2451def152aac459c48f016fceae0d7666dc0cb87b11a5167fad02ddd9bdabd1",
+            "character_count": 28,
+            "token_count": 3,
+            "line_count": 3,
+            "block_count": 1,
+            "primitive_count": 0
+          }
+        ],
+        "ocr_decision": "RUN",
+        "ocr_reason": "AUTHORED_CONTRACT_CASE",
+        "text_coverage": "UNKNOWN",
+        "limitations": []
+      },
+      "positioned": {
+        "version": "positioned-text-v1",
+        "id": "34ed7836-7e9f-5b34-8d09-c59527317de5",
+        "owner": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+          "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+          "page_number": 1
+        },
+        "producer": {
+          "version": "source-producer-v1",
+          "kind": "OCR",
+          "adapter": "authored-contract-fixture",
+          "adapter_version": "1",
+          "engine": "fixture-not-a-live-engine",
+          "engine_version": "fixture-1",
+          "build_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        "text_artifact": {
+          "kind": "ENRICHMENT_ARTIFACT",
+          "id": "987414d2-5be5-5e39-8a25-1c17a9dff971",
+          "owner": {
+            "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+            "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+            "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+            "page_number": 1
+          },
+          "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+          "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+          "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+          "role": "OCR_TEXT",
+          "sha256": "2cf7ba61afcbe74eba086cdf01e5f0f2ba7db6fc5041fc6fa85d37f1c5c63524",
+          "size_bytes": 28,
+          "width_px": null,
+          "height_px": null
+        },
+        "input_image": {
+          "kind": "PAGE_ARTIFACT",
+          "id": "3ba5b58f-6bb1-527c-9b2e-f8a7099b189d",
+          "owner": {
+            "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+            "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+            "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+            "page_number": 1
+          },
+          "role": "ANALYSIS_IMAGE",
+          "sha256": "9d15aa05109934e971bbb6bff2e27e19a874443612b61695a3019dd0b3d4eef9",
+          "size_bytes": 44,
+          "width_px": 1000,
+          "height_px": 1000
+        },
+        "transform": {
+          "version": "upright-orthogonal-transform-v1",
+          "source_frame": {
+            "unit": "PIXELS",
+            "width": "1000",
+            "height": "1000",
+            "origin_x": "0",
+            "origin_y": "0"
+          },
+          "target_frame": {
+            "unit": "PDF_POINTS",
+            "width": "500",
+            "height": "500",
+            "origin_x": "0",
+            "origin_y": "0"
+          },
+          "source_region": {
+            "x": "0",
+            "y": "0",
+            "width": "1000",
+            "height": "1000"
+          },
+          "target_region": {
+            "x": "0",
+            "y": "0",
+            "width": "500",
+            "height": "500"
+          },
+          "rotation_degrees": 0,
+          "mirror_x": false,
+          "mirror_y": false
+        },
+        "serialization": "ocr-engine-lines-v1",
+        "offset_convention": "UNICODE_CODEPOINT",
+        "tokens": [
+          {
+            "ref": "w0",
+            "raw_text": "TX-1",
+            "span": {
+              "start": 0,
+              "end": 4
+            },
+            "engine_order": 0,
+            "source_box": {
+              "x": "100",
+              "y": "100",
+              "width": "100",
+              "height": "20"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          },
+          {
+            "ref": "w1",
+            "raw_text": "75O kVA",
+            "span": {
+              "start": 5,
+              "end": 12
+            },
+            "engine_order": 1,
+            "source_box": {
+              "x": "100",
+              "y": "200",
+              "width": "100",
+              "height": "20"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          },
+          {
+            "ref": "w2",
+            "raw_text": "400 AF / 250 AT",
+            "span": {
+              "start": 13,
+              "end": 28
+            },
+            "engine_order": 2,
+            "source_box": {
+              "x": "100",
+              "y": "300",
+              "width": "100",
+              "height": "20"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          }
+        ],
+        "lines": [
+          {
+            "ref": "line0",
+            "engine_order": 0,
+            "token_refs": [
+              "w0"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line1",
+            "engine_order": 1,
+            "token_refs": [
+              "w1"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line2",
+            "engine_order": 2,
+            "token_refs": [
+              "w2"
+            ],
+            "direction": null
+          }
+        ],
+        "blocks": [
+          {
+            "ref": "block",
+            "engine_order": 0,
+            "line_refs": [
+              "line0",
+              "line1",
+              "line2"
+            ]
+          }
+        ],
+        "native_primitives": []
+      },
+      "expected_support": {
+        "ref": "w1",
+        "region": {
+          "x": "0.1",
+          "y": "0.2",
+          "width": "0.1",
+          "height": "0.02"
+        },
+        "basis": "OCR_ENGINE_GEOMETRY"
+      }
+    },
+    {
+      "id": "unicode",
+      "description": "Authored Unicode/combining characters; offsets are Unicode codepoints.",
+      "text": "TX-α 😀\né / é\n4/0 AWG",
+      "prepared": {
+        "version": "prepared-source-page-v1",
+        "id": "0666e386-8315-54ff-b530-4b70f65493a2",
+        "owner": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+          "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+          "page_number": 1
+        },
+        "original": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "sha256": "49f76324a86c102e5e5d93e5613d476ce31abb257fba9b7d0098cd210a34d1a9",
+          "size_bytes": 58,
+          "format": "pdf"
+        },
+        "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+        "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+        "preparation_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "page_frame": {
+          "unit": "PDF_POINTS",
+          "width": "500",
+          "height": "500",
+          "origin_x": "0",
+          "origin_y": "0"
+        },
+        "base_artifacts": [
+          {
+            "kind": "PAGE_ARTIFACT",
+            "id": "3ba5b58f-6bb1-527c-9b2e-f8a7099b189d",
+            "owner": {
+              "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+              "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+              "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+              "page_number": 1
+            },
+            "role": "ANALYSIS_IMAGE",
+            "sha256": "9d15aa05109934e971bbb6bff2e27e19a874443612b61695a3019dd0b3d4eef9",
+            "size_bytes": 44,
+            "width_px": 1000,
+            "height_px": 1000
+          }
+        ],
+        "derived_images": [],
+        "representations": [
+          {
+            "ref": "native",
+            "text_artifact": {
+              "kind": "ENRICHMENT_ARTIFACT",
+              "id": "523ffb2d-26ac-557e-a871-d2212e905f3c",
+              "owner": {
+                "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+                "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+                "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+                "page_number": 1
+              },
+              "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+              "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+              "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+              "role": "NATIVE_POSITIONED_TEXT",
+              "sha256": "0400c18109be0ad94d5c5beb78ef59b02b10fd725bb10354c342e60a8c151dfe",
+              "size_bytes": 27,
+              "width_px": null,
+              "height_px": null
+            },
+            "geometry_artifact": {
+              "kind": "ENRICHMENT_ARTIFACT",
+              "id": "28e82729-cc62-5db2-ac51-850bed2be714",
+              "owner": {
+                "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+                "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+                "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+                "page_number": 1
+              },
+              "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+              "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+              "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+              "role": "POSITIONED_READINGS",
+              "sha256": "36edd2bbbcb8dee03ab6b6142902118b6c9c3b814ab9a338e35747e335f9d5a6",
+              "size_bytes": 2762,
+              "width_px": null,
+              "height_px": null
+            },
+            "producer_sha256": "bfc0ac432474d1bef5140b76a56a45e1abf367b9eeb96ffdc8157fd1517d6a18",
+            "character_count": 21,
+            "token_count": 3,
+            "line_count": 3,
+            "block_count": 1,
+            "primitive_count": 0
+          }
+        ],
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT",
+        "ocr_reason": "AUTHORED_CONTRACT_CASE",
+        "text_coverage": "UNKNOWN",
+        "limitations": []
+      },
+      "positioned": {
+        "version": "positioned-text-v1",
+        "id": "28e82729-cc62-5db2-ac51-850bed2be714",
+        "owner": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+          "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+          "page_number": 1
+        },
+        "producer": {
+          "version": "source-producer-v1",
+          "kind": "NATIVE_PDF",
+          "adapter": "authored-contract-fixture",
+          "adapter_version": "1",
+          "engine": "fixture-not-a-live-engine",
+          "engine_version": "fixture-1",
+          "build_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        "text_artifact": {
+          "kind": "ENRICHMENT_ARTIFACT",
+          "id": "523ffb2d-26ac-557e-a871-d2212e905f3c",
+          "owner": {
+            "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+            "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+            "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+            "page_number": 1
+          },
+          "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+          "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+          "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+          "role": "NATIVE_POSITIONED_TEXT",
+          "sha256": "0400c18109be0ad94d5c5beb78ef59b02b10fd725bb10354c342e60a8c151dfe",
+          "size_bytes": 27,
+          "width_px": null,
+          "height_px": null
+        },
+        "input_image": null,
+        "transform": {
+          "version": "upright-orthogonal-transform-v1",
+          "source_frame": {
+            "unit": "PDF_POINTS",
+            "width": "1000",
+            "height": "1000",
+            "origin_x": "0",
+            "origin_y": "0"
+          },
+          "target_frame": {
+            "unit": "PDF_POINTS",
+            "width": "500",
+            "height": "500",
+            "origin_x": "0",
+            "origin_y": "0"
+          },
+          "source_region": {
+            "x": "0",
+            "y": "0",
+            "width": "1000",
+            "height": "1000"
+          },
+          "target_region": {
+            "x": "0",
+            "y": "0",
+            "width": "500",
+            "height": "500"
+          },
+          "rotation_degrees": 0,
+          "mirror_x": false,
+          "mirror_y": false
+        },
+        "serialization": "native-emission-v1",
+        "offset_convention": "UNICODE_CODEPOINT",
+        "tokens": [
+          {
+            "ref": "w0",
+            "raw_text": "TX-α 😀",
+            "span": {
+              "start": 0,
+              "end": 6
+            },
+            "engine_order": 0,
+            "source_box": {
+              "x": "100",
+              "y": "100",
+              "width": "100",
+              "height": "20"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          },
+          {
+            "ref": "w1",
+            "raw_text": "é / é",
+            "span": {
+              "start": 7,
+              "end": 13
+            },
+            "engine_order": 1,
+            "source_box": {
+              "x": "100",
+              "y": "200",
+              "width": "100",
+              "height": "20"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          },
+          {
+            "ref": "w2",
+            "raw_text": "4/0 AWG",
+            "span": {
+              "start": 14,
+              "end": 21
+            },
+            "engine_order": 2,
+            "source_box": {
+              "x": "100",
+              "y": "300",
+              "width": "100",
+              "height": "20"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          }
+        ],
+        "lines": [
+          {
+            "ref": "line0",
+            "engine_order": 0,
+            "token_refs": [
+              "w0"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line1",
+            "engine_order": 1,
+            "token_refs": [
+              "w1"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line2",
+            "engine_order": 2,
+            "token_refs": [
+              "w2"
+            ],
+            "direction": null
+          }
+        ],
+        "blocks": [
+          {
+            "ref": "block",
+            "engine_order": 0,
+            "line_refs": [
+              "line0",
+              "line1",
+              "line2"
+            ]
+          }
+        ],
+        "native_primitives": []
+      },
+      "expected_support": null
+    },
+    {
+      "id": "unsupported_geometry",
+      "description": "Unsupported geometry stays null, not a page-sized inferred box.",
+      "text": "TX-1\n600\n600",
+      "prepared": {
+        "version": "prepared-source-page-v1",
+        "id": "0666e386-8315-54ff-b530-4b70f65493a2",
+        "owner": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+          "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+          "page_number": 1
+        },
+        "original": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "sha256": "b0fe90aa5bb5b4068f3524be8844bb6309ac341e48e23eef951d60535b547d1a",
+          "size_bytes": 43,
+          "format": "pdf"
+        },
+        "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+        "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+        "preparation_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "page_frame": {
+          "unit": "PDF_POINTS",
+          "width": "500",
+          "height": "500",
+          "origin_x": "0",
+          "origin_y": "0"
+        },
+        "base_artifacts": [
+          {
+            "kind": "PAGE_ARTIFACT",
+            "id": "3ba5b58f-6bb1-527c-9b2e-f8a7099b189d",
+            "owner": {
+              "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+              "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+              "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+              "page_number": 1
+            },
+            "role": "ANALYSIS_IMAGE",
+            "sha256": "9d15aa05109934e971bbb6bff2e27e19a874443612b61695a3019dd0b3d4eef9",
+            "size_bytes": 44,
+            "width_px": 1000,
+            "height_px": 1000
+          }
+        ],
+        "derived_images": [],
+        "representations": [
+          {
+            "ref": "native",
+            "text_artifact": {
+              "kind": "ENRICHMENT_ARTIFACT",
+              "id": "523ffb2d-26ac-557e-a871-d2212e905f3c",
+              "owner": {
+                "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+                "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+                "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+                "page_number": 1
+              },
+              "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+              "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+              "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+              "role": "NATIVE_POSITIONED_TEXT",
+              "sha256": "4f3ecf60dbf3bec35b81780bf3eed30bbb5a0d93e71b5eaa14a62f211c0ac31f",
+              "size_bytes": 12,
+              "width_px": null,
+              "height_px": null
+            },
+            "geometry_artifact": {
+              "kind": "ENRICHMENT_ARTIFACT",
+              "id": "28e82729-cc62-5db2-ac51-850bed2be714",
+              "owner": {
+                "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+                "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+                "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+                "page_number": 1
+              },
+              "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+              "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+              "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+              "role": "POSITIONED_READINGS",
+              "sha256": "3a96b1d71d4f63510c5fd578dfe063ad090833c222afa4d64c701e63bedd67c4",
+              "size_bytes": 2673,
+              "width_px": null,
+              "height_px": null
+            },
+            "producer_sha256": "bfc0ac432474d1bef5140b76a56a45e1abf367b9eeb96ffdc8157fd1517d6a18",
+            "character_count": 12,
+            "token_count": 3,
+            "line_count": 3,
+            "block_count": 1,
+            "primitive_count": 0
+          }
+        ],
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT",
+        "ocr_reason": "AUTHORED_CONTRACT_CASE",
+        "text_coverage": "UNKNOWN",
+        "limitations": []
+      },
+      "positioned": {
+        "version": "positioned-text-v1",
+        "id": "28e82729-cc62-5db2-ac51-850bed2be714",
+        "owner": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+          "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+          "page_number": 1
+        },
+        "producer": {
+          "version": "source-producer-v1",
+          "kind": "NATIVE_PDF",
+          "adapter": "authored-contract-fixture",
+          "adapter_version": "1",
+          "engine": "fixture-not-a-live-engine",
+          "engine_version": "fixture-1",
+          "build_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        "text_artifact": {
+          "kind": "ENRICHMENT_ARTIFACT",
+          "id": "523ffb2d-26ac-557e-a871-d2212e905f3c",
+          "owner": {
+            "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+            "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+            "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+            "page_number": 1
+          },
+          "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+          "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+          "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+          "role": "NATIVE_POSITIONED_TEXT",
+          "sha256": "4f3ecf60dbf3bec35b81780bf3eed30bbb5a0d93e71b5eaa14a62f211c0ac31f",
+          "size_bytes": 12,
+          "width_px": null,
+          "height_px": null
+        },
+        "input_image": null,
+        "transform": {
+          "version": "upright-orthogonal-transform-v1",
+          "source_frame": {
+            "unit": "PDF_POINTS",
+            "width": "1000",
+            "height": "1000",
+            "origin_x": "0",
+            "origin_y": "0"
+          },
+          "target_frame": {
+            "unit": "PDF_POINTS",
+            "width": "500",
+            "height": "500",
+            "origin_x": "0",
+            "origin_y": "0"
+          },
+          "source_region": {
+            "x": "0",
+            "y": "0",
+            "width": "1000",
+            "height": "1000"
+          },
+          "target_region": {
+            "x": "0",
+            "y": "0",
+            "width": "500",
+            "height": "500"
+          },
+          "rotation_degrees": 0,
+          "mirror_x": false,
+          "mirror_y": false
+        },
+        "serialization": "native-emission-v1",
+        "offset_convention": "UNICODE_CODEPOINT",
+        "tokens": [
+          {
+            "ref": "w0",
+            "raw_text": "TX-1",
+            "span": {
+              "start": 0,
+              "end": 4
+            },
+            "engine_order": 0,
+            "source_box": null,
+            "source_quad": null,
+            "geometry_unavailable_reason": "UNSUPPORTED_ORIENTATION",
+            "confidence": null
+          },
+          {
+            "ref": "w1",
+            "raw_text": "600",
+            "span": {
+              "start": 5,
+              "end": 8
+            },
+            "engine_order": 1,
+            "source_box": null,
+            "source_quad": null,
+            "geometry_unavailable_reason": "UNSUPPORTED_ORIENTATION",
+            "confidence": null
+          },
+          {
+            "ref": "w2",
+            "raw_text": "600",
+            "span": {
+              "start": 9,
+              "end": 12
+            },
+            "engine_order": 2,
+            "source_box": null,
+            "source_quad": null,
+            "geometry_unavailable_reason": "UNSUPPORTED_ORIENTATION",
+            "confidence": null
+          }
+        ],
+        "lines": [
+          {
+            "ref": "line0",
+            "engine_order": 0,
+            "token_refs": [
+              "w0"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line1",
+            "engine_order": 1,
+            "token_refs": [
+              "w1"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line2",
+            "engine_order": 2,
+            "token_refs": [
+              "w2"
+            ],
+            "direction": null
+          }
+        ],
+        "blocks": [
+          {
+            "ref": "block",
+            "engine_order": 0,
+            "line_refs": [
+              "line0",
+              "line1",
+              "line2"
+            ]
+          }
+        ],
+        "native_primitives": []
+      },
+      "expected_support": {
+        "ref": "w1",
+        "region": null,
+        "basis": "NONE"
+      }
+    },
+    {
+      "id": "merged_sparse_support",
+      "description": "Native quad shape can support a merged/sparse region; no cell content or structure admission is inferred.",
+      "text": "TX-1\n600\n600",
+      "prepared": {
+        "version": "prepared-source-page-v1",
+        "id": "0666e386-8315-54ff-b530-4b70f65493a2",
+        "owner": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+          "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+          "page_number": 1
+        },
+        "original": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "sha256": "b0fe90aa5bb5b4068f3524be8844bb6309ac341e48e23eef951d60535b547d1a",
+          "size_bytes": 43,
+          "format": "pdf"
+        },
+        "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+        "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+        "preparation_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "page_frame": {
+          "unit": "PDF_POINTS",
+          "width": "500",
+          "height": "500",
+          "origin_x": "0",
+          "origin_y": "0"
+        },
+        "base_artifacts": [
+          {
+            "kind": "PAGE_ARTIFACT",
+            "id": "3ba5b58f-6bb1-527c-9b2e-f8a7099b189d",
+            "owner": {
+              "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+              "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+              "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+              "page_number": 1
+            },
+            "role": "ANALYSIS_IMAGE",
+            "sha256": "9d15aa05109934e971bbb6bff2e27e19a874443612b61695a3019dd0b3d4eef9",
+            "size_bytes": 44,
+            "width_px": 1000,
+            "height_px": 1000
+          }
+        ],
+        "derived_images": [],
+        "representations": [
+          {
+            "ref": "native",
+            "text_artifact": {
+              "kind": "ENRICHMENT_ARTIFACT",
+              "id": "523ffb2d-26ac-557e-a871-d2212e905f3c",
+              "owner": {
+                "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+                "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+                "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+                "page_number": 1
+              },
+              "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+              "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+              "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+              "role": "NATIVE_POSITIONED_TEXT",
+              "sha256": "4f3ecf60dbf3bec35b81780bf3eed30bbb5a0d93e71b5eaa14a62f211c0ac31f",
+              "size_bytes": 12,
+              "width_px": null,
+              "height_px": null
+            },
+            "geometry_artifact": {
+              "kind": "ENRICHMENT_ARTIFACT",
+              "id": "28e82729-cc62-5db2-ac51-850bed2be714",
+              "owner": {
+                "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+                "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+                "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+                "page_number": 1
+              },
+              "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+              "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+              "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+              "role": "POSITIONED_READINGS",
+              "sha256": "219f412d5d696f5d23773778bc867e257ee5aa107c0da3cac98e2430a54c7ef3",
+              "size_bytes": 2883,
+              "width_px": null,
+              "height_px": null
+            },
+            "producer_sha256": "bfc0ac432474d1bef5140b76a56a45e1abf367b9eeb96ffdc8157fd1517d6a18",
+            "character_count": 12,
+            "token_count": 3,
+            "line_count": 3,
+            "block_count": 1,
+            "primitive_count": 1
+          }
+        ],
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT",
+        "ocr_reason": "AUTHORED_CONTRACT_CASE",
+        "text_coverage": "UNKNOWN",
+        "limitations": []
+      },
+      "positioned": {
+        "version": "positioned-text-v1",
+        "id": "28e82729-cc62-5db2-ac51-850bed2be714",
+        "owner": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+          "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+          "page_number": 1
+        },
+        "producer": {
+          "version": "source-producer-v1",
+          "kind": "NATIVE_PDF",
+          "adapter": "authored-contract-fixture",
+          "adapter_version": "1",
+          "engine": "fixture-not-a-live-engine",
+          "engine_version": "fixture-1",
+          "build_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        "text_artifact": {
+          "kind": "ENRICHMENT_ARTIFACT",
+          "id": "523ffb2d-26ac-557e-a871-d2212e905f3c",
+          "owner": {
+            "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+            "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+            "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+            "page_number": 1
+          },
+          "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+          "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+          "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+          "role": "NATIVE_POSITIONED_TEXT",
+          "sha256": "4f3ecf60dbf3bec35b81780bf3eed30bbb5a0d93e71b5eaa14a62f211c0ac31f",
+          "size_bytes": 12,
+          "width_px": null,
+          "height_px": null
+        },
+        "input_image": null,
+        "transform": {
+          "version": "upright-orthogonal-transform-v1",
+          "source_frame": {
+            "unit": "PDF_POINTS",
+            "width": "1000",
+            "height": "1000",
+            "origin_x": "0",
+            "origin_y": "0"
+          },
+          "target_frame": {
+            "unit": "PDF_POINTS",
+            "width": "500",
+            "height": "500",
+            "origin_x": "0",
+            "origin_y": "0"
+          },
+          "source_region": {
+            "x": "0",
+            "y": "0",
+            "width": "1000",
+            "height": "1000"
+          },
+          "target_region": {
+            "x": "0",
+            "y": "0",
+            "width": "500",
+            "height": "500"
+          },
+          "rotation_degrees": 0,
+          "mirror_x": false,
+          "mirror_y": false
+        },
+        "serialization": "native-emission-v1",
+        "offset_convention": "UNICODE_CODEPOINT",
+        "tokens": [
+          {
+            "ref": "w0",
+            "raw_text": "TX-1",
+            "span": {
+              "start": 0,
+              "end": 4
+            },
+            "engine_order": 0,
+            "source_box": {
+              "x": "100",
+              "y": "100",
+              "width": "100",
+              "height": "20"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          },
+          {
+            "ref": "w1",
+            "raw_text": "600",
+            "span": {
+              "start": 5,
+              "end": 8
+            },
+            "engine_order": 1,
+            "source_box": {
+              "x": "100",
+              "y": "200",
+              "width": "100",
+              "height": "20"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          },
+          {
+            "ref": "w2",
+            "raw_text": "600",
+            "span": {
+              "start": 9,
+              "end": 12
+            },
+            "engine_order": 2,
+            "source_box": {
+              "x": "100",
+              "y": "300",
+              "width": "100",
+              "height": "20"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          }
+        ],
+        "lines": [
+          {
+            "ref": "line0",
+            "engine_order": 0,
+            "token_refs": [
+              "w0"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line1",
+            "engine_order": 1,
+            "token_refs": [
+              "w1"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line2",
+            "engine_order": 2,
+            "token_refs": [
+              "w2"
+            ],
+            "direction": null
+          }
+        ],
+        "blocks": [
+          {
+            "ref": "block",
+            "engine_order": 0,
+            "line_refs": [
+              "line0",
+              "line1",
+              "line2"
+            ]
+          }
+        ],
+        "native_primitives": [
+          {
+            "ref": "merged-boundary",
+            "kind": "QUAD",
+            "points": [
+              {
+                "x": "100",
+                "y": "100"
+              },
+              {
+                "x": "400",
+                "y": "100"
+              },
+              {
+                "x": "400",
+                "y": "200"
+              },
+              {
+                "x": "100",
+                "y": "200"
+              }
+            ]
+          }
+        ]
+      },
+      "expected_support": null
+    },
+    {
+      "id": "native_pdf_reference",
+      "description": "Exact existing 6D native text/original PDF hashes, with authored rounded geometry constants. No M2 parser or measured native-offset witness is claimed.",
+      "text": "2-Winding Transformer Schedule\nEquipment\nSecondary (V)\nTX-1\n600",
+      "prepared": {
+        "version": "prepared-source-page-v1",
+        "id": "0666e386-8315-54ff-b530-4b70f65493a2",
+        "owner": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+          "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+          "page_number": 1
+        },
+        "original": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "sha256": "bd21efd868337a72d5e3eeb8d8f5621635de5a22c851a6aa6eacd14776adc26a",
+          "size_bytes": 2131,
+          "format": "pdf"
+        },
+        "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+        "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+        "preparation_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+        "page_frame": {
+          "unit": "PDF_POINTS",
+          "width": "500",
+          "height": "240",
+          "origin_x": "0",
+          "origin_y": "0"
+        },
+        "base_artifacts": [
+          {
+            "kind": "PAGE_ARTIFACT",
+            "id": "3ba5b58f-6bb1-527c-9b2e-f8a7099b189d",
+            "owner": {
+              "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+              "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+              "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+              "page_number": 1
+            },
+            "role": "ANALYSIS_IMAGE",
+            "sha256": "9d15aa05109934e971bbb6bff2e27e19a874443612b61695a3019dd0b3d4eef9",
+            "size_bytes": 44,
+            "width_px": 1000,
+            "height_px": 1000
+          }
+        ],
+        "derived_images": [],
+        "representations": [
+          {
+            "ref": "native",
+            "text_artifact": {
+              "kind": "ENRICHMENT_ARTIFACT",
+              "id": "523ffb2d-26ac-557e-a871-d2212e905f3c",
+              "owner": {
+                "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+                "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+                "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+                "page_number": 1
+              },
+              "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+              "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+              "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+              "role": "NATIVE_POSITIONED_TEXT",
+              "sha256": "32cc68dd58bb26fffbbd05590a643e376e336fa2dca660322d07a63419fbc7f5",
+              "size_bytes": 63,
+              "width_px": null,
+              "height_px": null
+            },
+            "geometry_artifact": {
+              "kind": "ENRICHMENT_ARTIFACT",
+              "id": "28e82729-cc62-5db2-ac51-850bed2be714",
+              "owner": {
+                "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+                "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+                "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+                "page_number": 1
+              },
+              "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+              "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+              "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+              "role": "POSITIONED_READINGS",
+              "sha256": "c01b6756a9a24b8864693a344fd6d2e03f7f097b7e3ca2decbc06bb7d481676f",
+              "size_bytes": 3380,
+              "width_px": null,
+              "height_px": null
+            },
+            "producer_sha256": "bfc0ac432474d1bef5140b76a56a45e1abf367b9eeb96ffdc8157fd1517d6a18",
+            "character_count": 63,
+            "token_count": 5,
+            "line_count": 5,
+            "block_count": 1,
+            "primitive_count": 0
+          }
+        ],
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT",
+        "ocr_reason": "AUTHORED_CONTRACT_CASE",
+        "text_coverage": "UNKNOWN",
+        "limitations": []
+      },
+      "positioned": {
+        "version": "positioned-text-v1",
+        "id": "28e82729-cc62-5db2-ac51-850bed2be714",
+        "owner": {
+          "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+          "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+          "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+          "page_number": 1
+        },
+        "producer": {
+          "version": "source-producer-v1",
+          "kind": "NATIVE_PDF",
+          "adapter": "authored-contract-fixture",
+          "adapter_version": "1",
+          "engine": "fixture-not-a-live-engine",
+          "engine_version": "fixture-1",
+          "build_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "configuration_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        "text_artifact": {
+          "kind": "ENRICHMENT_ARTIFACT",
+          "id": "523ffb2d-26ac-557e-a871-d2212e905f3c",
+          "owner": {
+            "document_id": "9aea8a3b-5677-50d0-8f55-cdb6754c4740",
+            "processing_run_id": "0d3dbeac-22bc-55e5-9999-1afe6547f778",
+            "document_page_id": "b5594120-1010-58a2-8580-8db77292c267",
+            "page_number": 1
+          },
+          "result_id": "0666e386-8315-54ff-b530-4b70f65493a2",
+          "producer_run_id": "a6fedfa5-e840-560b-af44-2589a2696a37",
+          "producer_work_unit_id": "511281ad-b2a1-5a57-b0cb-a229a3323dbc",
+          "role": "NATIVE_POSITIONED_TEXT",
+          "sha256": "32cc68dd58bb26fffbbd05590a643e376e336fa2dca660322d07a63419fbc7f5",
+          "size_bytes": 63,
+          "width_px": null,
+          "height_px": null
+        },
+        "input_image": null,
+        "transform": {
+          "version": "upright-orthogonal-transform-v1",
+          "source_frame": {
+            "unit": "PDF_POINTS",
+            "width": "500",
+            "height": "240",
+            "origin_x": "0",
+            "origin_y": "0"
+          },
+          "target_frame": {
+            "unit": "PDF_POINTS",
+            "width": "500",
+            "height": "240",
+            "origin_x": "0",
+            "origin_y": "0"
+          },
+          "source_region": {
+            "x": "0",
+            "y": "0",
+            "width": "500",
+            "height": "240"
+          },
+          "target_region": {
+            "x": "0",
+            "y": "0",
+            "width": "500",
+            "height": "240"
+          },
+          "rotation_degrees": 0,
+          "mirror_x": false,
+          "mirror_y": false
+        },
+        "serialization": "native-emission-v1",
+        "offset_convention": "UNICODE_CODEPOINT",
+        "tokens": [
+          {
+            "ref": "w0",
+            "raw_text": "2-Winding Transformer Schedule",
+            "span": {
+              "start": 0,
+              "end": 30
+            },
+            "engine_order": 0,
+            "source_box": {
+              "x": "25",
+              "y": "17.8",
+              "width": "234.7",
+              "height": "22"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          },
+          {
+            "ref": "w1",
+            "raw_text": "Equipment",
+            "span": {
+              "start": 31,
+              "end": 40
+            },
+            "engine_order": 1,
+            "source_box": {
+              "x": "25",
+              "y": "72.1",
+              "width": "57.4",
+              "height": "16.5"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          },
+          {
+            "ref": "w2",
+            "raw_text": "Secondary (V)",
+            "span": {
+              "start": 41,
+              "end": 54
+            },
+            "engine_order": 2,
+            "source_box": {
+              "x": "245",
+              "y": "72.1",
+              "width": "76.7",
+              "height": "16.5"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          },
+          {
+            "ref": "w3",
+            "raw_text": "TX-1",
+            "span": {
+              "start": 55,
+              "end": 59
+            },
+            "engine_order": 3,
+            "source_box": {
+              "x": "25",
+              "y": "117.1",
+              "width": "26",
+              "height": "16.5"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          },
+          {
+            "ref": "w4",
+            "raw_text": "600",
+            "span": {
+              "start": 60,
+              "end": 63
+            },
+            "engine_order": 4,
+            "source_box": {
+              "x": "245",
+              "y": "117.1",
+              "width": "20",
+              "height": "16.5"
+            },
+            "source_quad": null,
+            "geometry_unavailable_reason": null,
+            "confidence": null
+          }
+        ],
+        "lines": [
+          {
+            "ref": "line0",
+            "engine_order": 0,
+            "token_refs": [
+              "w0"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line1",
+            "engine_order": 1,
+            "token_refs": [
+              "w1"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line2",
+            "engine_order": 2,
+            "token_refs": [
+              "w2"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line3",
+            "engine_order": 3,
+            "token_refs": [
+              "w3"
+            ],
+            "direction": null
+          },
+          {
+            "ref": "line4",
+            "engine_order": 4,
+            "token_refs": [
+              "w4"
+            ],
+            "direction": null
+          }
+        ],
+        "blocks": [
+          {
+            "ref": "block",
+            "engine_order": 0,
+            "line_refs": [
+              "line0",
+              "line1",
+              "line2",
+              "line3",
+              "line4"
+            ]
+          }
+        ],
+        "native_primitives": []
+      },
+      "expected_support": null
+    }
+  ]
+}

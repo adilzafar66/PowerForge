@@ -1,0 +1,22 @@
+{
+  "version": "spatial-source-contracts-v1",
+  "offset_convention": "UNICODE_CODEPOINT",
+  "coordinate_convention": "UPRIGHT_TOP_LEFT_NORMALIZED",
+  "coordinate_decimal_places": 12,
+  "max_pages": 50,
+  "max_representations": 8,
+  "max_ocr_regions": 4,
+  "max_raster_bytes": 33554432,
+  "max_raster_pixels": 20000000,
+  "max_text_characters": 200000,
+  "max_tokens": 20000,
+  "max_lines": 5000,
+  "max_blocks": 1000,
+  "max_regions": 64,
+  "max_native_primitives": 2048,
+  "max_relations": 512,
+  "max_manifest_bytes": 4194304,
+  "max_reading_characters": 2000,
+  "max_support_refs": 512,
+  "max_origin_fragments": 20000
+}
