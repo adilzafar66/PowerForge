@@ -49,7 +49,7 @@ def prepare_page(
     preparation_hash,
     profile,
     force,
-    provider,
+    provider_factory,
     before_ocr=lambda: None,
 ):
     if len(original_bytes) != original.size_bytes or sha(original_bytes) != original.sha256:
@@ -219,6 +219,7 @@ def prepare_page(
         "peak_memory_bytes": None,
     }
     if should_ocr:
+        provider = provider_factory()
         if provider.identity != profile.ocr_identity or provider.settings != profile.ocr_settings:
             raise ValueError("Configured OCR engine/data differs from pinned profile")
         if native:

@@ -42,10 +42,15 @@ class PreparationProfile(BaseModel):
 
 
 def preparation_rules():
+    """Retained v1 identity inputs; provider startup timing does not change prepared data."""
     root = files("powerforge_extraction")
     return identity_hash(
         {
-            name: hashlib.sha256(root.joinpath(name).read_bytes()).hexdigest()
+            name: hashlib.sha256(
+                root.joinpath(
+                    "runtime_resources/preparation_v1/" + name.removesuffix(".py") + ".txt"
+                ).read_bytes()
+            ).hexdigest()
             for name in (
                 "enrichment_profiles.py",
                 "enrichment_prepare.py",

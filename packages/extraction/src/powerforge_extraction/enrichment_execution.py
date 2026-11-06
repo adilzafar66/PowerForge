@@ -88,7 +88,7 @@ def execute_preparation(unit_id, factory, storage, settings, provider_factory):
                 metadata["preparation_hash"],
                 claim.profile,
                 metadata["force_ocr"],
-                provider_factory(),
+                provider_factory,
                 before_ocr,
             )
             for ref, data in output.blobs.values():

@@ -487,7 +487,7 @@ def prepared_attempt(ctx):
         metadata["preparation_hash"],
         claim.profile,
         False,
-        ctx["provider"],
+        lambda: ctx["provider"],
     )
     return claim, output
 
@@ -638,3 +638,35 @@ def test_source_input_discovery_is_read_only_and_exposes_completed_processing_id
         assert not session.scalar(
             select(ExtractionWorkUnit.id).where(ExtractionWorkUnit.document_id == ctx["document"])
         )
+
+
+@pytest.mark.parametrize("force_ocr", [False, True])
+def test_provider_initialization_is_deferred_until_ocr_is_selected(enrichment_ctx, force_ocr):
+    from powerforge_ai.ocr import OCRFailure, OCRFailureCode
+    from powerforge_extraction.enrichment_execution import execute_preparation
+
+    ctx = enrichment_ctx
+    pending = start(ctx, force_ocr_pages=[1] if force_ocr else [])
+    calls = []
+
+    def unavailable_provider():
+        calls.append(True)
+        raise OCRFailure(OCRFailureCode.ENGINE_UNAVAILABLE)
+
+    assert execute_preparation(
+        UUID(pending["attempts"][0]["id"]),
+        ctx["factory"],
+        ctx["storage"],
+        ctx["settings"],
+        unavailable_provider,
+    )
+    result = detail(ctx, pending["run"]["id"])
+    assert len(calls) == int(force_ocr)
+    assert result["ocr_requests_started"] == 0
+    if force_ocr:
+        assert result["run"]["status"] == "FAILED"
+        assert result["attempts"][0]["error_code"] == "OCR_ENGINE_UNAVAILABLE"
+        assert result["results"] == []
+    else:
+        assert result["run"]["status"] == "COMPLETED"
+        assert result["results"][0]["usage"]["ocr_invocations"] == 0

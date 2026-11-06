@@ -18,6 +18,8 @@ Migration **0014_source_enrichment** adds immutable purpose and independent `Sou
 
 ## Eligibility, coverage and limits
 
+**Hybrid PDFs may need explicit OCR selection.** A page can contain a readable native title or annotation while its equipment schedule is an embedded scan. The initial automatic policy can prepare the native text and leave that scanned schedule unread. A `COMPLETED` preparation run means the selected policy finished; it does **not** mean every part of the page was read.
+
 The implemented v1 policy uses observable facts:
 
 - Explicitly selected pages receive one whole-page OCR invocation.
@@ -27,6 +29,19 @@ The implemented v1 policy uses observable facts:
 - Native readings without observed raster images skip automatic OCR. Sparse native annotations alone do not force it. A significant vector/unknown-content page can be explicitly selected.
 
 Text coverage remains **UNKNOWN**. The proposed raster-area/text-coverage thresholds are not used. Logos/backgrounds and full native text over raster images are not automatically OCR'd; native titles over scanned schedules remain explicitly unresolved rather than being declared adequately covered. This initial policy trades automatic hybrid recall for observable decisions. Representative eligibility/layout/recognition evaluation remains M3/M5 work.
+
+When a successful page result reports `ocr_decision=EXPLICIT_SELECTION_REQUIRED` and `ocr_reason=UNKNOWN_RASTER_CONTENT_EXPLICIT_SELECTION_REQUIRED`, inspect the page. If it contains a scanned schedule or other text that needs recognition, explicitly include its page number in `force_ocr_pages`. For example, to recognize page 3, submit `POST /source-enrichment/runs` under the document-scoped prefix below, replacing the processing-run placeholder with the completed run's UUID:
+
+```json
+{
+  "processing_run_id": "<completed-processing-run-id>",
+  "pages": [3],
+  "force_ocr_pages": [3],
+  "mode": "ensure"
+}
+```
+
+This requests whole-page OCR, including the embedded scan, while retaining native and OCR readings separately. The explicit selection creates a different preparation target; an earlier completed result remains unchanged. Repeating the original request or retrying it with unchanged selections does not turn OCR on. Recognition errors can still occur, and text coverage remains UNKNOWN after OCR.
 
 This release supports explicit whole-page OCR, not operator crops. It performs at most **one recognition per page/attempt**, with no fallback loops. Selected pages are explicit, distinct, ascending and capped at 50. Original bytes are capped at 250 MiB (or the lower configured extraction document limit); image raster size at 20 million pixels/32 MiB. PDFs rasterize at up to 300 DPI, downscaled to the cap with the exact upright frame retained. Image originals use the pinned upright Phase 3 analysis PNG, including TIFF frame orientation. No missing detail is invented by upscaling.
 
@@ -88,3 +103,11 @@ Five affected package wheels build. A fresh direct-wheel process imports the new
 Verification logs/scripts were kept in temporary task files, not runtime dependencies. Disposable test databases, private scratch buckets, test workers/beat processes and the bounded acceptance container are cleaned up after verification. Existing application services/data are preserved.
 
 **Stop for M2 review.** M3 must establish independently supported alignment/conflict/layout relationships and compatible preparation reuse. M4 must add enhanced extraction/evidence consumers and every corresponding purpose/ownership guard. M5 must independently evaluate recognition/layout and perform the final regression. Functional source preparation alone does not complete Phase 6E.
+
+## M2 review — Lazy OCR provider startup
+
+`execute_preparation()` now passes a factory to `prepare_page()`, which initializes the provider only after eligibility selects OCR. Native-only pages skip executable/data discovery and hashing. The current profile still requires configured OCR identity/settings; this correction does not add a separate native-only profile or weaken validation for OCR-selected pages.
+
+Before these helper edits, the four accepted preparation identity inputs from commit `12cf793` were retained as packaged data under `runtime_resources/preparation_v1`. The v1 identity reader uses those exact inputs, preserving the existing rules/profile identity and compatible successful/active runs. The archives are never executed. Future material preparation changes require a successor version or explicit compatible retained-runtime strategy; do not edit the retained inputs.
+
+Review verification: **30 focused execution/resource/real-worker tests pass with no skips in 21.99 seconds**, including two added regressions. A native-only page completes even when its provider factory would raise `OCR_ENGINE_UNAVAILABLE`; an explicitly OCR-selected page invokes that factory and retains the safe failure with no false OCR-request marker. Existing actual OCR, publication, retry and Celery/MinIO recovery cases also pass. The extraction wheel contains all four retained inputs and reproduces the exact accepted rules hash. Lint, changed-file formatting and whitespace checks pass. No accepted fixture or profile identity was refreshed, no paid call ran, and M3 remains unstarted.
