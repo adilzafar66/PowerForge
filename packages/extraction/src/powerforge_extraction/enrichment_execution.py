@@ -48,6 +48,10 @@ def execute_preparation(unit_id, factory, storage, settings, provider_factory):
         with heartbeats(factory, claim, settings):
             started = time.monotonic()
             cpu = time.process_time()
+            if claim.profile.version == "source-layout-profile-v1":
+                from powerforge_extraction.layout_execution import preparation_claim
+
+                claim = preparation_claim(claim)
             require_preparation(claim.profile)
             with factory() as session:
                 unit = session.get(ExtractionWorkUnit, unit_id)

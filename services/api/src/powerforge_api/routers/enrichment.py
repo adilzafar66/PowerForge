@@ -26,6 +26,9 @@ from powerforge_extraction.enrichment_profiles import (
     preparation_profile,
 )
 from powerforge_extraction.enrichment_service import start_preparation
+from powerforge_extraction.errors import ExtractionError
+from powerforge_extraction.layout_profiles import LAYOUT_PROFILE, layout_profile
+from powerforge_extraction.layout_service import start_layout
 from powerforge_extraction.orchestration import ExtractionCoordinator
 
 router = APIRouter(
@@ -49,38 +52,39 @@ class StartRequest(BaseModel):
     processing_run_id: UUID
     pages: list[StrictInt] = Field(min_length=1, max_length=50)
     force_ocr_pages: list[StrictInt] = Field(default_factory=list, max_length=50)
-    profile_key: Literal["source-preparation-v1"] = PREPARATION_PROFILE
+    profile_key: Literal["source-preparation-v1", "source-layout-v1"] = PREPARATION_PROFILE
     mode: Literal["ensure", "reextract"] = "ensure"
+    prepared_result_ids: list[UUID] = Field(default_factory=list, max_length=50)
 
 
 @router.get("/profiles")
 def profiles(reader: Reader, settings: SettingsDep):
-    try:
-        profile = preparation_profile(settings)
-    except (ValueError, KeyError):
-        return dict(
-            items=[
-                dict(
-                    key=PREPARATION_PROFILE,
-                    enabled=False,
-                    reason="LOCAL_ENGINE_IDENTITY_NOT_CONFIGURED",
-                )
-            ]
-        )
-    return dict(
-        items=[
-            dict(
-                key=profile.key,
-                enabled=True,
-                profile_hash=profile.identity_hash,
-                description=(
-                    "Configured local OCR/native preparation; readiness does not verify "
-                    "an engine invocation. Separate extraction run required."
-                ),
-                text_coverage="UNKNOWN",
+    items = []
+    for key, resolver in (
+        (PREPARATION_PROFILE, preparation_profile),
+        (LAYOUT_PROFILE, layout_profile),
+    ):
+        try:
+            profile = resolver(settings)
+        except (ValueError, KeyError):
+            items.append(
+                dict(key=key, enabled=False, reason="LOCAL_ENGINE_IDENTITY_NOT_CONFIGURED")
             )
-        ]
-    )
+        else:
+            items.append(
+                dict(
+                    key=key,
+                    enabled=True,
+                    profile_hash=profile.identity_hash,
+                    stages=list(profile.stages) if key == LAYOUT_PROFILE else [profile.stage],
+                    text_coverage="UNKNOWN",
+                    description=(
+                        "Configured local source preparation/layout; readiness does not verify "
+                        "recognition. Separate extraction run required."
+                    ),
+                )
+            )
+    return dict(items=items)
 
 
 @router.get("/inputs")
@@ -132,7 +136,15 @@ def start(
     enqueue: EnqueueDep,
 ):
     with action_errors(session):
-        run = start_preparation(
+        if body.profile_key == PREPARATION_PROFILE and body.prepared_result_ids:
+            raise ExtractionError("Preparation-only requests cannot bind reused layout inputs")
+        starter = start_layout if body.profile_key == LAYOUT_PROFILE else start_preparation
+        extra = (
+            {"prepared_result_ids": body.prepared_result_ids}
+            if body.profile_key == LAYOUT_PROFILE
+            else {}
+        )
+        run = starter(
             session,
             settings,
             reader.document_id,
@@ -141,6 +153,7 @@ def start(
             body.force_ocr_pages,
             reader.revision_document_id,
             body.mode,
+            **extra,
         )
         run_id = run.id
         session.commit()
@@ -167,3 +180,30 @@ def cancel(reader: Reader, run_id: UUID, session: SessionDep, settings: Settings
         ExtractionCoordinator(session, settings).cancel(run_id, purpose=PURPOSE)
         session.commit()
         return reader.detail(run_id)
+
+
+@router.get("/runs/{run_id}/spatial-results/{result_id}")
+def spatial_result(reader: Reader, run_id: UUID, result_id: UUID):
+    with model_api_errors():
+        row, layout = reader.spatial_result(run_id, result_id)
+        return dict(
+            id=row.id,
+            prepared_result_id=row.prepared_result_id,
+            manifest_hash=row.manifest_hash,
+            manifest=layout.model_dump(mode="json"),
+            usage=row.usage,
+        )
+
+
+@router.get("/runs/{run_id}/spatial-results/{result_id}/artifact")
+def spatial_artifact(
+    reader: Reader,
+    run_id: UUID,
+    result_id: UUID,
+    storage: Annotated[ObjectStorage, Depends(get_object_storage)],
+    settings: SettingsDep,
+):
+    with model_api_errors():
+        return reader.spatial_artifact(
+            run_id, result_id, storage, settings.s3_signed_url_expires_seconds
+        )

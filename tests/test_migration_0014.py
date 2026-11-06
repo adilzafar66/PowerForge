@@ -20,7 +20,7 @@ HEAD = "0014_source_enrichment"
 
 
 def test_fresh_local_schema_has_exact_orm_columns_and_guards(scratch_url):
-    _alembic(scratch_url, "upgrade", "head")
+    _alembic(scratch_url, "upgrade", HEAD)
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == HEAD
@@ -95,13 +95,13 @@ def test_upgrade_preserves_legacy_rows_metadata_and_downgrade_round_trip(scratch
                 }
 
         before = snapshot()
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         after = snapshot()
         purpose = after["extraction_runs"][0].pop("execution_purpose")
         assert purpose == "EXTRACTION" and before == after
         _alembic(scratch_url, "downgrade", PREVIOUS)
         assert snapshot() == before
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         after = snapshot()
         after["extraction_runs"][0].pop("execution_purpose")
         assert before == after

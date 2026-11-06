@@ -90,11 +90,11 @@ celery_app.conf.beat_schedule = {
 )
 def execute_source_unit(unit_id: str) -> None:
     from extraction_worker.tesseract import TesseractProvider
-    from powerforge_extraction.enrichment_execution import execute_preparation
+    from powerforge_extraction.layout_execution import execute_enrichment
 
     settings = get_settings()
     factory = sessionmaker(bind=_engine(), autoflush=False, expire_on_commit=False)
-    execute_preparation(
+    execute_enrichment(
         UUID(unit_id),
         factory,
         build_s3_storage(settings),

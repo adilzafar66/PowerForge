@@ -417,6 +417,24 @@ class ExtractionCoordinator:
             or delivery.available_at > now
         ):
             return None
+        if profile.version == "source-layout-profile-v1":
+            from powerforge_extraction.layout_service import validate_layout_plan
+            from powerforge_extraction.layout_sources import prerequisite_unit
+
+            try:
+                validate_layout_plan(unit, profile)
+            except ValueError:
+                unit.status, unit.error_code, unit.finished_at = (
+                    US.FAILED,
+                    ErrorCode.INPUT.value,
+                    now,
+                )
+                self.session.flush()
+                self.aggregate(run)
+                return None
+            if unit.stage == "SPATIAL_LAYOUT" and prerequisite_unit(self.session, unit) is None:
+                self.aggregate(run)
+                return None
         if isinstance(profile, (EngineeringProfile, TableProfile)):
             from powerforge_extraction.stage_runtime import successful_prerequisite, validate_plan
 
@@ -480,12 +498,15 @@ class ExtractionCoordinator:
         if run.status == RS.PENDING:
             run.status, run.started_at = RS.RUNNING, now
             self.session.flush()
-        unit.status, unit.started_at, unit.heartbeat_at = US.RUNNING, now, now
-        unit.lease_expires_at = now + timedelta(
-            seconds=min(profile.lease_seconds, profile.timeout_seconds + 15)
+        timeout = (
+            profile.layout_timeout_seconds
+            if profile.version == "source-layout-profile-v1" and unit.stage == "SPATIAL_LAYOUT"
+            else profile.timeout_seconds
         )
+        unit.status, unit.started_at, unit.heartbeat_at = US.RUNNING, now, now
+        unit.lease_expires_at = now + timedelta(seconds=min(profile.lease_seconds, timeout + 15))
         delivery.token = token
-        delivery.hard_deadline_at = now + timedelta(seconds=profile.timeout_seconds + 15)
+        delivery.hard_deadline_at = now + timedelta(seconds=timeout + 15)
         control.calls_admitted += 1
         self.session.flush()
         artifact = self.session.get(PageArtifact, UUID(unit.input_artifact_ids[0]))

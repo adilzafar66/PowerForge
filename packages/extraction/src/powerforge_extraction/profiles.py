@@ -100,6 +100,10 @@ class EngineeringProfile(ExecutionProfile):
 
 def read_profile(configuration: dict) -> ExecutionProfile | EngineeringProfile:
     version = configuration.get("version")
+    if version == "source-layout-profile-v1":
+        from powerforge_extraction.layout_profiles import SourceLayoutProfile
+
+        return SourceLayoutProfile.model_validate_json(json.dumps(configuration))
     if version == "source-preparation-profile-v1":
         from powerforge_extraction.enrichment_profiles import PreparationProfile
 
