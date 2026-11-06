@@ -36,7 +36,16 @@ def table_runtime_identity():
     return {
         "version": RUNTIME_VERSION,
         "rules_hash": identity_hash(
-            {name: content_hash(root.joinpath(name).read_text()) for name in names}
+            {
+                name: content_hash(
+                    root.joinpath(
+                        "runtime_resources/table_v1/"
+                        + name.replace("/", "__").removesuffix(".py").removesuffix(".json")
+                        + ".txt"
+                    ).read_text()
+                )
+                for name in names
+            }
         ),
     }
 

@@ -18,3 +18,8 @@ class ExtractionDisabled(ExtractionError):
 
 class LeaseLost(ExtractionConflict):
     code = "extraction_lease_lost"
+
+
+class ExtractionNotFound(ExtractionError):
+    code = "extraction_not_found"
+    status_code = 404

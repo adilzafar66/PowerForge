@@ -6,11 +6,11 @@ uvicorn[standard]>=0.30
 sqlalchemy>=2.0.35
 psycopg[binary]>=3.2
 alembic>=1.13
-pydantic>=2.8
+pydantic==2.13.5
 pydantic-settings>=2.4
 redis>=5.1
 boto3>=1.36
 Pillow>=11.0
-pymupdf>=1.24
+pymupdf==1.28.2
 python-multipart>=0.0.18
 celery[redis]>=5.4

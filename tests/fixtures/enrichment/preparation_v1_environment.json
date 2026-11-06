@@ -1,0 +1,59 @@
+{
+  "version": "preparation-v1-acceptance-environment",
+  "provenance": "ACTUAL_LOCAL_CONTAINER_CONFIGURATION_NOT_ACCURACY_GOLD",
+  "platform": "linux/arm64",
+  "pydantic": "2.13.5",
+  "pymupdf": "1.28.2",
+  "tesseract_package": "5.3.0-2",
+  "eng_package": "1:4.1.0-2",
+  "configuration": {
+    "identity": {
+      "adapter_version": "tesseract-tsv-v1",
+      "build_sha256": "1c6f54fb1284fcc769249883ce5a8e2d8e18c73911f2000f65c406fe4057d21d",
+      "engine": "tesseract",
+      "engine_version": "tesseract 5.3.0",
+      "settings_sha256": "360f123e06776defc197117b26638d3d91f72a8556eb9286b1e3f9b1abd4e101"
+    },
+    "settings": {
+      "languages": [
+        {
+          "name": "eng",
+          "traineddata_sha256": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"
+        }
+      ],
+      "options": [
+        {
+          "name": "oem",
+          "value": "1"
+        },
+        {
+          "name": "psm",
+          "value": "6"
+        },
+        {
+          "name": "threads",
+          "value": "1"
+        }
+      ]
+    }
+  },
+  "preparation_rules": "65b48ad1dde6750de3887eb8519e2fa15f6946e0d22eb9ce9f6ab390f9098cae",
+  "profile_schema": "bfef23a0a44fca2b3bc9bd77a2583aad6566c0d954767aba107b4cc9bb40e0f6",
+  "retained_v4_inputs": {
+    "contracts.txt": "b3db9c9910fd999fc69b8c76fa409871fcfb4e5b3fecb3a3f29ec54e1934f643",
+    "dependencies.txt": "5c28da416946d0c2497df2888a6f94186c7017001e48a95246ff343a025b5766",
+    "enqueue.txt": "afb127f302c2f44c7026969d103a93032d4a17c516bfe10a7b070febc88e9641",
+    "errors.txt": "76b58020e4ad61a0f861f5eefdab9fe819ac9a58987de85656896f2fd40cdebd",
+    "execution.txt": "ca9faf321fbf3f71a6314f79b987f8f9e48e9d71b862380864af2ca973e9d7f5",
+    "models.txt": "f239a88117ba2eefcb872d6966054390cde0fbb95cf6f86ebc00f277bba62d9a",
+    "orchestration.txt": "43f0cec8884d1f3837825b4f4c368a063b2d802889a96cd5c30beb01da2ab8a0",
+    "profiles.txt": "036b465166ee5a512bfb123ec6d7d0804bc6f3f7d55f2c6b7def662db20bbb59",
+    "prompts__table_input_v1.txt": "f375d207354814b574279fe16ae4fdcd516204372934a55a1e9ec9b6d0a1dbe9",
+    "stage_runtime.txt": "a652b28811f4635eaf4047f27897d67ce2fd1d17bb58f680e874202dc6f3c7a5",
+    "table_execution.txt": "ffa1848dd6f601eb308ee90bd026aa4cf6b28f1355bc198ef467fe7c8382c143",
+    "table_fake.txt": "e999db9ee747107a599366d621accb86626eb60197bfc031ad57c82c4728af77",
+    "table_input.txt": "c0685d98754e721926113b0268bef711667e7363386f29f9bc28413d500764a9",
+    "table_profiles.txt": "01b65390fe451d0777b2330d7840902ba1a0e6559e0567e7989311d4e405e050",
+    "table_runtime.txt": "89cb18789ae122f293db9fc5eb38dd3fd111338b17bba0885bf90542bad17761"
+  }
+}

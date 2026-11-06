@@ -7,12 +7,13 @@ dependencies = [
     "sqlalchemy>=2.0.35",
     "boto3>=1.36",
     "Pillow>=11.0",
-    "pymupdf>=1.24",
+    "pymupdf==1.28.2",
     "celery[redis]>=5.4",
     "powerforge-shared",
     "powerforge-project",
     "powerforge-persistence",
     "powerforge-document-model",
+    "powerforge-provenance",
 ]
 
 [build-system]

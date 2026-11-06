@@ -29,9 +29,22 @@ def test_fresh_schema_matches_orm(scratch_url):
             models.ExtractionAICall,
         ]:
             actual = {c["name"]: c for c in inspector.get_columns(model.__tablename__)}
-            assert set(actual) == set(model.__table__.columns.keys())
+            current = set(model.__table__.columns.keys())
+            if model is models.ExtractionRun:
+                current.remove("execution_purpose")
+            assert set(actual) == current
             for col in model.__table__.columns:
-                assert actual[col.name]["nullable"] == col.nullable
+                if col.name == "execution_purpose":
+                    continue
+                historical_required = model is models.ExtractionRun and col.name in {
+                    "registry_version",
+                    "model",
+                    "prompt_version",
+                    "prompt_hash",
+                }
+                assert actual[col.name]["nullable"] == (
+                    False if historical_required else col.nullable
+                )
                 if hasattr(col.type, "enums"):
                     assert actual[col.name]["type"].enums == col.type.enums
     finally:

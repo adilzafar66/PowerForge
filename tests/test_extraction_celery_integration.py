@@ -41,7 +41,14 @@ def wait_for(check, seconds=25):
 
 @contextmanager
 def live_worker(
-    ctx, storage, directory, *, beat, app_module="extraction_worker.celery_app", extra_env=None
+    ctx,
+    storage,
+    directory,
+    *,
+    beat,
+    app_module="extraction_worker.celery_app",
+    extra_env=None,
+    queue="document_extraction",
 ):
     directory.mkdir(exist_ok=True)
     name = f"phase6b-{uuid4().hex[:8]}@localhost"
@@ -75,7 +82,7 @@ def live_worker(
             "--pool=solo",
             "--concurrency=1",
             "-Q",
-            "document_extraction",
+            queue,
             "--hostname",
             name,
             "--without-gossip",

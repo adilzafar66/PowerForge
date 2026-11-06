@@ -5,6 +5,7 @@ from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import Session
 
 from extraction_support import run_and_unit
+from legacy_extraction_support import historical_run_mapper
 from powerforge_document_processing.models import PageArtifact
 from powerforge_extraction.contracts import (
     CandidateEvidenceInput,
@@ -24,7 +25,7 @@ PREVIOUS = "0012_extraction_terminal_guard"
 
 
 def test_fresh_execution_schema_matches_orm(scratch_url):
-    _alembic(scratch_url, "upgrade", "head")
+    _alembic(scratch_url, "upgrade", HEAD)
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == HEAD
@@ -43,10 +44,11 @@ def test_fresh_execution_schema_matches_orm(scratch_url):
         engine.dispose()
 
 
-def test_upgrade_and_downgrade_preserve_existing_source_and_6a_guards(scratch_url):
+def test_upgrade_and_downgrade_preserve_existing_source_and_6a_guards(scratch_url, monkeypatch):
     _alembic(scratch_url, "upgrade", PREVIOUS)
     engine = create_engine(scratch_url)
     try:
+        historical_run_mapper(monkeypatch, engine)
         seeded = _seed_phase3(engine)
         with Session(engine) as session:
             artifact = PageArtifact(
@@ -118,7 +120,7 @@ def test_upgrade_and_downgrade_preserve_existing_source_and_6a_guards(scratch_ur
                 ]
 
         before = snapshot()
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert snapshot() == before
         _alembic(scratch_url, "downgrade", PREVIOUS)
         assert snapshot() == before
@@ -136,7 +138,7 @@ def test_upgrade_and_downgrade_preserve_existing_source_and_6a_guards(scratch_ur
                 )
                 == 1
             )
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert snapshot() == before
     finally:
         engine.dispose()

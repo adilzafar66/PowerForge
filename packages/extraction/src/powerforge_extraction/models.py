@@ -136,6 +136,9 @@ class ExtractionRun(Record, Base):
             postgresql_where=text("status IN ('PENDING', 'RUNNING')"),
         ),
     )
+    execution_purpose: Mapped[str] = mapped_column(
+        Text, nullable=False, server_default=text("'EXTRACTION'")
+    )
     document_id: Mapped[PyUUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     processing_run_id: Mapped[PyUUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     initiated_from_revision_document_id: Mapped[PyUUID | None] = mapped_column(UUID(as_uuid=True))
@@ -144,14 +147,14 @@ class ExtractionRun(Record, Base):
     reextracts_run_id: Mapped[PyUUID | None] = mapped_column(UUID(as_uuid=True))
     extractor_version: Mapped[str] = mapped_column(Text, nullable=False)
     schema_version: Mapped[str] = mapped_column(Text, nullable=False)
-    registry_version: Mapped[str] = mapped_column(Text, nullable=False)
+    registry_version: Mapped[str | None] = mapped_column(Text)
     profile_version: Mapped[str] = mapped_column(Text, nullable=False)
     profile_hash: Mapped[str] = mapped_column(Text, nullable=False)
     input_identity_hash: Mapped[str] = mapped_column(Text, nullable=False)
     provider: Mapped[str] = mapped_column(Text, nullable=False)
-    model: Mapped[str] = mapped_column(Text, nullable=False)
-    prompt_version: Mapped[str] = mapped_column(Text, nullable=False)
-    prompt_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    model: Mapped[str | None] = mapped_column(Text)
+    prompt_version: Mapped[str | None] = mapped_column(Text)
+    prompt_hash: Mapped[str | None] = mapped_column(Text)
     context_fingerprint: Mapped[str | None] = mapped_column(Text)
     selected_pages: Mapped[list] = mapped_column(
         JSONB, nullable=False, server_default=text("'[]'::jsonb")

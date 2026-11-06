@@ -99,6 +99,7 @@ class ExtractionReadService:
     def _runs(self) -> Select[tuple[ExtractionRun]]:
         return select(ExtractionRun).where(
             ExtractionRun.document_id == self.document_id,
+            ExtractionRun.execution_purpose == "EXTRACTION",
             or_(
                 ExtractionRun.context_revision_id.is_(None),
                 ExtractionRun.context_revision_id == self.revision_id,

@@ -53,7 +53,9 @@ def execute_work_unit(unit_id: str) -> None:
     factory = sessionmaker(bind=_engine(), autoflush=False, expire_on_commit=False)
     execute_unit(UUID(unit_id), factory, build_s3_storage(settings), settings, provider_for)
     with factory.begin() as session:
-        ExtractionCoordinator(session, settings).dispatch(CeleryExtractionEnqueue(celery_app))
+        ExtractionCoordinator(session, settings).dispatch(
+            CeleryExtractionEnqueue(celery_app), purpose=None
+        )
 
 
 @celery_app.task(name=RECOVER_TASK, ignore_result=True, soft_time_limit=60, time_limit=90)
@@ -63,7 +65,9 @@ def reconcile_extraction() -> None:
     with factory.begin() as session:
         ExtractionCoordinator(session, settings).reconcile()
     with factory.begin() as session:
-        ExtractionCoordinator(session, settings).dispatch(CeleryExtractionEnqueue(celery_app))
+        ExtractionCoordinator(session, settings).dispatch(
+            CeleryExtractionEnqueue(celery_app), purpose=None
+        )
 
 
 celery_app.conf.beat_schedule = {
@@ -74,3 +78,43 @@ celery_app.conf.beat_schedule = {
         "options": {"queue": QUEUE},
     },
 }
+
+
+@celery_app.task(
+    name="source_enrichment.execute_unit",
+    acks_late=True,
+    reject_on_worker_lost=True,
+    soft_time_limit=135,
+    time_limit=150,
+    ignore_result=True,
+)
+def execute_source_unit(unit_id: str) -> None:
+    from extraction_worker.tesseract import TesseractProvider
+    from powerforge_extraction.enrichment_execution import execute_preparation
+
+    settings = get_settings()
+    factory = sessionmaker(bind=_engine(), autoflush=False, expire_on_commit=False)
+    execute_preparation(
+        UUID(unit_id),
+        factory,
+        build_s3_storage(settings),
+        settings,
+        lambda: TesseractProvider(
+            settings.enrichment_tesseract_binary, settings.enrichment_tessdata_directory
+        ),
+    )
+    with factory.begin() as session:
+        ExtractionCoordinator(session, settings).dispatch(
+            CeleryExtractionEnqueue(celery_app), purpose=None
+        )
+
+
+if get_settings().enrichment_enabled:
+    celery_app.conf.beat_schedule = {
+        **celery_app.conf.beat_schedule,
+        "reconcile-local-source-enrichment": {
+            "task": RECOVER_TASK,
+            "schedule": get_settings().extraction_recovery_interval_seconds,
+            "options": {"queue": "source_enrichment"},
+        },
+    }

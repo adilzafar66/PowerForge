@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from extraction_support import inputs
+from legacy_extraction_support import historical_run_mapper
 from powerforge_extraction.contracts import WorkUnitInput
 from powerforge_extraction.persistence import ExtractionPersistence
 from test_migration_0006 import _alembic, _seed_phase3, _version
@@ -32,10 +33,11 @@ def test_fresh_head_includes_terminal_guard(scratch_url):
         engine.dispose()
 
 
-def test_upgrade_preserves_existing_attempts_and_downgrade_restores_0011(scratch_url):
+def test_upgrade_preserves_existing_attempts_and_downgrade_restores_0011(scratch_url, monkeypatch):
     _alembic(scratch_url, "upgrade", PREVIOUS)
     engine = create_engine(scratch_url)
     try:
+        historical_run_mapper(monkeypatch, engine)
         seeded = _seed_phase3(engine)
         with engine.begin() as conn:
             artifact = conn.execute(

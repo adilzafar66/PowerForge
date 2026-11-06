@@ -1,6 +1,9 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
+
+ARG INSTALL_OCR=false
+RUN if [ "$INSTALL_OCR" = "true" ]; then apt-get update && apt-get install -y --no-install-recommends tesseract-ocr=5.3.0-2 tesseract-ocr-eng=1:4.1.0-2 && rm -rf /var/lib/apt/lists/*; fi
 
 ARG WORKER_PACKAGE=document-worker
 ARG CELERY_APP=document_worker.celery_app
@@ -8,6 +11,8 @@ ARG CELERY_QUEUE=celery
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV OMP_THREAD_LIMIT=1
+ENV OMP_NUM_THREADS=1
 ENV CELERY_APP=${CELERY_APP}
 ENV CELERY_QUEUE=${CELERY_QUEUE}
 ENV PYTHONPATH=/app/services/worker/src
@@ -35,6 +40,7 @@ RUN pip install --no-cache-dir --upgrade pip \
             -e /app/packages/topology \
             -e /app/packages/document-model \
             -e /app/packages/document-processing \
+            -e /app/packages/provenance \
             -e /app/packages/ai \
             -e /app/packages/document-classification \
             -e /app/services/worker \

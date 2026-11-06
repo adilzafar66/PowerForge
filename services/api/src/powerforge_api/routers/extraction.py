@@ -136,7 +136,7 @@ def dispatch_committed(
     session: Session, settings: Settings, enqueue: CeleryExtractionEnqueue
 ) -> None:
     try:
-        ExtractionCoordinator(session, settings).dispatch(enqueue)
+        ExtractionCoordinator(session, settings).dispatch(enqueue, purpose=None)
         session.commit()
     except Exception as exc:
         session.rollback()

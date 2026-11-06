@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "AI provider interfaces. Domain packages must not import vendor SDKs."
 requires-python = ">=3.12"
 dependencies = [
-    "pydantic>=2.8",
+    "pydantic==2.13.5",
     "typing-extensions>=4.12",
 ]
 

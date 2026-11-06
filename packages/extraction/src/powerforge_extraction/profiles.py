@@ -100,6 +100,10 @@ class EngineeringProfile(ExecutionProfile):
 
 def read_profile(configuration: dict) -> ExecutionProfile | EngineeringProfile:
     version = configuration.get("version")
+    if version == "source-preparation-profile-v1":
+        from powerforge_extraction.enrichment_profiles import PreparationProfile
+
+        return PreparationProfile.model_validate_json(json.dumps(configuration))
     if version == "execution-profile-v1":
         return ExecutionProfile.model_validate(configuration)
     if version == "execution-profile-v2":

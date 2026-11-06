@@ -100,7 +100,8 @@ def execute_classification_run(
         raise
 
 
-require_openai_credentials(settings)
+if not settings.enrichment_worker_only:
+    require_openai_credentials(settings)
 
 
 @celery_app.task(name="extraction_worker.heartbeat")

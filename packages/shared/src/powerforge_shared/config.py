@@ -55,6 +55,13 @@ class Settings(BaseSettings):
     ai_classification_task_hard_time_limit_seconds: int = Field(default=660, gt=0)
     openai_api_key: str | None = Field(default=None, repr=False)
 
+    enrichment_enabled: bool = False
+    enrichment_ocr_configuration: str | None = None
+    enrichment_max_concurrent_global: int = Field(default=1, ge=1, le=8)
+    enrichment_tesseract_binary: str = "/usr/bin/tesseract"
+    enrichment_tessdata_directory: str = "/usr/share/tesseract-ocr/5/tessdata"
+    enrichment_worker_only: bool = False
+
     extraction_enabled: bool = True
     extraction_external_enabled: bool = False
     extraction_model: str = "gpt-6-luna"

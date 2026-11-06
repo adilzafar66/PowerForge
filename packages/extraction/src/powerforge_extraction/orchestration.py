@@ -27,6 +27,7 @@ from powerforge_extraction.errors import (
     ExtractionConflict,
     ExtractionDisabled,
     ExtractionError,
+    ExtractionNotFound,
     LeaseLost,
 )
 from powerforge_extraction.grounding import PageSpec
@@ -51,11 +52,15 @@ TRANSIENT = {
     ErrorCode.RATE_LIMIT.value,
     ErrorCode.INTERRUPTED.value,
     ErrorCode.SOURCE_UNAVAILABLE.value,
+    "OCR_TIMEOUT",
+    "OCR_INTERRUPTED",
 }
 
 
 class Enqueue(Protocol):
     def enqueue(self, unit_id: UUID) -> None: ...
+
+    def enqueue_source(self, unit_id: UUID) -> None: ...
 
 
 @dataclass(frozen=True)
@@ -234,6 +239,7 @@ class ExtractionCoordinator:
             chosen.append((page, selected_artifacts))
         compatible = select(ExtractionRun).where(
             ExtractionRun.document_id == document_id,
+            ExtractionRun.execution_purpose == "EXTRACTION",
             ExtractionRun.processing_run_id == processing.id,
             ExtractionRun.profile_hash == profile.identity_hash,
             ExtractionRun.selected_pages == selected,
@@ -265,6 +271,7 @@ class ExtractionCoordinator:
                 select(ExtractionRun)
                 .where(
                     ExtractionRun.document_id == document_id,
+                    ExtractionRun.execution_purpose == "EXTRACTION",
                     ExtractionRun.status.not_in(ACTIVE),
                     ExtractionRun.context_fingerprint.is_(None),
                 )
@@ -388,13 +395,15 @@ class ExtractionCoordinator:
         )
         self.session.flush()
 
-    def claim(self, unit_id: UUID) -> Claim | None:
+    def claim(self, unit_id: UUID, *, purpose: str = "EXTRACTION") -> Claim | None:
         # Serializes admission across processes without holding a lock during provider I/O.
         self.session.execute(text("SELECT pg_advisory_xact_lock(6006001)"))
         unit = self.session.get(ExtractionWorkUnit, unit_id)
         if unit is None:
             return None
         run = self._run(unit.run_id)
+        if run.execution_purpose != purpose:
+            return None
         control = self._execution(run.id)
         profile = read_profile(control.configuration)
         unit = self.session.get(ExtractionWorkUnit, unit_id, populate_existing=True)
@@ -436,18 +445,29 @@ class ExtractionCoordinator:
         running = list(
             self.session.execute(
                 select(ExtractionWorkUnit.run_id)
+                .join(ExtractionRun, ExtractionRun.id == ExtractionWorkUnit.run_id)
                 .join(UnitExecution, UnitExecution.work_unit_id == ExtractionWorkUnit.id)
-                .where(ExtractionWorkUnit.status == US.RUNNING)
+                .where(
+                    ExtractionWorkUnit.status == US.RUNNING,
+                    ExtractionRun.execution_purpose == purpose,
+                )
             )
         )
         if (
-            len(running) >= self.settings.extraction_max_concurrent_global
+            len(running)
+            >= (
+                self.settings.enrichment_max_concurrent_global
+                if purpose == "SOURCE_ENRICHMENT"
+                else self.settings.extraction_max_concurrent_global
+            )
             or sum(r[0] == run.id for r in running) >= profile.max_concurrent
         ):
             return None
-        if not self.settings.extraction_enabled or (
-            profile.provider == "openai" and not self.settings.extraction_external_enabled
-        ):
+        if (
+            not self.settings.enrichment_enabled
+            if run.execution_purpose == "SOURCE_ENRICHMENT"
+            else not self.settings.extraction_enabled
+        ) or (profile.provider == "openai" and not self.settings.extraction_external_enabled):
             unit.status, unit.error_code, unit.finished_at = (
                 US.FAILED,
                 ErrorCode.DISABLED.value,
@@ -569,6 +589,8 @@ class ExtractionCoordinator:
         error: str | None,
         usage: ExecutionUsage | None,
     ) -> None:
+        if profile.provider == "local":
+            return
         started = self.session.get(UnitExecution, unit.id).provider_started_at
         if started is None:
             return
@@ -702,8 +724,10 @@ class ExtractionCoordinator:
             self._append_retry(run, unit, profile, delayed=True)
         self.aggregate(run)
 
-    def retry(self, run_id: UUID) -> ExtractionRun:
+    def retry(self, run_id: UUID, *, purpose: str = "EXTRACTION") -> ExtractionRun:
         run = self._run(run_id)
+        if run.execution_purpose != purpose:
+            raise ExtractionNotFound("Run not found")
         if run.status in ACTIVE:
             return run
         if run.status in (RS.COMPLETED, RS.CANCELLED):
@@ -712,9 +736,11 @@ class ExtractionCoordinator:
             )
         control = self._execution(run.id)
         profile = read_profile(control.configuration)
-        if not self.settings.extraction_enabled or (
-            profile.provider == "openai" and not self.settings.extraction_external_enabled
-        ):
+        if (
+            not self.settings.enrichment_enabled
+            if run.execution_purpose == "SOURCE_ENRICHMENT"
+            else not self.settings.extraction_enabled
+        ) or (profile.provider == "openai" and not self.settings.extraction_external_enabled):
             raise ExtractionDisabled("Extraction provider is disabled")
         if control.calls_admitted >= profile.max_calls:
             raise ExtractionConflict(
@@ -734,8 +760,10 @@ class ExtractionCoordinator:
             self._append_retry(run, unit, profile, delayed=False)
         return run
 
-    def cancel(self, run_id: UUID) -> ExtractionRun:
+    def cancel(self, run_id: UUID, *, purpose: str = "EXTRACTION") -> ExtractionRun:
         run = self._run(run_id)
+        if run.execution_purpose != purpose:
+            raise ExtractionNotFound("Run not found")
         if run.status == RS.CANCELLED:
             return run
         if run.status == RS.COMPLETED:
@@ -807,7 +835,9 @@ class ExtractionCoordinator:
                 self.aggregate(run)
         return recovered
 
-    def dispatch(self, enqueue: Enqueue, limit: int = 100) -> int:
+    def dispatch(
+        self, enqueue: Enqueue, limit: int = 100, *, purpose: str | None = "EXTRACTION"
+    ) -> int:
         now = self.now()
         rows = list(
             self.session.scalars(
@@ -820,6 +850,7 @@ class ExtractionCoordinator:
                     UnitExecution.available_at <= now,
                     UnitExecution.dispatch_after <= now,
                     dependency_ready(),
+                    True if purpose is None else ExtractionRun.execution_purpose == purpose,
                 )
                 .order_by(UnitExecution.dispatch_after, UnitExecution.work_unit_id)
                 .limit(limit)
@@ -833,7 +864,13 @@ class ExtractionCoordinator:
             )
             delivery.dispatch_count += 1
             try:
-                enqueue.enqueue(delivery.work_unit_id)
+                delivery_purpose = self.session.get(
+                    ExtractionRun, delivery.run_id
+                ).execution_purpose
+                if delivery_purpose == "SOURCE_ENRICHMENT":
+                    enqueue.enqueue_source(delivery.work_unit_id)
+                else:
+                    enqueue.enqueue(delivery.work_unit_id)
             except Exception as exc:
                 logger.warning(
                     "extraction dispatch deferred", extra={"error_class": type(exc).__name__}
