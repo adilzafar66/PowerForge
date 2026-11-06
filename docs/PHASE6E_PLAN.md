@@ -1,0 +1,266 @@
+# Phase 6E implementation plan — OCR and spatial source enrichment
+
+**Status: planning only; awaiting review before M1.** No 6E implementation, migration, dependency installation, OCR execution or acceptance test has been performed. The five requested milestones are retained, sequentially, with a review gate after each. This document proposes architecture; it does not authorize later milestones.
+
+**Baseline:** local `main` and the fetched `origin/main` reference both identify `3d6ea4ec563efc2e2bdbdbefd8d72c17e7e9e977`, containing the full accepted 6D M1–M4 implementation. The prompt's older statement that main lacked 6D is superseded by the completed merge. The supplied [6E prompt](prompts/phase-6e-prompt.md) was already present as an untracked user file and is preserved unchanged. No implementation branch or commit is created during planning.
+
+**Authority and inspection:** the complete 6E prompt; [Phase 6 specification](specs/phase-6-evidence-structured-extraction.md); [ADR-008](../decisions/ADR-008-evidence-candidate-extraction-architecture.md); [6C handoff](PHASE6C_HANDOFF.md); [6D plan](PHASE6D_PLAN.md), [final handoff](PHASE6D_HANDOFF.md), and [M1](PHASE6D_M1_HANDOFF.md)/[M2](PHASE6D_M2_HANDOFF.md)/[M3](PHASE6D_M3_HANDOFF.md) handoffs; current architecture/extraction/provenance/roadmap/status documentation; [Phase 3 specification](specs/phase3_specs.txt) and [ADR-005](../decisions/ADR-005-document-processing-and-page-identity.md). Repository inspection covered document profiles/rendering/processing/models/storage, pure geometry, the OCR abstraction, extraction contracts/coordinator/control records/publisher, source and committed-context loaders, table semantics, runtime fingerprints, API membership/summary/evidence reads, worker packaging and both evaluators.
+
+## 1. Recommended architecture and scope
+
+Choose **Option B: independently versioned, reusable enrichment**, implemented as a distinct local job family on the existing durable extraction execution infrastructure. Keep enrichment outputs separate from engineering results. Do not extend completed Phase 3 runs, create a second scheduler or run OCR inside each model stage.
+
+```text
+Immutable Document + explicitly selected completed Phase 3 run/pages/artifacts
+    |
+    v
+Local enrichment job: SOURCE_PREPARE -> SPATIAL_LAYOUT
+    |  exact native geometry; bounded eligible OCR; separate immutable readings
+    |  supported spatial relationships; explicit ambiguity and source conflicts
+    v
+Immutable prepared-source + spatial-result bindings for each selected page
+    |                                      |
+    v                                      v
+Enhanced engineering run                 Enhanced table-only run
+EQUIPMENT_RECOGNITION                    TABLE_RECONSTRUCTION
+    -> ATTRIBUTE_EXTRACTION                 -> TABLE_INTERPRETATION
+    |                                      |
+    +-------------- Evidence + candidates/tables ----------------+
+                   existing atomic publication and history
+```
+
+M2 first exposes preparation-only jobs. M3 adds the fixed two-stage enrichment profile above, with exact prepared-result reuse. M4 introduces the two enhanced extraction profiles. Preparation never depends on registry normalization, canonical equipment or an external model.
+
+**Approved workflow:** the user explicitly selected "Require enrichment first, then start extraction." Run/reuse enrichment first, then request enhanced extraction with exact completed page-result bindings. Missing/incompatible prerequisites return a clear conflict before any model admission. Enhanced extraction does not automatically start or wait for enrichment. Automatic cross-run prerequisite scheduling and upload-triggered OCR are outside this release.
+
+Retain the approved 6D ownership decision: engineering/prose and table-only extraction require separate runs. Enrichment can be shared between them. Do not merge the two runs' candidates or alter the latest-result-across-extraction-profiles summary rule. Source-enrichment jobs must not become empty "latest extraction results" merely because their execution rows share infrastructure.
+
+Scanned PDFs, PNG/JPEG/TIFF pages, native PDFs and hybrid PDFs remain the supported ingestion formats. No spreadsheet ingestion, general dashboard/UI, canonical writes, revision frequency/phase inference, topology, physical asset identity, reconciliation, engineer verification or complete multi-page stitching enters 6E.
+
+## 2. Alternatives and why this choice
+
+**A — New Phase 3 processing configuration.** It could produce geometry/OCR together with renders and reuse the processing run/artifact ownership model. However, the existing processing run is a whole-document attempt with a limited status model, unique compatible completed target and no extraction-style per-page leases/recovery. New processing would repeat base rendering or require new cross-run artifact indirection. Its three artifact types and `(processing_run_id, page_id, artifact_type)` uniqueness do not express multiple independent enrichments of one completed base run. Changing the established processing meaning is a wider compatibility burden. Keep Phase 3's immutable outputs as inputs instead.
+
+**B — Independent enrichment, selected.** Producer/configuration and object identities are separate from both base processing and downstream model runs. Compatible extraction retries reuse completed OCR; layout-rule upgrades can reuse the compatible preparation component. Page-level atomic success survives sibling failure. It adds small source-result/artifact/binding records and an explicit execution-purpose distinction, while reusing the existing attempts, durable notifications, locks, leases, retry/cancel/reconcile and worker infrastructure. The cost is careful ownership validation across producer and consumer runs and new signed-artifact reads.
+
+**C — Enrichment repeated within extraction.** This needs fewer standalone operations initially, but couples local CPU failures and OCR versions to every model run, wastes work across prose/table profiles and retries, and makes provenance hard to inspect independently. Do not select it. Source preparation remains reusable even if a later API coordinates it automatically.
+
+**Within B, reuse execution records rather than duplicate a run state machine.** Separate enrichment run/attempt/delivery/control tables would repeat already tested orchestration. Instead, add immutable run purpose `SOURCE_ENRICHMENT`, with existing rows defaulting to `EXTRACTION`. A purpose-specific start/publish adapter uses `ExtractionCoordinator`, `ExtractionRun`, `ExtractionWorkUnit`, `RunExecution` and `UnitExecution`. Enrichment has its own output types, CPU limits and API namespace. This is independent enrichment ownership on shared execution machinery, not an engineering extractor that emits no candidates. A broader generic workflow framework is unnecessary.
+
+The existing run table has mandatory registry/model/prompt metadata designed for extraction. The new local-purpose contract will explicitly mark inapplicable fields as such, under purpose-aware database validation; it must not claim an OCR prompt, LLM model or registry dependence. Old run contracts/validation continue requiring their original values. If preserving this distinction requires substantially generalizing the coordinator rather than adding bounded family dispatch, bring that specific incompatibility back for review before M2; do not silently copy an alternate scheduler.
+
+## 3. Native geometry and OCR strategy
+
+### Native PDF adapter
+
+Use the existing PyMuPDF dependency. Inspect unsorted character/span/line/block information and word boxes; preserve original library traversal separately from a derived reading-order graph. Use PDF drawing primitives and `find_tables()` as candidate structure inputs, not trusted row ownership. No second PDF parser or automatic `pymupdf_layout` dependency is proposed. The official API documents these geometry/table facilities and page rotation transforms. [PyMuPDF Page API](https://pymupdf.readthedocs.io/en/latest/page.html)
+
+A read-only planning probe of the [committed 6D positioned PDF](../evals/tables/v1/sources/positioned_schedule.pdf), using installed PyMuPDF **1.28.2**, found eight positioned words on its 500 × 240 point page and one library-detected table. Its ordinary extracted text remains flattened. This is evidence that the needed inputs exist, not a 6E implementation or measured reliability result. M3 must establish independent geometric admission rules and demonstrate the fixture's actual improvement.
+
+Prefer native words/characters when available, retaining ligatures, Unicode and raw spelling. Nonhorizontal text keeps direction/quad information; unsupported alignment cannot establish a horizontal schedule. Do not equate library extraction order, top-left sorting or a table detector's output with an established reading order or correct table structure.
+
+Native geometry may have its own immutable text serialization. Mapping to the old Phase 3 `get_text("text").strip()` artifact requires reconstructing the same emitted character sequence, proving the exact correspondence and preserving occurrence identity. Equal words, equal whole-page hashes, a global substring search or an unproved word-order assumption alone do not establish each word's offset. Where the mapping cannot be proved, cite the new native-positioned representation and retain null legacy offsets. Never rewrite Phase 3 text to match the new order.
+
+### OCR adapter
+
+Implement one real local **Tesseract 5** adapter using its subprocess interface and positioned TSV output. TSV exposes recognized word text, hierarchy, pixel boxes and engine confidence; the provider contract will preserve these without LLM response fields. Direct invocation provides an explicit process deadline and retains native/OCR separation. PyMuPDF's integrated OCR is an alternative, but a combined text page is less suitable for the required separately identified readings and raw OCR audit. No searchable-PDF text layer is relabeled as native source text. [Tesseract CLI and TSV](https://tesseract-ocr.github.io/tessdoc/Command-Line-Usage.html)
+
+Tesseract and its selected `tessdata_fast` language data are Apache-2.0 licensed. Pin the actual engine/build identity, Leptonica identity where available, `eng.traineddata` digest, adapter/serializer versions and material options. Start with English LSTM (`--oem 1`), a fixed page segmentation mode per profile, no character whitelist and no engineering-driven spelling corrections. Disable dictionary substitutions in the selected engineering profile only as a measured, pinned setting. Unknown/negative confidence becomes null; retain the engine's scale/method rather than treating it as a probability. [Tesseract project](https://github.com/tesseract-ocr/tesseract), [language data](https://github.com/tesseract-ocr/tessdata_fast/blob/main/README.md)
+
+PaddleOCR and docTR are viable Apache-2.0 alternatives with learned OCR pipelines, but introduce model weights and larger inference-runtime/deployment choices. Their quality on these engineering documents is not known from repository evidence. Keep the typed provider boundary extensible; do not implement several engines or claim that Tesseract is the most accurate before measuring it. External OCR services add transmission, credentials and per-call controls; none is needed or enabled initially. [PaddleOCR installation](https://www.paddleocr.ai/main/en/quick_start.html), [PaddleOCR license](https://github.com/PaddlePaddle/PaddleOCR), [docTR installation](https://mindee.github.io/doctr/v0.12.0/getting_started/installing.html), [docTR license](https://github.com/mindee/doctr)
+
+Reuse the existing PyMuPDF licensing arrangement; its upstream offers AGPL/commercial licensing. This plan does not add a new commercial parser or change the repository's licensing decision. Tesseract's operating-system binary and data must be installed/pinned in the OCR-capable worker image, rather than assumed present because a Python package imports. No Tesseract executable was found on the planning host's PATH; actual OCR has not been run. [PyMuPDF licensing](https://github.com/pymupdf/PyMuPDF/blob/main/README.md#licensing)
+
+Do not invent character confidence, alternative glyphs or punctuation. `75O` is not `750`. An undetected OCR error such as a missing decimal point can remain a syntactically valid number; provenance, raw readings, conflict/uncertainty flags and independent evaluation are necessary. This phase cannot guarantee detection of every such error without independent recognition evidence. Well-grounded OCR observations may be MAPPED under the existing conservative semantic rules, while explicitly marked OCR-recognized and not independently text-verified. Low confidence alone is neither proof of error nor permission to correct a number.
+
+## 4. Contracts, coordinates and producer identities
+
+Introduce new versioned contracts; do not add defaults or source roles to accepted 6C/6D wire models:
+
+- **Source preparation profile/identity:** original Document ID/hash/size, explicitly selected completed processing run, exact base artifact descriptors, selected pages, adapter/build/language-data identities, OCR eligibility/raster/options and all material limits. Geometry/layout sub-identities are separate so changing layout rules need not repeat compatible OCR.
+- **Prepared page manifest:** stable page ID/number; immutable page-frame snapshot; source artifacts; native and OCR representations; token/line/block references; engine traversal indices; exact representation spans; optional proven legacy-text correspondence; confidence and limitations; eligibility/coverage decisions. No canonical equipment or registry fields.
+- **Positioned representation:** a hashed UTF-8 text artifact plus a bounded geometry JSON artifact. Each token identifies its own representation and half-open Unicode-codepoint `[start,end)` span, raw text, source-local occurrence, optional source box/quad, direction, engine hierarchy and raw confidence. Lines/blocks refer to tokens; avoid copying complete text into every node. Serialization separators are explicit and are not invented printed words.
+- **Spatial result:** versioned reading-order edges, native/OCR alignment relations, conflicts, scoped source regions, table/cell/header relationship observations and their exact token/line/vector support. Derivations reference the immutable prepared inputs and algorithm/settings hash. Cycles, overlapping incompatible assignments and invented members are rejected.
+- **Consumer binding:** exact prepared and spatial page-result IDs/manifests, producer identities, base processing/page/artifact identities and selected representation/region aliases. This binding is part of the extraction input identity and is immutable through retry.
+- **Source location/evidence v2:** discriminated page-artifact versus enrichment-artifact text locator, optional supported normalized region, geometry artifact/support references and separate recognition/geometry/structure reliability. Server resolvers calculate offsets/regions; models cannot assert them by emitting numbers.
+
+Use top-left normalized upright-page geometry, preserving source coordinate units and the actual transform. PDF crop/rotation matrices map unrotated PDF coordinates to the visible upright page; OCR boxes map from the exact OCR raster/crop to the same frame. Record crop origin, scaling, padding and rotation explicitly. Raster rounding tolerances are versioned. Reject nonfinite, negative, zero-size, off-page, swapped-axis and unsupported transforms; do not clamp invalid geometry into a plausible box. If positional support is unavailable, retain the observation with null geometry and an explicit reason.
+
+Use immutable producer/artifact dimensions, PDF page boxes and the selected processing artifact descriptors, not mutable `DocumentPage.native_text_char_count` or potentially newer page metadata. OCR on the pinned upright analysis image already shares its frame; a new PDF OCR raster must record and validate its transform against that frame. Arbitrary deskew, perspective correction and guessed scanner orientation are not silently applied. A later supported transform must be bounded, pinned and independently tested.
+
+Keep four independent reliability dimensions:
+
+1. **Reading:** native-PDF extraction, OCR recognition, visual report or unresolved; exact matching to a representation does not verify printed characters.
+2. **Geometry:** native document geometry, OCR-engine geometry, deterministically derived support union or none, with underlying provenance retained.
+3. **Structure:** native-geometry-supported, OCR-geometry-supported, existing delimiter support, visual-reported or unresolved. Engine boxes alone prove no row/column relationship.
+4. **Meaning:** existing registry-controlled MAPPED/UNMAPPED/INVALID interpretation; no engineer verification is implied.
+
+Version the new vocabulary rather than widening frozen `table-source-metadata-v1` into stronger semantics. Preserve OCR-derived geometry as OCR-derived even when a deterministic algorithm establishes a stable row relationship.
+
+## 5. Persistence, lifecycle and APIs
+
+### Reused foundations
+
+Keep immutable `Document`, stable `DocumentPage`, completed `DocumentProcessingRun` and existing `PageArtifact` outputs. Reuse ObjectStorage's no-overwrite/private-object rules, hashes and revision-scoped signing. The original PDF supplies native geometry; pinned Phase 3 images/text supply base page context. No enrichment writes to old processing/artifact rows or updates page metadata.
+
+Reuse `ExtractionCoordinator` attempts, `_delivery`, claim/advisory locks, heartbeats, `_authorized` lease fences, aggregate/retry/cancel/reconcile and durable notification infrastructure. Add explicit local-purpose planning/execution/completion adapters rather than route local work through `ExtractionProvider`/`ExtractionAICall`. Reuse existing table/candidate/group relations and read APIs at M4. Database output guards must still require a running authorized unit and commit output with terminal unit success.
+
+### Necessary schema extensions
+
+The existing artifact enum contains only ANALYSIS_IMAGE, THUMBNAIL and NATIVE_TEXT. PageArtifact uniqueness is per base run/page/type; its ownership cannot describe independently versioned OCR results. Evidence's composite FK points only to PageArtifact, and its offset check requires that reference. The Python publisher further permits offsets only for NATIVE_TEXT. The SQL guard's mention of OCR_TEXT does not create an OCR artifact type or a working Python path. Storing OCR in JSON metadata or calling it NATIVE_TEXT would evade these invariants.
+
+Propose these narrow records/extensions, with final names following repository conventions:
+
+- **Run purpose:** immutable `EXTRACTION` or `SOURCE_ENRICHMENT` on existing execution runs; old rows/defaults are EXTRACTION. Purpose-aware local metadata and resource admission must not weaken historical extraction checks.
+- **SourceEnrichmentPageResult:** immutable producer work-unit/run/document/base-processing/page ownership, result kind/version, preparation/layout sub-identities, canonical manifest/hash, exact prepared parent where applicable and coverage/diagnostics. Only successfully committed attempts can supply results.
+- **SourceEnrichmentArtifact:** immutable result ownership, artifact role/schema, storage key, MIME, exact size/hash and dimensions/transform where applicable. Roles include native-positioned text, OCR text, OCR input raster, positioned readings and spatial layout. One logical text representation has one authoritative text object; geometry refers to it. Token/cell records remain bounded JSON, not a relational row per token.
+- **RunSourceEnrichmentBinding:** immutable per-run/page references to compatible prepared/spatial results and their identities. Existing `input_artifact_ids` remain base PageArtifact IDs; do not insert unrelated enrichment UUIDs into that array to bypass its guards. New run/unit identity and checks include the additional binding.
+- **Evidence extensions:** nullable enrichment text-artifact FK, nullable geometry-artifact FK and bounded versioned geometry-support references on existing Evidence. For offset-bearing text, exactly one legacy page-text or enrichment-text artifact is authoritative. Composite FKs and guards enforce document/base-run/page ownership and pinned result membership; geometry support must resolve within the bound manifest. Existing normalized rectangle columns and CandidateEvidence links remain.
+
+M2 needs a forward migration from current head 0013 for purpose and enrichment outputs/bindings; M4 needs evidence/source-locator publication changes. Combine related invariants into these boundaries rather than creating migrations for every artifact role. Extend layout persistence with a new schema version when v2 locators/metadata are needed; preserve the `table-layout-v1` reader and existing TableInput validation. Do not edit past migration files or rewrite published rows.
+
+M2 preparation-only success remains immutable. M3's new fixed SOURCE_PREPARE → SPATIAL_LAYOUT profile can reuse a canonical, successfully committed preparation with the exact same preparation identity/base source. A reused preparation commits a small source receipt retaining the real producer, not a fabricated fresh OCR result. Reuse targets must resolve directly to the original prepared result, be completed, match the page/source identity and forbid cycles/unbounded indirection. Layout retry uses its committed same-page preparation. A changed OCR engine/data/configuration requires new preparation; a changed layout algorithm alone may reuse the compatible prepared sources.
+
+Use append-only attempts and active-target uniqueness, with deliberate new runs for re-enrichment. Transient storage/process interruption can use bounded retry; corrupt sources, mismatched hashes, invalid output and unavailable configured engine/data fail explicitly. Blank/no-text OCR is a valid result with coverage diagnostics, not fabricated text. Cancelled/stale workers cannot publish. External object writes can precede the DB transaction; unreferenced objects after rollback remain safe orphans for later cleanup.
+
+### Scheduling and bounded execution
+
+Use a dedicated **local CPU queue on the existing extraction-worker package**, the same execution task/DB delivery mechanism and scheduler. No new application service or broker. Its worker can run without OpenAI credentials; disable unrelated classification/external-provider startup there. Route only local-purpose units to that queue and prevent ordinary extraction workers from claiming them. Separate CPU admission from model concurrency so OCR cannot occupy all model slots. Recovery must scan both purposes fairly; avoid an oldest-100 starvation window.
+
+The existing admission counter (`calls_admitted`/`max_calls`) counts admitted work attempts, not necessarily actual paid calls. Retain its old interpretation; label local job limits as admissions and report actual OCR invocations separately. Local execution creates no AI-call rows or invented token counts. Record attempt wall/CPU duration, engine invocation count, bytes/pixels, measured peak memory when available and reuse/skips separately. Local provider spend is not an OpenAI cost estimate; unmeasured operating cost remains null.
+
+Proposed initial pinned bounds, to measure at the M1/M2 gates: 50 selected pages; original document within the existing 250 MiB default; one page per attempt; one CPU slot per worker initially; at most four OCR crops or one whole-page recognition per page/attempt; 20 million raster pixels, 32 MiB encoded raster, 200,000 representation characters, 20,000 tokens, 5,000 lines, 1,000 blocks, 64 scoped regions and 4 MiB spatial JSON per page. Retain 6D's eight tables/512 cells and existing claim limits initially. Overflow is explicit, not silent truncation. The OCR invocation deadline is 60 seconds; the page-preparation deadline covers at most the declared four calls plus parsing/storage. Layout gets its own smaller timeout. Use existing lease/heartbeat rules with pinned family deadlines; bound process threads, scratch storage and Linux container memory. Measure peak memory before finalizing the hard worker limit, rather than claiming an unenforced Python RSS cap.
+
+No fallback segmentation/rotation/repair loops. A profile's eligible crop set, segmentation mode, raster resolution, maximum invocations and retry ceiling are pinned. Changes create a new identity. M1 must size representative/worst-case manifests against these independent limits; M4 must measure the much smaller provider projection separately. Do not send the full geometry manifest to an LLM simply because storage accepts it.
+
+### Supported backend workflow
+
+Add revision-document-scoped `/source-enrichment` operations for start/ensure, history/detail, retry/cancel and signed successful page artifacts, following the existing extraction route/error/pagination conventions. Requests bind a specific completed processing run and explicit pages/profile; reads are SELECT-only and never enqueue processing. API readiness describes configured capability, not a verified OCR result. No Phase 6F frontend is included.
+
+Enhanced extraction start explicitly binds completed compatible enrichment results for all selected pages. For a partially completed enrichment run, completed selected page results may be reused individually; an incomplete selected page is a conflict. Never combine pages from incompatible base processing runs or silently replace the chosen result with the newest source. `ensure` includes exact enrichment bindings in compatibility checks; retries retain them even if newer enrichment exists.
+
+Default extraction summaries/history filter execution purpose to EXTRACTION. They keep their existing cross-profile latest-result behavior among prose/table/enhanced extraction runs. Enrichment gets its own history. A newer preparation job, its partial success or cancellation must not displace a previous engineering/table extraction summary. Old, enhanced and source job access all enforce current included-document/project membership; knowledge of a run/artifact UUID is insufficient.
+
+## 6. OCR eligibility, hybrid fusion and structural admission
+
+### Bounded source selection
+
+For each selected page, always inspect native geometry when the original is a supported PDF. Prefer usable native readings in their regions. OCR image-only/no-native pages; also consider corrupted native text and substantial raster regions not explained by native positioned readings. Presence of a title or text layer does not exempt an embedded scanned schedule.
+
+The initial deterministic policy will record observable reasons: missing native text; invalid/unmappable glyph/replacement content; material embedded raster regions with inadequate native coverage; explicit operator-selected bounded OCR regions. Proposed starting thresholds are a 1% replacement/unmappable-glyph rate and a 5% page-area raster region with less than 10% native coverage of its text-bearing content; fixture measurement must define the observable coverage measure and validate or replace these values before M2 freezes the policy. Gross raster area alone is not an adequacy test: background images/logos and full native text layers over scans need negative controls to avoid unnecessary OCR. Native character count alone cannot prove adequacy, and a small clean native annotation page need not be OCR'd merely for being sparse. A significant vector/unknown-content page can be explicitly selected for bounded OCR rather than pretending raster-image detection is exhaustive. Operator crop boxes select preprocessing inputs; they never establish evidence geometry or table ownership by themselves.
+
+Prefer the original PDF at a pinned OCR raster resolution (initial target 300 DPI, downscaled to the cap) when the analysis image's resolution is insufficient; do not rerender or modify the Phase 3 image. For image originals, use the exact upright analysis pixels or an explicitly derived bounded crop; upscaling creates no missing detail. Every new raster/crop is an immutable enrichment artifact with a reversible supported page transform. Tesseract's documentation identifies resolution, skew, segmentation and table layout as recognition limitations; these motivate bounded profiles and measurement, not automatic image-enhancement searches. [Tesseract quality guidance](https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html)
+
+If eligibility requires more supported regions than the configured bound, expose the limit/failure rather than dropping some crops and advertising complete page coverage. No automatic second OCR pass based on whether its numbers look more plausible. Preserve engine failures and raw uncertain reads for diagnosis without leaking source content into logs.
+
+### Fusion without losing source identity
+
+Do not create a fused "native" text artifact. Store native and OCR readings separately. Alignment is a versioned relation supported by same-page geometry, token sequence/context and a unique one-to-one occurrence match. Exact matching overlapping readings may form one source-occurrence cluster for the enhanced profile, retaining both citations. The preferred representation is normally usable native text; OCR supplements uncovered regions. Neither a matching value nor its tag alone proves overlap.
+
+Repeated `600 V` readings in separate rows remain separate clusters. Ambiguous alignment abstains from merging. Conflicting overlapping readings retain both source representations and a disagreement marker; neither replaces the other. Claims affected by unresolved transcription/source/row conflicts remain uncertain/UNMAPPED or detached as appropriate. No cross-document/run physical identity inference occurs. Reading-order conflicts are preserved as alternate/partial order, not hidden by a flattened sorted paragraph.
+
+### Spatial relationships and table reconstruction
+
+Treat detector regions as proposals. Admit geometry-supported table structure only when the selected token/line/vector support establishes a unique assignment under pinned rules: a coherent local table boundary/group; consistent nonoverlapping column bands and row intervals; stable alignment across applicable rows; each claimed value assigned once; no competing row/column interpretation within tolerance; explicitly supported header spans/paths and local captions; nearby tables/legends/footnotes excluded by demonstrated boundaries.
+
+Ruled tables can use actual native borders/intersections plus enclosed text. Borderless tables need a repeated, separable alignment pattern and explicit header/column evidence; a single isolated line of plausible numbers is insufficient. Native and OCR token sources retain their distinct geometry basis. Detector success, OCR confidence, visual plausibility and registry-consistent values do not make a relationship established.
+
+Merged/hierarchical headers require supporting spans/boundaries and a unique applicable parent path. Do not infer an empty merged cell simply to make a grid rectangular. Sparse/blank/unreadable and single-equipment attribute-row tables remain representable. Mixed/irregular tables may have locally supported relationships while global orientation stays unresolved; unsupported equipment ownership remains detached. Store candidate regions and support even when the result must remain visual-reported or unresolved.
+
+M3 produces reusable source/layout observations, not equipment candidates and not a second ExtractedTable pipeline. M4's new table reconstruction adapter compares model cell/header/source references against these committed spatial relationships, retaining unproved visual observations as limited. A model-supplied table or token ID cannot invent membership, geometry or missing text.
+
+## 7. Enhanced extraction and historical compatibility
+
+Introduce explicit successor profile families, with provisional keys `engineering-openai-enriched-v1` and `tables-openai-enriched-v1`, plus distinctly synthetic test profiles. Keep the two established page-stage plans. Enrichment precedes them and is reusable; a nonempty page still has at most two model calls before bounded retries, with no per-region/table fan-out. Existing empty-prerequisite settlement remains. New wire/runtime/adapter/resource identities are separate from execution-profile-v1/v2/v3/v4; final version labels are fixed at their milestone gate.
+
+The existing observation schemas restrict source roles to native text/image and explicitly disallow model geometry. Add narrowly versioned v2 observations/anchors that cite server-projected reading/region/cell aliases and exact raw expressions. Do not widen old literals, impersonate OCR as native text or accept arbitrary offsets/rectangles/UUIDs from a provider. Pin all selected source roles and bound canonical untrusted context; retain trusted instructions separately. Reuse the production Responses adapter/transport with mocked transport in tests and the existing opt-in controls. No paid provider call is authorized by planning.
+
+New source-aware adapters verify readings, equipment tag/name containment in the original expression, full qualifiers, region/block scope and cell ownership before invoking the frozen interpretation/registry helpers. Meaning-only context may assemble separately verified labels/values; it must never become a fabricated source quote or offset span. New geometry does not weaken multiple-tag ambiguity, AF/AT qualification, conflicting-reading retention, exact units/values or conservative equipment association.
+
+For native/OCR text evidence, publisher validation streams/checks the exact selected text object's hash/size/UTF-8, verifies the excerpt/span and confirms pinned result ownership. For regions, independently resolve the declared support IDs against the immutable geometry manifest and recompute a supported rectangle/union. A large rectangle enclosing unrelated tokens is not a substitute for the underlying support. Table interpretation can cite only committed same-run/page reconstruction cells; the evidence can in turn refer to the separate pinned enrichment producer. Wrong-page, wrong-version, foreign-run, missing/corrupt or unfinished source results reject publication atomically.
+
+Extend existing public evidence/table reads with versioned locators, precision and reliability appropriate to new outputs. An OCR snippet signs its own OCR text artifact, with a separately authorized source image/region for visual inspection. Old evidence continues signing its original PageArtifact. New table layout versions can carry the new cell locators; existing layout-v1 and legacy evidence payloads remain reproducible. No old page-only citation acquires a new box retrospectively.
+
+**Compatibility work is a prerequisite to shared edits.** Current 6C runtimes already read retained `page_v1/page_v2` identity inputs. Current 6D `table_runtime_identity()` hashes live shared sources, including `profiles.py`, `stage_runtime.py`, `dependencies.py`, `orchestration.py`, `execution.py` and `contracts.py`, plus table sources. Before any M2/M4 edit, retain exact accepted inputs needed by v4 in a new packaged identity archive and route the accepted reader explicitly to them. Archives are data, never dynamically executed. Keep old execution/publication branches behaviorally equivalent; use explicit new-purpose/new-version branches for new behavior.
+
+Do not edit frozen `interpretation_v1`, 6C grounding, 6D grounding/semantics/layout/stage resources or either evaluation policy to accommodate new inputs. New modules/adapters are preferred. Require byte-identical old profile wire JSON/hashes and exact old scripted reports, direct-wheel resource reproduction and real old active-run claim/fail/retry/publish/read tests. Migration tests must protect old native-offset restrictions and historical row bytes as well as permit the new explicit path. Never regenerate accepted fixtures to conceal drift.
+
+## 8. Five milestones and review gates
+
+### M1 — Contracts, geometry and source identity
+
+**Objective/dependency:** establish the pure source/provenance boundary, after plan approval. No OCR process, migration, worker registration or production profile.
+
+**Scope/deliverables:** versioned producer/prepared/spatial/source-binding contracts; typed provider-neutral OCR request/result/failure shapes beside the existing unused generic OCR protocol; coordinate transforms and token-support references; source occurrence/representation spans and exact legacy-offset mapping rules; reliability/conflict/coverage vocabulary; independently authored native/synthetic contract fixtures and packaged identities. Put pure spatial contracts in `packages/provenance` and typed OCR protocol in `packages/ai`; preserve old exports. Keep existing SourceLocation and v1 observation classes unchanged.
+
+**Acceptance/tests:** rotations/crop/scale/padding transforms, all supported upright image cases, Unicode/ligatures/repeated strings, exact and deliberately unprovable mappings, ambiguous occurrences, nonfinite/off-page/degenerate boxes, unsupported roles, cyclic/foreign references and independent byte/count limits. Measure representative and maximum manifests, including sparse/merged/header shapes; verify pure imports and wheel resources plus unchanged accepted identities. Tests should target correctness failures rather than mirror serializers.
+
+**Principal risks:** conflating representation offsets with PDF reading order, treating OCR boxes as character verification, or fixing bounds that cannot contain useful pages. Stop for M1 review; finalized contract names/bounds become versioned evidence for later milestones.
+
+### M2 — Native extraction, real OCR and durable source artifacts
+
+**Objective/dependency:** implement reusable preparation using approved M1 contracts and the retained-runtime strategy. This is the first real OCR execution, not an abstraction-only milestone.
+
+**Scope/deliverables:** native PyMuPDF adapter in document-processing; one Tesseract adapter owned by the extraction worker; pinned eligibility/rasterization; preparation-only local profile; purpose-aware shared execution dispatch and separate CPU queue; forward schema for immutable page results/artifacts/bindings; source start/history/retry/cancel/download API; actual engine/data deployment and bounded usage reporting. Preprocessing code must not import extraction meaning/registry or FastAPI. Lifecycle/storage integration lives in the extraction layer, avoiding a circular document-processing → extraction dependency.
+
+**Acceptance/tests:** real native/column-major/rotated/cropped PDFs, PNG/TIFF scans and embedded raster content; actual Tesseract reading electrical tags, punctuation/decimals/units, AF/AT and cable notation. Exercise raw incorrect/uncertain output without correction; missing binary/data, malformed TSV, image corruption, timeout and overflow. Real disposable DB/MinIO/Redis/Celery tests cover exact hashes/ownership, idempotent ensure, concurrent duplicates, retry, partial success, worker death, recovery, cancel and stale publication. Prove old processing runs/artifacts/page metadata are unchanged and old extraction configurations still operate. No skipped real OCR acceptance because a host lacks the engine: use the pinned test worker/container.
+
+**Principal risks:** deployment availability, CPU/memory blowups, shared-coordinator regression, source hash drift and confusion between local admissions and AI usage. M2 can produce positioned readings but does not claim reliable tables or register enhanced model profiles. Stop for M2 review.
+
+### M3 — Hybrid fusion and geometry-supported layout
+
+**Objective/dependency:** derive conservative reusable structure from committed M2 readings, without engineering candidate publication.
+
+**Scope/deliverables:** separate native/OCR alignment/conflict graph; reading-order partial graph and scoped regions; explicit table/row/column/header support; native border and borderless alignment admission; merged/sparse/attribute-row/mixed observations; new fixed preparation → layout profile with exact compatible prepared-result reuse. Produce versioned integration contracts for the existing table reconstruction path. No physical identity, inferred missing values or cross-page stitching.
+
+**Acceptance/tests:** compare the exact existing 6D positioned PDF and independent gold against the delimiter-only baseline. Demonstrate additional justified rows/cells/header ownership, not just a higher table-detector count. Test same-value repeated rows, slightly misaligned/overlapping boxes, competing column partitions, nearby titles/notes/tables, multiple columns, mixed native/OCR conflicts, image-only geometry, borderless and hierarchical headers, uncertain alignment and unresolved orientation. Mutating geometry or source ownership must remove structural credit/association support. Real lifecycle tests demonstrate layout retry reusing successful preparation without another OCR invocation.
+
+**Principal risks:** overconfident geometric heuristics, native/OCR double counts and inappropriate header inheritance. Unsupported structure remains preserved/unresolved; do not adjust gold to call conservative misses correct. Stop for M3 review.
+
+### M4 — Enhanced extraction, evidence publication and reads
+
+**Objective/dependency:** consume exact successful M2/M3 bindings through supported versioned 6C/6D successors. Enrichment files alone do not satisfy this milestone.
+
+**Scope/deliverables:** two enhanced production/synthetic profile families and narrowly versioned source-reference schemas; bounded committed-source loader/projection; source-aware grounding/semantic adapters; evidence/source-location/table-layout v2 contracts and forward DB guards; atomic publisher and public signed read support. Reuse existing candidate/group/table records and two-stage execution; preserve all legacy profile/resource meanings and cross-profile summary/history behavior. Test the purpose filter so enrichment never becomes a document extraction summary.
+
+**Acceptance/tests:** real disposable PostgreSQL/Redis/MinIO/Celery tests run actual preprocessing and downstream extraction using mocked model transport. Cover scanned nameplate attributes; positioned native tables with repeated values/AF-AT; hybrid source disagreements; exact typed values/units; separate prose/table reuse; committed cross-unit evidence; explicit source pinning across newer reprocessing/enrichment; partial results; retry without re-OCR; worker death/cancellation/stale output; historical signed text/image/region access and revision ownership; old v1–v4 active runs; no canonical/model metadata writes. Wrong OCR/native offsets, unsupported boxes, fabricated support IDs or wrong-cell ownership cannot publish as supported evidence.
+
+**Principal risks:** accidental widening of old source contracts, mismatched producer/consumer ownership, synthetic source strings being mistaken for quotes, and changing historical runtime hashes. Stop for M4 review.
+
+### M5 — Independent evaluation, final regression and handoff
+
+**Objective/dependency:** measure actual local recognition/layout and integrated deterministic behavior after M4, retaining frozen 6C/6D policies.
+
+**Scope/deliverables:** separately versioned spatial/OCR corpus, scorer/entrypoint, recorded engine identities and baseline/enriched comparison report; final migration/package/worker/API compatibility verification; deployment/operations and actual-result documentation; `PHASE6E_HANDOFF.md` plus current architecture/provenance/status/roadmap updates. No general evaluation dashboard or automatic paid run.
+
+**Acceptance/tests:** actual OCR/PDF processing on independent gold; meaningful mutation controls; full relevant backend/worker/API regressions and real integrations with no hidden skips, fresh/upgrade migration checks from accepted 0013 data, old and enhanced resource/wire/report reproduction from built wheels, lint/format/dependency/whitespace checks. Record exactly what ran, hardware/engine versions, failures, timings and missing coverage. Prior verified gates are historical evidence, not a new passing run; any requested carry-forward waiver must be explicit. Stop for final review; do not label all of Phase 6 complete or begin 6F/6G.
+
+**Principal risks:** synthetic fixture overfitting, confusing OCR improvements with model accuracy and overstating measured operational costs/coverage.
+
+## 9. Evaluation design and limits
+
+Use the same immutable originals/pages for paired legacy and enriched comparisons. Preserve committed 6C/6D corpora, scripts, scorers and reports. Reuse their fixtures/helpers only compatibly; create a separate `spatial-extraction-evaluation-v1` policy/resources for new locators and metrics. The mandatory 6D positioned PDF keeps its independently mapped engineering gold and equipment-row layout, so its prior native abstention still loses recall. No expected answer comes from a detector, OCR engine, converter or registry normalizer.
+
+Add independently drawn/annotated digitally generated and scanned schedules, transformer/breaker nameplates, cable/utility data, multi-column specifications, native annotations plus embedded scans, PDF rotations and oriented image/TIFF frames, low resolution/noise/contrast, uncertain glyphs/decimals/superscripts, borderless/merged/hierarchical headers and negative drawings. Start synthetic; use real engineering documents only if separately approved and appropriately handled. Store exact original/derived bytes, provenance, producer identity and gold occurrence/geometry/relationship annotations. Include deliberately unsupported cases as real misses or uncertain-retention targets, not relabeled successes.
+
+Separate three measurements:
+
+1. **Preprocessing:** actual OCR character/word error, exact tag/value/unit transcription and critical punctuation errors; eligibility/coverage and source-alignment precision/recall; word/line/region match and overlap quality; reading-order edge correctness; table/cell/span/header/association support. Native and OCR geometry remain separate strata. Matching uses source occurrence/geometric gold before engineering meanings.
+2. **Grounding/conversion:** scripted model observations through each supported versioned pipeline, measuring table/equipment/attribute recall/precision, exact typed value/unit, correct source-local ownership, true text/region evidence, false/duplicate claims and UNMAPPED/INVALID retention. This isolates deterministic effects and preserves the difference between safe abstention and an incorrect mapped value.
+3. **Production recognition:** optional separately authorized live execution only through the production coordinator/provider with exact fixture/page/artifact bindings and bounded budgets. Scripted or injected transport results never designate LIVE_OPENAI. No live OCR-service or OpenAI accuracy is measured by this plan or by mocked tests.
+
+Report numerators/denominators, missed/failed cases, selected-region/page coverage and null empty rates. CER/WER denominators use all gold text in the declared eligible evaluation scope, including omitted/failed OCR; do not silently exclude hard regions. Geometry matching cannot use proposed keys/normalized values. Report overlap-threshold sensitivity and unmatched/duplicate detections separately. Recognized representation agreement is not printed-text truth; synthetic gold supplies the independent reference.
+
+Measure per-stage wall time, CPU time, bytes stored/read, actual engine invocations/reuse and peak process/container memory where observable, with hardware and software identities. Report configured resource limits separately from observed use. Model tokens/cost remain null where unavailable; local CPU has no invented per-token price. No arbitrary accuracy pass threshold, claimed universal Tesseract advantage or real-world quality claim follows from a synthetic corpus. OCR punctuation, irregular/borderless table recall, skew/perspective and extreme page size are explicit limitations to quantify, not silently repair.
+
+## 10. Decisions for review and planning outcome
+
+**Recommend and include in plan approval:** Option B on shared durable execution with purpose-separated result/history; local Tesseract first with pinned English data; existing PyMuPDF for native geometry; separate immutable OCR/native representations and explicit new evidence path; two enhanced profiles with separate prose/table runs; MAPPED OCR-backed candidates allowed only under the normal conservative rules with explicit recognition limits; unchanged frozen registry/semantics/evaluators; all five milestone gates retained. M2 is substantial because deployment and lifecycle belong with real source artifacts; moving either entirely to M4 would leave its acceptance gate untestable. No extra milestone split is currently justified.
+
+**Workflow decision resolved:** the user approved requiring enrichment first, then starting extraction. The first release exposes reusable source coverage through an explicit enrichment step and rejects missing/incompatible selected prerequisites before model admission. It does not automatically preprocess or wait when enhanced extraction is requested. This resolves the product/workflow question; it does not approve the full plan or authorize M1. No other material architecture question remains open for planning review.
+
+**Details to finalize within their gates:** exact contract/resource names and measured bounds in M1; pinned Tesseract build/data and eligibility thresholds after actual M2 fixtures; geometric tolerances supported by independent M3 negatives; exact versioned API/layout representation in M4. These are implementation measurements within the proposed architecture, not permission to weaken provenance. If the practical engine or geometric scope fails the stated gates, report the concrete limitation and seek a versioned scope decision rather than replacing tests/gold or adding unbounded fallback engines.
+
+**Planning work performed:** repository/document inspection, official parser/OCR documentation research and a read-only probe of the existing PDF geometry. Existing test results are described only as historical handoff evidence. No acceptance suite, dependency installation, OCR execution, schema change, source artifact creation, provider call or implementation code was performed. Only this plan is authored; the supplied prompt remains unchanged.
+
+**STOP for review before M1**, as required by [prompt sections 1 and 17](prompts/phase-6e-prompt.md). After approval, create an isolated `codex/phase-6e-ocr-layout` implementation branch from the accepted baseline, preserve required runtime inputs before edits, deliver M1 and stop at its review gate.
