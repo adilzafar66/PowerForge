@@ -70,4 +70,14 @@ Five package wheels build. Direct-wheel execution reproduces new layout resource
 
 This initial deterministic scope deliberately leaves irregular/open grids, ambiguous header qualifiers, uncertain orientation, large competing borderless partitions and unsupported ownership unresolved. It does not establish general multi-column page reading order, arbitrary header languages, physical equipment identity, native/OCR character agreement without sufficient support, or cross-page table stitching. M4 must consume the committed structures through new versioned extraction/evidence adapters without bypassing 6C/6D conservative semantics. M5 must evaluate representative OCR/layout and downstream quality; a functional authored scan is not a production accuracy result.
 
-**Stop for M3 review. M4 has not started.**
+## Review carry-forward requirements
+
+The M3 review accepts the existing design and records three requirements for the next milestones:
+
+1. Before M4 changes accepted M3 runtime inputs, preserve the exact source identities from `e642a78`. The execution identity hashes `layout_profiles.py`, `layout_service.py`, `layout_execution.py` and `layout_sources.py`; retain their accepted bytes as packaged identity data before compatible shared edits, as for 6D/M2. Retain algorithm/contract/policy inputs if changed, use successor versions for material new semantics, and verify old active M3 execution and wheel identities without updating accepted fixtures merely to accommodate edits.
+2. M5 must measure how often representative electrical schedules fall outside the simple borderless detector's repeated alignment, row/column count, header and spacing assumptions. Report unsupported cases as misses/unresolved observations with explicit denominators and coverage strata. Real-document testing remains subject to authorization; authored fixtures alone do not establish real-world coverage.
+3. M4 must keep structural evidence separate from recognition correctness through mapping and public evidence reads. An OCR table can have correct cells/header paths and incorrect numbers. Preserve the exact recognized source, raw confidence and recognition limits; a registry-valid mapping does not independently verify printed text. Test a plausible numeric OCR error in a structurally correct table without silently correcting the reading or upgrading its verification status.
+
+These are M4/M5 implementation and acceptance requirements, not an M3 redesign. See the corresponding gates in [the plan](PHASE6E_PLAN.md).
+
+M4 was subsequently authorized and delivered for review. See the [M4 handoff](PHASE6E_M4_HANDOFF.md).

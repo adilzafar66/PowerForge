@@ -90,6 +90,15 @@ def test_new_resource_and_schema_identities_and_accepted_source_bytes_are_pinned
                 / "table_v1"
                 / (accepted.stem + ".txt")
             )
+        if not accepted.exists() or sha(accepted.read_bytes()) != digest:
+            # M4 keeps publisher/transport identity data separately from the frozen
+            # M2 table archive's exact file set. Original digests remain unchanged.
+            accepted = (
+                ROOT
+                / "packages/extraction/src/powerforge_extraction/runtime_resources"
+                / "publication_v1"
+                / (relative.replace("/", "__") + ".txt")
+            )
         assert sha(accepted.read_bytes()) == digest, relative
 
 

@@ -19,6 +19,12 @@ from powerforge_shared.config import get_settings
 
 def provider_for(claim: Claim) -> ExtractionProvider:
     if claim.profile.provider == "fake":
+        from powerforge_extraction.enriched_profiles import is_enriched
+
+        if is_enriched(claim.profile):
+            from powerforge_extraction.enriched_fake import FakeEnrichedProvider
+
+            return FakeEnrichedProvider(claim.profile.fake_scenario)
         if isinstance(claim.profile, TableProfile):
             from powerforge_extraction.table_fake import FakeTableProvider
 

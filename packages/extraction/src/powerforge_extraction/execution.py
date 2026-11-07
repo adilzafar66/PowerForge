@@ -222,7 +222,23 @@ def execute_unit(
     usage = None
     try:
         with heartbeats(factory, claim, settings):
-            if isinstance(claim.profile, TableProfile):
+            from powerforge_extraction.enriched_profiles import EnrichedTableProfile, is_enriched
+
+            if is_enriched(claim.profile):
+                from powerforge_extraction.enriched_runtime import request_for as enriched_request
+
+                request, sources, context = enriched_request(claim, storage, factory)
+                if (
+                    isinstance(claim.profile, EnrichedTableProfile)
+                    and context is not None
+                    and not context.tables
+                ):
+                    with factory.begin() as session:
+                        ExtractionCoordinator(session, settings).complete_empty_table(
+                            claim.unit_id, claim.token, storage
+                        )
+                    return True
+            elif isinstance(claim.profile, TableProfile):
                 from powerforge_extraction.table_execution import table_request
 
                 request, sources, context = table_request(claim, storage, factory)
@@ -249,7 +265,39 @@ def execute_unit(
             )
             if usage.output_tokens is not None and usage.output_tokens > request.max_output_tokens:
                 raise ProviderFailure(ErrorCode.INVALID, usage)
-            if isinstance(claim.profile, TableProfile):
+            if is_enriched(claim.profile):
+                from powerforge_extraction.enriched_output import (
+                    convert_attributes,
+                    convert_equipment,
+                )
+                from powerforge_extraction.enriched_tables import interpret, reconstruct
+
+                if request.stage == "EQUIPMENT_RECOGNITION":
+                    output = convert_equipment(response.result, sources)
+                elif request.stage == "ATTRIBUTE_EXTRACTION":
+                    output = convert_attributes(response.result, sources, context)
+                elif request.stage == "TABLE_RECONSTRUCTION":
+                    output, _ = reconstruct(response.result, sources)
+                else:
+                    output = interpret(response.result, sources, context)
+                if claim.profile.execution_kind == "FAKE_TEST":
+                    output = output.model_copy(
+                        update={
+                            "candidates": [
+                                c.model_copy(
+                                    update={
+                                        "diagnostics": {
+                                            **c.diagnostics,
+                                            "synthetic": True,
+                                            "execution_kind": "FAKE_TEST",
+                                        }
+                                    }
+                                )
+                                for c in output.candidates
+                            ]
+                        }
+                    )
+            elif isinstance(claim.profile, TableProfile):
                 from powerforge_extraction.table_grounding import convert_table_reconstruction
                 from powerforge_extraction.table_output import convert_table_interpretation
 

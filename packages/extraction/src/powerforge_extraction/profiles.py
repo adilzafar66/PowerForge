@@ -100,6 +100,18 @@ class EngineeringProfile(ExecutionProfile):
 
 def read_profile(configuration: dict) -> ExecutionProfile | EngineeringProfile:
     version = configuration.get("version")
+    if version in {"execution-profile-v5", "execution-profile-v6"}:
+        from powerforge_extraction.enriched_profiles import (
+            EnrichedEngineeringProfile,
+            EnrichedTableProfile,
+        )
+
+        model = (
+            EnrichedEngineeringProfile
+            if version == "execution-profile-v5"
+            else EnrichedTableProfile
+        )
+        return model.model_validate_json(json.dumps(configuration))
     if version == "source-layout-profile-v1":
         from powerforge_extraction.layout_profiles import SourceLayoutProfile
 
@@ -167,9 +179,12 @@ def engineering_profile(key: str, settings: Settings) -> EngineeringProfile:
 
 
 def resolve_profile(key: str, settings: Settings) -> ExecutionProfile:
+    from powerforge_extraction.enriched_profiles import PROFILES, enriched_profile
     from powerforge_extraction.production_profiles import PRODUCTION_PROFILES, production_profile
     from powerforge_extraction.table_profiles import TABLE_PROFILES, table_profile
 
+    if key in PROFILES:
+        return enriched_profile(key, settings)
     if key in TABLE_PROFILES:
         return table_profile(key, settings)
     if key in PRODUCTION_PROFILES:

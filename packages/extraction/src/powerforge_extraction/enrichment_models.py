@@ -40,6 +40,7 @@ class SourceEnrichmentArtifact(Record, Base):
             ],
         ),
         UniqueConstraint("storage_key"),
+        UniqueConstraint("id", "document_id", "processing_run_id", "document_page_id"),
     )
     result_id: Mapped[PyUUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     document_id: Mapped[PyUUID] = mapped_column(UUID(as_uuid=True), nullable=False)
@@ -57,6 +58,7 @@ class SourceEnrichmentArtifact(Record, Base):
 class RunSourceEnrichmentBinding(Record, Base):
     __tablename__ = "run_source_enrichment_bindings"
     __table_args__ = (
+        ForeignKeyConstraint(["spatial_result_id"], ["source_spatial_results.id"]),
         ForeignKeyConstraint(
             ["run_id", "document_id", "processing_run_id"],
             [
@@ -82,3 +84,6 @@ class RunSourceEnrichmentBinding(Record, Base):
     document_page_id: Mapped[PyUUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     prepared_result_id: Mapped[PyUUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     manifest_hash: Mapped[str] = mapped_column(Text, nullable=False)
+    spatial_result_id: Mapped[PyUUID | None] = mapped_column(UUID(as_uuid=True))
+    spatial_manifest_hash: Mapped[str | None] = mapped_column(Text)
+    binding_hash: Mapped[str | None] = mapped_column(Text)

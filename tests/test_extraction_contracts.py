@@ -133,6 +133,8 @@ def test_telemetry_requires_pricing_basis_and_valid_timing():
 def test_openapi_preserves_6a_reads_and_integer_decimal_strings():
     schema = app.openapi()
     paths = {p: v for p, v in schema["paths"].items() if "/extraction" in p}
+    sources = next(p for p in paths if p.endswith("/extraction/runs/{run_id}/sources"))
+    assert "get" in paths.pop(sources)
     assert sum("get" in v for v in paths.values()) == 7
     assert sum("post" in v for v in paths.values()) == 3
     candidate = schema["components"]["schemas"]["CandidateResponse"]["properties"]

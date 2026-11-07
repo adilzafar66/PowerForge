@@ -46,6 +46,11 @@ def effective_units(run_id: UUID) -> Select[tuple[UUID]]:
 
 class ExtractionPersistence:
     def __init__(self, session: Session, storage: ObjectStorage | None = None) -> None:
+        # Complete the shared FK registry for standalone worker/service callers too.
+        from importlib import import_module
+
+        import_module("powerforge_extraction.enrichment_models")
+        import_module("powerforge_extraction.layout_models")
         self.session = session
         self.storage = storage
 
@@ -126,8 +131,12 @@ class ExtractionPersistence:
         return row
 
     def publish(self, work_unit_id: UUID, output: WorkUnitOutput) -> None:
+        from powerforge_extraction.enriched_contracts import EnrichedOutput
+
         # Revalidate even if a caller used model_construct or mutated a nested container.
-        output = WorkUnitOutput.model_validate(output.model_dump())
+        output = (
+            EnrichedOutput if isinstance(output, EnrichedOutput) else WorkUnitOutput
+        ).model_validate(output.model_dump())
         with self.session.begin_nested():
             # Consistent lock order: parent run, then producing unit.
             run_id = self.session.scalar(
@@ -155,6 +164,22 @@ class ExtractionPersistence:
                 processing_run_id=run.processing_run_id,
                 work_unit_id=unit.id,
             )
+            enhanced = run.profile_version in {"execution-profile-v5", "execution-profile-v6"}
+            if enhanced and not isinstance(output, EnrichedOutput):
+                if any(
+                    getattr(output, k)
+                    for k in (
+                        "evidence",
+                        "tables",
+                        "candidates",
+                        "source_groups",
+                        "candidate_evidence",
+                    )
+                ):
+                    raise ValueError("Enhanced runs require explicit successor output contracts")
+                output = EnrichedOutput.model_validate(output.model_dump())
+            if isinstance(output, EnrichedOutput) and not enhanced:
+                raise ValueError("Enhanced output requires an enhanced extraction run")
             self._validate_locations(unit, output)
             for group in output.source_groups:
                 self.session.add(
@@ -176,6 +201,12 @@ class ExtractionPersistence:
                     document_page_id=location.document_page_id,
                     page_artifact_id=location.page_artifact_id,
                 )
+                if isinstance(output, EnrichedOutput):
+                    data.update(
+                        enrichment_artifact_id=location.enrichment_artifact_id,
+                        geometry_artifact_id=location.geometry_artifact_id,
+                        source_locator=location.model_dump(mode="json"),
+                    )
                 if location.region is not None:
                     data.update(location.region.model_dump())
                 self.session.add(Evidence(**owner, **data))
@@ -214,6 +245,13 @@ class ExtractionPersistence:
             self.session.flush()
 
     def _validate_locations(self, unit: ExtractionWorkUnit, output: WorkUnitOutput) -> None:
+        from powerforge_extraction.enriched_contracts import EnrichedOutput
+
+        if isinstance(output, EnrichedOutput):
+            from powerforge_extraction.enriched_publication import validate_locations
+
+            validate_locations(self, unit, output)
+            return
         locations = [e.location for e in output.evidence]
         locations += [loc for t in output.tables for loc in t.source_locations]
         locations += [c.location for t in output.tables for c in t.layout.cells if c.location]
@@ -340,6 +378,12 @@ class ExtractionPersistence:
 
         unit = cached(ExtractionWorkUnit, unit_id)
         table = cached(ExtractedTable, evidence.table_id)
+        if table is not None and table.layout_schema_version == "table-layout-v2":
+            from powerforge_extraction.enriched_publication import table_evidence
+
+            table_evidence(self, run_id, unit_id, evidence)
+            cache["checked", evidence.id] = True
+            return
         producer = cached(ExtractionWorkUnit, table.work_unit_id) if table else None
         if (
             table is None

@@ -32,9 +32,17 @@ def test_fresh_schema_matches_orm(scratch_url):
             current = set(model.__table__.columns.keys())
             if model is models.ExtractionRun:
                 current.remove("execution_purpose")
+            if model is models.Evidence:
+                current -= {"enrichment_artifact_id", "geometry_artifact_id", "source_locator"}
             assert set(actual) == current
             for col in model.__table__.columns:
                 if col.name == "execution_purpose":
+                    continue
+                if model is models.Evidence and col.name in {
+                    "enrichment_artifact_id",
+                    "geometry_artifact_id",
+                    "source_locator",
+                }:
                     continue
                 historical_required = model is models.ExtractionRun and col.name in {
                     "registry_version",

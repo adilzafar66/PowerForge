@@ -29,7 +29,7 @@ HEAD = "0015_source_spatial_layout"
 
 
 def test_fresh_spatial_schema_has_exact_orm_columns_and_guards(scratch_url):
-    _alembic(scratch_url, "upgrade", "head")
+    _alembic(scratch_url, "upgrade", HEAD)
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == HEAD
@@ -115,11 +115,11 @@ def test_0014_published_preparation_survives_upgrade_downgrade_and_reupgrade(scr
             before["extraction_work_units"]
         )
         objects_before = dict(storage.objects)
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert snapshot() == before and storage.objects == objects_before
         _alembic(scratch_url, "downgrade", PREVIOUS)
         assert snapshot() == before
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert snapshot() == before
         with factory.begin() as session:
             start_layout(session, settings, seeded["document_id"], processing_id, [1], [])

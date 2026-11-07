@@ -152,11 +152,18 @@ EnqueueDep = Annotated[CeleryExtractionEnqueue, Depends(get_extraction_enqueue)]
 
 @router.get("/profiles", response_model=ProfileList)
 def profiles(reader: Service, settings: SettingsDep) -> ProfileList:
+    from powerforge_extraction.enriched_profiles import PRODUCTION as ENRICHED_PROFILES
     from powerforge_extraction.production_profiles import PRODUCTION_PROFILES
     from powerforge_extraction.table_profiles import TABLE_PRODUCTION_PROFILES
 
     items = []
-    for key in [FAKE_PROFILE, OPENAI_PROFILE, *PRODUCTION_PROFILES, *TABLE_PRODUCTION_PROFILES]:
+    for key in [
+        FAKE_PROFILE,
+        OPENAI_PROFILE,
+        *PRODUCTION_PROFILES,
+        *TABLE_PRODUCTION_PROFILES,
+        *ENRICHED_PROFILES,
+    ]:
         profile = resolve_profile(key, settings)
         items.append(
             ProfileInfo(
@@ -166,6 +173,7 @@ def profiles(reader: Service, settings: SettingsDep) -> ProfileList:
                 model=profile.model,
                 production_extractor=profile.execution_kind
                 in {"ENGINEERING_EXTRACTION", "TABLE_EXTRACTION"},
+                requires_enrichment=key in ENRICHED_PROFILES,
                 enabled=settings.extraction_enabled
                 and (profile.provider == "fake" or settings.extraction_external_enabled),
                 description=(
@@ -198,11 +206,48 @@ def start(
             profile_key=body.profile_key,
             pages=body.pages,
             mode=body.mode,
+            enrichment_bindings=body.enrichment_bindings,
         )
         run_id = run.id
         session.commit()
         dispatch_committed(session, settings, enqueue)
         return reader.detail(run_id)
+
+
+@router.get("/runs/{run_id}/sources")
+def bound_sources(reader: Service, run_id: UUID):
+    with model_api_errors():
+        reader._run(run_id)
+        from sqlalchemy import select
+
+        from powerforge_extraction.enriched_sources import selected_snapshot
+        from powerforge_extraction.enrichment_models import RunSourceEnrichmentBinding
+
+        bindings = reader.session.scalars(
+            select(RunSourceEnrichmentBinding).where(
+                RunSourceEnrichmentBinding.run_id == run_id,
+                RunSourceEnrichmentBinding.spatial_result_id.is_not(None),
+            )
+        )
+        items = []
+        for binding in bindings:
+            source = selected_snapshot(
+                reader.session, binding.prepared_result_id, binding.spatial_result_id
+            )
+            items.append(
+                dict(
+                    page_number=source.layout.owner.page_number,
+                    prepared_result_id=binding.prepared_result_id,
+                    spatial_result_id=binding.spatial_result_id,
+                    prepared_manifest_hash=binding.manifest_hash,
+                    spatial_manifest_hash=binding.spatial_manifest_hash,
+                    preparation_producer_run_id=source.prepared.manifest.producer_run_id,
+                    layout_producer_run_id=source.layout.producer_run_id,
+                    text_coverage=source.prepared.manifest.text_coverage,
+                    printed_text_independently_verified=False,
+                )
+            )
+        return dict(items=sorted(items, key=lambda x: x["page_number"]))
 
 
 @router.post("/runs/{run_id}/retry", response_model=RunDetail, status_code=202)

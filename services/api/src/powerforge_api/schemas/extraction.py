@@ -5,9 +5,11 @@ from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from powerforge_extraction.contracts import CandidateInput, TableLayout
+from powerforge_extraction.enriched_contracts import EnrichedTableLayout
+from powerforge_extraction.enriched_planning import EnrichmentSelection
 from powerforge_extraction.enums import (
     EvidenceRole,
     EvidenceSourceKind,
@@ -16,6 +18,7 @@ from powerforge_extraction.enums import (
     TableKind,
     WorkUnitStatus,
 )
+from powerforge_provenance.enriched_locations import EnrichedLocation
 from powerforge_provenance.locations import Region, SourceLocation
 
 
@@ -112,6 +115,19 @@ class EvidenceSummary(ReadModel):
     source_snippet: str | None
     table_id: UUID | None
     cell_id: str | None
+    enrichment_artifact_id: UUID | None = None
+    geometry_artifact_id: UUID | None = None
+    source_locator: EnrichedLocation | None = None
+
+    @field_validator("source_locator", mode="before")
+    @classmethod
+    def locator_from_json(cls, value):
+        if isinstance(value, dict):
+            import json
+
+            return EnrichedLocation.model_validate_json(json.dumps(value, default=str))
+        return value
+
     grounding_precision: Literal[
         "TEXT_OFFSETS", "TEXT_PAGE", "VISUAL_REGION", "VISUAL_PAGE", "PAGE_ONLY"
     ] = "PAGE_ONLY"
@@ -157,10 +173,34 @@ class TableResponse(ReadModel):
     work_unit_id: UUID
     layout_schema_version: str
     table_kind: TableKind
-    source_locations: list[SourceLocation]
+    source_locations: list[SourceLocation | EnrichedLocation]
     evidence_ids: list[UUID]
-    layout: TableLayout
+    layout: TableLayout | EnrichedTableLayout
     created_at: datetime
+
+    @field_validator("source_locations", mode="before")
+    @classmethod
+    def locations_from_json(cls, value):
+        from powerforge_provenance.spatial_base import canonical_json
+
+        return [
+            EnrichedLocation.model_validate_json(canonical_json(v))
+            if isinstance(v, dict) and v.get("version") == "source-location-v2"
+            else v
+            for v in value
+        ]
+
+    @field_validator("layout", mode="before")
+    @classmethod
+    def layout_from_json(cls, value):
+        from powerforge_provenance.spatial_base import canonical_json
+
+        if (
+            isinstance(value, dict)
+            and value.get("metadata", {}).get("version") == "enriched-table-metadata-v1"
+        ):
+            return EnrichedTableLayout.model_validate_json(canonical_json(value))
+        return value
 
 
 class TableList(PageInfo):
@@ -183,6 +223,7 @@ class EvidenceDetail(EvidenceSummary):
     created_at: datetime
     artifact_url: str | None
     artifact_url_expires_seconds: int | None
+    source_image_url: str | None = None
 
 
 class ExtractionStartRequest(BaseModel):
@@ -190,6 +231,7 @@ class ExtractionStartRequest(BaseModel):
     profile_key: str = Field(default="infrastructure-fake-v1", min_length=1, max_length=100)
     pages: list[int] | None = Field(default=None, min_length=1, max_length=1000)
     mode: Literal["ensure", "reextract"] = "ensure"
+    enrichment_bindings: list[EnrichmentSelection] = Field(default_factory=list, max_length=50)
 
 
 class ProfileInfo(BaseModel):
@@ -199,6 +241,7 @@ class ProfileInfo(BaseModel):
     model: str
     enabled: bool
     production_extractor: bool = False
+    requires_enrichment: bool = False
     description: str
 
 

@@ -30,8 +30,15 @@ def test_fresh_local_schema_has_exact_orm_columns_and_guards(scratch_url):
             RunSourceEnrichmentBinding,
         ):
             columns = {c["name"]: c for c in inspect(engine).get_columns(model.__tablename__)}
-            assert set(columns) == set(model.__table__.columns.keys())
-            assert all(columns[c.name]["nullable"] == c.nullable for c in model.__table__.columns)
+            accepted = set(model.__table__.columns.keys())
+            if model is RunSourceEnrichmentBinding:
+                accepted -= {"spatial_result_id", "spatial_manifest_hash", "binding_hash"}
+            assert set(columns) == accepted
+            assert all(
+                columns[c.name]["nullable"] == c.nullable
+                for c in model.__table__.columns
+                if c.name in accepted
+            )
         with engine.connect() as connection:
             assert (
                 connection.scalar(

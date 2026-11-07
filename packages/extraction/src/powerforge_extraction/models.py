@@ -287,7 +287,8 @@ class ExtractedTable(OutputRecord, Base):
     __table_args__ = (
         *output_constraints("extracted_tables"),
         CheckConstraint(
-            "layout_schema_version = 'table-layout-v1' AND jsonb_typeof(layout) = 'object' AND "
+            "layout_schema_version IN ('table-layout-v1','table-layout-v2') AND "
+            "jsonb_typeof(layout) = 'object' AND "
             "jsonb_typeof(source_locations) = 'array' AND jsonb_array_length(source_locations) "
             "> 0",
             name="ck_extracted_tables_layout",
@@ -329,6 +330,26 @@ class Evidence(OutputRecord, Base):
             ["extracted_tables.id", "extracted_tables.run_id", "extracted_tables.document_id"],
             name="fk_extraction_evidence_table",
         ),
+        ForeignKeyConstraint(
+            ["enrichment_artifact_id", "document_id", "processing_run_id", "document_page_id"],
+            [
+                "source_enrichment_artifacts.id",
+                "source_enrichment_artifacts.document_id",
+                "source_enrichment_artifacts.processing_run_id",
+                "source_enrichment_artifacts.document_page_id",
+            ],
+            name="fk_evidence_enriched_text",
+        ),
+        ForeignKeyConstraint(
+            ["geometry_artifact_id", "document_id", "processing_run_id", "document_page_id"],
+            [
+                "source_enrichment_artifacts.id",
+                "source_enrichment_artifacts.document_id",
+                "source_enrichment_artifacts.processing_run_id",
+                "source_enrichment_artifacts.document_page_id",
+            ],
+            name="fk_evidence_enriched_geometry",
+        ),
         CheckConstraint(
             "source_snippet IS NULL OR char_length(source_snippet) <= 2000",
             name="ck_extraction_evidence_snippet",
@@ -336,9 +357,18 @@ class Evidence(OutputRecord, Base):
         CheckConstraint(
             "(text_start IS NULL AND text_end IS NULL AND offset_convention IS NULL) OR "
             "(text_start IS NOT NULL AND text_end IS NOT NULL AND text_start >= 0 AND text_end "
-            "> text_start AND page_artifact_id IS NOT NULL AND offset_convention IS NOT NULL "
+            "> text_start AND num_nonnulls(page_artifact_id,enrichment_artifact_id)=1 "
+            "AND offset_convention IS NOT NULL "
             "AND offset_convention = 'UNICODE_CODEPOINT')",
             name="ck_extraction_evidence_offsets",
+        ),
+        CheckConstraint(
+            "(source_locator IS NULL AND enrichment_artifact_id IS NULL "
+            "AND geometry_artifact_id IS NULL) "
+            "OR (jsonb_typeof(source_locator)='object' AND "
+            "octet_length(source_locator::text)<=32768 "
+            "AND source_locator->>'version'='source-location-v2')",
+            name="ck_evidence_enriched_locator",
         ),
         CheckConstraint(
             "(x IS NULL AND y IS NULL AND width IS NULL AND height IS NULL) OR (x IS NOT NULL "
@@ -369,6 +399,9 @@ class Evidence(OutputRecord, Base):
     height: Mapped[Decimal | None] = mapped_column(Numeric)
     table_id: Mapped[PyUUID | None] = mapped_column(UUID(as_uuid=True))
     cell_id: Mapped[str | None] = mapped_column(Text)
+    enrichment_artifact_id: Mapped[PyUUID | None] = mapped_column(UUID(as_uuid=True))
+    geometry_artifact_id: Mapped[PyUUID | None] = mapped_column(UUID(as_uuid=True))
+    source_locator: Mapped[dict | None] = mapped_column(JSONB)
 
 
 class ExtractionCandidate(OutputRecord, Base):

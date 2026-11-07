@@ -53,6 +53,11 @@ def runtime_identity(version: str = RUNTIME_VERSION) -> dict:
 
 
 def require_supported(profile: EngineeringProfile | TableProfile) -> None:
+    from powerforge_extraction.enriched_profiles import is_enriched, require_enriched
+
+    if is_enriched(profile):
+        require_enriched(profile)
+        return
     if isinstance(profile, TableProfile):
         from powerforge_extraction.table_runtime import require_table_supported
 
@@ -86,6 +91,13 @@ def planned_metadata(profile: EngineeringProfile | TableProfile, stage: str, num
 
 
 def validate_plan(unit: ExtractionWorkUnit, profile: EngineeringProfile | TableProfile) -> None:
+    from powerforge_extraction.enriched_profiles import is_enriched
+
+    if is_enriched(profile):
+        # Source binding validation also needs a session and is performed at claim/call.
+        if unit.stage not in profile.stages or len(unit.page_numbers) != 1:
+            raise ValueError("Invalid enhanced page-stage plan")
+        return
     if (
         unit.stage not in profile.stages
         or len(unit.page_numbers) != 1
@@ -140,6 +152,12 @@ class StageCall:
 def stage_call(
     session: Session, unit: ExtractionWorkUnit, profile: EngineeringProfile | TableProfile
 ) -> StageCall:
+    from powerforge_extraction.enriched_profiles import is_enriched
+
+    if is_enriched(profile):
+        from powerforge_extraction.enriched_runtime import stage_call as enriched_call
+
+        return enriched_call(session, unit, profile)
     if isinstance(profile, TableProfile):
         from powerforge_extraction.table_runtime import table_stage_call
 

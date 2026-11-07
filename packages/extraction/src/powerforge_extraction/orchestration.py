@@ -146,7 +146,24 @@ class ExtractionCoordinator:
         profile_key: str = FAKE_PROFILE,
         pages: list[int] | None = None,
         mode: str = "ensure",
+        enrichment_bindings=None,
     ) -> ExtractionRun:
+        from powerforge_extraction.enriched_profiles import PROFILES
+
+        if profile_key in PROFILES:
+            from powerforge_extraction.enriched_planning import start_enriched
+
+            return start_enriched(
+                self,
+                document_id,
+                revision_document_id,
+                profile_key,
+                pages,
+                mode,
+                enrichment_bindings,
+            )
+        if enrichment_bindings:
+            raise ExtractionError("Enrichment bindings require an enhanced extraction profile")
         if not self.settings.extraction_enabled:
             raise ExtractionDisabled("Extraction is disabled")
         try:
@@ -440,6 +457,14 @@ class ExtractionCoordinator:
 
             try:
                 validate_plan(unit, profile)
+                from powerforge_extraction.enriched_profiles import is_enriched
+
+                if is_enriched(profile):
+                    from powerforge_extraction.enriched_runtime import (
+                        validate_plan as enriched_plan,
+                    )
+
+                    enriched_plan(self.session, unit, profile)
             except (ValueError, KeyError, StopIteration):
                 unit.status, unit.error_code, unit.finished_at = (
                     US.FAILED,

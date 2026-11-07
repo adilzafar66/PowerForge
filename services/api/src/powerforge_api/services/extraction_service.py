@@ -58,7 +58,9 @@ from powerforge_provenance.locations import Region
 
 def _evidence_summary(row: Evidence, artifact_type: str | None = None) -> EvidenceSummary:
     precision = "PAGE_ONLY"
-    if row.source_kind in {"NATIVE_TEXT", "OCR_TEXT"}:
+    if row.enrichment_artifact_id is not None:
+        precision = "TEXT_OFFSETS" if row.text_start is not None else "TEXT_PAGE"
+    elif row.source_kind in {"NATIVE_TEXT", "OCR_TEXT"}:
         precision = "TEXT_OFFSETS" if row.text_start is not None else "TEXT_PAGE"
     elif row.source_kind == "VISUAL_REGION":
         precision = "VISUAL_REGION" if row.x is not None else "VISUAL_PAGE"
@@ -394,6 +396,10 @@ class ExtractionReadService:
         if row is None:
             raise RevisionDocumentNotFound("Extraction evidence not found")
         self._run(row.run_id)
+        if row.source_locator is not None:
+            from powerforge_api.services.enriched_evidence import evidence_detail
+
+            return evidence_detail(self, row, storage, expires)
         page = self.session.get(DocumentPage, row.document_page_id)
         url, artifact = None, None
         if row.page_artifact_id:

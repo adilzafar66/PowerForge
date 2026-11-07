@@ -106,7 +106,12 @@ def test_production_discovery_disabled_defaults_and_explicit_start_use_existing_
         "infrastructure-openai-v1",
     ]
     production = [p for p in profiles if p["execution_kind"] == "ENGINEERING_EXTRACTION"]
-    assert {p["key"] for p in production} == set(PRODUCTION_PROFILES)
+    assert {p["key"] for p in production if not p["requires_enrichment"]} == set(
+        PRODUCTION_PROFILES
+    )
+    assert {p["key"] for p in production if p["requires_enrichment"]} == {
+        "engineering-openai-enriched-v1"
+    }
     assert all(
         not p["enabled"] and p["execution_kind"] == "ENGINEERING_EXTRACTION" for p in production
     )

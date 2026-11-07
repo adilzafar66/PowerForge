@@ -1,0 +1,52 @@
+{
+  "runtime": {
+    "version": "enriched-page-runtime-v1",
+    "rules_hash": "525adde58d037592dfa0f2ee2a1087123ac4616fd2160a906b02f753d8d5625b",
+    "locator_schema": "4711e13cedc6c4e011805f32180b2b014f9ceae6381d62e173adf591740ad93b",
+    "locator_rules": "c6383bbf3115843e8a6718dd877965c969dff5757c289b54313987db57f2e5ee"
+  },
+  "manifest": {
+    "version": "enriched-stage-manifest-v1",
+    "template_sha256": "f81a356c551f202da2d6a2e0c4f79416f716183f5fe5e6d646c09a1e73d060d9",
+    "stages": [
+      {
+        "stage": "EQUIPMENT_RECOGNITION",
+        "schema_version": "equipment-recognition-schema-v2",
+        "schema_hash": "db1d7079c3eb48e3dcf3442a99ee9bbf799ce21beae2ae62df56aa2139271911"
+      },
+      {
+        "stage": "ATTRIBUTE_EXTRACTION",
+        "schema_version": "attribute-extraction-schema-v2",
+        "schema_hash": "c78e3d6c84a9f47b77ad60199d7d080c91471a99495da56e6a8375d0b1989351"
+      },
+      {
+        "stage": "TABLE_RECONSTRUCTION",
+        "schema_version": "table-reconstruction-schema-v2",
+        "schema_hash": "fee2b38a5b69e5aafb049dca54b6a38adb1222a08fb428a1ac09ea27be8f2664"
+      },
+      {
+        "stage": "TABLE_INTERPRETATION",
+        "schema_version": "table-interpretation-schema-v2",
+        "schema_hash": "d784a5882c003130cf8061160265c069c342557ea4b4b171d7453ca16690fc76"
+      }
+    ]
+  },
+  "profiles": {
+    "engineering-openai-enriched-v1": {
+      "wire_sha256": "a40da90da3fe5d7af0b9f3e57646fd3410dd4d626f89e3f798ea08483e9b5ad7",
+      "identity_hash": "a40da90da3fe5d7af0b9f3e57646fd3410dd4d626f89e3f798ea08483e9b5ad7"
+    },
+    "tables-openai-enriched-v1": {
+      "wire_sha256": "7e6acc08352ad07fad9dd53c7a5aa57dbdb9f86ce45013585e88468f9ff1ea0e",
+      "identity_hash": "7e6acc08352ad07fad9dd53c7a5aa57dbdb9f86ce45013585e88468f9ff1ea0e"
+    },
+    "engineering-test-enriched-v1": {
+      "wire_sha256": "e7dfd25d7ff1d603fb0514fd243923c668684fee9978bf9f47c86f9d64abffc4",
+      "identity_hash": "e7dfd25d7ff1d603fb0514fd243923c668684fee9978bf9f47c86f9d64abffc4"
+    },
+    "tables-test-enriched-v1": {
+      "wire_sha256": "e8e96fb3fb32d174caa6792e10407e1db55453a61980a27e103f819f3f09050d",
+      "identity_hash": "e8e96fb3fb32d174caa6792e10407e1db55453a61980a27e103f819f3f09050d"
+    }
+  }
+}

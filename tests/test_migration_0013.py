@@ -1,8 +1,8 @@
 """Fresh execution schema and data-preserving 0012 upgrade/downgrade."""
 
 import pytest
-from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.orm import Session
+from sqlalchemy import MetaData, Table, create_engine, inspect, text
+from sqlalchemy.orm import Session, registry
 
 from extraction_support import run_and_unit
 from legacy_extraction_support import historical_run_mapper
@@ -49,6 +49,14 @@ def test_upgrade_and_downgrade_preserve_existing_source_and_6a_guards(scratch_ur
     engine = create_engine(scratch_url)
     try:
         historical_run_mapper(monkeypatch, engine)
+        import powerforge_extraction.persistence as persistence
+
+        class HistoricalEvidence:
+            pass
+
+        evidence_table = Table("extraction_evidence", MetaData(), autoload_with=engine)
+        registry().map_imperatively(HistoricalEvidence, evidence_table)
+        monkeypatch.setattr(persistence, "Evidence", HistoricalEvidence)
         seeded = _seed_phase3(engine)
         with Session(engine) as session:
             artifact = PageArtifact(

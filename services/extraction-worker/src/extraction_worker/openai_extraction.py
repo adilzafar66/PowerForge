@@ -137,7 +137,13 @@ class OpenAIExtractionProvider:
     def execute(self, request: ExtractionRequest) -> ExtractionResponse:
         if self.profile is not None:
             try:
-                if isinstance(self.profile, TableProfile):
+                from powerforge_extraction.enriched_profiles import is_enriched
+
+                if is_enriched(self.profile):
+                    from powerforge_extraction.enriched_input import enriched_production_input
+
+                    messages = enriched_production_input(request, self.profile)
+                elif isinstance(self.profile, TableProfile):
                     from powerforge_extraction.table_input import table_production_input
 
                     messages = table_production_input(request, self.profile)
