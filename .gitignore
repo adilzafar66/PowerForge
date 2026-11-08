@@ -25,6 +25,7 @@ htmlcov
 evals/classification/private/
 evals/extraction/private/
 evals/tables/private/
+evals/spatial/private/
 
 # Local deterministic visual baselines, font cache, and comparison artifacts.
 apps/web/.visual-artifacts/

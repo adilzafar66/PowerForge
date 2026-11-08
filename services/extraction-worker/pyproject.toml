@@ -21,5 +21,8 @@ dependencies = [
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
+[project.scripts]
+powerforge-eval-spatial = "extraction_worker.spatial_evaluation:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -1,0 +1,4771 @@
+{
+  "version": "spatial-extraction-corpus-v1",
+  "provenance": "SYNTHETIC_AUTHORED",
+  "cases": [
+    {
+      "id": "positioned-6d",
+      "words": [
+        {
+          "id": "title.0",
+          "text": "2-Winding",
+          "box": [
+            0.05,
+            0.0805,
+            0.194032,
+            0.1625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.1",
+          "text": "Transformer",
+          "box": [
+            0.202928,
+            0.0805,
+            0.377168,
+            0.1625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.2",
+          "text": "Schedule",
+          "box": [
+            0.386064,
+            0.0805,
+            0.519472,
+            0.1625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-0.0",
+          "text": "Equipment",
+          "box": [
+            0.05,
+            0.305167,
+            0.16472,
+            0.366667
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.0",
+          "text": "Secondary",
+          "box": [
+            0.49,
+            0.305167,
+            0.60472,
+            0.366667
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.1",
+          "text": "(V)",
+          "box": [
+            0.611392,
+            0.305167,
+            0.643384,
+            0.366667
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "grid-1-0.0",
+          "text": "TX-1",
+          "box": [
+            0.05,
+            0.492667,
+            0.102008,
+            0.554167
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-1-1.0",
+          "text": "600",
+          "box": [
+            0.49,
+            0.492667,
+            0.530032,
+            0.554167
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        }
+      ],
+      "lines": [
+        {
+          "id": "title",
+          "words": [
+            "title.0",
+            "title.1",
+            "title.2"
+          ]
+        },
+        {
+          "id": "grid-0-0",
+          "words": [
+            "grid-0-0.0"
+          ]
+        },
+        {
+          "id": "grid-0-1",
+          "words": [
+            "grid-0-1.0",
+            "grid-0-1.1"
+          ]
+        },
+        {
+          "id": "grid-1-0",
+          "words": [
+            "grid-1-0.0"
+          ]
+        },
+        {
+          "id": "grid-1-1",
+          "words": [
+            "grid-1-1.0"
+          ]
+        }
+      ],
+      "tables": [
+        {
+          "id": "grid",
+          "box": [
+            0.04,
+            0.258333,
+            0.92,
+            0.633333
+          ],
+          "rows": 2,
+          "columns": 2,
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-0",
+              "headers": []
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-1",
+              "headers": []
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            }
+          ],
+          "factors": [
+            "ruled"
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "eq1",
+          "line": "grid-1-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v1",
+          "line": "grid-1-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.6",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq1",
+          "value_type": "NUMBER"
+        }
+      ],
+      "source": "tables/v1/sources/positioned_schedule.pdf",
+      "page": 1,
+      "ocr_gold": false,
+      "force_ocr": false,
+      "note": "The original 6D positioned PDF with the same two claim meanings.",
+      "baseline": "table-pdf",
+      "sha256": "bd21efd868337a72d5e3eeb8d8f5621635de5a22c851a6aa6eacd14776adc26a",
+      "size_bytes": 2131
+    },
+    {
+      "id": "regular-borderless",
+      "words": [
+        {
+          "id": "title.0",
+          "text": "2-Winding",
+          "box": [
+            0.05,
+            0.0332,
+            0.155023,
+            0.07625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.1",
+          "text": "Transformer",
+          "box": [
+            0.16151,
+            0.0332,
+            0.28856,
+            0.07625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.2",
+          "text": "Schedule",
+          "box": [
+            0.295047,
+            0.0332,
+            0.392323,
+            0.07625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-0.0",
+          "text": "Equipment",
+          "box": [
+            0.053333,
+            0.1282,
+            0.164867,
+            0.17125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.0",
+          "text": "Secondary",
+          "box": [
+            0.428333,
+            0.1282,
+            0.539867,
+            0.17125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.1",
+          "text": "(V)",
+          "box": [
+            0.546353,
+            0.1282,
+            0.577457,
+            0.17125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "grid-1-0.0",
+          "text": "TX-1",
+          "box": [
+            0.053333,
+            0.2132,
+            0.103897,
+            0.25625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-1-1.0",
+          "text": "600",
+          "box": [
+            0.428333,
+            0.2132,
+            0.467253,
+            0.25625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "grid-2-0.0",
+          "text": "TX-2",
+          "box": [
+            0.053333,
+            0.2982,
+            0.103897,
+            0.34125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-2-1.0",
+          "text": "600",
+          "box": [
+            0.428333,
+            0.2982,
+            0.467253,
+            0.34125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "grid-3-0.0",
+          "text": "TX-3",
+          "box": [
+            0.053333,
+            0.3832,
+            0.103897,
+            0.42625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-3-1.0",
+          "text": "690",
+          "box": [
+            0.428333,
+            0.3832,
+            0.467253,
+            0.42625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        }
+      ],
+      "lines": [
+        {
+          "id": "title",
+          "words": [
+            "title.0",
+            "title.1",
+            "title.2"
+          ]
+        },
+        {
+          "id": "grid-0-0",
+          "words": [
+            "grid-0-0.0"
+          ]
+        },
+        {
+          "id": "grid-0-1",
+          "words": [
+            "grid-0-1.0",
+            "grid-0-1.1"
+          ]
+        },
+        {
+          "id": "grid-1-0",
+          "words": [
+            "grid-1-0.0"
+          ]
+        },
+        {
+          "id": "grid-1-1",
+          "words": [
+            "grid-1-1.0"
+          ]
+        },
+        {
+          "id": "grid-2-0",
+          "words": [
+            "grid-2-0.0"
+          ]
+        },
+        {
+          "id": "grid-2-1",
+          "words": [
+            "grid-2-1.0"
+          ]
+        },
+        {
+          "id": "grid-3-0",
+          "words": [
+            "grid-3-0.0"
+          ]
+        },
+        {
+          "id": "grid-3-1",
+          "words": [
+            "grid-3-1.0"
+          ]
+        }
+      ],
+      "tables": [
+        {
+          "id": "grid",
+          "box": [
+            0.041667,
+            0.11,
+            0.933333,
+            0.45
+          ],
+          "rows": 4,
+          "columns": 2,
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-0",
+              "headers": []
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-1",
+              "headers": []
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-2-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-2-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "position": [
+                3,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-3-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                3,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-3-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            }
+          ],
+          "factors": []
+        }
+      ],
+      "claims": [
+        {
+          "id": "eq1",
+          "line": "grid-1-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v1",
+          "line": "grid-1-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.6",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq1",
+          "value_type": "NUMBER"
+        },
+        {
+          "id": "eq2",
+          "line": "grid-2-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-2",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v2",
+          "line": "grid-2-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.6",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq2",
+          "value_type": "NUMBER"
+        },
+        {
+          "id": "eq3",
+          "line": "grid-3-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-3",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v3",
+          "line": "grid-3-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.69",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq3",
+          "value_type": "NUMBER"
+        }
+      ],
+      "source": "spatial/v1/sources/electrical-fixtures.pdf",
+      "page": 1,
+      "ocr_gold": false,
+      "force_ocr": false,
+      "note": "Repeated values have distinct equipment and occurrences.",
+      "sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+      "size_bytes": 56209
+    },
+    {
+      "id": "irregular-cable",
+      "words": [
+        {
+          "id": "title.0",
+          "text": "Cable",
+          "box": [
+            0.05,
+            0.0332,
+            0.110947,
+            0.07625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.1",
+          "text": "Schedule",
+          "box": [
+            0.117433,
+            0.0332,
+            0.21471,
+            0.07625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-0.0",
+          "text": "Cable",
+          "box": [
+            0.053333,
+            0.1432,
+            0.11428,
+            0.18625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.0",
+          "text": "Length",
+          "box": [
+            0.251667,
+            0.1432,
+            0.32302,
+            0.18625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.1",
+          "text": "(m)",
+          "box": [
+            0.329507,
+            0.1432,
+            0.364483,
+            0.18625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "grid-0-2.0",
+          "text": "Conductor",
+          "box": [
+            0.453333,
+            0.1432,
+            0.56097,
+            0.18625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-2.1",
+          "text": "Size",
+          "box": [
+            0.567457,
+            0.1432,
+            0.61284,
+            0.18625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-3.0",
+          "text": "Material",
+          "box": [
+            0.695,
+            0.1432,
+            0.777973,
+            0.18625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-1-0.0",
+          "text": "CBL-1",
+          "box": [
+            0.053333,
+            0.2257,
+            0.11946,
+            0.26875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-1-1.0",
+          "text": "30",
+          "box": [
+            0.251667,
+            0.2257,
+            0.277613,
+            0.26875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "grid-1-2.0",
+          "text": "240",
+          "box": [
+            0.453333,
+            0.2257,
+            0.492253,
+            0.26875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "grid-1-2.1",
+          "text": "mm²",
+          "box": [
+            0.49874,
+            0.2257,
+            0.545383,
+            0.26875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit",
+            "punctuation"
+          ]
+        },
+        {
+          "id": "grid-1-3.0",
+          "text": "Copper",
+          "box": [
+            0.695,
+            0.2257,
+            0.77151,
+            0.26875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-2-0.0",
+          "text": "CBL-2",
+          "box": [
+            0.053333,
+            0.4457,
+            0.11946,
+            0.48875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-2-2.0",
+          "text": "300",
+          "box": [
+            0.528333,
+            0.4682,
+            0.567253,
+            0.51125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "grid-2-2.1",
+          "text": "mm²",
+          "box": [
+            0.57374,
+            0.4682,
+            0.620383,
+            0.51125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit",
+            "punctuation"
+          ]
+        },
+        {
+          "id": "grid-2-3.0",
+          "text": "Aluminum",
+          "box": [
+            0.695,
+            0.4457,
+            0.798717,
+            0.48875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-3-0.0",
+          "text": "CBL-3",
+          "box": [
+            0.053333,
+            0.5382,
+            0.11946,
+            0.58125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-3-1.0",
+          "text": "47",
+          "box": [
+            0.308333,
+            0.5457,
+            0.33428,
+            0.58875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "grid-3-2.0",
+          "text": "120",
+          "box": [
+            0.453333,
+            0.5382,
+            0.492253,
+            0.58125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "grid-3-2.1",
+          "text": "mm²",
+          "box": [
+            0.49874,
+            0.5382,
+            0.545383,
+            0.58125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit",
+            "punctuation"
+          ]
+        }
+      ],
+      "lines": [
+        {
+          "id": "title",
+          "words": [
+            "title.0",
+            "title.1"
+          ]
+        },
+        {
+          "id": "grid-0-0",
+          "words": [
+            "grid-0-0.0"
+          ]
+        },
+        {
+          "id": "grid-0-1",
+          "words": [
+            "grid-0-1.0",
+            "grid-0-1.1"
+          ]
+        },
+        {
+          "id": "grid-0-2",
+          "words": [
+            "grid-0-2.0",
+            "grid-0-2.1"
+          ]
+        },
+        {
+          "id": "grid-0-3",
+          "words": [
+            "grid-0-3.0"
+          ]
+        },
+        {
+          "id": "grid-1-0",
+          "words": [
+            "grid-1-0.0"
+          ]
+        },
+        {
+          "id": "grid-1-1",
+          "words": [
+            "grid-1-1.0"
+          ]
+        },
+        {
+          "id": "grid-1-2",
+          "words": [
+            "grid-1-2.0",
+            "grid-1-2.1"
+          ]
+        },
+        {
+          "id": "grid-1-3",
+          "words": [
+            "grid-1-3.0"
+          ]
+        },
+        {
+          "id": "grid-2-0",
+          "words": [
+            "grid-2-0.0"
+          ]
+        },
+        {
+          "id": "grid-2-2",
+          "words": [
+            "grid-2-2.0",
+            "grid-2-2.1"
+          ]
+        },
+        {
+          "id": "grid-2-3",
+          "words": [
+            "grid-2-3.0"
+          ]
+        },
+        {
+          "id": "grid-3-0",
+          "words": [
+            "grid-3-0.0"
+          ]
+        },
+        {
+          "id": "grid-3-1",
+          "words": [
+            "grid-3-1.0"
+          ]
+        },
+        {
+          "id": "grid-3-2",
+          "words": [
+            "grid-3-2.0",
+            "grid-3-2.1"
+          ]
+        }
+      ],
+      "tables": [
+        {
+          "id": "grid",
+          "box": [
+            0.041667,
+            0.125,
+            0.958333,
+            0.625
+          ],
+          "rows": 4,
+          "columns": 4,
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-0",
+              "headers": []
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-1",
+              "headers": []
+            },
+            {
+              "position": [
+                0,
+                2
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-2",
+              "headers": []
+            },
+            {
+              "position": [
+                0,
+                3
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-3",
+              "headers": []
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "position": [
+                1,
+                2
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-2",
+              "headers": [
+                [
+                  0,
+                  2
+                ]
+              ]
+            },
+            {
+              "position": [
+                1,
+                3
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-3",
+              "headers": [
+                [
+                  0,
+                  3
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-2-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": null,
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                2
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-2-2",
+              "headers": [
+                [
+                  0,
+                  2
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                3
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-2-3",
+              "headers": [
+                [
+                  0,
+                  3
+                ]
+              ]
+            },
+            {
+              "position": [
+                3,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-3-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                3,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-3-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "position": [
+                3,
+                2
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-3-2",
+              "headers": [
+                [
+                  0,
+                  2
+                ]
+              ]
+            },
+            {
+              "position": [
+                3,
+                3
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": null,
+              "headers": [
+                [
+                  0,
+                  3
+                ]
+              ]
+            }
+          ],
+          "factors": [
+            "irregular_gaps",
+            "sparse",
+            "four_columns"
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "eq1",
+          "line": "grid-1-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "CABLE",
+          "tag": "CBL-1",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "length1",
+          "line": "grid-1-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "CABLE",
+          "tag": null,
+          "attribute": "length",
+          "value": "30",
+          "unit": "m",
+          "status": "MAPPED",
+          "owner": "eq1",
+          "value_type": "NUMBER"
+        },
+        {
+          "id": "size1",
+          "line": "grid-1-2",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "CABLE",
+          "tag": null,
+          "attribute": "conductor_size",
+          "value": "240 mm²",
+          "unit": null,
+          "status": "MAPPED",
+          "owner": "eq1",
+          "value_type": "TEXT"
+        },
+        {
+          "id": "material1",
+          "line": "grid-1-3",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "CABLE",
+          "tag": null,
+          "attribute": "conductor_material",
+          "value": "COPPER",
+          "unit": null,
+          "status": "MAPPED",
+          "owner": "eq1",
+          "value_type": "ENUM"
+        },
+        {
+          "id": "eq2",
+          "line": "grid-2-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "CABLE",
+          "tag": "CBL-2",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "size2",
+          "line": "grid-2-2",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "CABLE",
+          "tag": null,
+          "attribute": "conductor_size",
+          "value": "300 mm²",
+          "unit": null,
+          "status": "MAPPED",
+          "owner": "eq2",
+          "value_type": "TEXT"
+        },
+        {
+          "id": "material2",
+          "line": "grid-2-3",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "CABLE",
+          "tag": null,
+          "attribute": "conductor_material",
+          "value": "ALUMINUM",
+          "unit": null,
+          "status": "MAPPED",
+          "owner": "eq2",
+          "value_type": "ENUM"
+        },
+        {
+          "id": "eq3",
+          "line": "grid-3-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "CABLE",
+          "tag": "CBL-3",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "length3",
+          "line": "grid-3-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "CABLE",
+          "tag": null,
+          "attribute": "length",
+          "value": "47",
+          "unit": "m",
+          "status": "MAPPED",
+          "owner": "eq3",
+          "value_type": "NUMBER"
+        },
+        {
+          "id": "size3",
+          "line": "grid-3-2",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "CABLE",
+          "tag": null,
+          "attribute": "conductor_size",
+          "value": "120 mm²",
+          "unit": null,
+          "status": "MAPPED",
+          "owner": "eq3",
+          "value_type": "TEXT"
+        }
+      ],
+      "source": "spatial/v1/sources/electrical-fixtures.pdf",
+      "page": 2,
+      "ocr_gold": false,
+      "force_ocr": false,
+      "note": "The blank slots and irregular row gaps are authored gold.",
+      "sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+      "size_bytes": 56209
+    },
+    {
+      "id": "merged-header",
+      "words": [
+        {
+          "id": "title.0",
+          "text": "2-Winding",
+          "box": [
+            0.058333,
+            0.0357,
+            0.163357,
+            0.07875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.1",
+          "text": "Transformer",
+          "box": [
+            0.169843,
+            0.0357,
+            0.296893,
+            0.07875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.2",
+          "text": "Schedule",
+          "box": [
+            0.30338,
+            0.0357,
+            0.400657,
+            0.07875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "merged-0-0.0",
+          "text": "Equipment",
+          "box": [
+            0.063333,
+            0.1606,
+            0.158933,
+            0.1975
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "merged-0-1.0",
+          "text": "Voltage",
+          "box": [
+            0.35,
+            0.1606,
+            0.41782,
+            0.1975
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "merged-1-1.0",
+          "text": "Primary",
+          "box": [
+            0.35,
+            0.2606,
+            0.41888,
+            0.2975
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "merged-1-1.1",
+          "text": "(V)",
+          "box": [
+            0.42444,
+            0.2606,
+            0.4511,
+            0.2975
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "merged-1-2.0",
+          "text": "Secondary",
+          "box": [
+            0.665,
+            0.2606,
+            0.7606,
+            0.2975
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "merged-1-2.1",
+          "text": "(V)",
+          "box": [
+            0.76616,
+            0.2606,
+            0.79282,
+            0.2975
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "merged-2-0.0",
+          "text": "TX-4",
+          "box": [
+            0.063333,
+            0.3606,
+            0.106673,
+            0.3975
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "merged-2-1.0",
+          "text": "12470",
+          "box": [
+            0.35,
+            0.3606,
+            0.4056,
+            0.3975
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "merged-2-2.0",
+          "text": "690",
+          "box": [
+            0.665,
+            0.3606,
+            0.69836,
+            0.3975
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "merged-3-0.0",
+          "text": "TX-5",
+          "box": [
+            0.063333,
+            0.4706,
+            0.106673,
+            0.5075
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "merged-3-1.0",
+          "text": "25000",
+          "box": [
+            0.35,
+            0.4706,
+            0.4056,
+            0.5075
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "merged-3-2.0",
+          "text": "690",
+          "box": [
+            0.665,
+            0.4706,
+            0.69836,
+            0.5075
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        }
+      ],
+      "lines": [
+        {
+          "id": "title",
+          "words": [
+            "title.0",
+            "title.1",
+            "title.2"
+          ]
+        },
+        {
+          "id": "merged-0-0",
+          "words": [
+            "merged-0-0.0"
+          ]
+        },
+        {
+          "id": "merged-0-1",
+          "words": [
+            "merged-0-1.0"
+          ]
+        },
+        {
+          "id": "merged-1-1",
+          "words": [
+            "merged-1-1.0",
+            "merged-1-1.1"
+          ]
+        },
+        {
+          "id": "merged-1-2",
+          "words": [
+            "merged-1-2.0",
+            "merged-1-2.1"
+          ]
+        },
+        {
+          "id": "merged-2-0",
+          "words": [
+            "merged-2-0.0"
+          ]
+        },
+        {
+          "id": "merged-2-1",
+          "words": [
+            "merged-2-1.0"
+          ]
+        },
+        {
+          "id": "merged-2-2",
+          "words": [
+            "merged-2-2.0"
+          ]
+        },
+        {
+          "id": "merged-3-0",
+          "words": [
+            "merged-3-0.0"
+          ]
+        },
+        {
+          "id": "merged-3-1",
+          "words": [
+            "merged-3-1.0"
+          ]
+        },
+        {
+          "id": "merged-3-2",
+          "words": [
+            "merged-3-2.0"
+          ]
+        }
+      ],
+      "tables": [
+        {
+          "id": "merged",
+          "box": [
+            0.05,
+            0.13,
+            0.95,
+            0.5525
+          ],
+          "rows": 4,
+          "columns": 3,
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "span": [
+                2,
+                1
+              ],
+              "line": "merged-0-0",
+              "headers": []
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "span": [
+                1,
+                2
+              ],
+              "line": "merged-0-1",
+              "headers": []
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "merged-1-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "position": [
+                1,
+                2
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "merged-1-2",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "merged-2-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "merged-2-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  1
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                2
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "merged-2-2",
+              "headers": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ]
+              ]
+            },
+            {
+              "position": [
+                3,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "merged-3-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                3,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "merged-3-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  1
+                ]
+              ]
+            },
+            {
+              "position": [
+                3,
+                2
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "merged-3-2",
+              "headers": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ]
+              ]
+            }
+          ],
+          "factors": [
+            "ruled",
+            "hierarchical",
+            "merged"
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "eq2",
+          "line": "merged-2-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-4",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "primary2",
+          "line": "merged-2-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "primary_voltage",
+          "value": "12.47",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq2",
+          "value_type": "NUMBER"
+        },
+        {
+          "id": "secondary2",
+          "line": "merged-2-2",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.69",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq2",
+          "value_type": "NUMBER"
+        },
+        {
+          "id": "eq3",
+          "line": "merged-3-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-5",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "primary3",
+          "line": "merged-3-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "primary_voltage",
+          "value": "25",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq3",
+          "value_type": "NUMBER"
+        },
+        {
+          "id": "secondary3",
+          "line": "merged-3-2",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.69",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq3",
+          "value_type": "NUMBER"
+        }
+      ],
+      "source": "spatial/v1/sources/electrical-fixtures.pdf",
+      "page": 3,
+      "ocr_gold": false,
+      "force_ocr": false,
+      "note": "Merged voltage band and equipment rowspan.",
+      "sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+      "size_bytes": 56209
+    },
+    {
+      "id": "two-column-spec",
+      "words": [
+        {
+          "id": "name.0",
+          "text": "2-Winding",
+          "box": [
+            0.058333,
+            0.0907,
+            0.163357,
+            0.13375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "name.1",
+          "text": "Transformer",
+          "box": [
+            0.169843,
+            0.0907,
+            0.296893,
+            0.13375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "name.2",
+          "text": "TX-8",
+          "box": [
+            0.30338,
+            0.0907,
+            0.353943,
+            0.13375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "value.0",
+          "text": "Secondary",
+          "box": [
+            0.058333,
+            0.1557,
+            0.169867,
+            0.19875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "value.1",
+          "text": "Voltage:",
+          "box": [
+            0.176353,
+            0.1557,
+            0.261963,
+            0.19875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "value.2",
+          "text": "690",
+          "box": [
+            0.26845,
+            0.1557,
+            0.30737,
+            0.19875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "value.3",
+          "text": "V",
+          "box": [
+            0.313857,
+            0.1557,
+            0.32942,
+            0.19875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "invalid.0",
+          "text": "Primary",
+          "box": [
+            0.058333,
+            0.2207,
+            0.138693,
+            0.26375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "invalid.1",
+          "text": "Voltage:",
+          "box": [
+            0.14518,
+            0.2207,
+            0.23079,
+            0.26375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "invalid.2",
+          "text": "480",
+          "box": [
+            0.237277,
+            0.2207,
+            0.276197,
+            0.26375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "invalid.3",
+          "text": "furlong",
+          "box": [
+            0.282683,
+            0.2207,
+            0.354013,
+            0.26375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "name2.0",
+          "text": "LV",
+          "box": [
+            0.566667,
+            0.0907,
+            0.595203,
+            0.13375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "name2.1",
+          "text": "Breaker",
+          "box": [
+            0.60169,
+            0.0907,
+            0.68338,
+            0.13375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "name2.2",
+          "text": "CB-8",
+          "box": [
+            0.689867,
+            0.0907,
+            0.74302,
+            0.13375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "value2.0",
+          "text": "Normally",
+          "box": [
+            0.566667,
+            0.1557,
+            0.658693,
+            0.19875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "value2.1",
+          "text": "Closed:",
+          "box": [
+            0.66518,
+            0.1557,
+            0.74428,
+            0.19875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "value2.2",
+          "text": "Yes",
+          "box": [
+            0.750767,
+            0.1557,
+            0.79097,
+            0.19875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        }
+      ],
+      "lines": [
+        {
+          "id": "name",
+          "words": [
+            "name.0",
+            "name.1",
+            "name.2"
+          ]
+        },
+        {
+          "id": "value",
+          "words": [
+            "value.0",
+            "value.1",
+            "value.2",
+            "value.3"
+          ]
+        },
+        {
+          "id": "invalid",
+          "words": [
+            "invalid.0",
+            "invalid.1",
+            "invalid.2",
+            "invalid.3"
+          ]
+        },
+        {
+          "id": "name2",
+          "words": [
+            "name2.0",
+            "name2.1",
+            "name2.2"
+          ]
+        },
+        {
+          "id": "value2",
+          "words": [
+            "value2.0",
+            "value2.1",
+            "value2.2"
+          ]
+        }
+      ],
+      "tables": [],
+      "claims": [
+        {
+          "id": "eq",
+          "line": "name",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-8",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v",
+          "line": "value",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.69",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq",
+          "value_type": "NUMBER"
+        },
+        {
+          "id": "invalid",
+          "line": "invalid",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "primary_voltage",
+          "value": null,
+          "unit": null,
+          "status": "INVALID",
+          "owner": "eq",
+          "value_type": null
+        },
+        {
+          "id": "br",
+          "line": "name2",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "LV_BREAKER",
+          "tag": "CB-8",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "closed",
+          "line": "value2",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "LV_BREAKER",
+          "tag": null,
+          "attribute": "normally_closed",
+          "value": true,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": "br",
+          "value_type": "BOOLEAN"
+        }
+      ],
+      "source": "spatial/v1/sources/electrical-fixtures.pdf",
+      "page": 4,
+      "ocr_gold": false,
+      "force_ocr": false,
+      "note": "Separate equipment blocks share the same baselines.",
+      "sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+      "size_bytes": 56209
+    },
+    {
+      "id": "mixed-orientation",
+      "words": [
+        {
+          "id": "title.0",
+          "text": "2-Winding",
+          "box": [
+            0.058333,
+            0.0357,
+            0.163357,
+            0.07875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.1",
+          "text": "Transformer",
+          "box": [
+            0.169843,
+            0.0357,
+            0.296893,
+            0.07875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.2",
+          "text": "Schedule",
+          "box": [
+            0.30338,
+            0.0357,
+            0.400657,
+            0.07875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-0.0",
+          "text": "Equipment",
+          "box": [
+            0.058333,
+            0.1282,
+            0.169867,
+            0.17125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.0",
+          "text": "Secondary",
+          "box": [
+            0.428333,
+            0.1282,
+            0.539867,
+            0.17125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.1",
+          "text": "(V)",
+          "box": [
+            0.546353,
+            0.1282,
+            0.577457,
+            0.17125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "grid-1-0.0",
+          "text": "TX-6",
+          "box": [
+            0.058333,
+            0.2182,
+            0.108897,
+            0.26125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-1-1.0",
+          "text": "480",
+          "box": [
+            0.428333,
+            0.2182,
+            0.467253,
+            0.26125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "grid-2-0.0",
+          "text": "TX-7",
+          "box": [
+            0.058333,
+            0.3082,
+            0.108897,
+            0.35125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-2-1.0",
+          "text": "600",
+          "box": [
+            0.428333,
+            0.3082,
+            0.467253,
+            0.35125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "side.0",
+          "text": "FIELD",
+          "box": [
+            0.911667,
+            0.282895,
+            0.938333,
+            0.375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "side.1",
+          "text": "VERIFY",
+          "box": [
+            0.911667,
+            0.15647,
+            0.938333,
+            0.27386
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        }
+      ],
+      "lines": [
+        {
+          "id": "title",
+          "words": [
+            "title.0",
+            "title.1",
+            "title.2"
+          ]
+        },
+        {
+          "id": "grid-0-0",
+          "words": [
+            "grid-0-0.0"
+          ]
+        },
+        {
+          "id": "grid-0-1",
+          "words": [
+            "grid-0-1.0",
+            "grid-0-1.1"
+          ]
+        },
+        {
+          "id": "grid-1-0",
+          "words": [
+            "grid-1-0.0"
+          ]
+        },
+        {
+          "id": "grid-1-1",
+          "words": [
+            "grid-1-1.0"
+          ]
+        },
+        {
+          "id": "grid-2-0",
+          "words": [
+            "grid-2-0.0"
+          ]
+        },
+        {
+          "id": "grid-2-1",
+          "words": [
+            "grid-2-1.0"
+          ]
+        },
+        {
+          "id": "side",
+          "words": [
+            "side.0",
+            "side.1"
+          ],
+          "order": false
+        }
+      ],
+      "tables": [
+        {
+          "id": "grid",
+          "box": [
+            0.046667,
+            0.11,
+            0.891667,
+            0.38
+          ],
+          "rows": 3,
+          "columns": 2,
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-0",
+              "headers": []
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-1",
+              "headers": []
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-2-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-2-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            }
+          ],
+          "factors": [
+            "mixed_orientation"
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "eq1",
+          "line": "grid-1-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-6",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v1",
+          "line": "grid-1-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.48",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq1",
+          "value_type": "NUMBER"
+        },
+        {
+          "id": "eq2",
+          "line": "grid-2-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-7",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v2",
+          "line": "grid-2-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.6",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq2",
+          "value_type": "NUMBER"
+        }
+      ],
+      "source": "spatial/v1/sources/electrical-fixtures.pdf",
+      "page": 5,
+      "ocr_gold": false,
+      "force_ocr": false,
+      "note": "Horizontal grid beside a vertical instruction.",
+      "sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+      "size_bytes": 56209
+    },
+    {
+      "id": "qualified-utility",
+      "words": [
+        {
+          "id": "title.0",
+          "text": "Utility",
+          "box": [
+            0.05,
+            0.0357,
+            0.107027,
+            0.07875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.1",
+          "text": "Source",
+          "box": [
+            0.113513,
+            0.0357,
+            0.187433,
+            0.07875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.2",
+          "text": "Schedule",
+          "box": [
+            0.19392,
+            0.0357,
+            0.291197,
+            0.07875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-0.0",
+          "text": "Equipment",
+          "box": [
+            0.053333,
+            0.1382,
+            0.164867,
+            0.18125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.0",
+          "text": "3-Phase",
+          "box": [
+            0.456667,
+            0.1382,
+            0.54356,
+            0.18125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.1",
+          "text": "Fault",
+          "box": [
+            0.550047,
+            0.1382,
+            0.601917,
+            0.18125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.2",
+          "text": "Current",
+          "box": [
+            0.608403,
+            0.1382,
+            0.686197,
+            0.18125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.3",
+          "text": "(kA)",
+          "box": [
+            0.692683,
+            0.1382,
+            0.735453,
+            0.18125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "grid-0-1.4",
+          "text": "(estimate)",
+          "box": [
+            0.74194,
+            0.1382,
+            0.845657,
+            0.18125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-1-0.0",
+          "text": "Utility",
+          "box": [
+            0.053333,
+            0.2282,
+            0.11036,
+            0.27125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-1-0.1",
+          "text": "Source",
+          "box": [
+            0.116847,
+            0.2282,
+            0.190767,
+            0.27125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-1-0.2",
+          "text": "UT-1",
+          "box": [
+            0.197253,
+            0.2282,
+            0.2491,
+            0.27125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-1-1.0",
+          "text": "22",
+          "box": [
+            0.456667,
+            0.2282,
+            0.482613,
+            0.27125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "grid-2-0.0",
+          "text": "Utility",
+          "box": [
+            0.053333,
+            0.3182,
+            0.11036,
+            0.36125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-2-0.1",
+          "text": "Source",
+          "box": [
+            0.116847,
+            0.3182,
+            0.190767,
+            0.36125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "grid-2-0.2",
+          "text": "UT-2",
+          "box": [
+            0.197253,
+            0.3182,
+            0.2491,
+            0.36125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-2-1.0",
+          "text": "25",
+          "box": [
+            0.456667,
+            0.3182,
+            0.482613,
+            0.36125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        }
+      ],
+      "lines": [
+        {
+          "id": "title",
+          "words": [
+            "title.0",
+            "title.1",
+            "title.2"
+          ]
+        },
+        {
+          "id": "grid-0-0",
+          "words": [
+            "grid-0-0.0"
+          ]
+        },
+        {
+          "id": "grid-0-1",
+          "words": [
+            "grid-0-1.0",
+            "grid-0-1.1",
+            "grid-0-1.2",
+            "grid-0-1.3",
+            "grid-0-1.4"
+          ]
+        },
+        {
+          "id": "grid-1-0",
+          "words": [
+            "grid-1-0.0",
+            "grid-1-0.1",
+            "grid-1-0.2"
+          ]
+        },
+        {
+          "id": "grid-1-1",
+          "words": [
+            "grid-1-1.0"
+          ]
+        },
+        {
+          "id": "grid-2-0",
+          "words": [
+            "grid-2-0.0",
+            "grid-2-0.1",
+            "grid-2-0.2"
+          ]
+        },
+        {
+          "id": "grid-2-1",
+          "words": [
+            "grid-2-1.0"
+          ]
+        }
+      ],
+      "tables": [
+        {
+          "id": "grid",
+          "box": [
+            0.041667,
+            0.12,
+            0.95,
+            0.39
+          ],
+          "rows": 3,
+          "columns": 2,
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-0",
+              "headers": []
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-1",
+              "headers": []
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-2-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-2-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            }
+          ],
+          "factors": [
+            "qualified_header"
+          ]
+        }
+      ],
+      "claims": [
+        {
+          "id": "eq1",
+          "line": "grid-1-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "UTILITY_SOURCE",
+          "tag": "UT-1",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "fault1",
+          "line": "grid-1-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "UTILITY_SOURCE",
+          "tag": null,
+          "attribute": "three_phase_fault_current",
+          "value": null,
+          "unit": null,
+          "status": "UNMAPPED",
+          "owner": "eq1",
+          "value_type": null
+        },
+        {
+          "id": "eq2",
+          "line": "grid-2-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "UTILITY_SOURCE",
+          "tag": "UT-2",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "fault2",
+          "line": "grid-2-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "UTILITY_SOURCE",
+          "tag": null,
+          "attribute": "three_phase_fault_current",
+          "value": null,
+          "unit": null,
+          "status": "UNMAPPED",
+          "owner": "eq2",
+          "value_type": null
+        }
+      ],
+      "source": "spatial/v1/sources/electrical-fixtures.pdf",
+      "page": 6,
+      "ocr_gold": false,
+      "force_ocr": false,
+      "note": "An estimate qualifier is part of the printed header.",
+      "sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+      "size_bytes": 56209
+    },
+    {
+      "id": "rotated-native",
+      "words": [
+        {
+          "id": "name.0",
+          "text": "2-Winding",
+          "box": [
+            0.066667,
+            0.1282,
+            0.17169,
+            0.17125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "name.1",
+          "text": "Transformer",
+          "box": [
+            0.178177,
+            0.1282,
+            0.305227,
+            0.17125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "name.2",
+          "text": "TX-9",
+          "box": [
+            0.311713,
+            0.1282,
+            0.362277,
+            0.17125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "value.0",
+          "text": "Secondary",
+          "box": [
+            0.066667,
+            0.2032,
+            0.1782,
+            0.24625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "value.1",
+          "text": "Voltage:",
+          "box": [
+            0.184687,
+            0.2032,
+            0.270297,
+            0.24625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "value.2",
+          "text": "480",
+          "box": [
+            0.276783,
+            0.2032,
+            0.315703,
+            0.24625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "value.3",
+          "text": "V",
+          "box": [
+            0.32219,
+            0.2032,
+            0.337753,
+            0.24625
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit"
+          ]
+        }
+      ],
+      "lines": [
+        {
+          "id": "name",
+          "words": [
+            "name.0",
+            "name.1",
+            "name.2"
+          ]
+        },
+        {
+          "id": "value",
+          "words": [
+            "value.0",
+            "value.1",
+            "value.2",
+            "value.3"
+          ]
+        }
+      ],
+      "tables": [],
+      "claims": [
+        {
+          "id": "eq",
+          "line": "name",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-9",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v",
+          "line": "value",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.48",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq",
+          "value_type": "NUMBER"
+        }
+      ],
+      "source": "spatial/v1/sources/electrical-fixtures.pdf",
+      "page": 7,
+      "ocr_gold": false,
+      "force_ocr": false,
+      "note": "Page rotation metadata turns authored vertical PDF text upright.",
+      "baseline": "prose-native",
+      "sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+      "size_bytes": 56209
+    },
+    {
+      "id": "scanned-schedule",
+      "words": [
+        {
+          "id": "title.0",
+          "text": "2-Winding",
+          "box": [
+            0.03,
+            0.061429,
+            0.154,
+            0.131429
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "title.1",
+          "text": "Transformer",
+          "box": [
+            0.1595,
+            0.06,
+            0.303,
+            0.117143
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "title.2",
+          "text": "Schedule",
+          "box": [
+            0.3085,
+            0.061429,
+            0.421,
+            0.117143
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "grid-0-0.0",
+          "text": "Equipment",
+          "box": [
+            0.03,
+            0.22,
+            0.16,
+            0.287143
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.0",
+          "text": "Secondary",
+          "box": [
+            0.5,
+            0.218571,
+            0.6275,
+            0.288571
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "grid-0-1.1",
+          "text": "(V)",
+          "box": [
+            0.633,
+            0.214286,
+            0.6655,
+            0.278571
+          ],
+          "basis": "OCR",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "grid-1-0.0",
+          "text": "TX-1",
+          "box": [
+            0.03,
+            0.464286,
+            0.085,
+            0.515714
+          ],
+          "basis": "OCR",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-1-1.0",
+          "text": "690",
+          "box": [
+            0.5,
+            0.462857,
+            0.545,
+            0.517143
+          ],
+          "basis": "OCR",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "grid-2-0.0",
+          "text": "TX-2",
+          "box": [
+            0.03,
+            0.705714,
+            0.085,
+            0.758571
+          ],
+          "basis": "OCR",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "grid-2-1.0",
+          "text": "480",
+          "box": [
+            0.5,
+            0.705714,
+            0.545,
+            0.76
+          ],
+          "basis": "OCR",
+          "categories": [
+            "value"
+          ]
+        }
+      ],
+      "lines": [
+        {
+          "id": "title",
+          "words": [
+            "title.0",
+            "title.1",
+            "title.2"
+          ]
+        },
+        {
+          "id": "grid-0-0",
+          "words": [
+            "grid-0-0.0"
+          ]
+        },
+        {
+          "id": "grid-0-1",
+          "words": [
+            "grid-0-1.0",
+            "grid-0-1.1"
+          ]
+        },
+        {
+          "id": "grid-1-0",
+          "words": [
+            "grid-1-0.0"
+          ]
+        },
+        {
+          "id": "grid-1-1",
+          "words": [
+            "grid-1-1.0"
+          ]
+        },
+        {
+          "id": "grid-2-0",
+          "words": [
+            "grid-2-0.0"
+          ]
+        },
+        {
+          "id": "grid-2-1",
+          "words": [
+            "grid-2-1.0"
+          ]
+        }
+      ],
+      "tables": [
+        {
+          "id": "grid",
+          "box": [
+            0.024,
+            0.168571,
+            0.78,
+            0.885714
+          ],
+          "rows": 3,
+          "columns": 2,
+          "cells": [
+            {
+              "position": [
+                0,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-0",
+              "headers": []
+            },
+            {
+              "position": [
+                0,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-0-1",
+              "headers": []
+            },
+            {
+              "position": [
+                1,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                1,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-1-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                0
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-2-0",
+              "headers": [
+                [
+                  0,
+                  0
+                ]
+              ]
+            },
+            {
+              "position": [
+                2,
+                1
+              ],
+              "span": [
+                1,
+                1
+              ],
+              "line": "grid-2-1",
+              "headers": [
+                [
+                  0,
+                  1
+                ]
+              ]
+            }
+          ],
+          "factors": []
+        }
+      ],
+      "claims": [
+        {
+          "id": "eq1",
+          "line": "grid-1-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v1",
+          "line": "grid-1-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.69",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq1",
+          "value_type": "NUMBER"
+        },
+        {
+          "id": "eq2",
+          "line": "grid-2-0",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-2",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v2",
+          "line": "grid-2-1",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.48",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq2",
+          "value_type": "NUMBER"
+        }
+      ],
+      "source": "spatial/v1/sources/electrical-fixtures.pdf",
+      "page": 8,
+      "ocr_gold": true,
+      "force_ocr": false,
+      "note": "Raster-only PDF with three aligned rows.",
+      "sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+      "size_bytes": 56209
+    },
+    {
+      "id": "hybrid-forced",
+      "words": [
+        {
+          "id": "tag.0",
+          "text": "TX-3",
+          "box": [
+            0.070833,
+            0.468333,
+            0.1425,
+            0.52
+          ],
+          "basis": "OCR",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "reading.0",
+          "text": "690",
+          "box": [
+            0.320833,
+            0.468333,
+            0.380833,
+            0.52
+          ],
+          "basis": "OCR",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "reading.1",
+          "text": "V",
+          "box": [
+            0.388333,
+            0.47,
+            0.410833,
+            0.518333
+          ],
+          "basis": "OCR",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "title.0",
+          "text": "Transformer",
+          "box": [
+            0.07,
+            0.117867,
+            0.23335,
+            0.191667
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.1",
+          "text": "inspection",
+          "box": [
+            0.24169,
+            0.117867,
+            0.37675,
+            0.191667
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.2",
+          "text": "notes",
+          "box": [
+            0.38509,
+            0.117867,
+            0.45847,
+            0.191667
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "hidden.0",
+          "text": "600",
+          "box": [
+            0.320833,
+            0.458067,
+            0.379213,
+            0.544167
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ],
+          "printed": false
+        },
+        {
+          "id": "hidden.1",
+          "text": "V",
+          "box": [
+            0.388943,
+            0.458067,
+            0.412288,
+            0.544167
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit"
+          ],
+          "printed": false
+        }
+      ],
+      "lines": [
+        {
+          "id": "tag",
+          "words": [
+            "tag.0"
+          ]
+        },
+        {
+          "id": "reading",
+          "words": [
+            "reading.0",
+            "reading.1"
+          ]
+        },
+        {
+          "id": "title",
+          "words": [
+            "title.0",
+            "title.1",
+            "title.2"
+          ]
+        },
+        {
+          "id": "hidden",
+          "words": [
+            "hidden.0",
+            "hidden.1"
+          ]
+        }
+      ],
+      "tables": [],
+      "claims": [],
+      "source": "spatial/v1/sources/electrical-fixtures.pdf",
+      "page": 9,
+      "ocr_gold": true,
+      "force_ocr": true,
+      "note": "Native annotation and disagreeing hidden OCR layer over embedded scan.",
+      "conflicts": [
+        [
+          "hidden.0",
+          "reading.0"
+        ]
+      ],
+      "sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+      "size_bytes": 56209
+    },
+    {
+      "id": "hybrid-auto",
+      "words": [
+        {
+          "id": "tag.0",
+          "text": "TX-3",
+          "box": [
+            0.070833,
+            0.468333,
+            0.1425,
+            0.52
+          ],
+          "basis": "OCR",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "reading.0",
+          "text": "690",
+          "box": [
+            0.320833,
+            0.468333,
+            0.380833,
+            0.52
+          ],
+          "basis": "OCR",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "reading.1",
+          "text": "V",
+          "box": [
+            0.388333,
+            0.47,
+            0.410833,
+            0.518333
+          ],
+          "basis": "OCR",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "title.0",
+          "text": "Transformer",
+          "box": [
+            0.07,
+            0.117867,
+            0.23335,
+            0.191667
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.1",
+          "text": "inspection",
+          "box": [
+            0.24169,
+            0.117867,
+            0.37675,
+            0.191667
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.2",
+          "text": "notes",
+          "box": [
+            0.38509,
+            0.117867,
+            0.45847,
+            0.191667
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "hidden.0",
+          "text": "600",
+          "box": [
+            0.320833,
+            0.458067,
+            0.379213,
+            0.544167
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "value"
+          ],
+          "printed": false
+        },
+        {
+          "id": "hidden.1",
+          "text": "V",
+          "box": [
+            0.388943,
+            0.458067,
+            0.412288,
+            0.544167
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": [
+            "unit"
+          ],
+          "printed": false
+        }
+      ],
+      "lines": [
+        {
+          "id": "tag",
+          "words": [
+            "tag.0"
+          ]
+        },
+        {
+          "id": "reading",
+          "words": [
+            "reading.0",
+            "reading.1"
+          ]
+        },
+        {
+          "id": "title",
+          "words": [
+            "title.0",
+            "title.1",
+            "title.2"
+          ]
+        },
+        {
+          "id": "hidden",
+          "words": [
+            "hidden.0",
+            "hidden.1"
+          ]
+        }
+      ],
+      "tables": [],
+      "claims": [],
+      "source": "spatial/v1/sources/electrical-fixtures.pdf",
+      "page": 9,
+      "ocr_gold": true,
+      "force_ocr": false,
+      "note": "The same hybrid page with default OCR eligibility.",
+      "conflicts": [
+        [
+          "hidden.0",
+          "reading.0"
+        ]
+      ],
+      "sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+      "size_bytes": 56209
+    },
+    {
+      "id": "drawing-negative",
+      "words": [
+        {
+          "id": "title.0",
+          "text": "Single",
+          "box": [
+            0.075,
+            0.0657,
+            0.139843,
+            0.10875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.1",
+          "text": "Line",
+          "box": [
+            0.14633,
+            0.0657,
+            0.19043,
+            0.10875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "title.2",
+          "text": "Diagram",
+          "box": [
+            0.196917,
+            0.0657,
+            0.28507,
+            0.10875
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "label1.0",
+          "text": "Drawing",
+          "box": [
+            0.075,
+            0.1382,
+            0.160563,
+            0.18125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "label1.1",
+          "text": "revision",
+          "box": [
+            0.16705,
+            0.1382,
+            0.247433,
+            0.18125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "label1.2",
+          "text": "B",
+          "box": [
+            0.25392,
+            0.1382,
+            0.269483,
+            0.18125
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "label2.0",
+          "text": "Do",
+          "box": [
+            0.396667,
+            0.3907,
+            0.426487,
+            0.43375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "label2.1",
+          "text": "not",
+          "box": [
+            0.432973,
+            0.3907,
+            0.465407,
+            0.43375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        },
+        {
+          "id": "label2.2",
+          "text": "scale",
+          "box": [
+            0.471893,
+            0.3907,
+            0.526353,
+            0.43375
+          ],
+          "basis": "NATIVE_PDF",
+          "categories": []
+        }
+      ],
+      "lines": [
+        {
+          "id": "title",
+          "words": [
+            "title.0",
+            "title.1",
+            "title.2"
+          ]
+        },
+        {
+          "id": "label1",
+          "words": [
+            "label1.0",
+            "label1.1",
+            "label1.2"
+          ]
+        },
+        {
+          "id": "label2",
+          "words": [
+            "label2.0",
+            "label2.1",
+            "label2.2"
+          ]
+        }
+      ],
+      "tables": [],
+      "claims": [],
+      "source": "spatial/v1/sources/electrical-fixtures.pdf",
+      "page": 10,
+      "ocr_gold": false,
+      "force_ocr": false,
+      "note": "Open drawing lines and notes do not form a table.",
+      "sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+      "size_bytes": 56209
+    },
+    {
+      "id": "transformer-nameplate",
+      "words": [
+        {
+          "id": "name.0",
+          "text": "2-Winding",
+          "box": [
+            0.054545,
+            0.147917,
+            0.26,
+            0.24375
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "name.1",
+          "text": "Transformer",
+          "box": [
+            0.269091,
+            0.147917,
+            0.509091,
+            0.225
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "name.2",
+          "text": "TX-12",
+          "box": [
+            0.518182,
+            0.152083,
+            0.636364,
+            0.222917
+          ],
+          "basis": "OCR",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "value.0",
+          "text": "Secondary",
+          "box": [
+            0.054545,
+            0.439583,
+            0.264545,
+            0.535417
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "value.1",
+          "text": "Voltage:",
+          "box": [
+            0.273636,
+            0.439583,
+            0.433636,
+            0.535417
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "value.2",
+          "text": "600",
+          "box": [
+            0.442727,
+            0.44375,
+            0.519091,
+            0.516667
+          ],
+          "basis": "OCR",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "value.3",
+          "text": "V",
+          "box": [
+            0.528182,
+            0.445833,
+            0.556364,
+            0.514583
+          ],
+          "basis": "OCR",
+          "categories": [
+            "unit"
+          ]
+        }
+      ],
+      "lines": [
+        {
+          "id": "name",
+          "words": [
+            "name.0",
+            "name.1",
+            "name.2"
+          ]
+        },
+        {
+          "id": "value",
+          "words": [
+            "value.0",
+            "value.1",
+            "value.2",
+            "value.3"
+          ]
+        }
+      ],
+      "tables": [],
+      "claims": [
+        {
+          "id": "eq",
+          "line": "name",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-12",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v",
+          "line": "value",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.6",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq",
+          "value_type": "NUMBER"
+        }
+      ],
+      "source": "spatial/v1/sources/transformer.png",
+      "page": 1,
+      "ocr_gold": true,
+      "force_ocr": false,
+      "note": "Clean image-only nameplate.",
+      "baseline": "prose-image",
+      "sha256": "0884045bfb8f29ece212a71b0a8cccdef645193f65ad77a50bfeeaeb95261bbb",
+      "size_bytes": 20754
+    },
+    {
+      "id": "breaker-degraded",
+      "words": [
+        {
+          "id": "name.0",
+          "text": "LV",
+          "box": [
+            0.054545,
+            0.154167,
+            0.108182,
+            0.222917
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "name.1",
+          "text": "Breaker",
+          "box": [
+            0.116364,
+            0.15,
+            0.267273,
+            0.225
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "name.2",
+          "text": "CB-12",
+          "box": [
+            0.276364,
+            0.152083,
+            0.397273,
+            0.225
+          ],
+          "basis": "OCR",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "value.0",
+          "text": "Interrupting",
+          "box": [
+            0.054545,
+            0.44375,
+            0.288182,
+            0.535417
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "value.1",
+          "text": "Rating:",
+          "box": [
+            0.297273,
+            0.44375,
+            0.434545,
+            0.535417
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "value.2",
+          "text": "10.5",
+          "box": [
+            0.443636,
+            0.44375,
+            0.53,
+            0.516667
+          ],
+          "basis": "OCR",
+          "categories": [
+            "value",
+            "punctuation"
+          ]
+        },
+        {
+          "id": "value.3",
+          "text": "kA",
+          "box": [
+            0.539091,
+            0.441667,
+            0.590909,
+            0.514583
+          ],
+          "basis": "OCR",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "notation.0",
+          "text": "400",
+          "box": [
+            0.054545,
+            0.70625,
+            0.114545,
+            0.766667
+          ],
+          "basis": "OCR",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "notation.1",
+          "text": "AF",
+          "box": [
+            0.121818,
+            0.708333,
+            0.163636,
+            0.764583
+          ],
+          "basis": "OCR",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "notation.2",
+          "text": "/",
+          "box": [
+            0.17,
+            0.70625,
+            0.181818,
+            0.766667
+          ],
+          "basis": "OCR",
+          "categories": [
+            "punctuation"
+          ]
+        },
+        {
+          "id": "notation.3",
+          "text": "250",
+          "box": [
+            0.189091,
+            0.70625,
+            0.249091,
+            0.766667
+          ],
+          "basis": "OCR",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "notation.4",
+          "text": "AT",
+          "box": [
+            0.256364,
+            0.708333,
+            0.299091,
+            0.764583
+          ],
+          "basis": "OCR",
+          "categories": [
+            "unit"
+          ]
+        },
+        {
+          "id": "notation.5",
+          "text": "35",
+          "box": [
+            0.313636,
+            0.70625,
+            0.353636,
+            0.766667
+          ],
+          "basis": "OCR",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "notation.6",
+          "text": "mm²",
+          "box": [
+            0.360909,
+            0.708333,
+            0.436364,
+            0.764583
+          ],
+          "basis": "OCR",
+          "categories": [
+            "unit",
+            "punctuation"
+          ]
+        },
+        {
+          "id": "notation.7",
+          "text": "±5%",
+          "box": [
+            0.450909,
+            0.70625,
+            0.517273,
+            0.766667
+          ],
+          "basis": "OCR",
+          "categories": [
+            "punctuation"
+          ]
+        }
+      ],
+      "lines": [
+        {
+          "id": "name",
+          "words": [
+            "name.0",
+            "name.1",
+            "name.2"
+          ]
+        },
+        {
+          "id": "value",
+          "words": [
+            "value.0",
+            "value.1",
+            "value.2",
+            "value.3"
+          ]
+        },
+        {
+          "id": "notation",
+          "words": [
+            "notation.0",
+            "notation.1",
+            "notation.2",
+            "notation.3",
+            "notation.4",
+            "notation.5",
+            "notation.6",
+            "notation.7"
+          ]
+        }
+      ],
+      "tables": [],
+      "claims": [
+        {
+          "id": "eq",
+          "line": "name",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "LV_BREAKER",
+          "tag": "CB-12",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v",
+          "line": "value",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "LV_BREAKER",
+          "tag": null,
+          "attribute": "interrupting_rating",
+          "value": "10.5",
+          "unit": "kA",
+          "status": "MAPPED",
+          "owner": "eq",
+          "value_type": "NUMBER"
+        }
+      ],
+      "source": "spatial/v1/sources/breaker-degraded.png",
+      "page": 1,
+      "ocr_gold": true,
+      "force_ocr": false,
+      "note": "Deterministic low-resolution noise challenges punctuation and units.",
+      "sha256": "f81720da73c4c038e7f8997c2ac34b183b4d012b6e89c35f61f4acb59c299382",
+      "size_bytes": 36451
+    },
+    {
+      "id": "oriented-tiff",
+      "words": [
+        {
+          "id": "name.0",
+          "text": "2-Winding",
+          "box": [
+            0.063158,
+            0.17,
+            0.252632,
+            0.265
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "name.1",
+          "text": "Transformer",
+          "box": [
+            0.261053,
+            0.17,
+            0.482105,
+            0.245
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "name.2",
+          "text": "TX-15",
+          "box": [
+            0.490526,
+            0.175,
+            0.596842,
+            0.245
+          ],
+          "basis": "OCR",
+          "categories": [
+            "tag"
+          ]
+        },
+        {
+          "id": "value.0",
+          "text": "Secondary",
+          "box": [
+            0.063158,
+            0.52,
+            0.257895,
+            0.615
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "value.1",
+          "text": "Voltage:",
+          "box": [
+            0.266316,
+            0.52,
+            0.414737,
+            0.615
+          ],
+          "basis": "OCR",
+          "categories": []
+        },
+        {
+          "id": "value.2",
+          "text": "480",
+          "box": [
+            0.423158,
+            0.5225,
+            0.492632,
+            0.595
+          ],
+          "basis": "OCR",
+          "categories": [
+            "value"
+          ]
+        },
+        {
+          "id": "value.3",
+          "text": "V",
+          "box": [
+            0.501053,
+            0.525,
+            0.527368,
+            0.5925
+          ],
+          "basis": "OCR",
+          "categories": [
+            "unit"
+          ]
+        }
+      ],
+      "lines": [
+        {
+          "id": "name",
+          "words": [
+            "name.0",
+            "name.1",
+            "name.2"
+          ]
+        },
+        {
+          "id": "value",
+          "words": [
+            "value.0",
+            "value.1",
+            "value.2",
+            "value.3"
+          ]
+        }
+      ],
+      "tables": [],
+      "claims": [
+        {
+          "id": "eq",
+          "line": "name",
+          "kind": "EQUIPMENT_MENTION",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-15",
+          "attribute": null,
+          "value": null,
+          "unit": null,
+          "status": "MAPPED",
+          "owner": null,
+          "value_type": null
+        },
+        {
+          "id": "v",
+          "line": "value",
+          "kind": "ATTRIBUTE_VALUE",
+          "equipment_type": "TWO_WINDING_TRANSFORMER",
+          "tag": null,
+          "attribute": "secondary_voltage",
+          "value": "0.48",
+          "unit": "kV",
+          "status": "MAPPED",
+          "owner": "eq",
+          "value_type": "NUMBER"
+        }
+      ],
+      "source": "spatial/v1/sources/oriented-nameplate.tiff",
+      "page": 1,
+      "ocr_gold": true,
+      "force_ocr": false,
+      "note": "Physical raster is sideways and TIFF orientation is explicit.",
+      "sha256": "3bb28c88df8f4db3d50e1eafefdd782e8c05b169e3fc331d9c97044de38d028b",
+      "size_bytes": 18364
+    }
+  ]
+}

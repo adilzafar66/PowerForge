@@ -444,4 +444,10 @@ The explicit local `source-layout-v1` profile commits SOURCE_PREPARE then SPATIA
 
 Versioned pure document-processing algorithms retain exact native/OCR occurrences, contextual overlap agreements/conflicts, partial reading order and unresolved geometry. Closed native borders support partitions/merged spans; a stricter repeated-alignment path supports simple borderless schedules. Header relationships require actual column coverage plus conservative explicit label cues. OCR geometry remains OCR-derived; serialized cell readings are not printed quotes, missing readings are not verified blanks, and layout supplies no engineering ownership or meaning.
 
-The original positioned 6D PDF gains four supported cells and two header paths over its unchanged delimiter-only baseline. Real OCR, retry and killed-worker recovery are exercised. Accepted M1/M2 and 6C/6D identities/reports remain unchanged. M4 must add the enhanced extraction/evidence adapter; M5 owns representative accuracy evaluation. See [PHASE6E_M3_HANDOFF.md](PHASE6E_M3_HANDOFF.md) for exact rules, limits and verification. Stop for M3 review.
+The original positioned 6D PDF gains four supported cells and two header paths over its unchanged delimiter-only baseline. Real OCR, retry and killed-worker recovery are exercised. Accepted M1/M2 and 6C/6D identities/reports remain unchanged. See the [M3 handoff](PHASE6E_M3_HANDOFF.md) for exact rules and limits.
+
+## Phase 6E M4–M5 — Enhanced extraction and spatial evaluation
+
+After source enrichment completes, an extraction run binds an exact prepared and spatial result for each selected page. The two enhanced profiles use separate prose and table runs on the existing two-stage coordinator. Both can reuse the same enrichment. The provider receives a bounded projection of the chosen source and server-owned aliases. The converter resolves positions and source ownership. Independent source validation runs before the atomic publisher takes its locks. The publisher rechecks the lease, exact bindings and verified output.
+
+The offline evaluation runs the actual renderer, preparation and layout with local Tesseract. Separate deterministic mock observations exercise conversion. The authored gold and paired legacy scores are maintained separately from the accepted 6C/6D evaluators. See the [final 6E handoff](PHASE6E_HANDOFF.md).

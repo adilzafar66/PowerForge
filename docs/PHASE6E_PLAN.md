@@ -1,6 +1,6 @@
 # Phase 6E implementation plan — OCR and spatial source enrichment
 
-**Status:** M1–M4 implemented. Enhanced extraction is ready for review. See the [M4 handoff](PHASE6E_M4_HANDOFF.md). M5 evaluation is pending. Implementation date 2026-11-07 (America/Vancouver).
+**Status:** M1–M5 implemented for review. See the [final 6E handoff](PHASE6E_HANDOFF.md) for observed evaluation and verification. Phase 6F and 6G are pending.
 
 **Baseline:** local `main` and the fetched `origin/main` reference both identify `3d6ea4ec563efc2e2bdbdbefd8d72c17e7e9e977`, containing the full accepted 6D M1–M4 implementation. The prompt's older statement that main lacked 6D is superseded by the completed merge. The supplied [6E prompt](prompts/phase-6e-prompt.md) was already present as an untracked user file and is preserved unchanged. No implementation branch or commit was created during planning. M1 was subsequently started on `codex/phase-6e-ocr-layout` from planning commit `b728c350b23fa59864a0dae2e623ed6fef4205ab`, preserving the approved workflow/API/eligibility review clarifications.
 
@@ -263,6 +263,8 @@ Carry purpose enforcement through every enhanced direct-ID read/mutation and sou
 
 **Acceptance/tests:** actual OCR/PDF processing on independent gold; meaningful mutation controls; full relevant backend/worker/API regressions and real integrations with no hidden skips, fresh/upgrade migration checks from accepted 0013 data, old and enhanced resource/wire/report reproduction from built wheels, lint/format/dependency/whitespace checks. Record exactly what ran, hardware/engine versions, failures, timings and missing coverage. Prior verified gates are historical evidence, not a new passing run; any requested carry-forward waiver must be explicit. Stop for final review; do not label all of Phase 6 complete or begin 6F/6G.
 
+**Delivered M5:** the separate offline spatial corpus and evaluator record actual native/OCR preparation, spatial support and mock conversion against independent gold. The full handoff records the new 0013-to-head check, frozen package compatibility and the environment-specific PNG reproduction gate. See the [final handoff](PHASE6E_HANDOFF.md).
+
 **Principal risks:** synthetic fixture overfitting, confusing OCR improvements with model accuracy and overstating measured operational costs/coverage.
 
 ## 9. Evaluation design and limits
@@ -285,7 +287,7 @@ Measure per-stage wall time, CPU time, bytes stored/read, actual engine invocati
 
 **Recommend and include in plan approval:** Option B on shared durable execution with purpose-separated result/history; local Tesseract first with pinned English data; existing PyMuPDF for native geometry; separate immutable OCR/native representations and explicit new evidence path; two enhanced profiles with separate prose/table runs; MAPPED OCR-backed candidates allowed only under the normal conservative rules with explicit recognition limits; unchanged frozen registry/semantics/evaluators; all five milestone gates retained. M2 is substantial because deployment and lifecycle belong with real source artifacts; moving either entirely to M4 would leave its acceptance gate untestable. No extra milestone split is currently justified.
 
-**Workflow decision resolved:** the user approved requiring enrichment first, then starting extraction. The first release exposes reusable source coverage through an explicit enrichment step and rejects missing/incompatible selected prerequisites before model admission. It does not automatically preprocess or wait when enhanced extraction is requested. This separates backend operations, not the eventual UI experience: 6F should present a coherent guided document/OpenAI workflow without navigation between unrelated pages. This resolved the product/workflow question. The user subsequently authorized M1 through M4. M5 is pending review and authorization. No other material architecture question remains open from planning.
+**Workflow decision resolved:** the user approved requiring enrichment first, then starting extraction. The first release exposes reusable source coverage through an explicit enrichment step and rejects missing/incompatible selected prerequisites before model admission. It does not automatically preprocess or wait when enhanced extraction is requested. This separates backend operations, not the eventual UI experience: 6F should present a coherent guided document/OpenAI workflow without navigation between unrelated pages. This resolved the product/workflow question. The user subsequently authorized M1 through M5. No other material architecture question remains open from planning.
 
 **Review clarifications incorporated:** every read/mutation path must enforce its expected execution purpose, including direct run/unit/result/artifact IDs, with reciprocal focused tests and no side effects on denial. M2 must establish observable, implementable OCR eligibility before fixing thresholds and must retain UNKNOWN text coverage rather than assigning an unsupported percentage. These requirements refine the existing five milestone gates without adding implementation scope or UI code to this planning change.
 
@@ -293,4 +295,4 @@ Measure per-stage wall time, CPU time, bytes stored/read, actual engine invocati
 
 **Historical planning work:** repository/document inspection, official parser/OCR documentation research and a read-only probe of the existing PDF geometry. No implementation or acceptance test ran during that planning-only pass. M1 implementation and its actual new tests/wheel checks are now recorded in the M1 handoff; historical gates remain separately identified. The supplied prompt remains unchanged.
 
-**M4 delivered for review.** Stop before M5, following [prompt section 17](prompts/phase-6e-prompt.md). The M4 handoff records runtime identity preservation, source pinning and verification.
+**M1–M5 delivered for final 6E review.** The [handoff](PHASE6E_HANDOFF.md) records verification, limitations and the evaluation. The next phase requires its own review and authorization.

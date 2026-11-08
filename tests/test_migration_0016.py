@@ -3,6 +3,7 @@
 import json
 from io import BytesIO
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import create_engine, inspect, select, text
@@ -22,6 +23,7 @@ from powerforge_extraction.layout_models import SourceSpatialResult
 from powerforge_extraction.layout_service import start_layout
 from powerforge_extraction.models import Evidence, ExtractionRun, ExtractionWorkUnit
 from powerforge_extraction.orchestration import ExtractionCoordinator
+from powerforge_extraction.profiles import FAKE_PROFILE, resolve_profile
 from powerforge_extraction.table_fake import FakeTableProvider
 from powerforge_shared.config import Settings
 from test_migration_0006 import _alembic, _seed_phase3, _version
@@ -30,6 +32,79 @@ from test_migration_0006 import scratch_url as scratch_url
 pytestmark = pytest.mark.integration
 PREVIOUS = "0015_source_spatial_layout"
 HEAD = "0016_enriched_extraction"
+
+
+def test_accepted_0013_pending_probe_executes_after_upgrade_to_head(scratch_url):
+    _alembic(scratch_url, "upgrade", "0013_extraction_execution")
+    engine = create_engine(scratch_url)
+    factory = sessionmaker(engine, autoflush=False)
+    storage = InMemoryObjectStorage()
+    settings = Settings(_env_file=None)
+    profile = resolve_profile(FAKE_PROFILE, settings)
+    original = b"Rated 750 kVA"
+    key = "legacy-probe.txt"
+    storage.put(key, BytesIO(original), len(original), "text/plain")
+    try:
+        ids = _seed_phase3(engine) | {
+            "rid": uuid4(),
+            "uid": uuid4(),
+            "artifact": uuid4(),
+            "key": key,
+            "size": len(original),
+            "digest": sha(original),
+            "provider": profile.provider,
+            "model": profile.model,
+            "stage": profile.stage,
+            "version": profile.version,
+            "profile_hash": profile.identity_hash,
+            "schema": profile.schema_version,
+            "prompt_version": profile.prompt_version,
+            "prompt_hash": profile.prompt_hash,
+            "configuration": profile.model_dump_json(),
+        }
+        ids["artifacts"] = json.dumps([str(ids["artifact"])])
+        with engine.begin() as connection:
+            for statement in (
+                """INSERT INTO page_artifacts(id,processing_run_id,document_page_id,artifact_type,
+                     storage_key,mime_type,size_bytes,sha256)
+                   VALUES(:artifact,:run_id,:page_id,'NATIVE_TEXT',:key,'text/plain',:size,:digest)""",
+                """INSERT INTO extraction_runs(id,document_id,processing_run_id,extractor_version,
+                     schema_version,registry_version,profile_version,profile_hash,input_identity_hash,
+                     provider,model,prompt_version,prompt_hash,selected_pages,stages,input_artifact_ids,
+                     status,units_total)
+                   VALUES(:rid,:document_id,:run_id,'v1',:schema,'registry-v1',:version,:profile_hash,
+                     :digest,:provider,:model,:prompt_version,:prompt_hash,'[1]',
+                     jsonb_build_array(cast(:stage as text)),
+                     cast(:artifacts as jsonb),'PENDING',1)""",
+                """INSERT INTO extraction_work_units(id,run_id,document_id,processing_run_id,
+                     unit_key,stage,page_numbers,input_artifact_ids,required,attempt_number,status)
+                   VALUES(:uid,:rid,:document_id,:run_id,'SOURCE_PROBE:page:000001',:stage,'[1]',
+                     cast(:artifacts as jsonb),true,1,'PENDING')""",
+                """INSERT INTO extraction_run_execution(run_id,configuration)
+                   VALUES(:rid,cast(:configuration as jsonb))""",
+                """INSERT INTO extraction_unit_execution(work_unit_id,run_id,unit_key,
+                     available_at,dispatch_after)
+                   VALUES(:uid,:rid,'SOURCE_PROBE:page:000001',now(),now())""",
+            ):
+                connection.execute(text(statement), ids)
+        _alembic(scratch_url, "upgrade", "head")
+        assert _version(engine) == HEAD
+        assert execute_unit(ids["uid"], factory, storage, settings, provider_for)
+        with factory() as session:
+            run = session.get(ExtractionRun, ids["rid"])
+            assert (run.execution_purpose, run.status, run.profile_hash) == (
+                "EXTRACTION",
+                "COMPLETED",
+                profile.identity_hash,
+            )
+            evidence = session.scalar(select(Evidence).where(Evidence.run_id == run.id))
+            assert evidence.page_artifact_id == ids["artifact"] and evidence.source_locator is None
+            assert (
+                original.decode()[evidence.text_start : evidence.text_end]
+                == evidence.source_snippet
+            )
+    finally:
+        engine.dispose()
 
 
 def test_fresh_head_enriched_columns_match_the_orm(scratch_url):
