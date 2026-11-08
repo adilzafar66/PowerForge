@@ -4,10 +4,13 @@ No scheduling, provider calls, canonical writes or independent commits. A savepo
 rolls back all output and the completion marker on any publication failure.
 """
 
+from __future__ import annotations
+
 import codecs
 import hashlib
 import json
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import Select, func, select
@@ -34,6 +37,9 @@ from powerforge_extraction.models import (
     ExtractionWorkUnit,
     SourceGroup,
 )
+
+if TYPE_CHECKING:
+    from powerforge_extraction.enriched_publication import VerifiedEnrichedPublication
 
 
 def effective_units(run_id: UUID) -> Select[tuple[UUID]]:
@@ -130,7 +136,13 @@ class ExtractionPersistence:
         self.session.flush()
         return row
 
-    def publish(self, work_unit_id: UUID, output: WorkUnitOutput) -> None:
+    def publish(
+        self,
+        work_unit_id: UUID,
+        output: WorkUnitOutput,
+        *,
+        verification: VerifiedEnrichedPublication | None = None,
+    ) -> None:
         from powerforge_extraction.enriched_contracts import EnrichedOutput
 
         # Revalidate even if a caller used model_construct or mutated a nested container.
@@ -180,7 +192,14 @@ class ExtractionPersistence:
                 output = EnrichedOutput.model_validate(output.model_dump())
             if isinstance(output, EnrichedOutput) and not enhanced:
                 raise ValueError("Enhanced output requires an enhanced extraction run")
-            self._validate_locations(unit, output)
+            if enhanced:
+                if verification is None:
+                    raise ValueError(
+                        "Enhanced publication requires independent source verification"
+                    )
+                verification.verify(self.session, run, unit, output)
+            else:
+                self._validate_locations(unit, output)
             for group in output.source_groups:
                 self.session.add(
                     SourceGroup(
@@ -245,13 +264,6 @@ class ExtractionPersistence:
             self.session.flush()
 
     def _validate_locations(self, unit: ExtractionWorkUnit, output: WorkUnitOutput) -> None:
-        from powerforge_extraction.enriched_contracts import EnrichedOutput
-
-        if isinstance(output, EnrichedOutput):
-            from powerforge_extraction.enriched_publication import validate_locations
-
-            validate_locations(self, unit, output)
-            return
         locations = [e.location for e in output.evidence]
         locations += [loc for t in output.tables for loc in t.source_locations]
         locations += [c.location for t in output.tables for c in t.layout.cells if c.location]

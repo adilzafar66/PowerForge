@@ -1,9 +1,11 @@
 """Database-authoritative execution. Methods flush; callers own transactions/commits."""
 
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from uuid import UUID, uuid4
 
 from sqlalchemy import exists, func, or_, select, text
@@ -43,6 +45,9 @@ from powerforge_extraction.profiles import (
 from powerforge_extraction.table_profiles import TableProfile
 from powerforge_shared.config import Settings
 
+if TYPE_CHECKING:
+    from powerforge_extraction.enriched_publication import VerifiedEnrichedPublication
+
 logger = logging.getLogger(__name__)
 ACTIVE = (RS.PENDING, RS.RUNNING)
 UNIT_ACTIVE = (US.PENDING, US.RUNNING)
@@ -61,6 +66,10 @@ class Enqueue(Protocol):
     def enqueue(self, unit_id: UUID) -> None: ...
 
     def enqueue_source(self, unit_id: UUID) -> None: ...
+
+
+def empty_table_output() -> WorkUnitOutput:
+    return WorkUnitOutput(diagnostic_counts={"skipped_empty_tables": 1})
 
 
 @dataclass(frozen=True)
@@ -691,14 +700,25 @@ class ExtractionCoordinator:
         output: WorkUnitOutput,
         usage: ExecutionUsage,
         storage: ObjectStorage,
+        *,
+        verification: VerifiedEnrichedPublication | None = None,
     ) -> None:
         run, unit, _ = self._authorized(unit_id, token)
         profile = read_profile(self._execution(run.id).configuration)
         self._telemetry(unit, profile, self.now(), "SUCCEEDED", None, usage)
-        ExtractionPersistence(self.session, storage).publish(unit.id, output)
+        ExtractionPersistence(self.session, storage).publish(
+            unit.id, output, verification=verification
+        )
         self.aggregate(run)
 
-    def complete_empty_table(self, unit_id: UUID, token: UUID, storage: ObjectStorage) -> None:
+    def complete_empty_table(
+        self,
+        unit_id: UUID,
+        token: UUID,
+        storage: ObjectStorage,
+        *,
+        verification: VerifiedEnrichedPublication | None = None,
+    ) -> None:
         """An ordinary leased admission; no external-call row or invented zero usage."""
         import json
 
@@ -717,7 +737,7 @@ class ExtractionCoordinator:
         if json.loads(call.upstream_context)["tables"]:
             raise ValueError("Nonempty tables require ordinary interpretation execution")
         ExtractionPersistence(self.session, storage).publish(
-            unit.id, WorkUnitOutput(diagnostic_counts={"skipped_empty_tables": 1})
+            unit.id, empty_table_output(), verification=verification
         )
         self.aggregate(run)
 

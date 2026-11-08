@@ -81,6 +81,15 @@ def manifest():
 
 def runtime_identity():
     root = files("powerforge_extraction")
+    # These compatible execution and publication fixes keep admitted v5/v6 runs
+    # executable. The accepted source bytes are retained as identity data only.
+    retained = {
+        "enriched_profiles.py",
+        "enriched_publication.py",
+        "orchestration.py",
+        "execution.py",
+        "persistence.py",
+    }
     names = (
         "enriched_profiles.py",
         "enriched_observations.py",
@@ -105,7 +114,16 @@ def runtime_identity():
     return dict(
         version="enriched-page-runtime-v1",
         rules_hash=identity_hash(
-            {name: hashlib.sha256(root.joinpath(name).read_bytes()).hexdigest() for name in names}
+            {
+                name: hashlib.sha256(
+                    root.joinpath(
+                        "runtime_resources/enriched_v1/" + name.removesuffix(".py") + ".txt"
+                        if name in retained
+                        else name
+                    ).read_bytes()
+                ).hexdigest()
+                for name in names
+            }
         ),
         locator_schema=identity_hash(EnrichedLocation.model_json_schema()),
         locator_rules=hashlib.sha256(

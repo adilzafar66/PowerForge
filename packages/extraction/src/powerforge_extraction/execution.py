@@ -32,7 +32,7 @@ from powerforge_extraction.contracts import (
     WorkUnitOutput,
 )
 from powerforge_extraction.errors import LeaseLost
-from powerforge_extraction.orchestration import Claim, ExtractionCoordinator
+from powerforge_extraction.orchestration import Claim, ExtractionCoordinator, empty_table_output
 from powerforge_extraction.profiles import PROMPT, PROMPT_HASH, SCHEMA_HASH, EngineeringProfile
 from powerforge_extraction.table_profiles import TableProfile
 from powerforge_provenance.locations import SourceLocation
@@ -223,19 +223,30 @@ def execute_unit(
     try:
         with heartbeats(factory, claim, settings):
             from powerforge_extraction.enriched_profiles import EnrichedTableProfile, is_enriched
+            from powerforge_extraction.enriched_publication import prepare_publication
 
-            if is_enriched(claim.profile):
+            enriched = is_enriched(claim.profile)
+            if enriched:
                 from powerforge_extraction.enriched_runtime import request_for as enriched_request
 
-                request, sources, context = enriched_request(claim, storage, factory)
+                try:
+                    request, sources, context = enriched_request(claim, storage, factory)
+                except (ValidationError, OSError):
+                    raise ProviderFailure(ErrorCode.INPUT) from None
                 if (
                     isinstance(claim.profile, EnrichedTableProfile)
                     and context is not None
                     and not context.tables
                 ):
+                    try:
+                        verification = prepare_publication(
+                            factory, storage, claim.unit_id, empty_table_output()
+                        )
+                    except (ValidationError, OSError):
+                        raise ProviderFailure(ErrorCode.INPUT) from None
                     with factory.begin() as session:
                         ExtractionCoordinator(session, settings).complete_empty_table(
-                            claim.unit_id, claim.token, storage
+                            claim.unit_id, claim.token, storage, verification=verification
                         )
                     return True
             elif isinstance(claim.profile, TableProfile):
@@ -265,21 +276,25 @@ def execute_unit(
             )
             if usage.output_tokens is not None and usage.output_tokens > request.max_output_tokens:
                 raise ProviderFailure(ErrorCode.INVALID, usage)
-            if is_enriched(claim.profile):
+            verification = None
+            if enriched:
                 from powerforge_extraction.enriched_output import (
                     convert_attributes,
                     convert_equipment,
                 )
                 from powerforge_extraction.enriched_tables import interpret, reconstruct
 
-                if request.stage == "EQUIPMENT_RECOGNITION":
-                    output = convert_equipment(response.result, sources)
-                elif request.stage == "ATTRIBUTE_EXTRACTION":
-                    output = convert_attributes(response.result, sources, context)
-                elif request.stage == "TABLE_RECONSTRUCTION":
-                    output, _ = reconstruct(response.result, sources)
-                else:
-                    output = interpret(response.result, sources, context)
+                try:
+                    if request.stage == "EQUIPMENT_RECOGNITION":
+                        output = convert_equipment(response.result, sources)
+                    elif request.stage == "ATTRIBUTE_EXTRACTION":
+                        output = convert_attributes(response.result, sources, context)
+                    elif request.stage == "TABLE_RECONSTRUCTION":
+                        output, _ = reconstruct(response.result, sources)
+                    else:
+                        output = interpret(response.result, sources, context)
+                except (ValueError, ValidationError):
+                    raise ProviderFailure(ErrorCode.INVALID, usage) from None
                 if claim.profile.execution_kind == "FAKE_TEST":
                     output = output.model_copy(
                         update={
@@ -297,6 +312,10 @@ def execute_unit(
                             ]
                         }
                     )
+                try:
+                    verification = prepare_publication(factory, storage, claim.unit_id, output)
+                except (ValidationError, OSError):
+                    raise ProviderFailure(ErrorCode.INPUT, usage) from None
             elif isinstance(claim.profile, TableProfile):
                 from powerforge_extraction.table_grounding import convert_table_reconstruction
                 from powerforge_extraction.table_output import convert_table_interpretation
@@ -361,7 +380,7 @@ def execute_unit(
                 output = output_for(claim, request, response)
             with factory.begin() as session:
                 ExtractionCoordinator(session, settings).complete(
-                    claim.unit_id, claim.token, output, usage, storage
+                    claim.unit_id, claim.token, output, usage, storage, verification=verification
                 )
     except LeaseLost:
         return False

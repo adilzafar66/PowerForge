@@ -12,10 +12,11 @@ from enrichment_support import build_source, detail
 from enrichment_support import enrichment_ctx as enrichment_ctx
 from enrichment_support import execute as prepare
 from enrichment_support import start as start_source
+from powerforge_ai.extraction import ErrorCode, ExecutionUsage
 from powerforge_document_processing.models import RevisionDocument
 from powerforge_extraction.enriched_fake import FakeEnrichedProvider
 from powerforge_extraction.enrichment_models import RunSourceEnrichmentBinding
-from powerforge_extraction.models import Evidence
+from powerforge_extraction.models import Evidence, ExtractionAICall
 
 pytestmark = pytest.mark.integration
 
@@ -375,10 +376,53 @@ def test_missing_pinned_object_fails_before_model_and_does_not_fall_back(enrichm
     execute(ctx, first["id"], Forbidden())
     done = extraction_detail(ctx, pending["run"]["id"])
     assert done["run"]["status"] == "FAILED", done
+    assert next(a for a in done["attempts"] if a["id"] == first["id"])["error_code"] == (
+        ErrorCode.INPUT.value
+    )
     assert done["execution"]["provider_calls_started"] == 0
     assert not client.get(
         ctx["base"] + f"/extraction/runs/{pending['run']['id']}/candidates"
     ).json()["items"]
+
+
+def test_unknown_model_spatial_alias_fails_as_invalid_response_with_usage(enrichment_ctx):
+    ctx = enrichment_ctx
+    build_source(
+        ctx, Path("evals/tables/v1/sources/positioned_schedule.pdf").read_bytes(), "bad-alias.pdf"
+    )
+    pending = start_enriched(ctx, enrich(ctx))
+    first = next(a for a in pending["attempts"] if a["stage"] == "TABLE_RECONSTRUCTION")
+
+    class UnknownTable(FakeEnrichedProvider):
+        def execute(self, request):
+            response = super().execute(request)
+            payload = response.result.model_dump()
+            payload["tables"][0]["spatial_table_ref"] = "unknown-table"
+            return response.model_copy(
+                update={
+                    "result": request.response_model.model_validate(payload),
+                    "usage": ExecutionUsage(input_tokens=23, output_tokens=47),
+                }
+            )
+
+    assert execute(ctx, first["id"], UnknownTable())
+    rid = pending["run"]["id"]
+    done = extraction_detail(ctx, rid)
+    assert done["run"]["status"] == "FAILED"
+    assert next(a for a in done["attempts"] if a["id"] == first["id"])["error_code"] == (
+        ErrorCode.INVALID.value
+    )
+    with ctx["factory"]() as session:
+        call = session.scalar(
+            select(ExtractionAICall).where(ExtractionAICall.work_unit_id == UUID(first["id"]))
+        )
+        assert (call.outcome, call.error_code, call.input_tokens, call.output_tokens) == (
+            "FAILED",
+            ErrorCode.INVALID.value,
+            23,
+            47,
+        )
+    assert not client.get(ctx["base"] + f"/extraction/runs/{rid}/tables").json()["items"]
 
 
 def test_empty_committed_reconstruction_settles_without_second_provider_call(enrichment_ctx):
