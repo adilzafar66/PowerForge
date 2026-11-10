@@ -11,20 +11,20 @@ vi.mock("@/lib/extraction-operations", async (importOriginal) => ({
 }));
 
 import { StartExtractionWizard } from "@/components/start-extraction-wizard";
-import { getOperationSources, previewExtractionOperation, startExtractionOperation } from "@/lib/extraction-operations";
+import {
+  getOperationSources, previewExtractionOperation, startExtractionOperation,
+  type OperationPreview, type OperationSelection,
+} from "@/lib/extraction-operations";
 
 const scope = { projectId: "project", revisionId: "revision" };
 const source = {
   revision_document_id: "source", filename: "schedule.pdf", processing_run_id: "processing-version",
   page_count: 3, available_pages: [1, 2, 3], error: null,
 };
+const admissionError = "The maximum provider admissions exceed the operation limit. Select fewer pages.";
 
-beforeEach(() => {
-  vi.clearAllMocks();
-  vi.mocked(getOperationSources).mockResolvedValue({
-    items: [source], max_pages_per_document: 50, max_documents: 20, max_pages: 150, read_only: false,
-  });
-  vi.mocked(previewExtractionOperation).mockImplementation(async (_scope, selection) => ({
+function makePreview(selection: OperationSelection): OperationPreview {
+  return {
     items: selection.documents.map((item) => ({
       revision_document_id: item.revision_document_id, filename: source.filename,
       processing_run_id: item.processing_run_id, error: null,
@@ -39,7 +39,15 @@ beforeEach(() => {
     planned_runs: selection.families.length,
     provider_admissions: 12, ocr_attempts: 3, parallel_documents: 2,
     consent_version: "external-openai-v1",
-  }));
+  };
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(getOperationSources).mockResolvedValue({
+    items: [source], max_pages_per_document: 50, max_documents: 20, max_pages: 150, read_only: false,
+  });
+  vi.mocked(previewExtractionOperation).mockImplementation(async (_scope, selection) => makePreview(selection));
   vi.mocked(startExtractionOperation).mockResolvedValue({ id: "operation" });
 });
 
@@ -83,5 +91,71 @@ it("validates source and OCR pages, retains targeting, and starts only after con
     documents: [{ revision_document_id: "source", processing_run_id: "processing-version", pages: [1, 2], force_ocr_pages: [2] }],
     families: ["tables"], mode: "ensure",
   }, "tables", expect.any(String));
+  expect(started).toHaveBeenCalledWith("operation", "source");
+});
+
+it.each([
+  { reason: "an operation-wide validation error", errors: [admissionError] },
+  { reason: "no review hash", errors: [] },
+])("blocks advancement when the preview has $reason", async ({ errors }) => {
+  vi.mocked(previewExtractionOperation).mockImplementationOnce(async (_scope, selection) => ({
+    ...makePreview(selection), errors, review_hash: null,
+  }));
+  const user = userEvent.setup();
+  render(<StartExtractionWizard scope={scope} launch={{ documentIds: ["source"] }} onClose={vi.fn()} onStarted={vi.fn()} />);
+  const modal = within(screen.getByRole("dialog", { name: "Start extraction" }));
+  await modal.findByRole("textbox", { name: "Pages for schedule.pdf" });
+  await user.click(modal.getByRole("button", { name: "Continue to enrichment" }));
+  expect(await modal.findByText("Will prepare automatically")).toBeVisible();
+  if (errors.length) expect(modal.getByRole("alert")).toHaveTextContent(admissionError);
+  const advance = modal.getByRole("button", { name: "Continue to extraction" });
+  expect(advance).toBeDisabled();
+  await user.click(advance);
+  expect(modal.queryByRole("button", { name: "Start extraction" })).toBeNull();
+  expect(startExtractionOperation).not.toHaveBeenCalled();
+});
+
+it("refreshes a stale review and requires fresh consent for a valid replacement", async () => {
+  const conflict = "The reviewed extraction plan changed. Review it before submitting.";
+  vi.mocked(startExtractionOperation).mockRejectedValueOnce(Object.assign(new Error(conflict), {
+    status: 409, apiError: { detail: conflict },
+  }));
+  vi.mocked(previewExtractionOperation)
+    .mockImplementationOnce(async (_scope, selection) => makePreview(selection))
+    .mockImplementationOnce(async (_scope, selection) => ({
+      ...makePreview(selection), errors: [admissionError], review_hash: null,
+    }));
+  const user = userEvent.setup();
+  const started = vi.fn();
+  render(<StartExtractionWizard scope={scope} launch={{ documentIds: ["source"] }} onClose={vi.fn()} onStarted={started} />);
+  const modal = within(screen.getByRole("dialog", { name: "Start extraction" }));
+  await modal.findByRole("textbox", { name: "Pages for schedule.pdf" });
+  await user.click(modal.getByRole("button", { name: "Continue to enrichment" }));
+  const advance = modal.getByRole("button", { name: "Continue to extraction" });
+  await waitFor(() => expect(advance).toBeEnabled());
+  await user.click(advance);
+  const consent = modal.getByRole("checkbox", { name: /I authorize/ });
+  const start = modal.getByRole("button", { name: "Start extraction" });
+  await user.click(consent);
+  await user.click(start);
+
+  expect(await modal.findByText(admissionError)).toBeVisible();
+  expect(modal.getByText(conflict)).toBeVisible();
+  expect(consent).not.toBeChecked();
+  expect(consent).toBeDisabled();
+  expect(start).toBeDisabled();
+  await user.click(start);
+  expect(startExtractionOperation).toHaveBeenCalledTimes(1);
+  expect(started).not.toHaveBeenCalled();
+
+  await user.click(modal.getByText("Advanced extraction settings"));
+  await user.click(modal.getByRole("checkbox", { name: "Extract from engineering text" }));
+  await waitFor(() => expect(consent).toBeEnabled());
+  expect(consent).not.toBeChecked();
+  expect(start).toBeDisabled();
+  await user.click(consent);
+  await user.click(start);
+  expect(startExtractionOperation).toHaveBeenCalledTimes(2);
+  expect(startExtractionOperation).toHaveBeenLastCalledWith(scope, expect.objectContaining({ families: ["tables"] }), "tables", expect.any(String));
   expect(started).toHaveBeenCalledWith("operation", "source");
 });

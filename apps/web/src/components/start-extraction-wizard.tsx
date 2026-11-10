@@ -135,9 +135,10 @@ export function StartExtractionWizard({
     retry: 1,
   });
   const reviewed = reviewKey === selectionKey ? preview.data : undefined;
-  const hash = reviewed?.review_hash;
-  const canAdvance = step === 1 ? validSources : !!reviewed
-    && !preview.isFetching && !preview.isError && reviewed.items.every((item) => !item.error);
+  const hash = reviewed && reviewed.errors.length === 0 && reviewed.items.every((item) => !item.error)
+    ? reviewed.review_hash : null;
+  const reviewReady = hash !== null && !preview.isFetching && !preview.isError;
+  const canAdvance = step === 1 ? validSources : reviewReady;
   const authorized = !!hash && acceptedHash === hash;
 
   useEffect(() => {
@@ -165,7 +166,7 @@ export function StartExtractionWizard({
   }
 
   async function submit() {
-    if (!hash || !authorized || !selection || preview.isFetching || preview.isError || submitting.current) return;
+    if (!reviewReady || !authorized || !selection || submitting.current) return;
     submitting.current = true;
     setSending(true);
     setSubmitError(null);
@@ -210,7 +211,7 @@ export function StartExtractionWizard({
                 {step === 1 ? "Continue to enrichment" : "Continue to extraction"}
               </button>
             ) : (
-              <button type="button" className={docButtonClass("primary")} disabled={!authorized || preview.isFetching || preview.isError || sending} onClick={() => void submit()}>
+              <button type="button" className={docButtonClass("primary")} disabled={!reviewReady || !authorized || sending} onClick={() => void submit()}>
                 {sending ? "Submitting…" : title}
               </button>
             )}
@@ -277,11 +278,14 @@ export function StartExtractionWizard({
           </>
         )}
         {step >= 2 && (
-          <AsyncState
-            pending={!!selection && !reviewed && !preview.error}
-            error={reviewKey === selectionKey ? preview.error : null}
-            retry={preview.refetch}
-          />
+          <>
+            <AsyncState
+              pending={!!selection && !reviewed && !preview.error}
+              error={reviewKey === selectionKey ? preview.error : null}
+              retry={preview.refetch}
+            />
+            {reviewed?.errors.map((error) => <WizardError key={error}>{error}</WizardError>)}
+          </>
         )}
         {step === 2 && (
           <>
@@ -347,7 +351,7 @@ export function StartExtractionWizard({
             </details>
             {reviewed && <FinalPlan preview={reviewed} totalPages={totalPages} mode={launch.mode ?? "ensure"} />}
             <label className="flex items-start gap-2.5 text-workspace-label leading-relaxed text-ink">
-              <input type="checkbox" checked={authorized} disabled={!hash || preview.isFetching || preview.isError || sending}
+              <input type="checkbox" checked={authorized} disabled={!reviewReady || sending}
                 className="mt-0.5 size-4 shrink-0 accent-accent"
                 onChange={(event) => setAcceptedHash(event.target.checked && hash ? hash : null)} />
               <span>
@@ -448,7 +452,6 @@ function FinalPlan({ preview, totalPages, mode }: { preview: OperationPreview; t
       <p className="m-0">Local preparation and layout run first. OpenAI processing may incur charges. <strong>Estimated cost is unknown.</strong>
         {mode === "ensure" ? " Compatible existing extraction runs may be reused." : " Re-extraction can create new provider runs."}
       </p>
-      {preview.errors.map((error) => <WizardError key={error}>{error}</WizardError>)}
       {preview.items.filter((item) => item.error).map((item) => (
         <WizardError key={item.revision_document_id}>{item.filename ?? "Source"} · {item.error}</WizardError>
       ))}
