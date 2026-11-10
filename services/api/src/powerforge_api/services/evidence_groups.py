@@ -1,6 +1,6 @@
 """Bounded source-group queries over committed, cited observations."""
 
-from sqlalchemy import Text, cast, distinct, exists, func, or_, select
+from sqlalchemy import Text, cast, distinct, exists, func, or_, select, union_all
 
 from powerforge_api.schemas.extraction import EvidenceGroupList, EvidenceGroupRow
 from powerforge_document_processing.models import DocumentPage
@@ -8,9 +8,9 @@ from powerforge_extraction.models import (
     CandidateEvidence,
     Evidence,
     ExtractionCandidate,
-    ExtractionWorkUnit,
     SourceGroup,
 )
+from powerforge_extraction.persistence import effective_units
 
 CANDIDATE = ExtractionCandidate
 
@@ -70,6 +70,7 @@ def group_list(session, families, limit, offset, *, mapping_status=None, **filte
     conditions = observation_filters(**filters)
     if mapping_status is not None:
         conditions.append(CANDIDATE.mapping_status == mapping_status)
+    selected_units = union_all(*(effective_units(run_id) for run_id in families))
     page_query = citation_pages().correlate(CANDIDATE).lateral()
     fields = (
         CANDIDATE.run_id,
@@ -85,12 +86,11 @@ def group_list(session, families, limit, offset, *, mapping_status=None, **filte
             func.count(distinct(CANDIDATE.id)).label("candidate_count"),
         )
         .select_from(CANDIDATE)
-        .join(ExtractionWorkUnit, ExtractionWorkUnit.id == CANDIDATE.work_unit_id)
         .outerjoin(SourceGroup, SourceGroup.id == CANDIDATE.source_group_id)
         .join(page_query, page_query.c.page_number.is_not(None))
         .where(
             CANDIDATE.run_id.in_(families),
-            ExtractionWorkUnit.status == "COMPLETED",
+            CANDIDATE.work_unit_id.in_(selected_units),
             *conditions,
         )
         .group_by(*fields)

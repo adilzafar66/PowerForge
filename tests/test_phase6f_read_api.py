@@ -169,13 +169,18 @@ def test_group_pages_search_ungrouped_and_exact_evidence_stay_run_scoped(ctx):
 
     assert keys(first).isdisjoint(keys(second))
 
-    filtered = client.get(
-        base + "/groups",
-        params={**pair, "search": "TX-00", "page": 1, "mapping_status": "UNMAPPED"},
-    )
+    filters = {"search": "TX-00", "page": 1, "mapping_status": "UNMAPPED"}
+    filtered = client.get(base + "/groups", params={**pair, **filters})
     assert filtered.status_code == 200, filtered.text
     assert {item["run_id"] for item in filtered.json()["items"]} == {str(engineering), str(tables)}
     assert {item["candidate_count"] for item in filtered.json()["items"]} == {2}
+    for item in filtered.json()["items"]:
+        candidates = client.get(
+            base + f"/runs/{item['run_id']}/candidates",
+            params={**filters, "source_group_id": item["source_group_id"]},
+        )
+        assert candidates.status_code == 200, candidates.text
+        assert candidates.json()["total"] == item["candidate_count"]
     assert client.get(base + "/groups", params={**pair, "page": 2}).json()["total"] == 0
     assert (
         client.get(base + "/groups", params={**pair, "engineering_run_id": str(tables)}).status_code

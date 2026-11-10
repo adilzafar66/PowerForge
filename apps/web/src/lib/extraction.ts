@@ -163,10 +163,14 @@ export function extractionCell(item?: ExtractionStatus): CellState {
   }
   const states = runs.map((run) => run?.status);
   const active = states.includes("RUNNING") ? "RUNNING" : states.includes("PENDING") ? "PENDING" : null;
-  const detail = families.map((family, index) => {
-    const run = runs[index];
+  const detail = families.map((family) => {
+    const { latest_attempt: run, effective_result: result } = item[family];
     const version = run && run.processing_run_id !== item.processing_run_id ? " (earlier source)" : "";
-    return `${familyLabel[family]} · ${runState(run).label}${version}`;
+    const resultType = result?.status === "PARTIALLY_COMPLETED" ? "partial result" : "result";
+    const available = result && result.id !== run?.id
+      ? ` (previous ${resultType} available)`
+      : "";
+    return `${familyLabel[family]} · ${runState(run).label}${version}${available}`;
   }).join(" / ");
   const sameSource = !!item.processing_run_id && runs.every((run) => run?.processing_run_id === item.processing_run_id);
   if (active) return { ...runStates[active], detail };

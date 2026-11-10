@@ -410,6 +410,43 @@ describe("RevisionDocuments rows", () => {
     expect(screen.getByText("removed.pdf · Removed from this revision")).toBeVisible();
   });
 
+  it("keeps a compatible extraction result visible after a later attempt fails", async () => {
+    const user = userEvent.setup();
+    const row = makeRow({ name: "retained.pdf" });
+    const completed = {
+      id: "completed-run",
+      status: "COMPLETED" as const,
+      processing_run_id: "processing-1",
+      profile_key: "engineering-openai-enriched-v1",
+      created_at: "2026-01-20T12:00:00Z",
+    };
+    list.mockResolvedValue([row]);
+    extractionStatus.mockResolvedValue({
+      [row.id]: extractionFor(row.id, {
+        engineering: {
+          latest_attempt: {
+            ...completed,
+            id: "failed-run",
+            status: "FAILED",
+            created_at: "2026-01-21T12:00:00Z",
+          },
+          effective_result: completed,
+        },
+      }),
+    });
+    renderWorkspace();
+
+    const registerRow = await screen.findByRole("row", { name: /retained\.pdf/ });
+    expect(
+      await within(registerRow).findByText(/Engineering · Failed \(previous result available\)/),
+    ).toBeVisible();
+    const drawer = await openDrawer(user, "retained.pdf");
+    await user.click(await within(drawer).findByRole("button", { name: "View results" }));
+    expect(nav.push).toHaveBeenLastCalledWith(
+      `/projects/${P}/revisions/${R}/documents/${row.id}?mode=evidence`,
+    );
+  });
+
 });
 
 describe("RevisionDocuments filters", () => {
