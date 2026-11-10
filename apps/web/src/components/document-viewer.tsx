@@ -41,6 +41,7 @@ import {
 import { AsyncState } from "@/components/ui/async-state";
 import { apiErrorOf } from "@/lib/api";
 import {
+  canMutate as canMutateDocuments,
   canOpenInline,
   documentTypeLabel,
   getDocument,
@@ -54,6 +55,7 @@ import {
   type ProcessingSummary,
   type RevisionDocument,
 } from "@/lib/documents";
+import { extractionWizardHref } from "@/lib/extraction-operations";
 import { evidenceArtifactUrl, type EvidenceDetail } from "@/lib/extraction";
 import { classificationCell } from "@/lib/document-presentation";
 import {
@@ -167,6 +169,7 @@ export function DocumentViewerPage({
               projectId={p}
               revision={revision}
               row={row}
+              canMutate={!!project && canMutateDocuments({ project, revision })}
             />
           </Suspense>
         ) : missing ? (
@@ -238,10 +241,12 @@ export function DocumentViewer({
   projectId,
   revision,
   row,
+  canMutate = revision.status !== "SUPERSEDED",
 }: {
   projectId: string;
   revision: Revision;
   row: RevisionDocument;
+  canMutate?: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -531,9 +536,8 @@ export function DocumentViewer({
             </button>
             <button
               type="button"
-              disabled
-              aria-describedby="viewer-extraction-unavailable"
-              title="Extraction scheduling is pending"
+              disabled={!canMutate || row.status !== "INCLUDED" || !complete}
+              onClick={() => router.push(extractionWizardHref(scope, row.id, "ensure"))}
               className={cn(
                 docButtonClass(),
                 "max-[1050px]:px-[9px] max-[800px]:h-8",
@@ -541,9 +545,6 @@ export function DocumentViewer({
             >
               Run extraction
             </button>
-            <span id="viewer-extraction-unavailable" className="sr-only">
-              Extraction scheduling is pending
-            </span>
           </div>
         </div>
       </header>
@@ -776,7 +777,10 @@ export function DocumentViewer({
                   page={pinned?.page_number ?? page?.page_number ?? requestedPage}
                   scrollRef={panelScrollRef}
                   highlighted={!!(pinnedRegion && pinnedUrl && loadedPinnedUrl === pinnedUrl)}
-                  canMutate={!!browser.status && browser.status.ineligible_reason !== "READ_ONLY"}
+                  canMutate={canMutate && !!browser.status && browser.status.ineligible_reason !== "READ_ONLY"}
+                  onReextract={(run) => router.push(extractionWizardHref(scope, row.id, "reextract", {
+                    pages: run.selected_pages, processingRunId: run.processing_run_id,
+                  }))}
                 />
               )
             ) : (

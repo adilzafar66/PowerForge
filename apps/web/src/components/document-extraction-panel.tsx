@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+import { ExtractionOperationPanel } from "@/components/extraction-operation-panel";
 import { CellStateView } from "@/components/document-list";
 import { docButtonClass, InspectorSection, MiniGrid } from "@/components/documents-ui";
 import { AsyncState } from "@/components/ui/async-state";
@@ -29,7 +30,7 @@ export function useExtractionStatuses(projectId: string, revisionId: string, ids
     enabled: ids.length > 0,
     retry: 1,
     refetchInterval: (query) => jobInterval(
-      Object.values(query.state.data ?? {}).some((item) => [
+      Object.values(query.state.data ?? {}).some((item) => !!item.pending_operation || [
         item.engineering.latest_attempt, item.tables.latest_attempt, item.enrichment,
       ].some((run) => isRunning(run?.status))),
       query.state.fetchFailureCount,
@@ -41,10 +42,14 @@ export function DocumentExtractionPanel({
   scope,
   canMutate,
   onNavigate,
+  onStart,
+  operationId,
 }: {
   scope: DocumentScope;
   canMutate: boolean;
   onNavigate: (href: string) => void;
+  onStart: () => void;
+  operationId?: string | null;
 }) {
   const status = useExtractionStatuses(scope.projectId, scope.revisionId, [scope.documentId]);
   const data = status.data?.[scope.documentId];
@@ -78,7 +83,7 @@ export function DocumentExtractionPanel({
           {data.ineligible_reason !== "REMOVED" && (
             <div className="flex flex-wrap gap-2">
               {canMutate && !data.ineligible_reason && (
-                <button type="button" className={docButtonClass("primary")} disabled title="Extraction scheduling is pending">
+                <button type="button" className={docButtonClass("primary")} onClick={onStart}>
                   Start extraction
                 </button>
               )}
@@ -90,6 +95,9 @@ export function DocumentExtractionPanel({
                 )}>View results</button>
               )}
             </div>
+          )}
+          {data.ineligible_reason !== "REMOVED" && (
+            <ExtractionOperationPanel scope={scope} linkedId={operationId} onNavigate={onNavigate} />
           )}
           {recent.length ? (
             <div className="rounded-[var(--pf-radius-control)] border border-border bg-soft/60 p-3">

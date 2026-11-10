@@ -361,7 +361,9 @@ def retry(
             reader.family_run(run_id, family)
         else:
             reader._run(run_id)
-        ExtractionCoordinator(session, settings).retry(run_id)
+        ExtractionCoordinator(session, settings).retry(
+            run_id, acknowledge_unknown_outcome=bool(body and body.acknowledge_unknown_outcome)
+        )
         session.commit()
         dispatch_committed(session, settings, enqueue)
         return reader.detail(run_id)

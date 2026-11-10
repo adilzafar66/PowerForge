@@ -71,6 +71,17 @@ vi.mock("@/lib/extraction", async (importOriginal) => ({
   getExtractionStatuses: vi.fn(),
 }));
 
+vi.mock("@/lib/extraction-operations", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/extraction-operations")>()),
+  recentExtractionOperations: vi.fn(),
+  getExtractionOperation: vi.fn(),
+  cancelExtractionOperation: vi.fn(),
+}));
+
+import {
+  cancelExtractionOperation, getExtractionOperation, recentExtractionOperations,
+  type OperationDetail,
+} from "@/lib/extraction-operations";
 import { getExtractionStatuses, type ExtractionStatus } from "@/lib/extraction";
 import { RevisionDocuments } from "@/components/revision-documents";
 import { listRevisions } from "@/lib/projects";
@@ -204,6 +215,7 @@ function extractionFor(id: string, changes: Partial<ExtractionStatus> = {}): Ext
 
 beforeEach(() => {
   nav.search = "";
+  vi.mocked(recentExtractionOperations).mockResolvedValue({ items: [] });
   list.mockResolvedValue([]);
   extractionStatus.mockImplementation(async (_project, _revision, ids) => Object.fromEntries(ids.map((id) => [id, extractionFor(id)])));
   classificationDetail.mockResolvedValue({
@@ -376,7 +388,7 @@ describe("RevisionDocuments rows", () => {
     await user.keyboard(" ");
     expect(checkbox).toBeChecked();
     expect(queryInspector()).toBeNull();
-    expect(screen.getByRole("button", { name: "Start extraction" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Start extraction" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Actions for a.pdf" })).toBeNull();
   });
 
@@ -445,6 +457,41 @@ describe("RevisionDocuments rows", () => {
     expect(nav.push).toHaveBeenLastCalledWith(
       `/projects/${P}/revisions/${R}/documents/${row.id}?mode=evidence`,
     );
+  });
+
+
+  it("resumes a saved operation from the document inspector URL", async () => {
+    const user = userEvent.setup();
+    const row = makeRow({ name: "resumed.pdf" });
+    const operationId = "10000000-0000-4000-8000-000000000001";
+    nav.search = new URLSearchParams({ document: row.id, operation: operationId }).toString();
+    list.mockResolvedValue([row]);
+    const waiting = {
+      run_id: null, status: "WAITING" as const, error_code: null, attempts: 0,
+      unknown_provider_outcome: false, can_retry: false,
+    };
+    const detail: OperationDetail = {
+      id: operationId, created_at: "2026-01-20T12:00:00Z", status: "QUEUED", mode: "ensure",
+      cancel_requested: false, can_cancel: true, provider_admissions: 6, unavailable_sources: 0,
+      items: [{
+        revision_document_id: row.id, filename: "resumed.pdf", processing_run_id: "processing-1",
+        pages: [1], force_ocr_pages: [], status: "QUEUED", blocked_reason: null, can_resume: false,
+        layout: waiting, profiles: { engineering: waiting },
+      }],
+    };
+    vi.mocked(getExtractionOperation).mockResolvedValue(detail);
+    vi.mocked(cancelExtractionOperation).mockResolvedValue({
+      ...detail, status: "CANCELLED", can_cancel: false, cancel_requested: true,
+    });
+    renderWorkspace(true);
+    const drawer = await findInspector("resumed.pdf");
+    expect(await within(drawer).findByText(`Operation ID · ${operationId}`)).toBeVisible();
+    expect(within(drawer).getByText("Engineering · Waiting")).toBeVisible();
+    await user.click(within(drawer).getByRole("button", { name: "Cancel operation" }));
+    expect(cancelExtractionOperation).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Stop scheduling" }));
+    expect(await within(drawer).findByText("Scheduling stopped. Already admitted runs may finish.")).toBeVisible();
+    expect(cancelExtractionOperation).toHaveBeenCalledWith(expect.objectContaining({ revisionId: R }), operationId);
   });
 
 });

@@ -70,6 +70,10 @@ def reconcile_extraction() -> None:
     factory = sessionmaker(bind=_engine(), autoflush=False, expire_on_commit=False)
     with factory.begin() as session:
         ExtractionCoordinator(session, settings).reconcile()
+    if not settings.enrichment_worker_only:
+        from powerforge_extraction.operations import reconcile_operations
+
+        reconcile_operations(factory, settings, build_s3_storage(settings))
     with factory.begin() as session:
         ExtractionCoordinator(session, settings).dispatch(
             CeleryExtractionEnqueue(celery_app), purpose=None

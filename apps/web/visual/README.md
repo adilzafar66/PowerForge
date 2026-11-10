@@ -24,6 +24,12 @@ The Phase 6F fixture captures the Documents register and inspector, the 52-group
 VISUAL_PHASE6F=1 VISUAL_ARTIFACTS=.visual-artifacts/phase6f npm run visual:capture
 ```
 
+The M3 and M4 fixture captures all three wizard steps, Targeted extraction, operation progress, and the Run history re-extraction entry. Its fixture server accepts only the workflow's source discovery, preview, and consent requests during this check.
+
+```sh
+VISUAL_PHASE6F_OPERATIONS=1 VISUAL_ARTIFACTS=.visual-artifacts/phase6f-m3-m4 npm run visual:capture
+```
+
 Useful environment variables:
 
 - `VISUAL_ARTIFACTS`: separate baseline/output root for a new task or rendering environment.

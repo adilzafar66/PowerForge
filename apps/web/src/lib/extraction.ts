@@ -24,6 +24,7 @@ export type ExtractionStatus = {
   engineering: FamilyRuns;
   tables: FamilyRuns;
   enrichment: RegisterRun | null;
+  pending_operation?: { id: string; preparing: boolean } | null;
 };
 type Page<T> = { items: T[]; total: number; limit: number; offset: number };
 export type EvidenceGroup = {
@@ -155,7 +156,7 @@ export function extractionCell(item?: ExtractionStatus): CellState {
   if (!item) return { label: "Unknown", tone: "neutral" };
   if (item.ineligible_reason === "REMOVED") return { label: "Unavailable", tone: "neutral", detail: ineligibleLabel.REMOVED };
   const runs = families.map((family) => item[family].latest_attempt);
-  if (!runs.some(Boolean)) {
+  if (!runs.some(Boolean) && !item.pending_operation) {
     if (item.ineligible_reason === "NO_PAGE_ARTIFACTS" || item.ineligible_reason === "PROCESSING_REQUIRED") {
       return { label: "Unavailable", tone: "neutral", detail: ineligibleLabel[item.ineligible_reason] };
     }
@@ -173,6 +174,12 @@ export function extractionCell(item?: ExtractionStatus): CellState {
     return `${familyLabel[family]} · ${runState(run).label}${version}${available}`;
   }).join(" / ");
   const sameSource = !!item.processing_run_id && runs.every((run) => run?.processing_run_id === item.processing_run_id);
+  if (item.pending_operation) {
+    return {
+      ...runStates[item.pending_operation.preparing ? "RUNNING" : "PENDING"],
+      detail: `Waiting for exact source bindings${runs.some(Boolean) ? ` · ${detail}` : ""}`,
+    };
+  }
   if (active) return { ...runStates[active], detail };
   if (sameSource && states.every((status) => status === "COMPLETED")) return runStates.COMPLETED;
   if (states.includes("COMPLETED") || states.includes("PARTIALLY_COMPLETED")) return { ...runStates.PARTIALLY_COMPLETED, detail };
@@ -245,7 +252,12 @@ export function getRunDetail(scope: DocumentScope, family: HistoryFamily, runId:
 
 export function runHistoryAction(scope: DocumentScope, family: HistoryFamily, runId: string, action: "retry" | "cancel") {
   const query = family === "enrichment" ? "?viewer=true" : queryString({ family });
-  return request<RunDetail>(`${documentPath(scope, family)}/runs/${runId}/${action}${query}`, { method: "POST" });
+  return request<RunDetail>(`${documentPath(scope, family)}/runs/${runId}/${action}${query}`, {
+    method: "POST",
+    body: action === "retry" && family !== "enrichment"
+      ? JSON.stringify({ acknowledge_unknown_outcome: true })
+      : undefined,
+  });
 }
 
 export function getRunSources(scope: DocumentScope, runId: string, signal?: AbortSignal) {

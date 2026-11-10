@@ -243,12 +243,10 @@ describe("DocumentViewer", () => {
     expect(
       within(details).getByRole("button", { name: "Download page text" }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Run extraction" }),
-    ).toBeDisabled();
-    expect(
-      screen.getByRole("button", { name: "Run extraction" }),
-    ).toHaveAccessibleDescription("Extraction scheduling is pending");
+    const launch = screen.getByRole("button", { name: "Run extraction" });
+    expect(launch).toBeEnabled();
+    await userEvent.setup().click(launch);
+    expect(nav.push).toHaveBeenLastCalledWith(`/projects/${P}/revisions/${R}?document=rd-a&extract=ensure`);
   });
 
   it("reads the page from the URL and writes page changes back", async () => {

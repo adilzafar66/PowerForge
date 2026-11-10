@@ -8,7 +8,7 @@ from powerforge_extraction.controls import RunExecution
 from powerforge_extraction.dependencies import unit_key
 from powerforge_extraction.enrichment_models import SourceEnrichmentPageResult
 from powerforge_extraction.enrichment_profiles import PURPOSE
-from powerforge_extraction.enrichment_service import source_snapshot
+from powerforge_extraction.enrichment_service import preparation_identity, source_snapshot
 from powerforge_extraction.errors import (
     ExtractionConflict,
     ExtractionDisabled,
@@ -35,6 +35,8 @@ def start_layout(
     revision_document_id=None,
     mode="ensure",
     prepared_result_ids=(),
+    *,
+    allow_partial_prepared=False,
 ):
     if not settings.enrichment_enabled:
         raise ExtractionDisabled("Local enrichment is disabled")
@@ -78,7 +80,7 @@ def start_layout(
         if number in explicit or number not in pages:
             raise ExtractionError("Select one exact prepared result per selected page")
         explicit[number] = snapshot
-    if prepared_result_ids and set(explicit) != set(pages):
+    if prepared_result_ids and not allow_partial_prepared and set(explicit) != set(pages):
         raise ExtractionError("Explicit prepared selection must cover every selected page")
     chosen = []
     for number in pages:
@@ -93,13 +95,8 @@ def start_layout(
             owner, original, base, _ = source_snapshot(session, document, processing, page)
         except ValueError:
             raise ExtractionError("Unsupported bounded source artifacts") from None
-        preparation_hash = identity_hash(
-            {
-                "profile": profile.preparation.identity_hash,
-                "original": original.model_dump(mode="json"),
-                "base": [a.model_dump(mode="json") for a in base],
-                "force_ocr": number in force_ocr_pages,
-            }
+        preparation_hash = preparation_identity(
+            profile.preparation, original, base, force_ocr=number in force_ocr_pages
         )
         receipt = explicit.get(number)
         if receipt and (

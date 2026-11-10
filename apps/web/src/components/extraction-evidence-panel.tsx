@@ -23,6 +23,7 @@ import {
   type EvidenceFilters,
   type EvidenceGroup,
   type HistoryFamily,
+  type HistoryRun,
   type MappingStatus,
   type RunPair,
 } from "@/lib/extraction";
@@ -119,7 +120,7 @@ export function useViewerEvidence(scope: DocumentScope, params: Params, active: 
 type Browser = ReturnType<typeof useViewerEvidence>;
 
 export function ExtractionEvidencePanel({
-  scope, params, browser, update, page, scrollRef, highlighted, canMutate,
+  scope, params, browser, update, page, scrollRef, highlighted, canMutate, onReextract,
 }: {
   scope: DocumentScope;
   params: Params;
@@ -129,6 +130,7 @@ export function ExtractionEvidencePanel({
   scrollRef: RefObject<HTMLDivElement | null>;
   highlighted: boolean;
   canMutate: boolean;
+  onReextract: (run: HistoryRun) => void;
 }) {
   const tab = browser.history ? "history" : "candidates";
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
@@ -183,6 +185,8 @@ export function ExtractionEvidencePanel({
               : { engineering: null, tables: null }}
             update={update}
             canMutate={canMutate}
+            currentProcessingId={browser.status?.processing_run_id}
+            onReextract={onReextract}
           />
         ) : (
           <CandidateBrowser

@@ -56,6 +56,8 @@ export function DocumentInspector({
   onRetryProcessing,
   onViewPages,
   onNavigate,
+  onStartExtraction,
+  extractionOperationId,
   onSave,
   onDirtyChange,
 }: {
@@ -80,6 +82,8 @@ export function DocumentInspector({
   onRetryProcessing: () => void;
   onViewPages: (pageNumber?: number) => void;
   onNavigate: (href: string) => void;
+  onStartExtraction: () => void;
+  extractionOperationId?: string | null;
   onSave: (input: DocumentUpdateInput) => Promise<void>;
   onDirtyChange: (dirty: boolean) => void;
 }) {
@@ -208,6 +212,8 @@ export function DocumentInspector({
           scope={{ projectId, revisionId, documentId: row.id }}
           canMutate={canMutate}
           onNavigate={onNavigate}
+          onStart={onStartExtraction}
+          operationId={extractionOperationId}
         />
         <DocumentMetadataPanel
           row={row}

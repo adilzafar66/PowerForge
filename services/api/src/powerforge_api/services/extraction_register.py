@@ -2,11 +2,15 @@
 
 from uuid import UUID
 
-from sqlalchemy import and_, case, exists, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy import and_, case, exists, func, or_, select, true
+from sqlalchemy.orm import Session, aliased
 
 from powerforge_api.exceptions import ProjectError, RevisionNotFound
-from powerforge_api.schemas.extraction import DocumentExtractionStatus, RegisterRun
+from powerforge_api.schemas.extraction import (
+    DocumentExtractionStatus,
+    PendingOperation,
+    RegisterRun,
+)
 from powerforge_api.services.revision_writes import assert_revision_mutable
 from powerforge_document_model import DEFAULT_PROFILE
 from powerforge_document_processing.models import (
@@ -18,6 +22,7 @@ from powerforge_extraction.controls import RunExecution
 from powerforge_extraction.enriched_profiles import ENGINEERING, TABLES
 from powerforge_extraction.enrichment_profiles import PURPOSE
 from powerforge_extraction.models import ExtractionRun
+from powerforge_extraction.operation_models import ExtractionOperation, OperationItem
 from powerforge_extraction.production_profiles import PRODUCTION_PROFILES
 from powerforge_extraction.table_profiles import TABLE_PRODUCTION_PROFILES
 from powerforge_persistence import Project, ProjectRevision
@@ -53,6 +58,31 @@ def register_status(
     # The document viewer serves artifacts from the completed run of DEFAULT_PROFILE.
     # Only one completed/live processing run is allowed for that document and profile.
     processing = DocumentProcessingRun
+    layout = aliased(ExtractionRun)
+    pending = (
+        select(
+            ExtractionOperation.id.label("operation_id"),
+            (layout.status == "RUNNING").label("preparing"),
+        )
+        .join(OperationItem, OperationItem.operation_id == ExtractionOperation.id)
+        .outerjoin(layout, layout.id == OperationItem.layout_run_id)
+        .where(
+            ExtractionOperation.project_id == project_id,
+            ExtractionOperation.revision_id == revision_id,
+            ExtractionOperation.next_check_at.is_not(None),
+            ExtractionOperation.cancel_requested_at.is_(None),
+            OperationItem.revision_document_id == RevisionDocument.id,
+            OperationItem.document_id == RevisionDocument.document_id,
+            OperationItem.blocked_reason.is_(None),
+            OperationItem.engineering_run_id.is_(None),
+            OperationItem.tables_run_id.is_(None),
+            or_(layout.id.is_(None), layout.status.in_(["PENDING", "RUNNING", "COMPLETED"])),
+        )
+        .order_by(ExtractionOperation.created_at.desc(), ExtractionOperation.id.desc())
+        .limit(1)
+        .correlate(RevisionDocument)
+        .lateral()
+    )
     associations = session.execute(
         select(
             RevisionDocument,
@@ -63,6 +93,8 @@ def register_status(
                     PageArtifact.artifact_type == "ANALYSIS_IMAGE",
                 )
             ).label("has_image"),
+            pending.c.operation_id,
+            pending.c.preparing,
         )
         .outerjoin(
             processing,
@@ -73,6 +105,7 @@ def register_status(
                 processing.status == "COMPLETED",
             ),
         )
+        .outerjoin(pending, true())
         .where(
             RevisionDocument.project_id == project_id,
             RevisionDocument.revision_id == revision_id,
@@ -82,7 +115,7 @@ def register_status(
     status_by_id = {}
     included = {}
     processing_ids = []
-    for association, processing_id, has_image in associations:
+    for association, processing_id, has_image, operation_id, preparing in associations:
         reason = None
         if association.status != "INCLUDED":
             reason = "REMOVED"
@@ -100,6 +133,11 @@ def register_status(
             revision_document_id=association.id,
             processing_run_id=processing_id if association.status == "INCLUDED" else None,
             ineligible_reason=reason,
+            pending_operation=(
+                PendingOperation(id=operation_id, preparing=bool(preparing))
+                if operation_id and reason != "REMOVED"
+                else None
+            ),
         )
 
     if not included:

@@ -19,6 +19,10 @@ export const keys = {
   extraction: (p: string, r: string) => ["extraction", p, r] as const,
   extractionStatus: (p: string, r: string, ids: string[]) =>
     ["extraction", p, r, "status", ids] as const,
+  extractionOperation: (p: string, r: string, id: string) =>
+    ["extraction", p, r, "operation", id] as const,
+  extractionOperationsForDocument: (p: string, r: string, d: string) =>
+    ["extraction", p, r, "operations", d] as const,
   extractionDocument: (p: string, r: string, d: string) =>
     ["extraction", p, r, "document", d] as const,
   document: (p: string, r: string, id: string) =>

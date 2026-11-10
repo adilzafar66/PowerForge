@@ -79,6 +79,17 @@ def source_snapshot(session, document, processing, page, ids=None):
     return owner, original, base, {a.id: a.storage_key for a in rows}
 
 
+def preparation_identity(profile, original, base, *, force_ocr):
+    return identity_hash(
+        {
+            "profile": profile.identity_hash,
+            "original": original.model_dump(mode="json"),
+            "base": [artifact.model_dump(mode="json") for artifact in base],
+            "force_ocr": force_ocr,
+        }
+    )
+
+
 def start_preparation(
     session,
     settings,
@@ -131,13 +142,8 @@ def start_preparation(
             raise ExtractionError(
                 "Selected source artifacts exceed supported preparation bounds"
             ) from None
-        preparation_hash = identity_hash(
-            {
-                "profile": profile.identity_hash,
-                "original": original.model_dump(mode="json"),
-                "base": [a.model_dump(mode="json") for a in base],
-                "force_ocr": number in force_ocr_pages,
-            }
+        preparation_hash = preparation_identity(
+            profile, original, base, force_ocr=number in force_ocr_pages
         )
         chosen.append((owner, base, preparation_hash))
     target = identity_hash(

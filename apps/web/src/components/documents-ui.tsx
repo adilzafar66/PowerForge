@@ -2,7 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -155,6 +155,8 @@ export function ProgressBar({
 export function DocumentsDialog({
   title,
   description,
+  headerExtra,
+  restoreFocus = false,
   onClose,
   footer,
   children,
@@ -163,12 +165,15 @@ export function DocumentsDialog({
 }: {
   title: string;
   description?: ReactNode;
+  headerExtra?: ReactNode;
+  restoreFocus?: boolean;
   onClose: () => void;
   footer?: ReactNode;
   children: ReactNode;
   className?: string;
   closeLabel?: string;
 }) {
+  const trigger = useRef<HTMLElement | null>(null);
   return (
     <Dialog.Root
       open
@@ -179,13 +184,18 @@ export function DocumentsDialog({
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[60] bg-[rgba(19,33,47,0.32)] animate-[workspace-appear_var(--pf-motion-overlay)_ease] motion-reduce:animate-none" />
         <Dialog.Content
+          onOpenAutoFocus={restoreFocus ? () => { trigger.current = document.activeElement as HTMLElement; } : undefined}
+          onCloseAutoFocus={restoreFocus ? (event) => {
+            event.preventDefault();
+            if (trigger.current?.isConnected) trigger.current.focus();
+          } : undefined}
           {...(description ? {} : { "aria-describedby": undefined })}
           className={cn(
             "fixed top-1/2 left-1/2 z-[70] flex max-h-[90vh] w-[calc(100%-32px)] max-w-[500px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[var(--pf-radius-lg)] border border-border bg-panel shadow-[var(--pf-shadow-documents-dialog)] outline-none",
             className,
           )}
         >
-          <div className="flex items-start justify-between gap-3 border-b border-border px-[22px] py-5">
+          <div className={cn("flex items-start justify-between gap-3 px-[22px] py-5", !headerExtra && "border-b border-border")}>
             <div className="min-w-0">
               <Dialog.Title className="m-0 text-workspace-subheading leading-[1.3] font-semibold tracking-[-0.2px] text-ink">
                 {title}
@@ -203,6 +213,7 @@ export function DocumentsDialog({
               <X aria-hidden className="size-4" />
             </Dialog.Close>
           </div>
+          {headerExtra && <div className="border-b border-border px-[22px] pb-4">{headerExtra}</div>}
           <div className="min-h-0 flex-1 overflow-y-auto px-[22px] py-5">
             {children}
           </div>

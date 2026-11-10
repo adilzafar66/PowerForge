@@ -134,3 +134,93 @@ export function extractionResponse(url, tail) {
     can_cancel: false, can_retry: false,
   };
 }
+
+const operationId = id(9, 1);
+let reviewedSelection = null;
+let submittedSelection = null;
+
+export function resetOperationsFixture() {
+  reviewedSelection = null;
+  submittedSelection = null;
+}
+
+export function operationsFixture(url, body, documents, revision) {
+  const tail = url.pathname.split("/extraction/operations")[1];
+  const byId = (id) => documents.find((row) => row.id === id);
+  const processingId = (doc) => doc === "doc" ? processing_run_id : id(1, 2);
+
+  if (tail === "/sources") {
+    return {
+      items: body.revision_document_ids.map((documentId) => {
+        const row = byId(documentId);
+        return {
+          revision_document_id: documentId,
+          filename: row.document.original_filename,
+          processing_run_id: processingId(documentId),
+          page_count: row.processing.pages_total,
+          available_pages: Array.from({ length: row.processing.pages_total }, (_, index) => index + 1),
+          error: null,
+        };
+      }),
+      max_documents: 20, max_pages_per_document: 50, max_pages: 150, read_only: revision === "old",
+    };
+  }
+  if (tail === "/preview") {
+    reviewedSelection = body;
+    return {
+      items: body.documents.map((item) => ({
+        revision_document_id: item.revision_document_id,
+        filename: byId(item.revision_document_id).document.original_filename,
+        processing_run_id: item.processing_run_id,
+        error: null,
+        pages: item.pages.map((page_number) => {
+          const force_ocr = item.force_ocr_pages.includes(page_number);
+          const ready = item.revision_document_id === "doc" && !force_ocr;
+          return { page_number, force_ocr, reuse_preparation: ready, reuse_layout: ready };
+        }),
+      })),
+      profiles: body.families.map((family) => ({
+        family, key: family === "engineering" ? engineering.profile_key : tables.profile_key,
+        provider: "openai", model: "Fixture model", enabled: true,
+      })),
+      errors: [], review_hash: "a".repeat(64), consent_version: "external-openai-v1",
+      planned_runs: body.documents.length * body.families.length,
+      provider_admissions: body.documents.reduce((total, item) => total + item.pages.length, 0) * body.families.length * 6,
+      ocr_attempts: 84, parallel_documents: 2,
+    };
+  }
+  if (tail === "" && body) {
+    if (body.external_processing_consent !== true
+      || body.review_hash !== "a".repeat(64)
+      || JSON.stringify(body.selection) !== JSON.stringify(reviewedSelection)) return undefined;
+    submittedSelection = body.selection;
+    return { id: operationId };
+  }
+  if (tail === "") {
+    const documentId = url.searchParams.get("revision_document_id");
+    return { items: submittedSelection?.documents.some((item) => item.revision_document_id === documentId)
+      ? [{ id: operationId, created_at }] : [] };
+  }
+  if (tail === `/${operationId}` && submittedSelection) {
+    const step = (status, run_id = null) => ({
+      run_id, status, error_code: null, attempts: run_id ? 2 : 0,
+      unknown_provider_outcome: false, can_retry: false,
+    });
+    return {
+      id: operationId, created_at, status: "RUNNING", cancel_requested: false, can_cancel: true,
+      mode: submittedSelection.mode, provider_admissions: 120, unavailable_sources: 0,
+      items: submittedSelection.documents.map((item) => {
+        const ready = item.revision_document_id === "doc";
+        return {
+          ...item, filename: byId(item.revision_document_id).document.original_filename,
+          status: "RUNNING", blocked_reason: null, can_resume: false,
+          layout: ready ? step("REUSED") : step("RUNNING", enrichment.id),
+          profiles: Object.fromEntries(submittedSelection.families.map((family) => [
+            family, ready ? step("COMPLETED", family === "engineering" ? engineering.id : tables.id) : step("WAITING"),
+          ])),
+        };
+      }),
+    };
+  }
+  return undefined;
+}

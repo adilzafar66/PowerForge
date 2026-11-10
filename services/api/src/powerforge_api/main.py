@@ -11,6 +11,7 @@ from powerforge_api.routers.engineering_model import router as engineering_model
 from powerforge_api.routers.enrichment import router as enrichment_router
 from powerforge_api.routers.extraction import register_router
 from powerforge_api.routers.extraction import router as extraction_router
+from powerforge_api.routers.extraction_operations import router as extraction_operations_router
 from powerforge_api.routers.health import router as health_router
 from powerforge_api.routers.model import router as model_router
 from powerforge_api.routers.projects import router as projects_router
@@ -72,6 +73,7 @@ def create_app() -> FastAPI:
     application.include_router(model_router)
     application.include_router(extraction_router)
     application.include_router(register_router)
+    application.include_router(extraction_operations_router)
     application.include_router(enrichment_router)
     return application
 

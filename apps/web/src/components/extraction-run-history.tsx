@@ -40,7 +40,7 @@ const chipTone = {
 const card = "rounded-[var(--pf-radius-control)] border border-border bg-panel p-3";
 
 export function ExtractionRunHistory({
-  scope, activeFamily, runId, pair, update, canMutate,
+  scope, activeFamily, runId, pair, update, canMutate, currentProcessingId, onReextract,
 }: {
   scope: DocumentScope;
   activeFamily: HistoryFamily;
@@ -48,6 +48,8 @@ export function ExtractionRunHistory({
   pair: RunPair;
   update: UpdateEvidenceRoute;
   canMutate: boolean;
+  currentProcessingId?: string | null;
+  onReextract: (run: HistoryRun) => void;
 }) {
   return (
     <div className="space-y-3.5">
@@ -62,6 +64,8 @@ export function ExtractionRunHistory({
           pair={pair}
           update={update}
           canMutate={canMutate}
+          currentProcessingId={currentProcessingId}
+          onReextract={onReextract}
         />
       ))}
     </div>
@@ -69,7 +73,7 @@ export function ExtractionRunHistory({
 }
 
 function HistorySection({
-  scope, family, runId, pair, update, canMutate,
+  scope, family, runId, pair, update, canMutate, currentProcessingId, onReextract,
 }: {
   scope: DocumentScope;
   family: HistoryFamily;
@@ -77,6 +81,8 @@ function HistorySection({
   pair: RunPair;
   update: UpdateEvidenceRoute;
   canMutate: boolean;
+  currentProcessingId?: string | null;
+  onReextract: (run: HistoryRun) => void;
 }) {
   const [offset, setOffset] = useState(0);
   const queryKey = keys.extractionDocument(scope.projectId, scope.revisionId, scope.documentId);
@@ -95,7 +101,7 @@ function HistorySection({
       <h3 className="m-0 text-workspace-label font-bold text-ink">{familyLabel[family]}</h3>
       {runId && !selectedInList && (
         <div className={card}>
-          <RunHistoryDetail key={runId} scope={scope} family={family} runId={runId} pair={pair} update={update} canMutate={canMutate} />
+          <RunHistoryDetail key={runId} scope={scope} family={family} runId={runId} pair={pair} update={update} canMutate={canMutate} currentProcessingId={currentProcessingId} onReextract={onReextract} />
         </div>
       )}
       {history.isPending && <p role="status" className="text-workspace-caption text-muted">Loading runs…</p>}
@@ -116,7 +122,7 @@ function HistorySection({
             {formatDateShort(run.created_at)} · {run.selected_pages.length} {run.selected_pages.length === 1 ? "page" : "pages"}
           </p>
           {runId === run.id && (
-            <RunHistoryDetail key={run.id} scope={scope} family={family} runId={run.id} pair={pair} update={update} canMutate={canMutate} />
+            <RunHistoryDetail key={run.id} scope={scope} family={family} runId={run.id} pair={pair} update={update} canMutate={canMutate} currentProcessingId={currentProcessingId} onReextract={onReextract} />
           )}
         </div>
       ))}
@@ -126,7 +132,7 @@ function HistorySection({
 }
 
 function RunHistoryDetail({
-  scope, family, runId, pair, update, canMutate,
+  scope, family, runId, pair, update, canMutate, currentProcessingId, onReextract,
 }: {
   scope: DocumentScope;
   family: HistoryFamily;
@@ -134,6 +140,8 @@ function RunHistoryDetail({
   pair: RunPair;
   update: UpdateEvidenceRoute;
   canMutate: boolean;
+  currentProcessingId?: string | null;
+  onReextract: (run: HistoryRun) => void;
 }) {
   const client = useQueryClient();
   const queryKey = keys.extractionDocument(scope.projectId, scope.revisionId, scope.documentId);
@@ -248,6 +256,10 @@ function RunHistoryDetail({
                 });
               }}>Browse candidates</button>
             )}
+            {canMutate && family !== "enrichment" && !isRunning(run.status)
+              && currentProcessingId === run.processing_run_id && (
+                <button type="button" className={docButtonClass("tiny")} onClick={() => onReextract(run)}>Re-extract</button>
+              )}
             {canMutate && data.can_retry && (
               <button type="button" className={docButtonClass("tiny")} onClick={() => setAction("retry")}>Retry unsuccessful units</button>
             )}

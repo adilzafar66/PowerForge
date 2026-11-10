@@ -274,6 +274,7 @@ RunDetail.model_rebuild()
 
 class ExtractionActionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
+    acknowledge_unknown_outcome: bool = False
 
 
 RunFamily = Literal["engineering", "tables"]
@@ -292,6 +293,11 @@ class FamilyRuns(BaseModel):
     effective_result: RegisterRun | None = None
 
 
+class PendingOperation(BaseModel):
+    id: UUID
+    preparing: bool
+
+
 class DocumentExtractionStatus(BaseModel):
     revision_document_id: UUID
     processing_run_id: UUID | None
@@ -301,6 +307,7 @@ class DocumentExtractionStatus(BaseModel):
     engineering: FamilyRuns = Field(default_factory=FamilyRuns)
     tables: FamilyRuns = Field(default_factory=FamilyRuns)
     enrichment: RegisterRun | None = None
+    pending_operation: PendingOperation | None = None
 
 
 class ExtractionRegisterStatus(BaseModel):

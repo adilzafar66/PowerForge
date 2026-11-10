@@ -779,6 +779,23 @@ class ExtractionCoordinator:
     def _settle_failure(
         self, run: ExtractionRun, unit: ExtractionWorkUnit, profile: ExecutionProfile, code: str
     ) -> None:
+        if profile.provider == "openai" and code in {
+            ErrorCode.INTERRUPTED.value,
+            ErrorCode.TIMEOUT.value,
+            ErrorCode.UNAVAILABLE.value,
+        }:
+            from powerforge_extraction.operation_models import (
+                UNKNOWN_PROVIDER_OUTCOME,
+                managed_remote_run,
+            )
+
+            delivery = self.session.get(UnitExecution, unit.id)
+            if (
+                delivery
+                and delivery.provider_started_at
+                and managed_remote_run(self.session, run.id)
+            ):
+                code = UNKNOWN_PROVIDER_OUTCOME
         unit.status, unit.error_code, unit.finished_at = US.FAILED, code, self.now()
         self.session.flush()
         control = self._execution(run.id)
@@ -790,7 +807,13 @@ class ExtractionCoordinator:
             self._append_retry(run, unit, profile, delayed=True)
         self.aggregate(run)
 
-    def retry(self, run_id: UUID, *, purpose: str = "EXTRACTION") -> ExtractionRun:
+    def retry(
+        self,
+        run_id: UUID,
+        *,
+        purpose: str = "EXTRACTION",
+        acknowledge_unknown_outcome: bool = False,
+    ) -> ExtractionRun:
         run = self._run(run_id)
         if run.execution_purpose != purpose:
             raise ExtractionNotFound("Run not found")
@@ -819,6 +842,14 @@ class ExtractionCoordinator:
         if not eligible:
             raise ExtractionConflict(
                 "No unsuccessful logical units remain within the pinned attempt limit"
+            )
+        from powerforge_extraction.operation_models import UNKNOWN_PROVIDER_OUTCOME
+
+        if not acknowledge_unknown_outcome and any(
+            unit.error_code == UNKNOWN_PROVIDER_OUTCOME for unit in eligible
+        ):
+            raise ExtractionConflict(
+                "Provider outcome unknown. Confirm that retry may incur another charge."
             )
         run.status, run.finished_at, run.error_code = RS.RUNNING, None, None
         self.session.flush()

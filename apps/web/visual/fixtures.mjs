@@ -1,4 +1,4 @@
-import { extractionResponse, extractionStatus } from "./phase6f.mjs";
+import { extractionResponse, extractionStatus, operationsFixture } from "./phase6f.mjs";
 
 /** Synthetic records only. Served to both Next SSR and the browser. */
 const stamp = "2026-01-12T12:00:00Z";
@@ -529,7 +529,7 @@ export const attributes = [
     origin: null,
   }),
 ];
-export function fixtureResponse(url, scenario) {
+export function fixtureResponse(url, scenario, requestBody) {
   const path = url.pathname;
   if (path === "/health")
     return { status: "ok", service: "PowerForge", version: "visual-fixture" };
@@ -565,6 +565,7 @@ export function fixtureResponse(url, scenario) {
   if (!revision) return undefined;
   const suffix = revision[2];
   if (!suffix) return revisions.find((r) => r.id === revision[1]);
+  if (suffix.startsWith("/extraction/operations")) return operationsFixture(url, requestBody, documents, revision[1]);
   if (suffix === "/extraction/status") return extractionStatus(documents, url.searchParams, revision[1]);
   if (suffix === "/documents") {
     const search = url.searchParams.get("search")?.toLowerCase();

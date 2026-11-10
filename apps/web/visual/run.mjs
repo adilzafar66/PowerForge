@@ -7,6 +7,7 @@ import { chromium } from "playwright";
 import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 import { fixtureAsset, fixtureResponse } from "./fixtures.mjs";
+import { resetOperationsFixture } from "./phase6f.mjs";
 
 const mode = process.argv[2];
 assert(["capture", "compare"].includes(mode), "Use capture or compare");
@@ -30,17 +31,19 @@ const apiPort = Number(process.env.VISUAL_API_PORT || 4311),
   appPort = Number(process.env.VISUAL_APP_PORT || 4310);
 const api = `http://127.0.0.1:${apiPort}`,
   base = `http://127.0.0.1:${appPort}`;
-const server = createServer((req, res) => {
+const server = createServer(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", base);
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   if (req.method === "OPTIONS") {
     res.writeHead(204);
     res.end();
     return;
   }
   const url = new URL(req.url, api);
-  if (req.method !== "GET") {
+  const operationsPost = process.env.VISUAL_PHASE6F_OPERATIONS && req.method === "POST"
+    && /^\/api\/projects\/p\/revisions\/r\/extraction\/operations(?:\/(?:sources|preview))?$/.test(url.pathname);
+  if (req.method !== "GET" && !operationsPost) {
     failures.push(`Unexpected ${req.method} ${req.url}`);
     res.writeHead(500);
     res.end("{}");
@@ -52,7 +55,13 @@ const server = createServer((req, res) => {
     res.end(asset.body);
     return;
   }
-  const body = fixtureResponse(url, scenario);
+  let requestBody;
+  if (operationsPost) {
+    let data = "";
+    for await (const chunk of req) data += chunk;
+    requestBody = JSON.parse(data);
+  }
+  const body = fixtureResponse(url, scenario, requestBody);
   if (body === undefined) {
     failures.push(`Missing fixture ${req.url}`);
     res.writeHead(500);
@@ -262,7 +271,46 @@ try {
       await shot(`${prefix}-equipment-edit-${tab}`);
     }
   }
-  if (process.env.VISUAL_PHASE6F) {
+  if (process.env.VISUAL_PHASE6F_OPERATIONS) {
+    for (const width of [1440, 1024, 768, 390]) {
+      resetOperationsFixture();
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+      await go(r);
+      await page.getByRole("checkbox", { name: "Select eligible visible documents" }).check();
+      await page.getByRole("button", { name: "Start extraction", exact: true }).click();
+      const wizard = page.getByRole("dialog", { name: "Start extraction" });
+      await wizard.getByRole("textbox", { name: "Pages for Substation_SLD.pdf" }).waitFor();
+      await shot(`phase6f-source-${width}`);
+      await wizard.getByRole("button", { name: "Continue to enrichment" }).click();
+      await wizard.getByText("Reuse existing results", { exact: true }).waitFor();
+      await wizard.getByText("Will prepare automatically", { exact: true }).waitFor();
+      await shot(`phase6f-enrichment-${width}`);
+      await wizard.getByRole("button", { name: "Continue to extraction" }).click();
+      await wizard.getByText("4 extraction runs requested", { exact: true }).waitFor();
+      await shot(`phase6f-comprehensive-${width}`);
+      await wizard.getByText("Advanced extraction settings", { exact: true }).click();
+      await wizard.getByRole("checkbox", { name: "Extract from engineering text" }).uncheck();
+      await wizard.getByText("2 extraction runs requested", { exact: true }).waitFor();
+      await shot(`phase6f-targeted-${width}`);
+      await wizard.getByRole("checkbox", { name: /I authorize sending/ }).check();
+      await wizard.getByRole("button", { name: "Start extraction", exact: true }).click();
+      await page.getByRole("link", { name: "View operation" }).click();
+      await page.getByText(/Operation ID ·/).waitFor();
+      assert(await page.getByRole("heading", { name: "Extraction operation" }).evaluate(
+        (heading) => heading.getBoundingClientRect().top < window.innerHeight
+      ));
+      await shot(`phase6f-operation-${width}`);
+    }
+    resetOperationsFixture();
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await go(r + "/documents/doc?mode=evidence&evidenceTab=history");
+    await page.getByRole("region", { name: "Engineering history" })
+      .getByRole("button", { name: /Run / }).click();
+    await page.getByRole("button", { name: "Re-extract", exact: true }).click();
+    const reextract = page.getByRole("dialog", { name: "Re-extract", exact: true });
+    assert.equal(await reextract.getByRole("textbox", { name: "Pages for Substation_SLD.pdf" }).inputValue(), "1");
+    await shot("phase6f-reextract-1440");
+  } else if (process.env.VISUAL_PHASE6F) {
     const viewer = r + "/documents/doc?mode=evidence";
     for (const width of [1440, 1024, 768, 390]) {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });

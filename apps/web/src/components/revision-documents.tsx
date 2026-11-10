@@ -7,6 +7,8 @@ import { keys } from "@/lib/query-keys";
 import { isRunning, jobInterval } from "@/lib/query-hooks";
 
 import { useExtractionStatuses } from "@/components/document-extraction-panel";
+import { ExtractionOperationToast } from "@/components/extraction-operation-panel";
+import { StartExtractionWizard, type WizardLaunch } from "@/components/start-extraction-wizard";
 import { DocumentInspector } from "@/components/document-inspector";
 import { DocumentList, type DocumentEmptyState } from "@/components/document-list";
 import { DocumentUploadDialog } from "@/components/document-upload";
@@ -130,12 +132,38 @@ export function RevisionDocuments({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const documentParam = searchParams.get("document");
+  const operationParam = searchParams.get("operation");
+  const launchParam = searchParams.get("extract");
+  const routeQuery = searchParams.toString();
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [advancedFilters, setAdvancedFilters] =
     useState<AdvancedDocumentFilters>(EMPTY_ADVANCED_FILTERS);
   const [quickView, setQuickView] = useState<DocumentQuickView>("all");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [wizard, setWizard] = useState<WizardLaunch | null>(null);
+  const [operationToast, setOperationToast] = useState<{ id: string; documentId: string } | null>(null);
+  const consumedLaunch = useRef<string | null>(null);
+  useEffect(() => {
+    if (!launchParam) {
+      consumedLaunch.current = null;
+      return;
+    }
+    if (!canMutate || !documentParam || !["ensure", "reextract"].includes(launchParam)
+      || consumedLaunch.current === routeQuery) return;
+    consumedLaunch.current = routeQuery;
+    const query = new URLSearchParams(routeQuery);
+    setWizard({
+      documentIds: [documentParam],
+      mode: launchParam === "reextract" ? "reextract" : "ensure",
+      initialPages: query.get("extractPages") ?? undefined,
+      sourceVersion: query.get("extractSource") ?? undefined,
+    });
+    query.delete("extract");
+    query.delete("extractPages");
+    query.delete("extractSource");
+    router.replace(`${pathname}?${query}`, { scroll: false });
+  }, [canMutate, documentParam, launchParam, pathname, routeQuery, router]);
   const [manualRefresh, setManualRefresh] = useState(false);
   const client = useQueryClient();
   // Processing commits before classification is enqueued. Briefly bridge that real API gap.
@@ -283,6 +311,7 @@ export function RevisionDocuments({
         return;
       }
       params.set("document", id);
+      params.delete("operation");
       router.push(`${pathname}?${params.toString()}`);
     },
     [pathname, router, searchParams],
@@ -295,6 +324,7 @@ export function RevisionDocuments({
     }
     const params = new URLSearchParams(searchParams.toString());
     params.delete("document");
+    params.delete("operation");
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname);
   }, [pathname, router, searchParams]);
@@ -610,6 +640,22 @@ export function RevisionDocuments({
       </p>
     ) : null;
 
+  const toast = operationToast ? (
+    <ExtractionOperationToast
+      scope={{ projectId, revisionId }}
+      operation={operationToast}
+      onView={(href) => {
+        const target = new URL(href, window.location.href);
+        const internal = target.pathname + target.search;
+        if (selectedId === operationToast.documentId || !guardNavigation(internal)) {
+          router.push(internal, { scroll: false });
+          setOperationToast(null);
+        }
+      }}
+      onDismiss={() => setOperationToast(null)}
+    />
+  ) : null;
+
   return (
     <section aria-label="Documents">
       <DocumentsHeader
@@ -703,7 +749,10 @@ export function RevisionDocuments({
                     setScopeError(null);
                   }}>Clear selection</button>
                   {eligibleChecked.size > 0 && (
-                    <button type="button" className={docButtonClass("primary")} title="Extraction scheduling is pending" disabled>Start extraction</button>
+                    <button
+                      type="button" className={docButtonClass("primary")} disabled={scopePending}
+                      onClick={() => setWizard({ documentIds: [...eligibleChecked], skipped: skippedRows })}
+                    >Start extraction</button>
                   )}
                 </div>
               </div>
@@ -826,7 +875,7 @@ export function RevisionDocuments({
           onRemove={() => setRemoving(selected)}
           onRestore={() => restoreRow(selected)}
           onStateChanged={refreshAfterChange}
-          notice={messageLine("border-b border-border px-[21px] py-3")}
+          notice={<>{messageLine("border-b border-border px-[21px] py-3")}{toast}</>}
           onRequestClose={closeDocument}
           onAccept={() => void acceptRow(selected)}
           onReclassify={() => void reclassifyRow(selected)}
@@ -834,10 +883,27 @@ export function RevisionDocuments({
           onRetryProcessing={() => void retryRow(selected)}
           onViewPages={(pageNumber) => openViewer(selected, pageNumber)}
           onNavigate={navigateTo}
+          onStartExtraction={() => setWizard({ documentIds: [selected.id] })}
+          extractionOperationId={operationParam}
           onSave={(input) => saveRow(selected, input)}
           onDirtyChange={setInspectorDirty}
         />
       ) : null}
+      {wizard && canMutate && (
+        <StartExtractionWizard
+          scope={{ projectId, revisionId }}
+          launch={wizard}
+          onClose={() => setWizard(null)}
+          onStarted={(id, documentId) => {
+            setWizard(null);
+            setOperationToast({ id, documentId });
+            setCheckedIds(new Set());
+            setSkipped([]);
+            void client.invalidateQueries({ queryKey: keys.extraction(projectId, revisionId) });
+          }}
+        />
+      )}
+      {!selected && toast}
     </section>
   );
 }
