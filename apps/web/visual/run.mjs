@@ -185,11 +185,11 @@ try {
       content: "nextjs-portal{display:none!important}",
     });
   }
-  async function shot(name) {
+  async function shot(name, fullPage = true) {
     await settle();
     await page.screenshot({
       path: path.join(output, name + ".png"),
-      fullPage: true,
+      fullPage,
       animations: "disabled",
       caret: "hide",
     });
@@ -245,6 +245,12 @@ try {
     }
     console.log(name);
   }
+  async function referenceSizeShot(name, width, height) {
+    const original = page.viewportSize();
+    await page.setViewportSize({ width, height });
+    await shot(`reference-${name}`, false);
+    await page.setViewportSize(original);
+  }
   const p = "/projects/p",
     r = p + "/revisions/r",
     model = r + "?workspace=model",
@@ -281,17 +287,21 @@ try {
       const wizard = page.getByRole("dialog", { name: "Start extraction" });
       await wizard.getByRole("textbox", { name: "Pages for Substation_SLD.pdf" }).waitFor();
       await shot(`phase6f-source-${width}`);
+      if (width === 1440) await referenceSizeShot("source", 1440, 1158);
       await wizard.getByRole("button", { name: "Continue to enrichment" }).click();
       await wizard.getByText("Reuse existing results", { exact: true }).waitFor();
       await wizard.getByText("Will prepare automatically", { exact: true }).waitFor();
       await shot(`phase6f-enrichment-${width}`);
+      if (width === 1440) await referenceSizeShot("enrichment", 1440, 1158);
       await wizard.getByRole("button", { name: "Continue to extraction" }).click();
       await wizard.getByText("4 extraction runs requested", { exact: true }).waitFor();
       await shot(`phase6f-comprehensive-${width}`);
+      if (width === 1440) await referenceSizeShot("comprehensive", 1440, 950);
       await wizard.getByText("Advanced extraction settings", { exact: true }).click();
       await wizard.getByRole("checkbox", { name: "Extract from engineering text" }).uncheck();
       await wizard.getByText("2 extraction runs requested", { exact: true }).waitFor();
       await shot(`phase6f-targeted-${width}`);
+      if (width === 1440) await referenceSizeShot("targeted", 1440, 950);
       await wizard.getByRole("checkbox", { name: /I authorize sending/ }).check();
       await wizard.getByRole("button", { name: "Start extraction", exact: true }).click();
       await page.getByRole("link", { name: "View operation" }).click();
@@ -316,25 +326,108 @@ try {
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
       await go(r);
       await page.getByRole("columnheader", { name: "AI Extraction" }).waitFor();
+      if (width === 1440) await referenceSizeShot("register", 1440, 1081);
       await page.getByRole("checkbox", { name: "Select eligible visible documents" }).check();
       await shot(`phase6f-register-${width}`);
       await go(r + "?document=doc");
       await page.getByRole("button", { name: "View results" }).waitFor();
       await shot(`phase6f-inspector-${width}`);
+      if (width === 1440) await referenceSizeShot("inspector", 1580, 1091);
       await go(viewer);
       await page.getByText("52 groups", { exact: true }).waitFor();
+      assert.deepEqual(await page.getByRole("tablist", { name: "Extraction evidence sections" })
+        .getByRole("tab").allTextContents(), ["Candidates", "Run history"]);
       await shot(`phase6f-groups-${width}`);
+      if (width === 1440) await referenceSizeShot("groups", 1512, 1000);
       await page.getByRole("button", { name: /TX-1.*Tables/ }).click();
       await page.getByRole("button", { name: /Rated apparent power/ }).click();
       await page.getByRole("img", { name: "Grounded source region" }).waitFor();
       await shot(`phase6f-candidate-${width}`);
+      if (width === 1440) await referenceSizeShot("candidate", 1512, 1000);
       await page.getByRole("button", { name: "Back to source groups" }).click();
       await page.getByRole("tab", { name: "Run history" }).click();
-      await page.getByRole("region", { name: "Tables history" }).getByRole("button", { name: /Run / }).click();
+      const tableHistory = page.getByRole("region", { name: "Tables history" });
+      if (width === 1440) await referenceSizeShot("history", 1512, 1000);
+      await tableHistory.getByRole("button", { name: /Run .*Completed/ }).click();
       await page.getByText("Inspect raw table output (technical)", { exact: true }).click();
       await page.getByRole("table").getByText("750 kVA", { exact: true }).waitFor();
       await shot(`phase6f-history-${width}`);
+      if (width === 1440) await referenceSizeShot("raw-table", 1512, 1000);
+
+      if (width === 1440 || width === 390) {
+        await tableHistory.getByRole("button", { name: /Run .*Partial/ }).click();
+        await tableHistory.getByRole("button", { name: /Run .*Partial/, expanded: true }).waitFor();
+        await tableHistory.getByRole("button", { name: "Browse candidates" }).click();
+        await page.getByText("1 group", { exact: true }).waitFor();
+        await page.getByRole("tab", { name: "Run history" }).click();
+        const engineeringHistory = page.getByRole("region", { name: "Engineering history" });
+        await engineeringHistory.getByRole("button", { name: /Run / }).click();
+        await engineeringHistory.getByRole("button", { name: "Browse candidates" }).click();
+        await page.getByText("27 groups", { exact: true }).waitFor();
+        const selectedRuns = new URL(page.url()).searchParams;
+        assert(selectedRuns.get("engineeringRun")?.endsWith("000001"));
+        assert(selectedRuns.get("tablesRun")?.endsWith("000002"));
+        await page.getByRole("button", { name: "View latest results" }).click();
+        await page.getByText("52 groups", { exact: true }).waitFor();
+
+        const pages = page.getByRole("navigation", { name: "Result pages" });
+        await pages.getByRole("button", { name: "Next" }).click();
+        await pages.getByText("26–50 of 52").waitFor();
+        await pages.getByRole("button", { name: "Next" }).click();
+        await pages.getByText("51–52 of 52").waitFor();
+        await page.getByRole("button", { name: /TX-052.*Engineering/ }).waitFor();
+
+        await page.getByRole("button", { name: "Current page", exact: true }).click();
+        await page.getByText("26 groups", { exact: true }).waitFor();
+        await page.getByRole("button", { name: "All pages", exact: true }).click();
+        await page.getByText("52 groups", { exact: true }).waitFor();
+        const search = page.getByRole("searchbox", { name: "Search source groups" });
+        await search.fill("TX-002");
+        await page.getByText("1 group", { exact: true }).waitFor();
+        if (width === 1440) await referenceSizeShot("group-search", 1512, 1000);
+        await page.getByRole("button", { name: /TX-002.*Engineering/ }).click();
+        await page.getByRole("button", { name: /Rated apparent power/ }).click();
+        await page.getByText("Native PDF", { exact: true }).waitFor();
+        const region = page.getByRole("img", { name: "Grounded source region" });
+        await region.waitFor();
+        const sourcePage = await page.getByRole("img", { name: "Pinned source page 1" }).boundingBox();
+        const highlight = await region.boundingBox();
+        assert(Math.abs(highlight.x - sourcePage.x - 0.57 * sourcePage.width) < 1);
+        assert(Math.abs(highlight.y - sourcePage.y - 0.371 * sourcePage.height) < 1);
+        await page.getByText("Original reading", { exact: true }).waitFor();
+        const deepLink = page.url();
+        await page.reload();
+        assert.equal(page.url(), deepLink);
+        await region.waitFor();
+        await shot(`phase6f-native-${width}`);
+        await page.getByRole("button", { name: "Back to source groups" }).click();
+        assert.equal(await search.inputValue(), "TX-002");
+
+        await search.fill("");
+        await page.getByText("52 groups", { exact: true }).waitFor();
+        const mapping = page.getByRole("combobox", { name: "Mapping status" });
+        await mapping.click();
+        await page.getByRole("option", { name: "Unmapped", exact: true }).click();
+        await page.getByRole("button", { name: /Ungrouped observations.*Tables/ }).click();
+        await page.getByRole("button", { name: /Observed attribute.*Unmapped/ }).click();
+        await page.getByText("Page-level citation. No grounded highlight is available.").waitFor();
+        await page.getByRole("img", { name: "Pinned source page 2" }).waitFor();
+        assert.equal(await region.count(), 0);
+        await shot(`phase6f-page-only-${width}`);
+        await page.getByRole("button", { name: "Back to source groups" }).click();
+        await mapping.click();
+        await page.getByRole("option", { name: "Invalid", exact: true }).click();
+        await page.getByRole("button", { name: /TX-004.*Engineering/ }).click();
+        await page.getByRole("button", { name: /Observed attribute.*Invalid/ }).click();
+        await page.getByText("Unrecognized voltage unit", { exact: true }).waitFor();
+      }
     }
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await go(p + "/revisions/old/documents/doc?mode=evidence&evidenceTab=history");
+    await page.getByRole("region", { name: "Engineering history" })
+      .getByRole("button", { name: /Run / }).click();
+    await page.getByRole("button", { name: "Browse candidates" }).waitFor();
+    assert.equal(await page.getByRole("button", { name: "Re-extract", exact: true }).count(), 0);
   } else {
   for (const width of process.env.VISUAL_QUICK ? [1440] : [1440, 390]) {
     const prefix = width === 1440 ? "desktop" : "mobile";

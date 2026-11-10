@@ -34,7 +34,7 @@ PREVIOUS = "0015_source_spatial_layout"
 HEAD = "0016_enriched_extraction"
 
 
-def test_accepted_0013_pending_probe_executes_after_upgrade_to_head(scratch_url):
+def test_accepted_0013_pending_probe_executes_after_upgrade(scratch_url):
     _alembic(scratch_url, "upgrade", "0013_extraction_execution")
     engine = create_engine(scratch_url)
     factory = sessionmaker(engine, autoflush=False)
@@ -87,7 +87,7 @@ def test_accepted_0013_pending_probe_executes_after_upgrade_to_head(scratch_url)
                    VALUES(:uid,:rid,'SOURCE_PROBE:page:000001',now(),now())""",
             ):
                 connection.execute(text(statement), ids)
-        _alembic(scratch_url, "upgrade", "head")
+        _alembic(scratch_url, "upgrade", HEAD)
         assert _version(engine) == HEAD
         assert execute_unit(ids["uid"], factory, storage, settings, provider_for)
         with factory() as session:
@@ -107,8 +107,8 @@ def test_accepted_0013_pending_probe_executes_after_upgrade_to_head(scratch_url)
         engine.dispose()
 
 
-def test_fresh_head_enriched_columns_match_the_orm(scratch_url):
-    _alembic(scratch_url, "upgrade", "head")
+def test_fresh_enriched_columns_match_the_orm(scratch_url):
+    _alembic(scratch_url, "upgrade", HEAD)
     engine = create_engine(scratch_url)
     try:
         assert _version(engine) == HEAD
@@ -204,6 +204,8 @@ def test_upgrade_preserves_m3_results_and_active_v4_retry_and_downgrade_guards(s
         before = snapshot()
         _alembic(scratch_url, "upgrade", HEAD)
         assert snapshot() == before
+        _alembic(scratch_url, "upgrade", "0017_extraction_operations")
+        assert snapshot() == before
         with factory() as session:
             attempts = list(
                 session.scalars(
@@ -225,6 +227,8 @@ def test_upgrade_preserves_m3_results_and_active_v4_retry_and_downgrade_guards(s
             )
 
         before_downgrade = snapshot()
+        _alembic(scratch_url, "downgrade", HEAD)
+        assert snapshot() == before_downgrade
         _alembic(scratch_url, "downgrade", PREVIOUS)
         assert snapshot() == before_downgrade
         _alembic(scratch_url, "upgrade", HEAD)

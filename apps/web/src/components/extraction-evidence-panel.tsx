@@ -332,7 +332,7 @@ function CandidateBrowser({
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-1.5">
         <h3 className="m-0 text-workspace-label font-bold text-ink">Source groups</h3>
-        {groups.data && <span className="text-workspace-caption text-muted">{groups.data.total} groups</span>}
+        {groups.data && <span className="text-workspace-caption text-muted">{groups.data.total} {groups.data.total === 1 ? "group" : "groups"}</span>}
       </div>
       <PanelMessage>
         Groups organize cited observations within a source. Equipment identity remains unresolved.

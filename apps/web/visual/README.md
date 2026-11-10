@@ -16,19 +16,21 @@ Capture refuses to replace an existing completed baseline. The comparison writes
 
 The harness fixes fixture timestamps, server/browser display dates, locale, timezone, scale, light color scheme, viewports, browser version, and software rasterization settings. Scheduler clocks continue to run. Font bytes are captured once and reused. Screenshots wait for query completion and fonts, then settle transitions; screenshot capture finishes animations. Normal and reduced-motion views are exercised. The development indicator is hidden only in the test browser.
 
-The 54 views cover desktop/mobile project and revision screens, creation and editing sheets, discard/lifecycle dialogs, open select menus, empty/error/read-only states, Documents/Equipment/Topology/System Status, affected legacy drawers/dialogs, mobile navigation, keyboard focus, and layout boundaries. Dirty editor retention, Escape handling, focus restoration, and project-link keyboard navigation are asserted. Existing Vitest tests cover mutation semantics and failure paths. `.mjs` harness files are outside Vitest's test discovery.
+The workspace suite covers desktop/mobile project and revision screens, creation and editing sheets, discard/lifecycle dialogs, open select menus, empty/error/read-only states, Documents/Equipment/Topology/System Status, affected legacy drawers/dialogs, mobile navigation, keyboard focus, and layout boundaries. Dirty editor retention, Escape handling, focus restoration, and project-link keyboard navigation are asserted. Existing Vitest tests cover mutation semantics and failure paths. `.mjs` harness files are outside Vitest's test discovery.
 
-The Phase 6F fixture captures the Documents register and inspector, the 52-group Candidates browser, an OCR source highlight, and Run history with the raw table diagnostic at 1440, 1024, 768, and 390 px. Run it with its own artifact root.
+The Phase 6F evidence fixture captures the Documents register and inspector, the 52-group Candidates browser, an OCR source highlight, and Run history with the raw table diagnostic at 1440, 1024, 768, and 390 px. Desktop and mobile checks also cover pagination, filter and search retention, independent historical run selection, a native candidate deep link, and a page-only citation without a rectangle. The fixture uses synthetic observations modeled on source policies exercised by the offline spatial evaluator.
 
 ```sh
 VISUAL_PHASE6F=1 VISUAL_ARTIFACTS=.visual-artifacts/phase6f npm run visual:capture
 ```
 
-The M3 and M4 fixture captures all three wizard steps, Targeted extraction, operation progress, and the Run history re-extraction entry. Its fixture server accepts only the workflow's source discovery, preview, and consent requests during this check.
+The operations fixture captures all three wizard steps, Targeted extraction, operation progress, and the Run history re-extraction entry. Its fixture server accepts the workflow's source discovery, preview, and consent requests during this check.
 
 ```sh
 VISUAL_PHASE6F_OPERATIONS=1 VISUAL_ARTIFACTS=.visual-artifacts/phase6f-m3-m4 npm run visual:capture
 ```
+
+Both suites include `reference-*.png` viewport screenshots at the dimensions of the supplied design previews. Compare those screenshots visually with the corresponding prototype views. The separate `visual:compare` command checks changes against a baseline captured from the React routes.
 
 Useful environment variables:
 
