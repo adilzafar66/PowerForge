@@ -15,16 +15,21 @@ from powerforge_api.routers.errors import http_for, model_api_errors
 from powerforge_api.schemas.extraction import (
     CandidateList,
     EvidenceDetail,
+    EvidenceGroupList,
     ExtractionActionRequest,
+    ExtractionRegisterStatus,
     ExtractionStartRequest,
     ExtractionSummary,
     ProfileInfo,
     ProfileList,
     RunDetail,
+    RunFamily,
     RunList,
     TableList,
 )
+from powerforge_api.services.extraction_register import register_status, revision_read_only
 from powerforge_api.services.extraction_service import ExtractionReadService
+from powerforge_api.services.revision_writes import lock_writable_revision
 from powerforge_document_processing.storage.base import ObjectStorage
 from powerforge_document_processing.storage.factory import get_object_storage
 from powerforge_extraction.enqueue import CeleryExtractionEnqueue, get_extraction_enqueue
@@ -38,6 +43,25 @@ router = APIRouter(
     prefix="/api/projects/{project_id}/revisions/{revision_id}/documents/{revision_document_id}/extraction",
     tags=["extraction"],
 )
+
+
+register_router = APIRouter(
+    prefix="/api/projects/{project_id}/revisions/{revision_id}/extraction",
+    tags=["extraction"],
+)
+
+
+@register_router.get("/status", response_model=ExtractionRegisterStatus)
+def revision_status(
+    project_id: UUID,
+    revision_id: UUID,
+    revision_document_ids: Annotated[list[UUID], Query(min_length=1, max_length=100)],
+    session: Annotated[Session, Depends(get_session)],
+) -> ExtractionRegisterStatus:
+    with model_api_errors():
+        return ExtractionRegisterStatus(
+            items=register_status(session, project_id, revision_id, revision_document_ids)
+        )
 
 
 def service(
@@ -55,6 +79,9 @@ def service(
 Service = Annotated[ExtractionReadService, Depends(service)]
 Limit = Annotated[int, Query(ge=1, le=200)]
 Offset = Annotated[int, Query(ge=0)]
+PageNumber = Annotated[int, Query(ge=1)]
+SearchText = Annotated[str, Query(max_length=200)]
+EquipmentHint = Annotated[str, Query(min_length=1, max_length=100)]
 
 
 @router.get("", response_model=ExtractionSummary)
@@ -63,14 +90,57 @@ def summary(reader: Service) -> ExtractionSummary:
 
 
 @router.get("/runs", response_model=RunList)
-def history(reader: Service, limit: Limit = 50, offset: Offset = 0) -> RunList:
-    return reader.history(limit, offset)
+def history(
+    reader: Service, limit: Limit = 50, offset: Offset = 0, family: RunFamily | None = None
+) -> RunList:
+    return reader.history(limit, offset, family)
+
+
+@router.get("/groups", response_model=EvidenceGroupList)
+def groups(
+    reader: Service,
+    engineering_run_id: UUID | None = None,
+    tables_run_id: UUID | None = None,
+    limit: Limit = 30,
+    offset: Offset = 0,
+    search: SearchText | None = None,
+    page: PageNumber | None = None,
+    equipment_hint: EquipmentHint | None = None,
+    mapping_status: MappingStatus | None = None,
+) -> EvidenceGroupList:
+    with model_api_errors():
+        return reader.groups(
+            engineering_run_id,
+            tables_run_id,
+            limit,
+            offset,
+            search=search,
+            page=page,
+            equipment_hint=equipment_hint,
+            mapping_status=mapping_status,
+        )
 
 
 @router.get("/runs/{run_id}", response_model=RunDetail)
-def detail(reader: Service, run_id: UUID) -> RunDetail:
+def detail(
+    project_id: UUID,
+    reader: Service,
+    run_id: UUID,
+    settings: Annotated[Settings, Depends(get_settings)],
+    family: RunFamily | None = None,
+) -> RunDetail:
     with model_api_errors():
-        return reader.detail(run_id)
+        if family:
+            reader.family_run(run_id, family)
+        result = reader.detail(run_id)
+        if family and not revision_read_only(reader.session, project_id, reader.revision_id):
+            result.can_cancel = result.run.status in {"PENDING", "RUNNING"}
+            result.can_retry = (
+                settings.extraction_enabled
+                and settings.extraction_external_enabled
+                and any(unit.retryable for unit in result.attempts)
+            )
+        return result
 
 
 @router.get("/runs/{run_id}/candidates", response_model=CandidateList)
@@ -85,8 +155,16 @@ def candidates(
     equipment_type_key: str | None = None,
     attribute_key: str | None = None,
     supported_only: bool = True,
+    family: RunFamily | None = None,
+    ungrouped: bool = False,
+    candidate_id: UUID | None = None,
+    page: PageNumber | None = None,
+    search: SearchText | None = None,
+    equipment_hint: EquipmentHint | None = None,
 ) -> CandidateList:
     with model_api_errors():
+        if family:
+            reader.family_run(run_id, family)
         return reader.candidates(
             run_id,
             limit,
@@ -97,6 +175,11 @@ def candidates(
             equipment_type_key=equipment_type_key,
             attribute_key=attribute_key,
             supported_only=supported_only,
+            ungrouped=ungrouped,
+            candidate_id=candidate_id,
+            page=page,
+            search=search,
+            equipment_hint=equipment_hint,
         )
 
 
@@ -112,9 +195,15 @@ def evidence(
     evidence_id: UUID,
     storage: Annotated[ObjectStorage, Depends(get_object_storage)],
     settings: Annotated[Settings, Depends(get_settings)],
+    include_source_image: bool = False,
 ) -> EvidenceDetail:
     with model_api_errors():
-        return reader.evidence(evidence_id, storage, settings.s3_signed_url_expires_seconds)
+        return reader.evidence(
+            evidence_id,
+            storage,
+            settings.s3_signed_url_expires_seconds,
+            include_source_image=include_source_image,
+        )
 
 
 @contextmanager
@@ -250,17 +339,28 @@ def bound_sources(reader: Service, run_id: UUID):
         return dict(items=sorted(items, key=lambda x: x["page_number"]))
 
 
+def lock_viewer_action(reader: ExtractionReadService, project_id: UUID):
+    lock_writable_revision(reader.session, project_id, reader.revision_id)
+    return type(reader)(reader.session, project_id, reader.revision_id, reader.revision_document_id)
+
+
 @router.post("/runs/{run_id}/retry", response_model=RunDetail, status_code=202)
 def retry(
+    project_id: UUID,
     reader: Service,
     run_id: UUID,
     session: SessionDep,
     settings: SettingsDep,
     enqueue: EnqueueDep,
     body: ExtractionActionRequest | None = None,
+    family: RunFamily | None = None,
 ) -> RunDetail:
     with action_errors(session):
-        reader._run(run_id)
+        if family:
+            reader = lock_viewer_action(reader, project_id)
+            reader.family_run(run_id, family)
+        else:
+            reader._run(run_id)
         ExtractionCoordinator(session, settings).retry(run_id)
         session.commit()
         dispatch_committed(session, settings, enqueue)
@@ -269,14 +369,20 @@ def retry(
 
 @router.post("/runs/{run_id}/cancel", response_model=RunDetail)
 def cancel(
+    project_id: UUID,
     reader: Service,
     run_id: UUID,
     session: SessionDep,
     settings: SettingsDep,
     body: ExtractionActionRequest | None = None,
+    family: RunFamily | None = None,
 ) -> RunDetail:
     with action_errors(session):
-        reader._run(run_id)
+        if family:
+            reader = lock_viewer_action(reader, project_id)
+            reader.family_run(run_id, family)
+        else:
+            reader._run(run_id)
         ExtractionCoordinator(session, settings).cancel(run_id)
         session.commit()
         return reader.detail(run_id)

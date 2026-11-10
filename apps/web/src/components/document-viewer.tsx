@@ -26,7 +26,12 @@ import {
 } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
-import { useOriginalFile } from "@/components/document-overflow-menu";
+import {
+  ExtractionEvidencePanel,
+  useViewerEvidence,
+  type UpdateEvidenceRoute,
+} from "@/components/extraction-evidence-panel";
+import { useOriginalFile } from "@/components/document-actions";
 import {
   docButtonClass,
   Overline,
@@ -49,6 +54,7 @@ import {
   type ProcessingSummary,
   type RevisionDocument,
 } from "@/lib/documents";
+import { evidenceArtifactUrl, type EvidenceDetail } from "@/lib/extraction";
 import { classificationCell } from "@/lib/document-presentation";
 import {
   getProject,
@@ -248,6 +254,18 @@ export function DocumentViewer({
     1,
     Number.parseInt(params.get("page") ?? "1", 10) || 1,
   );
+  const scope = { projectId, revisionId, documentId: row.id };
+  const browser = useViewerEvidence(scope, params, mode === "evidence" && row.status === "INCLUDED");
+  const pinned = mode === "evidence" && !browser.history && browser.source.data?.page_number === requestedPage
+    ? browser.source.data
+    : null;
+  const pinnedUrl = evidenceArtifactUrl(pinned?.source_image_url ?? null);
+  const pinnedRequired = mode === "evidence" && !browser.history && (
+    browser.citation?.source_page_number === requestedPage || !!pinned
+  );
+  const [loadedPinnedUrl, setLoadedPinnedUrl] = useState<string | null>(null);
+  const pinnedRegion = useMemo(() => pinned ? evidenceRegionStyle(pinned) : null, [pinned]);
+
   const processing = row.processing;
   const complete = processing?.status === "COMPLETED";
 
@@ -287,14 +305,20 @@ export function DocumentViewer({
 
   const [thumbsOpen, setThumbsOpen] = useState(true);
   const [panelOpen, setPanelOpen] = useState(true);
+  const openEvidenceInitially = useRef(mode === "evidence");
   useEffect(() => {
-    if (window.matchMedia?.("(max-width: 800px)").matches) setPanelOpen(false);
+    if (window.matchMedia?.("(max-width: 800px)").matches && !openEvidenceInitially.current) setPanelOpen(false);
   }, []);
 
   const [zoom, setZoom] = useState<Zoom>("page");
   const [canvas, setCanvas] = useState({ width: 0, height: 0 });
   const scrollRef = useRef<HTMLDivElement>(null);
-  const size = pageSize(page);
+  const panelScrollRef = useRef<HTMLDivElement>(null);
+  const baseSize = pageSize(page);
+  const size = pinnedUrl && pinned?.source_image_width_px && pinned.source_image_height_px
+    ? { width: baseSize.width, height: baseSize.width * pinned.source_image_height_px / pinned.source_image_width_px }
+    : baseSize;
+  const hasPageImage = !!(page || pinnedRequired);
   const fitPage = clamp(
     Math.min((canvas.width - 64) / size.width, (canvas.height - 56) / size.height),
     FIT_MIN,
@@ -303,14 +327,25 @@ export function DocumentViewer({
   const fitWidth = clamp((canvas.width - 70) / size.width, FIT_MIN, FIT_MAX);
   const scale = zoom === "page" ? fitPage : zoom === "width" ? fitWidth : zoom;
 
+  const updateEvidenceRoute: UpdateEvidenceRoute = (patch, method = "push") => {
+    const query = new URLSearchParams(params.toString());
+    for (const [key, value] of Object.entries(patch)) {
+      if (value == null || (key === "page" && value === 1) || (key === "mode" && value === "document")) {
+        query.delete(key);
+      } else {
+        query.set(key, String(value));
+      }
+    }
+    const base = documentViewerHref(projectId, revisionId, row.id);
+    router[method](query.size ? `${base}?${query}` : base, { scroll: false });
+  };
   function go(next: { page?: number; mode?: ViewerMode }) {
-    router.replace(
-      documentViewerHref(projectId, revisionId, row.id, {
-        page: next.page ?? page?.page_number ?? requestedPage,
-        mode: next.mode ?? mode,
-      }),
-      { scroll: false },
-    );
+    if (next.mode === "evidence") setPanelOpen(true);
+    updateEvidenceRoute({
+      page: next.page ?? page?.page_number ?? requestedPage,
+      mode: next.mode ?? mode,
+      ...(next.page && !browser.opened && params.get("pageScope") === "current" ? { groupOffset: null } : {}),
+    }, "replace");
   }
   function step(delta: number) {
     if (!pages || pageIndex < 0) return;
@@ -338,7 +373,7 @@ export function DocumentViewer({
       )
     )
       return;
-    if (!page) return;
+    if (!hasPageImage) return;
     if (event.key === "+" || event.key === "=") {
       event.preventDefault();
       zoomBy(1);
@@ -359,7 +394,6 @@ export function DocumentViewer({
     return () => window.removeEventListener("keydown", listener);
   }, []);
 
-  const hasPages = !!page;
   useEffect(() => {
     const element = scrollRef.current;
     if (!element || typeof ResizeObserver === "undefined") return;
@@ -369,12 +403,12 @@ export function DocumentViewer({
     });
     observer.observe(element);
     return () => observer.disconnect();
-  }, [hasPages]);
+  }, [hasPageImage]);
 
   const pageId = page?.id;
   useEffect(() => {
     scrollRef.current?.scrollTo?.({ top: 0, left: 0 });
-  }, [pageId]);
+  }, [pageId, pinned?.id]);
 
   const drag = useRef<{ x: number; y: number; left: number; top: number } | null>(
     null,
@@ -431,7 +465,9 @@ export function DocumentViewer({
   ]
     .filter(Boolean)
     .join(" · ");
-  const pageLabel = page
+  const pageLabel = pinnedUrl && pinned
+    ? `Page ${pinned.page_number} · Pinned source`
+    : page
     ? [`Page ${page.page_number}`, pageType ? documentTypeLabel(pageType) : null, textSource(page)]
         .filter(Boolean)
         .join(" · ")
@@ -497,7 +533,7 @@ export function DocumentViewer({
               type="button"
               disabled
               aria-describedby="viewer-extraction-unavailable"
-              title="Extraction is not available yet"
+              title="Extraction scheduling is pending"
               className={cn(
                 docButtonClass(),
                 "max-[1050px]:px-[9px] max-[800px]:h-8",
@@ -506,7 +542,7 @@ export function DocumentViewer({
               Run extraction
             </button>
             <span id="viewer-extraction-unavailable" className="sr-only">
-              Extraction is not available yet
+              Extraction scheduling is pending
             </span>
           </div>
         </div>
@@ -641,7 +677,7 @@ export function DocumentViewer({
         ) : null}
 
         <div className="relative flex min-w-0 flex-1 flex-col bg-[var(--pf-viewer-canvas)]">
-          {page ? (
+          {hasPageImage ? (
             <>
               <div
                 ref={scrollRef}
@@ -662,13 +698,34 @@ export function DocumentViewer({
                     height: Math.round(size.height * scale),
                   }}
                 >
-                  <PageImage
-                    key={page.id}
-                    projectId={projectId}
-                    revisionId={revisionId}
-                    documentId={row.id}
-                    page={page}
-                  />
+                  {pinnedUrl && pinned ? (
+                    <PinnedPageImage
+                      key={pinned.id}
+                      url={pinnedUrl}
+                      pageNumber={pinned.page_number}
+                      region={pinnedRegion}
+                      onLoad={() => setLoadedPinnedUrl(pinnedUrl)}
+                      onFailure={() => setLoadedPinnedUrl(null)}
+                      refresh={() => void browser.source.refetch()}
+                    />
+                  ) : pinnedRequired ? (
+                    <div className="flex size-full flex-col items-center justify-center gap-2 bg-panel p-4 text-center text-workspace-caption text-muted">
+                      {browser.source.isFetching ? <p role="status">Loading pinned source page…</p> : (
+                        <>
+                          <p role="alert">The pinned source page is unavailable.</p>
+                          <button type="button" className={docButtonClass("tiny")} onClick={() => void browser.source.refetch()}>Retry source image</button>
+                        </>
+                      )}
+                    </div>
+                  ) : page ? (
+                    <PageImage
+                      key={page.id}
+                      projectId={projectId}
+                      revisionId={revisionId}
+                      documentId={row.id}
+                      page={page}
+                    />
+                  ) : null}
                 </div>
               </div>
               <p className="pointer-events-none absolute bottom-[15px] left-[18px] m-0 rounded-[var(--pf-radius-control)] border border-border bg-white/95 px-3 py-2 text-workspace-caption text-muted max-[800px]:hidden">
@@ -702,13 +759,26 @@ export function DocumentViewer({
             </h2>
             <p className="m-0 text-workspace-caption text-muted">
               {mode === "evidence"
-                ? "Source-grounded candidates · not available yet"
+                ? "Source-grounded candidates · Run history"
                 : "Source, classification, and processing"}
             </p>
           </div>
-          <div className="min-h-0 flex-1 overflow-auto px-5 pt-[18px] pb-7">
+          <div ref={panelScrollRef} className="min-h-0 flex-1 overflow-auto px-5 pt-[18px] pb-7">
             {mode === "evidence" ? (
-              <EvidencePanel onShowDocument={() => go({ mode: "document" })} />
+              row.status === "REMOVED" ? (
+                <Hint>This document has been removed from the revision. Extraction evidence is unavailable.</Hint>
+              ) : (
+                <ExtractionEvidencePanel
+                  scope={scope}
+                  params={params}
+                  browser={browser}
+                  update={updateEvidenceRoute}
+                  page={pinned?.page_number ?? page?.page_number ?? requestedPage}
+                  scrollRef={panelScrollRef}
+                  highlighted={!!(pinnedRegion && pinnedUrl && loadedPinnedUrl === pinnedUrl)}
+                  canMutate={!!browser.status && browser.status.ineligible_reason !== "READ_ONLY"}
+                />
+              )
             ) : (
               <DetailsPanel
                 projectId={projectId}
@@ -1272,35 +1342,90 @@ function DetailsPanel({
   );
 }
 
-function EvidencePanel({ onShowDocument }: { onShowDocument: () => void }) {
+// Evidence regions are normalized to the upright frame of the signed analysis image.
+function evidenceRegionStyle(evidence: EvidenceDetail) {
+  const region = evidence.region;
+  if (!region || evidence.source_locator?.geometry_basis === "NONE") return null;
+  const x = Number(region.x);
+  const y = Number(region.y);
+  const width = Number(region.width);
+  const height = Number(region.height);
+  if (![x, y, width, height].every(Number.isFinite) || x < 0 || y < 0 ||
+      width <= 0 || height <= 0 || x + width > 1.000001 || y + height > 1.000001) return null;
+  return {
+    left: `${x * 100}%`,
+    top: `${y * 100}%`,
+    width: `${width * 100}%`,
+    height: `${height * 100}%`,
+  };
+}
+
+function PinnedPageImage({
+  url, pageNumber, region, onLoad, onFailure, refresh,
+}: {
+  url: string;
+  pageNumber: number;
+  region: ReturnType<typeof evidenceRegionStyle>;
+  onLoad: () => void;
+  onFailure: () => void;
+  refresh: () => void;
+}) {
+  const [attempt, setAttempt] = useState(0);
+  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const [retried, setRetried] = useState(false);
+  const regionRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (region && loadedUrl === url) {
+      regionRef.current?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    }
+  }, [region, loadedUrl, url]);
+
+  function retry() {
+    setFailedUrl(null);
+    setAttempt((value) => value + 1);
+    refresh();
+  }
   return (
-    <>
-      <PanelGroup title="Extraction run">
-        <p className="m-0 mb-2.5 flex items-center gap-2 text-workspace-caption text-muted">
-          <span aria-hidden className="size-[7px] rounded-full bg-[#a3b1bd]" />
-          Not available
-        </p>
-        <Hint>
-          <strong>Structured extraction isn&apos;t available yet.</strong>
-          <br />
-          PowerForge does not extract equipment, ratings, or other observations
-          from documents yet, so there are no candidates or evidence regions to
-          show. Page images and text come directly from processing.
-        </Hint>
-      </PanelGroup>
-      <PanelGroup title="Candidate browser">
-        <p className="m-0 mb-3 text-workspace-caption leading-[1.55] text-muted">
-          Extracted candidates and their source locations will appear here once
-          extraction runs for this document.
-        </p>
-        <button
-          type="button"
-          onClick={onShowDocument}
-          className={docButtonClass("tiny")}
-        >
-          Show document details
-        </button>
-      </PanelGroup>
-    </>
+    <div className="absolute inset-0 overflow-hidden bg-white shadow-[var(--pf-shadow-viewer-page)]">
+      {failedUrl === url ? (
+        <div className="flex size-full flex-col items-center justify-center gap-2 p-4 text-center text-workspace-caption text-muted">
+          <p role="alert" className="m-0">The pinned source page could not be loaded.</p>
+          <button type="button" className={docButtonClass("tiny")} onClick={retry}>Retry source image</button>
+        </div>
+      ) : (
+        <>
+          {/* Signed historical images use the same upright canvas as Document mode. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            key={attempt}
+            src={url}
+            alt={`Pinned source page ${pageNumber}`}
+            draggable={false}
+            onLoad={() => { setLoadedUrl(url); onLoad(); }}
+            onError={() => {
+              setLoadedUrl(null);
+              onFailure();
+              if (!retried) {
+                setRetried(true);
+                retry();
+              } else {
+                setFailedUrl(url);
+              }
+            }}
+            className="pointer-events-none block size-full select-none"
+          />
+          {region && loadedUrl === url && (
+            <div
+              ref={regionRef}
+              aria-label="Grounded source region"
+              role="img"
+              className="pointer-events-none absolute rounded-[2px] border-2 border-amber-600 bg-amber-300/25 shadow-[0_0_0_4px_#fbbf2450]"
+              style={region}
+            />
+          )}
+        </>
+      )}
+    </div>
   );
 }

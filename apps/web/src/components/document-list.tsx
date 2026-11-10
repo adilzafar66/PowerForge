@@ -11,10 +11,6 @@ import {
   TriangleAlert,
 } from "lucide-react";
 
-import {
-  DocumentOverflowMenu,
-  type DocumentMenuHandlers,
-} from "@/components/document-overflow-menu";
 import { AddDocumentsMenu } from "@/components/document-workspace-toolbar";
 import { docButtonClass, ProgressBar } from "@/components/documents-ui";
 import {
@@ -29,6 +25,7 @@ import {
   originLabel,
   type RevisionDocument,
 } from "@/lib/documents";
+import { extractionCell, ineligibleLabel, type ExtractionStatus } from "@/lib/extraction";
 import { formatDateShort } from "@/lib/projects";
 import { cn } from "@/lib/utils";
 
@@ -130,18 +127,18 @@ export function FileIcon({ className }: { className?: string }) {
 function DocumentRow({
   row,
   selected,
-  projectId,
-  revisionId,
-  canMutate,
-  handlers,
+  extractionStatus,
+  checked,
+  canSelect,
+  onToggle,
   onOpen,
 }: {
   row: RevisionDocument;
   selected: boolean;
-  projectId: string;
-  revisionId: string;
-  canMutate: boolean;
-  handlers: DocumentMenuHandlers;
+  extractionStatus?: ExtractionStatus;
+  checked: boolean;
+  canSelect: boolean;
+  onToggle: (id: string) => void;
   onOpen: (row: RevisionDocument) => void;
 }) {
   const removed = row.status === "REMOVED";
@@ -165,11 +162,23 @@ function DocumentRow({
       }}
       className={cn(
         "cursor-pointer outline-none transition-colors duration-150 hover:bg-[var(--pf-equipment-row-hover)] focus-visible:[box-shadow:inset_0_0_0_2px_var(--pf-ring)]",
-        selected &&
+        (selected || checked) &&
           "bg-[var(--pf-documents-row-selected)] hover:bg-[var(--pf-documents-row-selected)]",
         removed && "opacity-[0.68]",
       )}
     >
+      <td className={cn(TD, "px-2 text-center")}>
+        <input
+          type="checkbox"
+          aria-label={`Select ${name} for extraction`}
+          title={extractionStatus?.ineligible_reason ? ineligibleLabel[extractionStatus.ineligible_reason] : undefined}
+          checked={checked && canSelect}
+          disabled={!canSelect}
+          onClick={(event) => event.stopPropagation()}
+          onChange={() => onToggle(row.id)}
+          className="size-4 accent-accent disabled:opacity-50"
+        />
+      </td>
       <td className={TD}>
         <div className="flex min-w-0 items-center gap-[11px]">
           <FileIcon />
@@ -201,20 +210,14 @@ function DocumentRow({
       <td className={TD}>
         <CellStateView state={classificationCell(row)} />
       </td>
+      <td className={TD}>
+        <CellStateView state={extractionCell(extractionStatus)} />
+      </td>
       <td className={cn(TD, "text-ink")}>
         <p className="m-0">{originLabel(row.origin)}</p>
         <p className="m-0 mt-[3px] text-workspace-caption text-muted">
           {formatDateShort(row.added_at)}
         </p>
-      </td>
-      <td className={cn(TD, "pr-3 pl-0 text-right")}>
-        <DocumentOverflowMenu
-          row={row}
-          projectId={projectId}
-          revisionId={revisionId}
-          canMutate={canMutate}
-          handlers={handlers}
-        />
       </td>
     </tr>
   );
@@ -235,13 +238,14 @@ const EMPTY_HINTS: Record<DocumentEmptyState["kind"], string> = {
 export function DocumentList({
   rows,
   selectedId,
-  projectId,
-  revisionId,
   canMutate,
+  extractionStatuses,
+  checkedIds,
+  onToggle,
+  onToggleVisible,
   loading,
   error,
   empty,
-  handlers,
   footer,
   onOpen,
   onRetry,
@@ -251,13 +255,14 @@ export function DocumentList({
 }: {
   rows: RevisionDocument[] | null;
   selectedId: string | null;
-  projectId: string;
-  revisionId: string;
   canMutate: boolean;
+  extractionStatuses: Record<string, ExtractionStatus>;
+  checkedIds: ReadonlySet<string>;
+  onToggle: (id: string) => void;
+  onToggleVisible: (ids: string[], checked: boolean) => void;
   loading: boolean;
   error: string | null;
   empty: DocumentEmptyState | null;
-  handlers: DocumentMenuHandlers;
   footer: string | null;
   onOpen: (row: RevisionDocument) => void;
   onRetry: () => void;
@@ -265,6 +270,12 @@ export function DocumentList({
   onUpload: () => void;
   onReuse: () => void;
 }) {
+  const eligible = canMutate ? (rows ?? []).filter((row) =>
+    extractionStatuses[row.id]?.ineligible_reason === null
+  ).map((row) => row.id) : [];
+  const eligibleSet = new Set(eligible);
+  const allChecked = eligible.length > 0 && eligible.every((id) => checkedIds.has(id));
+  const someChecked = eligible.some((id) => checkedIds.has(id));
   return (
     <>
       {rows !== null && error && (
@@ -280,21 +291,34 @@ export function DocumentList({
       )}
       <div className="relative overflow-x-auto">
         <table
+          aria-label="Documents register"
           className={cn(
             "w-full table-fixed border-collapse max-[1100px]:min-w-[860px]",
             loading && rows ? "opacity-60" : undefined,
           )}
         >
           <colgroup>
-            <col className="w-[34%]" />
-            <col className="w-[18%]" />
-            <col className="w-[16%]" />
-            <col className="w-[17%]" />
-            <col className="w-[11%]" />
-            <col className="w-[4%] min-w-12" />
+            <col className="w-[4%]" />
+            <col className="w-[27%]" />
+            <col className="w-[15%]" />
+            <col className="w-[14%]" />
+            <col className="w-[15%]" />
+            <col className="w-[15%]" />
+            <col className="w-[10%]" />
           </colgroup>
           <thead>
             <tr>
+              <th scope="col" className={cn(TH, "px-2 text-center")}>
+                <input
+                  type="checkbox"
+                  aria-label="Select eligible visible documents"
+                  checked={allChecked}
+                  disabled={!eligible.length}
+                  ref={(element) => { if (element) element.indeterminate = someChecked && !allChecked; }}
+                  onChange={(event) => onToggleVisible(eligible, event.target.checked)}
+                  className="size-4 accent-accent disabled:opacity-50"
+                />
+              </th>
               <th scope="col" className={TH}>
                 Document
               </th>
@@ -308,10 +332,10 @@ export function DocumentList({
                 AI classification
               </th>
               <th scope="col" className={TH}>
-                Origin
+                AI Extraction
               </th>
               <th scope="col" className={TH}>
-                <span className="sr-only">More</span>
+                Origin
               </th>
             </tr>
           </thead>
@@ -319,7 +343,7 @@ export function DocumentList({
             {rows === null && loading ? (
               [0, 1, 2].map((row) => (
                 <tr key={row} data-testid="document-skeleton">
-                  <td colSpan={6} className={TD}>
+                  <td colSpan={7} className={TD}>
                     <div className="flex items-center gap-[11px]">
                       <span className="h-10 w-[35px] animate-pulse rounded-[var(--pf-radius-control)] bg-soft" />
                       <span className="h-3.5 w-1/3 animate-pulse rounded bg-soft" />
@@ -329,7 +353,7 @@ export function DocumentList({
               ))
             ) : error && rows === null ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <div className="flex flex-col items-center gap-2 px-5 py-[65px] text-center">
                     <p role="alert" className="m-0 text-workspace-body text-danger">
                       {error}
@@ -342,7 +366,7 @@ export function DocumentList({
               </tr>
             ) : empty ? (
               <tr>
-                <td colSpan={6}>
+                <td colSpan={7}>
                   <div className="flex flex-col items-center px-5 py-[65px] text-center">
                     <FileSearch
                       aria-hidden
@@ -380,10 +404,10 @@ export function DocumentList({
                   key={row.id}
                   row={row}
                   selected={row.id === selectedId}
-                  projectId={projectId}
-                  revisionId={revisionId}
-                  canMutate={canMutate}
-                  handlers={handlers}
+                  extractionStatus={extractionStatuses[row.id]}
+                  checked={checkedIds.has(row.id)}
+                  canSelect={eligibleSet.has(row.id)}
+                  onToggle={onToggle}
                   onOpen={onOpen}
                 />
               ))

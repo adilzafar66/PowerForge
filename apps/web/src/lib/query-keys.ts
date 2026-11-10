@@ -16,6 +16,11 @@ export const keys = {
   documents: (p: string, r: string) => ["documents", p, r] as const,
   documentList: (p: string, r: string, search: string) =>
     ["documents", p, r, "list", search] as const,
+  extraction: (p: string, r: string) => ["extraction", p, r] as const,
+  extractionStatus: (p: string, r: string, ids: string[]) =>
+    ["extraction", p, r, "status", ids] as const,
+  extractionDocument: (p: string, r: string, d: string) =>
+    ["extraction", p, r, "document", d] as const,
   document: (p: string, r: string, id: string) =>
     ["documents", p, r, "detail", id] as const,
 };

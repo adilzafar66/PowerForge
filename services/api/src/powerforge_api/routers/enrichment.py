@@ -16,8 +16,10 @@ from powerforge_api.routers.extraction import (
     SettingsDep,
     action_errors,
     dispatch_committed,
+    lock_viewer_action,
 )
 from powerforge_api.services.enrichment_service import EnrichmentReadService
+from powerforge_api.services.extraction_register import revision_read_only
 from powerforge_document_processing.storage.base import ObjectStorage
 from powerforge_document_processing.storage.factory import get_object_storage
 from powerforge_extraction.enrichment_profiles import (
@@ -98,9 +100,14 @@ def history(reader: Reader, limit: Limit = 50, offset: Offset = 0):
 
 
 @router.get("/runs/{run_id}")
-def detail(reader: Reader, run_id: UUID):
+def detail(
+    project_id: UUID, reader: Reader, run_id: UUID, settings: SettingsDep, viewer: bool = False
+):
     with model_api_errors():
-        return reader.detail(run_id)
+        writable = viewer and not revision_read_only(reader.session, project_id, reader.revision_id)
+        return reader.detail(
+            run_id, viewer=writable, enrichment_enabled=settings.enrichment_enabled
+        )
 
 
 @router.get("/runs/{run_id}/results/{result_id}")
@@ -163,9 +170,17 @@ def start(
 
 @router.post("/runs/{run_id}/retry", status_code=202)
 def retry(
-    reader: Reader, run_id: UUID, session: SessionDep, settings: SettingsDep, enqueue: EnqueueDep
+    project_id: UUID,
+    reader: Reader,
+    run_id: UUID,
+    session: SessionDep,
+    settings: SettingsDep,
+    enqueue: EnqueueDep,
+    viewer: bool = False,
 ):
     with action_errors(session):
+        if viewer:
+            reader = lock_viewer_action(reader, project_id)
         reader._run(run_id)
         ExtractionCoordinator(session, settings).retry(run_id, purpose=PURPOSE)
         session.commit()
@@ -174,8 +189,17 @@ def retry(
 
 
 @router.post("/runs/{run_id}/cancel")
-def cancel(reader: Reader, run_id: UUID, session: SessionDep, settings: SettingsDep):
+def cancel(
+    project_id: UUID,
+    reader: Reader,
+    run_id: UUID,
+    session: SessionDep,
+    settings: SettingsDep,
+    viewer: bool = False,
+):
     with action_errors(session):
+        if viewer:
+            reader = lock_viewer_action(reader, project_id)
         reader._run(run_id)
         ExtractionCoordinator(session, settings).cancel(run_id, purpose=PURPOSE)
         session.commit()

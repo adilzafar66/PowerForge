@@ -89,6 +89,8 @@ class RunDetail(BaseModel):
     coverage: Coverage
     attempts: list[UnitResponse]
     execution: "ExecutionSummary | None" = None
+    can_retry: bool = False
+    can_cancel: bool = False
 
 
 class ExtractionSummary(BaseModel):
@@ -113,6 +115,7 @@ class EvidenceSummary(ReadModel):
     source_kind: EvidenceSourceKind
     extraction_method: ExtractionMethod
     source_snippet: str | None
+    source_page_number: int | None = None
     table_id: UUID | None
     cell_id: str | None
     enrichment_artifact_id: UUID | None = None
@@ -224,6 +227,8 @@ class EvidenceDetail(EvidenceSummary):
     artifact_url: str | None
     artifact_url_expires_seconds: int | None
     source_image_url: str | None = None
+    source_image_width_px: int | None = None
+    source_image_height_px: int | None = None
 
 
 class ExtractionStartRequest(BaseModel):
@@ -269,3 +274,49 @@ RunDetail.model_rebuild()
 
 class ExtractionActionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
+
+
+RunFamily = Literal["engineering", "tables"]
+
+
+class RegisterRun(ReadModel):
+    id: UUID
+    status: ExtractionRunStatus
+    processing_run_id: UUID
+    created_at: datetime
+    profile_key: str
+
+
+class FamilyRuns(BaseModel):
+    latest_attempt: RegisterRun | None = None
+    effective_result: RegisterRun | None = None
+
+
+class DocumentExtractionStatus(BaseModel):
+    revision_document_id: UUID
+    processing_run_id: UUID | None
+    ineligible_reason: (
+        Literal["REMOVED", "READ_ONLY", "PROCESSING_REQUIRED", "NO_PAGE_ARTIFACTS"] | None
+    )
+    engineering: FamilyRuns = Field(default_factory=FamilyRuns)
+    tables: FamilyRuns = Field(default_factory=FamilyRuns)
+    enrichment: RegisterRun | None = None
+
+
+class ExtractionRegisterStatus(BaseModel):
+    items: list[DocumentExtractionStatus]
+
+
+class EvidenceGroupRow(BaseModel):
+    run_id: UUID
+    family: RunFamily
+    source_group_id: UUID | None
+    label: str | None
+    tag_text: str | None
+    equipment_type_hint: str | None
+    page_numbers: list[int]
+    candidate_count: int
+
+
+class EvidenceGroupList(PageInfo):
+    items: list[EvidenceGroupRow]

@@ -22,7 +22,7 @@ import {
 import {
   canReclassifyDocument,
   canRetryClassification,
-} from "@/components/document-overflow-menu";
+} from "@/components/document-actions";
 
 function typeLabel(type: string): string {
   return type in DOCUMENT_TYPE_LABELS

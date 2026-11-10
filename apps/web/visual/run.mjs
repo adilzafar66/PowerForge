@@ -262,6 +262,32 @@ try {
       await shot(`${prefix}-equipment-edit-${tab}`);
     }
   }
+  if (process.env.VISUAL_PHASE6F) {
+    const viewer = r + "/documents/doc?mode=evidence";
+    for (const width of [1440, 1024, 768, 390]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+      await go(r);
+      await page.getByRole("columnheader", { name: "AI Extraction" }).waitFor();
+      await page.getByRole("checkbox", { name: "Select eligible visible documents" }).check();
+      await shot(`phase6f-register-${width}`);
+      await go(r + "?document=doc");
+      await page.getByRole("button", { name: "View results" }).waitFor();
+      await shot(`phase6f-inspector-${width}`);
+      await go(viewer);
+      await page.getByText("52 groups", { exact: true }).waitFor();
+      await shot(`phase6f-groups-${width}`);
+      await page.getByRole("button", { name: /TX-1.*Tables/ }).click();
+      await page.getByRole("button", { name: /Rated apparent power/ }).click();
+      await page.getByRole("img", { name: "Grounded source region" }).waitFor();
+      await shot(`phase6f-candidate-${width}`);
+      await page.getByRole("button", { name: "Back to source groups" }).click();
+      await page.getByRole("tab", { name: "Run history" }).click();
+      await page.getByRole("region", { name: "Tables history" }).getByRole("button", { name: /Run / }).click();
+      await page.getByText("Inspect raw table output (technical)", { exact: true }).click();
+      await page.getByRole("table").getByText("750 kVA", { exact: true }).waitFor();
+      await shot(`phase6f-history-${width}`);
+    }
+  } else {
   for (const width of process.env.VISUAL_QUICK ? [1440] : [1440, 390]) {
     const prefix = width === 1440 ? "desktop" : "mobile";
     await page.setViewportSize({ width, height: width === 1440 ? 1000 : 844 });
@@ -529,6 +555,7 @@ try {
       await go(p);
       await shot(`breakpoint-${width}`);
     }
+  }
   }
   await writeFile(
     path.join(output, "manifest.json"),

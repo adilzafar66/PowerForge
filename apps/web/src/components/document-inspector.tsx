@@ -9,17 +9,15 @@ import {
   type ReactNode,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download, RotateCcw, Trash2, X } from "lucide-react";
+import { ExternalLink, Download, RotateCcw, Trash2, X } from "lucide-react";
 
+import { DocumentExtractionPanel } from "@/components/document-extraction-panel";
 import { DocumentClassificationPanel } from "@/components/document-classification-panel";
 import {
   DocumentMetadataPanel,
   DocumentTypeSection,
 } from "@/components/document-metadata-panel";
-import {
-  useOriginalFile,
-  type DocumentMenuHandlers,
-} from "@/components/document-overflow-menu";
+import { useOriginalFile } from "@/components/document-actions";
 import { DocumentProcessingPanel } from "@/components/document-processing-panel";
 import { docButtonClass, StatusChip } from "@/components/documents-ui";
 import { MixedDocumentPageTypes } from "@/components/mixed-document-page-types";
@@ -27,6 +25,7 @@ import { AsyncState } from "@/components/ui/async-state";
 import { Sheet } from "@/components/ui/sheet";
 import { documentStatusChip } from "@/lib/document-presentation";
 import {
+  canOpenInline,
   formatFileSize,
   getClassification,
   type DocumentUpdateInput,
@@ -46,16 +45,17 @@ export function DocumentInspector({
   retrying,
   aiError,
   processingError,
-  focusMetadata,
-  handlers,
+  onRemove,
+  onRestore,
+  onStateChanged,
   notice,
   onRequestClose,
-  onMetadataFocused,
   onAccept,
   onReclassify,
   onRetryClassification,
   onRetryProcessing,
   onViewPages,
+  onNavigate,
   onSave,
   onDirtyChange,
 }: {
@@ -67,18 +67,19 @@ export function DocumentInspector({
   retrying: boolean;
   aiError: string | null;
   processingError: string | null;
-  focusMetadata: boolean;
-  handlers: DocumentMenuHandlers;
+  onRemove: () => void;
+  onRestore: () => Promise<void>;
+  onStateChanged: (message: string) => void;
   /** Workspace messages, which the overlay would otherwise hide. */
   notice?: ReactNode;
   /** The caller decides whether unsaved edits allow the close. */
   onRequestClose: () => void;
-  onMetadataFocused: () => void;
   onAccept: () => void;
   onReclassify: () => void;
   onRetryClassification: () => void;
   onRetryProcessing: () => void;
   onViewPages: (pageNumber?: number) => void;
+  onNavigate: (href: string) => void;
   onSave: (input: DocumentUpdateInput) => Promise<void>;
   onDirtyChange: (dirty: boolean) => void;
 }) {
@@ -91,7 +92,7 @@ export function DocumentInspector({
     projectId,
     revisionId,
     row.id,
-    handlers.onStateChanged,
+    onStateChanged,
   );
   const [restoring, setRestoring] = useState(false);
   const classification = useQuery({
@@ -203,11 +204,14 @@ export function DocumentInspector({
             />
           ) : null}
         </DocumentClassificationPanel>
+        <DocumentExtractionPanel
+          scope={{ projectId, revisionId, documentId: row.id }}
+          canMutate={canMutate}
+          onNavigate={onNavigate}
+        />
         <DocumentMetadataPanel
           row={row}
           canMutate={canMutate}
-          focusField={focusMetadata}
-          onFocused={onMetadataFocused}
           onSave={onSave}
           onDirtyChange={setMetadataDirty}
         />
@@ -223,6 +227,17 @@ export function DocumentInspector({
             <Download aria-hidden strokeWidth={1.8} />
             {download.busy === "attachment" ? "Preparing…" : "Download"}
           </button>
+          {canOpenInline(row.document) && (
+            <button
+              type="button"
+              className={cn(docButtonClass(), "ml-2")}
+              disabled={download.busy !== null}
+              onClick={() => void download.run("inline")}
+            >
+              <ExternalLink aria-hidden strokeWidth={1.8} />
+              {download.busy === "inline" ? "Opening…" : "Open original"}
+            </button>
+          )}
           {download.error ? (
             <p
               role="alert"
@@ -241,7 +256,7 @@ export function DocumentInspector({
             disabled={restoring}
             onClick={() => {
               setRestoring(true);
-              void Promise.resolve(handlers.onRestore(row)).finally(() =>
+              void Promise.resolve(onRestore()).finally(() =>
                 setRestoring(false),
               );
             }}
@@ -253,7 +268,7 @@ export function DocumentInspector({
           <button
             type="button"
             className={docButtonClass("danger")}
-            onClick={() => handlers.onRemove(row)}
+            onClick={onRemove}
           >
             <Trash2 aria-hidden strokeWidth={1.8} />
             Remove

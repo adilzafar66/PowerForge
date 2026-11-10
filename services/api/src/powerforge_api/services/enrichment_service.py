@@ -9,6 +9,7 @@ from powerforge_api.services.extraction_service import ExtractionReadService
 from powerforge_document_processing.models import DocumentPage, DocumentProcessingRun, PageArtifact
 from powerforge_document_processing.storage.base import StorageError
 from powerforge_extraction.controls import RunExecution
+from powerforge_extraction.dependencies import retryable_keys
 from powerforge_extraction.enrichment_execution import read_exact
 from powerforge_extraction.enrichment_models import (
     SourceEnrichmentArtifact,
@@ -103,7 +104,7 @@ class EnrichmentReadService(ExtractionReadService):
             items=[self.run_response(r) for r in rows], total=total, limit=limit, offset=offset
         )
 
-    def detail(self, run_id):
+    def detail(self, run_id, *, viewer=False, enrichment_enabled=False):
         run = self._run(run_id)
         units = list(
             self.session.scalars(
@@ -153,7 +154,7 @@ class EnrichmentReadService(ExtractionReadService):
                 .order_by(SourceSpatialResult.document_page_id)
             )
         )
-        return dict(
+        data = dict(
             run=self.run_response(run),
             attempts=[
                 dict(
@@ -210,6 +211,18 @@ class EnrichmentReadService(ExtractionReadService):
             ],
             ocr_requests_started=sum(u.output_counts.get("ocr_requests_started", 0) for u in units),
         )
+
+        if viewer:
+            control = self.session.get(RunExecution, run.id)
+            data["can_cancel"] = run.status in {"PENDING", "RUNNING"}
+            data["can_retry"] = bool(
+                enrichment_enabled
+                and control
+                and run.status in {"FAILED", "PARTIALLY_COMPLETED"}
+                and control.calls_admitted < control.configuration["max_calls"]
+                and retryable_keys(units, control.configuration["max_attempts"])
+            )
+        return data
 
     def result(self, run_id, result_id):
         self._run(run_id)

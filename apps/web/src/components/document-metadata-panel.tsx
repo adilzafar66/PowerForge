@@ -155,15 +155,11 @@ export function DocumentTypeSection({
 export function DocumentMetadataPanel({
   row,
   canMutate,
-  focusField,
-  onFocused,
   onSave,
   onDirtyChange,
 }: {
   row: RevisionDocument;
   canMutate: boolean;
-  focusField: boolean;
-  onFocused: () => void;
   onSave: (input: DocumentUpdateInput) => Promise<void>;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
@@ -187,13 +183,6 @@ export function DocumentMetadataPanel({
     setSaving(false);
   }, [row]);
 
-  useEffect(() => {
-    if (!focusField) {
-      return;
-    }
-    document.getElementById(`${baseId}-number`)?.focus();
-    onFocused();
-  }, [focusField, baseId, onFocused]);
 
   const changes = changedFields(baseline.current, {
     type: baseline.current.document_type,

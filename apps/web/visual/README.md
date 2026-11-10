@@ -18,6 +18,12 @@ The harness fixes fixture timestamps, server/browser display dates, locale, time
 
 The 54 views cover desktop/mobile project and revision screens, creation and editing sheets, discard/lifecycle dialogs, open select menus, empty/error/read-only states, Documents/Equipment/Topology/System Status, affected legacy drawers/dialogs, mobile navigation, keyboard focus, and layout boundaries. Dirty editor retention, Escape handling, focus restoration, and project-link keyboard navigation are asserted. Existing Vitest tests cover mutation semantics and failure paths. `.mjs` harness files are outside Vitest's test discovery.
 
+The Phase 6F fixture captures the Documents register and inspector, the 52-group Candidates browser, an OCR source highlight, and Run history with the raw table diagnostic at 1440, 1024, 768, and 390 px. Run it with its own artifact root.
+
+```sh
+VISUAL_PHASE6F=1 VISUAL_ARTIFACTS=.visual-artifacts/phase6f npm run visual:capture
+```
+
 Useful environment variables:
 
 - `VISUAL_ARTIFACTS`: separate baseline/output root for a new task or rendering environment.

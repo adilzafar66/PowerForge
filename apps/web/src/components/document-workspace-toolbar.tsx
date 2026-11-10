@@ -230,6 +230,7 @@ export function DocumentRegisterToolbar({
   onFiltersChange,
   refreshing,
   onRefresh,
+  selection,
 }: {
   search: string;
   onSearchChange: (value: string) => void;
@@ -237,6 +238,7 @@ export function DocumentRegisterToolbar({
   onFiltersChange: (filters: AdvancedDocumentFilters) => void;
   refreshing: boolean;
   onRefresh: () => void;
+  selection?: ReactNode;
 }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-border px-5 py-[18px] max-[650px]:p-3.5">
@@ -258,19 +260,22 @@ export function DocumentRegisterToolbar({
         </label>
         <DocumentFiltersPopover filters={filters} onChange={onFiltersChange} />
       </div>
-      <button
-        type="button"
-        className={docButtonClass()}
-        onClick={onRefresh}
-        disabled={refreshing}
-      >
-        <RefreshCw
-          aria-hidden
-          strokeWidth={1.8}
-          className={cn(refreshing && "animate-spin motion-reduce:animate-none")}
-        />
-        Refresh
-      </button>
+      <div className="flex max-w-full flex-wrap items-center gap-2.5">
+        {selection}
+        <button
+          type="button"
+          className={docButtonClass()}
+          onClick={onRefresh}
+          disabled={refreshing}
+        >
+          <RefreshCw
+            aria-hidden
+            strokeWidth={1.8}
+            className={cn(refreshing && "animate-spin motion-reduce:animate-none")}
+          />
+          Refresh
+        </button>
+      </div>
     </div>
   );
 }

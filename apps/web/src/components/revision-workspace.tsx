@@ -83,6 +83,7 @@ export function RevisionWorkspace({
       )}
       {!model && (
         <RevisionDocuments
+          key={`${props.projectId}:${props.revisionId}`}
           projectId={props.projectId}
           revisionId={props.revisionId}
           canMutate={props.canMutate}

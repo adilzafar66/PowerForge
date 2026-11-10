@@ -23,6 +23,8 @@ from powerforge_api.schemas.extraction import (
     TableResponse,
     UnitResponse,
 )
+from powerforge_api.services.evidence_groups import group_list, observation_filters
+from powerforge_api.services.extraction_register import FAMILY_PROFILES, PROFILE_KEY
 from powerforge_document_model import RevisionDocumentStatus
 from powerforge_document_processing.models import (
     Document,
@@ -129,8 +131,30 @@ class ExtractionReadService:
             current_run=RunResponse.model_validate(current) if current else None,
         )
 
-    def history(self, limit: int, offset: int) -> RunList:
-        stmt = self._runs()
+    def family_runs(self, family):
+        return (
+            self._runs()
+            .join(RunExecution, RunExecution.run_id == ExtractionRun.id)
+            .where(ExtractionRun.provider == "openai", PROFILE_KEY.in_(FAMILY_PROFILES[family]))
+        )
+
+    def family_run(self, run_id, family):
+        run = self.session.scalar(self.family_runs(family).where(ExtractionRun.id == run_id))
+        if run is None:
+            raise RevisionDocumentNotFound("Extraction run not found in this family")
+        return run
+
+    def groups(self, engineering, tables, limit, offset, **filters):
+        families = {}
+        for family, run_id in (("engineering", engineering), ("tables", tables)):
+            if run_id is None:
+                continue
+            self.family_run(run_id, family)
+            families[run_id] = family
+        return group_list(self.session, families, limit, offset, **filters)
+
+    def history(self, limit: int, offset: int, family=None) -> RunList:
+        stmt = self.family_runs(family) if family else self._runs()
         total = self.session.scalar(select(func.count()).select_from(stmt.subquery()))
         rows = self.session.scalars(
             stmt.order_by(ExtractionRun.created_at.desc(), ExtractionRun.id.desc())
@@ -259,6 +283,11 @@ class ExtractionReadService:
         equipment_type_key: str | None = None,
         attribute_key: str | None = None,
         supported_only: bool = True,
+        ungrouped: bool = False,
+        candidate_id: UUID | None = None,
+        page: int | None = None,
+        search: str | None = None,
+        equipment_hint: str | None = None,
     ) -> CandidateList:
         run = self._run(run_id)
         supported = exists(
@@ -280,6 +309,17 @@ class ExtractionReadService:
         }.items():
             if value is not None:
                 stmt = stmt.where(getattr(ExtractionCandidate, key) == value)
+        if ungrouped:
+            stmt = stmt.where(ExtractionCandidate.source_group_id.is_(None))
+        if candidate_id is not None:
+            stmt = stmt.where(ExtractionCandidate.id == candidate_id)
+        if search or equipment_hint:
+            stmt = stmt.outerjoin(
+                SourceGroup, SourceGroup.id == ExtractionCandidate.source_group_id
+            )
+        stmt = stmt.where(
+            *observation_filters(page=page, search=search, equipment_hint=equipment_hint)
+        )
         if supported_only:
             stmt = stmt.where(supported)
         total = self.session.scalar(select(func.count()).select_from(stmt.subquery()))
@@ -292,8 +332,9 @@ class ExtractionReadService:
         )
         links = (
             self.session.execute(
-                select(CandidateEvidence, Evidence)
+                select(CandidateEvidence, Evidence, DocumentPage.page_number)
                 .join(Evidence, Evidence.id == CandidateEvidence.evidence_id)
+                .join(DocumentPage, DocumentPage.id == Evidence.document_page_id)
                 .where(CandidateEvidence.candidate_id.in_([r.id for r in rows]))
                 .order_by(CandidateEvidence.position, CandidateEvidence.evidence_id)
             ).all()
@@ -305,7 +346,11 @@ class ExtractionReadService:
                 self.session.execute(
                     select(PageArtifact.id, PageArtifact.artifact_type).where(
                         PageArtifact.id.in_(
-                            [e.page_artifact_id for _, e in links if e.source_kind == "TABLE_CELL"]
+                            [
+                                e.page_artifact_id
+                                for _, e, _ in links
+                                if e.source_kind == "TABLE_CELL"
+                            ]
                         )
                     )
                 ).all()
@@ -314,12 +359,12 @@ class ExtractionReadService:
             else {}
         )
         grouped = {}
-        for link, evidence in links:
+        for link, evidence, page_number in links:
             grouped.setdefault(link.candidate_id, []).append(
                 Citation(
                     evidence=_evidence_summary(
                         evidence, artifact_types.get(evidence.page_artifact_id)
-                    ),
+                    ).model_copy(update={"source_page_number": page_number}),
                     role=link.role,
                     position=link.position,
                 )
@@ -381,7 +426,9 @@ class ExtractionReadService:
             offset=offset,
         )
 
-    def evidence(self, evidence_id: UUID, storage: ObjectStorage, expires: int) -> EvidenceDetail:
+    def evidence(
+        self, evidence_id: UUID, storage: ObjectStorage, expires: int, *, include_source_image=False
+    ) -> EvidenceDetail:
         row = self.session.scalar(
             select(Evidence).where(
                 Evidence.id == evidence_id,
@@ -414,6 +461,31 @@ class ExtractionReadService:
                 )
             except StorageError as exc:
                 raise StorageDownloadFailed("Evidence artifact access unavailable") from exc
+        source_image = None
+        source_image_url = None
+        if include_source_image:
+            source_image = self.session.scalar(
+                select(PageArtifact).where(
+                    PageArtifact.processing_run_id == row.processing_run_id,
+                    PageArtifact.document_page_id == row.document_page_id,
+                    PageArtifact.artifact_type == "ANALYSIS_IMAGE",
+                )
+            )
+            if source_image:
+                try:
+                    source_image_url = (
+                        url
+                        if artifact == source_image
+                        else storage.create_download_url(
+                            source_image.storage_key,
+                            f"page-{page.page_number}.png",
+                            "image/png",
+                            "inline",
+                            expires,
+                        )
+                    )
+                except StorageError as exc:
+                    raise StorageDownloadFailed("Pinned page image unavailable") from exc
         return EvidenceDetail(
             **_evidence_summary(row, artifact.artifact_type if artifact else None).model_dump(),
             run_id=row.run_id,
@@ -429,5 +501,8 @@ class ExtractionReadService:
             offset_convention=row.offset_convention,
             created_at=row.created_at,
             artifact_url=url,
-            artifact_url_expires_seconds=expires if url else None,
+            artifact_url_expires_seconds=expires if url or source_image_url else None,
+            source_image_url=source_image_url,
+            source_image_width_px=source_image.width_px if source_image else None,
+            source_image_height_px=source_image.height_px if source_image else None,
         )

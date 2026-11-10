@@ -6,9 +6,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { keys } from "@/lib/query-keys";
 import { isRunning, jobInterval } from "@/lib/query-hooks";
 
+import { useExtractionStatuses } from "@/components/document-extraction-panel";
 import { DocumentInspector } from "@/components/document-inspector";
 import { DocumentList, type DocumentEmptyState } from "@/components/document-list";
-import { type DocumentMenuHandlers } from "@/components/document-overflow-menu";
 import { DocumentUploadDialog } from "@/components/document-upload";
 import {
   activeAdvancedFilterCount,
@@ -20,6 +20,7 @@ import {
 import { docButtonClass, DocumentsDialog } from "@/components/documents-ui";
 import { ReuseDocumentDialog } from "@/components/reuse-document-dialog";
 import { useUploadQueue } from "@/components/use-upload-queue";
+import { Select } from "@/components/ui/select";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { apiErrorOf } from "@/lib/api";
 import {
@@ -33,6 +34,7 @@ import {
   type QuickViewCounts,
 } from "@/lib/document-presentation";
 import {
+  DOCUMENT_TYPE_OPTIONS,
   getDocument,
   acceptClassification,
   isReadOnlyErrorCode,
@@ -46,6 +48,7 @@ import {
   type DocumentUpdateInput,
   type RevisionDocument,
 } from "@/lib/documents";
+import { getExtractionStatuses, ineligibleLabel } from "@/lib/extraction";
 import { guardNavigation, useNavigationBlocker } from "@/lib/navigation-guard";
 import { cn } from "@/lib/utils";
 import { documentViewerHref, revisionHref } from "@/lib/workspace-navigation";
@@ -182,13 +185,17 @@ export function RevisionDocuments({
   const loading = documents.isFetching;
   const error = documents.error ? apiErrorOf(documents.error).detail : null;
   const [message, setMessage] = useState<Message | null>(null);
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(() => new Set());
+  const [skipped, setSkipped] = useState<{ id: string; name: string; reason: string }[]>([]);
+  const [scopeError, setScopeError] = useState<string | null>(null);
+  const [scopePending, setScopePending] = useState(false);
+  const scopeRequest = useRef(0);
   const [selectedId, setSelectedId] = useState<string | null>(documentParam);
   const [removing, setRemoving] = useState<RevisionDocument | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [classifyingId, setClassifyingId] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
   const [processingError, setProcessingError] = useState<string | null>(null);
-  const [focusMetadata, setFocusMetadata] = useState(false);
   const [reuseOpen, setReuseOpen] = useState(false);
   const [inspectorDirty, setInspectorDirty] = useState(false);
   const [pendingLeave, setPendingLeave] = useState<PendingLeave | null>(null);
@@ -283,7 +290,6 @@ export function RevisionDocuments({
 
   const hideDocument = useCallback(() => {
     setSelectedId(null);
-    setFocusMetadata(false);
     if (!searchParams.get("document")) {
       return;
     }
@@ -336,11 +342,15 @@ export function RevisionDocuments({
     [projectId, revisionId, reloadList, handleMutationError],
   );
 
+  function navigateTo(url: string) {
+    if (!guardNavigation(url)) router.push(url);
+  }
+
   function openViewer(row: RevisionDocument, pageNumber?: number) {
     const url = documentViewerHref(projectId, revisionId, row.id, {
       page: pageNumber,
     });
-    if (!guardNavigation(url)) router.push(url);
+    navigateTo(url);
   }
 
   async function acceptRow(row: RevisionDocument) {
@@ -453,6 +463,70 @@ export function RevisionDocuments({
   const counts = countQuickViews(narrowed);
   const totals = countQuickViews(all);
   const visible = narrowed.filter((row) => matchesQuickView(row, quickView));
+  const extractionIds = all.map((row) => row.id).sort();
+  const extractionStatus = useExtractionStatuses(projectId, revisionId, extractionIds);
+  const statuses = extractionStatus.data ?? {};
+  const eligibleChecked = new Set([...checkedIds].filter((id) =>
+    canMutate && (statuses[id]?.ineligible_reason ?? null) === null
+  ));
+  const newlySkipped = all.flatMap((row) => {
+    const reason = statuses[row.id]?.ineligible_reason;
+    return checkedIds.has(row.id) && reason
+      ? [{ id: row.id, name: row.document.original_filename, reason: ineligibleLabel[reason] }]
+      : [];
+  });
+  const skippedRows = [...new Map([...skipped, ...newlySkipped].map((item) => [item.id, item])).values()];
+
+  function toggleChecked(ids: string[], checked: boolean) {
+    setCheckedIds((previous) => {
+      const next = new Set(previous);
+      for (const id of ids) {
+        if (checked) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  }
+
+  async function selectScope(scope: string) {
+    const sequence = ++scopeRequest.current;
+    setScopeError(null);
+    setScopePending(true);
+    try {
+      const rows = scope === "filtered"
+        ? visible
+        : search
+          ? await client.fetchQuery({
+              queryKey: keys.documentList(projectId, revisionId, ""),
+              queryFn: () => listDocuments(projectId, revisionId, { status: "ALL" }),
+            })
+          : all;
+      const candidates = scope.startsWith("type:")
+        ? rows.filter((row) => row.document_type === scope.slice(5))
+        : rows;
+      const ids = candidates.map((row) => row.id).sort();
+      const scopedStatuses = await client.fetchQuery({
+        queryKey: keys.extractionStatus(projectId, revisionId, ids),
+        queryFn: ({ signal }) => getExtractionStatuses(projectId, revisionId, ids, signal),
+      });
+      if (sequence !== scopeRequest.current) return;
+      setCheckedIds(new Set(ids.filter((id) => scopedStatuses[id]?.ineligible_reason === null)));
+      setSkipped(candidates.flatMap((row) => {
+        const status = scopedStatuses[row.id];
+        return status?.ineligible_reason === null ? [] : [{
+          id: row.id,
+          name: row.document.original_filename,
+          reason: status?.ineligible_reason ? ineligibleLabel[status.ineligible_reason] : "Eligibility unavailable",
+        }];
+      }));
+      if (!ids.length) setScopeError("No documents match this selection.");
+    } catch (error) {
+      if (sequence === scopeRequest.current) setScopeError(apiErrorOf(error).detail);
+    } finally {
+      if (sequence === scopeRequest.current) setScopePending(false);
+    }
+  }
+
   const advancedActive = activeAdvancedFilterCount(advancedFilters) > 0;
   const empty =
     items !== null && visible.length === 0
@@ -505,23 +579,6 @@ export function RevisionDocuments({
       reloadList();
     }
   }
-
-  const clearMetadataFocus = useCallback(() => setFocusMetadata(false), []);
-
-  const menuHandlers: DocumentMenuHandlers = {
-    onDetails: (row) => showDocument(row.id),
-    onViewPages: (row) => openViewer(row),
-    onEditMetadata: (row) => {
-      showDocument(row.id);
-      setFocusMetadata(true);
-    },
-    onReclassify: (row) => void reclassifyRow(row),
-    onRetryClassification: (row) => void retryClassificationRow(row),
-    onRetryProcessing: (row) => void retryRow(row),
-    onRemove: setRemoving,
-    onRestore: restoreRow,
-    onStateChanged: refreshAfterChange,
-  };
 
   const refreshIndicator =
     documents.isFetching && items !== null
@@ -603,8 +660,63 @@ export function RevisionDocuments({
             onRefresh={() => {
               setManualRefresh(true);
               void documents.refetch();
+              if (extractionIds.length) void extractionStatus.refetch();
             }}
+            selection={canMutate && items !== null ? (
+              <Select
+                aria-label="Select documents by scope"
+                presentation="workspace"
+                className="w-auto min-w-[172px] max-w-full"
+                value=""
+                disabled={scopePending || search.trim() !== searchInput.trim()}
+                onValueChange={(value) => void selectScope(value)}
+              >
+                <option value="">{scopePending ? "Selecting…" : "Select documents…"}</option>
+                <option value="filtered">Select eligible filtered</option>
+                <option value="all">Select all eligible</option>
+                {DOCUMENT_TYPE_OPTIONS.filter(({ value }) => value !== "UNKNOWN").map(({ value, label }) => (
+                  <option key={value} value={`type:${value}`}>Confirmed type · {label}</option>
+                ))}
+              </Select>
+            ) : undefined}
           />
+          {extractionStatus.error && extractionIds.length > 0 && (
+            <div role="alert" className="flex items-center gap-2 border-b border-border px-5 py-2 text-workspace-caption text-danger">
+              Extraction statuses could not refresh.
+              <button type="button" className={docButtonClass("tiny")} onClick={() => void extractionStatus.refetch()}>Retry</button>
+            </div>
+          )}
+          {scopeError && <p role="status" className="m-0 border-b border-border px-5 py-2 text-workspace-caption text-muted">{scopeError}</p>}
+          {canMutate && (eligibleChecked.size > 0 || skippedRows.length > 0) && (
+            <div className="border-b border-border bg-soft/60 px-5 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p role="status" className="m-0 text-workspace-label font-semibold">{eligibleChecked.size} eligible {eligibleChecked.size === 1 ? "document" : "documents"} selected</p>
+                  <p className="m-0 mt-0.5 text-workspace-caption text-muted">Only included documents with processed pages can start extraction.</p>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" className={docButtonClass("tiny")} onClick={() => {
+                    scopeRequest.current++;
+                    setScopePending(false);
+                    setCheckedIds(new Set());
+                    setSkipped([]);
+                    setScopeError(null);
+                  }}>Clear selection</button>
+                  {eligibleChecked.size > 0 && (
+                    <button type="button" className={docButtonClass("primary")} title="Extraction scheduling is pending" disabled>Start extraction</button>
+                  )}
+                </div>
+              </div>
+              {skippedRows.length > 0 && (
+                <details className="mt-2 text-workspace-caption text-muted">
+                  <summary className="cursor-pointer">{skippedRows.length} skipped</summary>
+                  <ul className="mt-1 max-h-40 overflow-auto pl-5">
+                    {skippedRows.map(({ id, name, reason }) => <li key={id}>{name} · {reason}</li>)}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )}
           <DocumentQuickViews
             value={quickView}
             counts={counts}
@@ -613,14 +725,15 @@ export function RevisionDocuments({
           <DocumentList
             rows={items === null ? null : visible}
             selectedId={selected?.id ?? null}
-            projectId={projectId}
-            revisionId={revisionId}
-            canMutate={canMutate}
+            canMutate={canMutate && !scopePending}
+            extractionStatuses={statuses}
+            checkedIds={eligibleChecked}
+            onToggle={(id) => toggleChecked([id], !eligibleChecked.has(id))}
+            onToggleVisible={toggleChecked}
             loading={loading}
             error={error}
             empty={empty}
             footer={footer}
-            handlers={menuHandlers}
             onOpen={(row) => showDocument(row.id)}
             onRetry={reloadList}
             onClearFilters={() => setAdvancedFilters(EMPTY_ADVANCED_FILTERS)}
@@ -710,16 +823,17 @@ export function RevisionDocuments({
           retrying={retryingId === selected.id}
           aiError={aiError}
           processingError={processingError}
-          focusMetadata={focusMetadata}
-          handlers={menuHandlers}
+          onRemove={() => setRemoving(selected)}
+          onRestore={() => restoreRow(selected)}
+          onStateChanged={refreshAfterChange}
           notice={messageLine("border-b border-border px-[21px] py-3")}
           onRequestClose={closeDocument}
-          onMetadataFocused={clearMetadataFocus}
           onAccept={() => void acceptRow(selected)}
           onReclassify={() => void reclassifyRow(selected)}
           onRetryClassification={() => void retryClassificationRow(selected)}
           onRetryProcessing={() => void retryRow(selected)}
           onViewPages={(pageNumber) => openViewer(selected, pageNumber)}
+          onNavigate={navigateTo}
           onSave={(input) => saveRow(selected, input)}
           onDirtyChange={setInspectorDirty}
         />

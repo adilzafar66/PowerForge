@@ -87,4 +87,6 @@ def evidence_detail(reader, row, storage, expires):
         artifact_url=url,
         artifact_url_expires_seconds=expires,
         source_image_url=image_url,
+        source_image_width_px=snapshot.image.width_px,
+        source_image_height_px=snapshot.image.height_px,
     )
