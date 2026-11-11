@@ -13,7 +13,7 @@
   "max_lines": 5000,
   "max_blocks": 1000,
   "max_regions": 64,
-  "max_native_primitives": 2048,
+  "max_native_primitives": 5096,
   "max_relations": 512,
   "max_manifest_bytes": 4194304,
   "max_reading_characters": 2000,

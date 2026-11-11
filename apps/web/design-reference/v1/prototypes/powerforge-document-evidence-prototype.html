@@ -60,8 +60,120 @@ body.manual-reduce-motion .pf-select-menu{animation:none}
 body.manual-reduce-motion .pf-select-chevron,body.manual-reduce-motion input[type="checkbox"]:not(.pf-no-theme){transition:none}
 
 </style>
+<style id="phase6f-styles">
+/* Phase 6F extension of the approved v1.15 Document & Evidence viewer. */
+.pf6-viewer-tabs{display:flex;gap:2px;padding:4px;border:1px solid var(--border);border-radius:8px;background:#F4F6F8;margin:0 0 14px}
+.pf6-viewer-tabs button{flex:1;border:0;border-radius:6px;padding:8px 5px;font-size:11px;background:transparent;color:var(--muted);font-weight:700;cursor:pointer}
+.pf6-viewer-tabs button.active{background:white;color:var(--action);box-shadow:0 1px 3px rgba(24,38,56,.09)}
+.pf6-viewer-summary{margin:0 0 16px;padding:12px;border:1px solid #D8E6EE;background:#F5F9FB;border-radius:8px;color:#45647A;font-size:11px;line-height:1.5}
+.pf6-viewer-summary strong{color:var(--text)}
+.pf6-table-box{border:1px solid var(--border);border-radius:9px;overflow:hidden;margin:10px 0}
+.pf6-table-title{padding:11px 12px;background:#F5F8FA;border-bottom:1px solid var(--border);font-size:12px;font-weight:750}
+.pf6-table-box table{width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed}
+.pf6-table-box th{background:#FAFBFC;color:var(--muted);font-size:10px;text-align:left;padding:9px;border-bottom:1px solid var(--border)}
+.pf6-table-box td{padding:9px;border-bottom:1px solid #EBEFF2;vertical-align:middle;word-break:break-word}
+.pf6-table-box tr:last-child td{border-bottom:0}
+.pf6-table-box button{border:0;padding:0;color:var(--action);text-decoration:underline;text-underline-offset:3px;font-size:11px;background:transparent;cursor:pointer}
+.pf6-history{border:1px solid var(--border);border-radius:9px;padding:13px;margin:9px 0;background:#fff}
+.pf6-history-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:7px}
+.pf6-history strong{font-size:12px}.pf6-history p{font-size:11px;line-height:1.5;color:var(--muted);margin:4px 0 8px}
+.pf6-history .btn{font-size:11px;padding:8px 10px;margin-top:6px}
+.pf6-group-source{display:block;font-size:10px;color:var(--muted);font-weight:600;margin-top:4px}
+.pf6-raw-table-details{border-top:1px solid var(--border);margin-top:13px;padding-top:10px;color:var(--muted)}
+.pf6-raw-table-details summary{cursor:pointer;font-size:11px;color:var(--action);font-weight:700;list-style-position:inside}
+.pf6-raw-table-details summary:focus-visible{outline:2px solid var(--action);outline-offset:3px;border-radius:3px}
+.pf6-raw-table-content{padding-top:10px}.pf6-raw-table-content p{margin:0 0 12px}
+
+.pf6-inline-banner{margin:8px 0 14px;font-size:11px;color:var(--muted);line-height:1.5}
+@media(max-width:1000px){.pf6-viewer-tabs button{font-size:10px;padding:8px 3px}}
+@media(prefers-reduced-motion:reduce){.pf6-viewer-tabs button{transition:none}}
+
+
+/* v1.18: Source information belongs to the selected candidate, not a fixed footer. */
+.pf6-candidate-entry{margin:8px 0}
+.pf6-candidate-entry>.candidate{margin:0}
+.pf6-candidate-entry.is-selected>.candidate{border-radius:9px 9px 0 0;border-bottom-color:#D1DFE8}
+.pf6-candidate-details{background:#F8FBFD;border:1px solid #A9BDCD;border-top:0;border-radius:0 0 9px 9px;padding:11px 13px 12px;font-size:11px}
+.pf6-candidate-facts{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 10px;align-items:start}
+.pf6-candidate-facts span,.pf6-exact-reading span{color:var(--muted)}
+.pf6-candidate-facts strong{font-weight:700;text-align:right;max-width:175px}
+.pf6-candidate-location{margin-top:11px;padding-top:10px;border-top:1px solid #E1E9EF;color:#526477;font-size:11px}
+.pf6-location-confirmation{display:inline-flex;gap:5px;align-items:center;color:#456D78;font-weight:650}
+.pf6-locate-action{border:0;padding:0;background:transparent;color:var(--action);font-weight:750;font-size:11px;cursor:pointer;text-align:left}
+.pf6-locate-action:hover{text-decoration:underline;text-underline-offset:3px}
+.pf6-locate-action:focus-visible,.pf6-candidate-more summary:focus-visible{outline:2px solid var(--action);outline-offset:3px;border-radius:3px}
+.pf6-candidate-more{margin-top:9px}
+.pf6-candidate-more summary{cursor:pointer;list-style:none;color:var(--action);font-weight:750;padding:5px 0;font-size:11px}
+.pf6-candidate-more summary::-webkit-details-marker{display:none}
+.pf6-candidate-more summary:after{content:'⌄';float:right;margin-left:10px}
+.pf6-candidate-more[open] summary:after{content:'⌃'}
+.pf6-candidate-more-body{border-top:1px solid #DDE7ED;margin-top:5px;padding-top:10px;color:var(--text);line-height:1.55}
+.pf6-candidate-more-body p{margin:6px 0 10px;font-size:11px;color:var(--muted)}
+.pf6-candidate-more-note{color:var(--muted);font-size:10px}
+.pf6-exact-reading,.pf6-candidate-difference{display:flex;flex-direction:column;gap:3px;margin-bottom:10px}
+.pf6-candidate-difference{background:#FFF6E4;border:1px solid #EFDBAD;border-radius:6px;padding:9px;margin-top:10px}
+.pf6-candidate-difference strong,.pf6-exact-reading strong{font-size:12px;color:var(--text)}
+.pf6-candidate-difference small{color:var(--muted);font-size:10px}
+
+
+/* v1.19 — scalable two-level source-group browser, extending v1.18 evidence styling. */
+.pf6-group-header{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:13px 0 9px}
+.pf6-group-header strong{font-size:13px;color:var(--text);letter-spacing:-.1px}
+.pf6-group-count{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pf6-group-notice{background:#F8FAFB;border:1px solid #E5EBF0;border-radius:8px;padding:10px 11px;color:var(--muted);font-size:11px;line-height:1.5;margin:11px 0 12px}
+.pf6-search-wrap{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;background:white;padding:0 10px;height:38px;margin:8px 0}
+.pf6-search-wrap:focus-within{border-color:#87A4B9;box-shadow:0 0 0 2px #E6EEF4}
+.pf6-search-icon{font-size:16px;color:#6E8394;font-family:system-ui;line-height:1}
+.pf6-search-wrap input{width:100%;min-width:0;border:0;background:transparent;color:var(--text);font-size:12px;outline:0}
+.pf6-search-wrap input:focus-visible{outline:0}
+.pf6-search-wrap input::placeholder{color:#8496A4}
+.pf6-group-filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.pf6-group-filter{display:flex;flex-direction:column;gap:5px;min-width:0}
+.pf6-group-filter label{font-size:10px;color:var(--muted);font-weight:700}
+.pf6-group-filter select{width:100%;height:35px;min-width:0;font-size:11px}
+.pf6-page-filter{display:flex;background:var(--soft);padding:3px;gap:2px;border-radius:8px;margin:10px 0 11px}
+.pf6-page-filter button{flex:1;border:0;background:transparent;color:var(--muted);padding:7px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.pf6-page-filter button.active{background:#fff;color:var(--action);box-shadow:0 1px 2px rgba(24,38,56,.07)}
+.pf6-group-demo-toggle{border:1px dashed #BCCDD9;border-radius:7px;padding:8px 10px;background:#fff;color:var(--action);font-weight:700;font-size:11px;width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center;gap:5px;margin-bottom:12px}
+.pf6-group-demo-toggle[aria-pressed="true"]{background:#F2F7FA;border-color:#9FB6C7}
+.pf6-group-demo-note{font-size:10.5px;color:var(--muted);margin:-5px 0 10px;line-height:1.4}
+.pf6-group-list{border:1px solid var(--border);border-radius:9px;background:#fff;overflow:hidden;margin-top:8px}
+.pf6-group-row{display:block;width:100%;border:0;border-bottom:1px solid #EDF1F4;background:#fff;padding:12px 12px;text-align:left;cursor:pointer;transition:background .14s}
+.pf6-group-row:last-child{border-bottom:0}
+.pf6-group-row:hover,.pf6-group-row:focus-visible{background:#F5F8FA}
+.pf6-group-row:focus-visible{outline:2px solid var(--action);outline-offset:-2px}
+.pf6-group-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pf6-group-name{font-size:12px;font-weight:750;color:var(--text);white-space:normal;overflow-wrap:anywhere}
+.pf6-group-right{display:flex;align-items:center;gap:7px;color:#8A9BA7}
+.pf6-group-chip{background:#EEF2F5;border-radius:5px;color:#506578;font-size:10px;font-weight:750;padding:3px 6px;min-width:24px;text-align:center}
+.pf6-group-meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px 9px;color:var(--muted);font-size:10.5px;margin-top:5px}
+.pf6-group-meta b{font-weight:650;color:var(--muted)}
+.pf6-group-status{font-size:10px;color:#617487}
+.pf6-group-status.warn{color:var(--amber)}
+.pf6-group-empty{padding:20px 13px;color:var(--muted);font-size:11px;line-height:1.5;text-align:center}
+.pf6-group-results-footer{font-size:10.5px;color:var(--muted);margin:9px 0 7px;text-align:center}
+.pf6-group-more{display:flex;justify-content:center;width:100%;height:34px;background:#fff;border:1px solid var(--border);border-radius:7px;color:var(--action);font-size:11px;font-weight:750;margin-top:9px}
+.pf6-group-more:hover{background:var(--soft)}
+.pf6-group-back{display:flex;align-items:center;gap:8px;border:0;background:transparent;color:var(--action);font-size:11.5px;font-weight:750;padding:3px 0 11px;cursor:pointer}
+.pf6-group-back:hover{text-decoration:underline;text-underline-offset:3px}
+.pf6-detail-heading{border-bottom:1px solid #E9EEF2;padding-bottom:13px;margin-bottom:14px}
+.pf6-detail-heading .pf6-detail-eyebrow{display:block;font-size:10px;color:#8597A8;text-transform:uppercase;letter-spacing:.7px;font-weight:750;margin-bottom:7px}
+.pf6-detail-heading h3{font-size:19px;line-height:1.2;color:var(--text);margin:0 0 6px;letter-spacing:-.35px}
+.pf6-detail-heading p{font-size:11px;color:var(--muted);line-height:1.45;margin:0}
+.pf6-detail-heading .pf6-detail-count{display:inline-flex;align-items:center;gap:5px;background:#F0F4F7;color:#536B7F;padding:5px 7px;border-radius:5px;font-size:10px;margin-top:9px;font-weight:700}
+.pf6-detail-label{font-size:10px;color:var(--subtle);font-weight:750;letter-spacing:.65px;text-transform:uppercase;margin:13px 0 10px}
+.pf6-group-candidate-entry{margin:8px 0}
+.pf6-group-candidate-entry>.candidate{margin:0}
+.pf6-group-candidate-entry.is-selected>.candidate{border-radius:9px 9px 0 0;border-bottom-color:#D1DFE8}
+.pf6-group-candidate-entry .tag.invalid{background:#FBECEF;color:#AA3541}
+.pf6-group-synthetic-note{padding:11px 12px;background:#FFF9EF;border:1px solid #F0DFC1;border-radius:8px;font-size:11px;color:#765C32;line-height:1.45;margin:9px 0}
+.pf6-group-candidate-details{background:#F8FBFD;border:1px solid #A9BDCD;border-top:0;border-radius:0 0 9px 9px;padding:11px 13px 12px;font-size:11px}
+.pf6-group-candidate-details .pf6-candidate-more{margin-top:8px}
+@media(max-width:540px){.pf6-group-header{align-items:flex-start}.pf6-group-filters{gap:6px}}
+
+</style>
 </head><body>
-<div class="app"><aside class="sidebar"><div class="brand"><svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m13 2-3 8h7l-7 12 2-9H6z"/></svg>PowerForge</div><div class="sidebody"><div class="side-head">General</div><button class="nav" data-navigate="Projects">▢ <span>Projects</span></button><div class="sidegap"></div><div class="side-head">Project</div><button class="nav" data-navigate="Project Overview">▦ <span>Overview</span></button><button class="nav" data-navigate="Revisions">⑂ <span>Revisions</span></button><div class="sidegap"></div><div class="side-head">Current revision</div><button class="revision-button" id="revision-select" title="Revision selection is simulated"><div><strong>IFC 123</strong><span>Active revision</span></div><span>⌄</span></button><div style="height:12px"></div><button class="nav active" data-navigate="Documents">▤ <span>Documents</span></button><button class="nav" data-navigate="Engineering Model">▣ <span>Engineering Model</span></button><div class="childgroup"><button class="subnav" data-navigate="Equipment">Equipment</button><button class="subnav" data-navigate="Topology">Topology</button></div><button class="nav" data-navigate="Extraction">⌗ <span>Extraction</span></button></div><div class="sidefoot"><button class="nav" data-navigate="System Status">▧ <span>System Status</span></button></div></aside>
+<div class="app"><aside class="sidebar"><div class="brand"><svg class="logo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="m13 2-3 8h7l-7 12 2-9H6z"/></svg>PowerForge</div><div class="sidebody"><div class="side-head">General</div><button class="nav" data-navigate="Projects">▢ <span>Projects</span></button><div class="sidegap"></div><div class="side-head">Project</div><button class="nav" data-navigate="Project Overview">▦ <span>Overview</span></button><button class="nav" data-navigate="Revisions">⑂ <span>Revisions</span></button><div class="sidegap"></div><div class="side-head">Current revision</div><button class="revision-button" id="revision-select" title="Revision selection is simulated"><div><strong>IFC 123</strong><span>Active revision</span></div><span>⌄</span></button><div style="height:12px"></div><button class="nav active" data-navigate="Documents">▤ <span>Documents</span></button><button class="nav" data-navigate="Engineering Model">▣ <span>Engineering Model</span></button><div class="childgroup"><button class="subnav" data-navigate="Equipment">Equipment</button><button class="subnav" data-navigate="Topology">Topology</button></div></div><div class="sidefoot"><button class="nav" data-navigate="System Status">▧ <span>System Status</span></button></div></aside>
 <main class="main"><header class="topbar"><div class="crumbs"><span>Projects</span><span class="sep">/</span><span>BC Ferries FMU</span><span class="sep">/</span><span>IFC 123</span><span class="sep">/</span><strong>Documents</strong></div><div class="top-end"><span class="pill positive">● Active revision</span><span class="pill">Design prototype</span></div></header>
 <div class="workspace-header"><div class="title-line"><div><h1>E101 — Single Line &amp; Transformer Data</h1><p class="subtitle">2-page illustrative engineering document · PDF · Processed · Source text and page imagery</p></div><div class="head-actions"><div class="switchbar" role="tablist" aria-label="Viewer mode"><button id="mode-document" class="active" role="tab" aria-selected="true">Document</button><button id="mode-extraction" role="tab" aria-selected="false">Extraction Evidence</button></div><button class="btn" id="show-panel">Details</button><button class="btn" id="run-extract">Run extraction</button></div></div></div>
 <div class="viewer-toolbar"><div class="toolbar-group"><button class="tool selected" id="thumb-toggle" aria-label="Toggle page thumbnails" title="Toggle page thumbnails"></button><div class="divider"></div><button class="tool" id="prev-page" aria-label="Previous page" title="Previous page"></button><span id="page-count" class="zoom-label" style="min-width:78px">1 / 2</span><button class="tool" id="next-page" aria-label="Next page" title="Next page"></button></div><div class="toolbar-group"><button class="tool" id="zoom-out" aria-label="Zoom out" title="Zoom out"></button><span class="zoom-label" id="zoom-label">—</span><button class="tool" id="zoom-in" aria-label="Zoom in" title="Zoom in"></button><div class="divider"></div><button class="btn" id="fit-page">Fit page</button><button class="btn" id="fit-width">Fit width</button></div><div class="toolbar-group"><span class="pill" id="page-kind">Page 1 · Native text</span><button class="tool" id="panel-toggle" aria-label="Toggle information panel" title="Toggle information panel"></button></div></div>
@@ -108,15 +220,241 @@ function setMode(mode){state.mode=mode;$('#mode-document').classList.toggle('act
 function inspect(id){const c=candidates.find(c=>c.id===id);if(!c)return;state.active=id;setPage(c.page);if(state.mode!=='evidence')setMode('evidence');else renderPanel();$('#canvas-scroll').scrollTop=Math.max(0,(c.bbox[1]-150)*state.scale);}
 function panelDocument(){return `<div class="group"><div class="group-title">Source classification</div><div class="status-line"><span class="s-dot"></span> Ready · Processed</div><div class="kv"><span>Confirmed type</span><strong>Single Line Diagram / Schedule</strong></div><div class="kv"><span>Classification</span><strong>Engineer accepted</strong></div><div class="kv"><span>Pages</span><strong>2 pages</strong></div></div><div class="group"><div class="group-title">Document metadata</div><div class="kv"><span>File</span><strong>E101-example.pdf</strong></div><div class="kv"><span>Format</span><strong>application/pdf</strong></div><div class="kv"><span>Revision</span><strong>IFC 123</strong></div><div class="kv"><span>Processing</span><strong>Completed</strong></div><div class="kv"><span>Text source</span><strong>Native text</strong></div></div><div class="group"><div class="group-title">Viewer actions</div><button class="btn primary" id="inspect-extraction">Inspect extracted data →</button><div style="height:12px"></div><div class="hint">The original page image and text artifacts remain separate from AI interpretations. This screen is a frontend UX demonstration.</div></div><div class="group"><div class="group-title">Source version</div><div class="hint"><strong>Document-scoped evidence</strong><br>Page artifacts are immutable per processing version. Revisions reuse eligible source-only extraction results.</div></div>`}
 function panelEvidence(){let shown=candidates.filter(c=>state.filter==='all'||(state.filter==='untagged'?c.group.includes('Untagged'):c.page===0));let out=`<div class="group"><div class="group-title">Extraction run</div><div class="status-line"><span class="s-dot"></span> <strong style="color:var(--green)">Completed</strong> &nbsp;·&nbsp; 6 candidates &nbsp;·&nbsp; 2 source groups</div><div class="hint" style="margin-top:10px"><strong>Source-grounded, not canonical</strong><br>Phase 6 extracts observations. Equipment identity association belongs to Phase 7.</div></div><div class="group"><div class="group-title">Candidate browser</div><select id="candidate-filter" class="select-input" style="width:100%;margin-bottom:10px"><option value="all" ${state.filter==='all'?'selected':''}>All extracted candidates</option><option value="sld" ${state.filter==='sld'?'selected':''}>SLD · Tagged equipment</option><option value="untagged" ${state.filter==='untagged'?'selected':''}>Specification · Untagged equipment</option></select>`;
-let last='';for(const c of shown){if(c.group!==last){out+=`<div style="font-size:11px;font-weight:750;margin:12px 0 6px;color:var(--text)">${c.group}</div>`;last=c.group;}out+=`<button class="candidate ${state.active===c.id?'active':''}" data-candidate="${c.id}"><div class="cand-top"><span class="cand-title">${c.label}</span><span class="tag mapped">${c.state}</span></div><div class="cand-value">${c.value}</div><div class="cand-foot">Page ${c.page+1} · ${c.type}</div></button>`;}out+='</div>';
-const chosen=candidates.find(c=>c.id===state.active);if(chosen)out+=`<div class="group"><div class="group-title">Selected source evidence</div><div class="evidence-card"><small>${chosen.group} · Page ${chosen.page+1}</small><blockquote>“${chosen.raw}”</blockquote><div class="cand-foot">${chosen.info}</div></div><button class="btn" id="locate-source" style="margin-top:12px;width:100%">Locate on drawing</button></div>`;
+let last='';for(const c of shown){if(c.group!==last){out+=`<div style="font-size:11px;font-weight:750;margin:12px 0 6px;color:var(--text)">${c.group}</div>`;last=c.group;}
+const active=state.active===c.id;
+const located=active&&state.mode==='evidence'&&state.page===c.page&&Boolean(c.bbox);
+const originalDiffers=c.raw!==c.value;
+out+=`<div class="pf6-candidate-entry ${active?'is-selected':''}"><button class="candidate ${active?'active':''}" data-candidate="${c.id}" aria-pressed="${active}" aria-label="${c.label}, ${c.value}, page ${c.page+1}"><div class="cand-top"><span class="cand-title">${c.label}</span><span class="tag mapped">${c.state}</span></div><div class="cand-value">${c.value}</div><div class="cand-foot">Page ${c.page+1} · ${c.type}</div></button>`;
+if(active)out+=`<div class="pf6-candidate-details"><div class="pf6-candidate-facts"><span>Source</span><strong>Native PDF text</strong><span>Equipment association</span><strong>Not associated</strong></div>${originalDiffers?`<div class="pf6-candidate-difference"><span>Verbatim source reading</span><strong>“${c.raw}”</strong><small>Displayed interpretation differs from the source.</small></div>`:''}<div class="pf6-candidate-location">${located?'<span class="pf6-location-confirmation">✓ Source highlighted on page</span>':`<button class="pf6-locate-action" type="button" data-pf6-locate="${c.id}">⌖ Locate source on page</button>`}</div><details class="pf6-candidate-more"><summary>Source details</summary><div class="pf6-candidate-more-body">${!originalDiffers?`<div class="pf6-exact-reading"><span>Verbatim reading</span><strong>“${c.raw}”</strong></div>`:''}<div class="pf6-candidate-more-note">${c.group} · Page ${c.page+1}</div><p>${c.info}</p><div class="pf6-candidate-facts"><span>Printed text checked?</span><strong>No independent verification</strong><span>Reading basis</span><strong>Native / page position</strong></div></div></details></div>`;
+out+='</div>';}
+out+='</div>';
 return out;}
-function renderPanel(){if(state.mode==='document'){$('#panel-title').textContent='Document details';$('#panel-subtitle').textContent='Source, classification, and processing';$('#panel-content').innerHTML=panelDocument();$('#inspect-extraction')?.addEventListener('click',()=>setMode('evidence'));}else{$('#panel-title').textContent='Extraction evidence';$('#panel-subtitle').textContent='6 source-grounded candidates · no canonical updates';$('#panel-content').innerHTML=panelEvidence();document.querySelectorAll('[data-candidate]').forEach(el=>el.addEventListener('click',()=>inspect(el.dataset.candidate)));$('#candidate-filter')?.addEventListener('change',e=>{state.filter=e.target.value;renderPanel()});$('#locate-source')?.addEventListener('click',()=>inspect(state.active));}}
+function renderPanel(){if(state.mode==='document'){$('#panel-title').textContent='Document details';$('#panel-subtitle').textContent='Source, classification, and processing';$('#panel-content').innerHTML=panelDocument();$('#inspect-extraction')?.addEventListener('click',()=>setMode('evidence'));}else{$('#panel-title').textContent='Extraction evidence';$('#panel-subtitle').textContent='6 source-grounded candidates · no canonical updates';$('#panel-content').innerHTML=panelEvidence();document.querySelectorAll('[data-candidate]').forEach(el=>el.addEventListener('click',()=>inspect(el.dataset.candidate)));$('#candidate-filter')?.addEventListener('change',e=>{state.filter=e.target.value;renderPanel()});document.querySelectorAll('[data-pf6-locate]').forEach(el=>el.addEventListener('click',()=>inspect(el.dataset.pf6Locate)));}}
 function simulateExtraction(){if(state.extractRunning)return;state.extractRunning=true;const btn=$('#run-extract'),before=btn.textContent;btn.disabled=true;let pct=0;const timer=setInterval(()=>{pct+=25;btn.textContent=`Extracting ${pct}%`;if(pct>=100){clearInterval(timer);state.extractRunning=false;btn.disabled=false;btn.textContent=before;notice('Demo extraction completed. Previous candidates remain unchanged.');setMode('evidence');}},450);}
 function bind(){document.querySelectorAll('[data-page]').forEach(el=>el.addEventListener('click',()=>setPage(+el.dataset.page)));$('#mode-document').addEventListener('click',()=>setMode('document'));$('#mode-extraction').addEventListener('click',()=>setMode('evidence'));$('#prev-page').addEventListener('click',()=>setPage(state.page-1));$('#next-page').addEventListener('click',()=>setPage(state.page+1));$('#fit-page').addEventListener('click',()=>fit('page'));$('#fit-width').addEventListener('click',()=>fit('width'));$('#zoom-out').addEventListener('click',()=>zoom(-.15));$('#zoom-in').addEventListener('click',()=>zoom(.15));$('#thumb-toggle').addEventListener('click',()=>{state.thumbs=!state.thumbs;$('#thumbs').classList.toggle('collapsed',!state.thumbs);setTimeout(()=>fit('page'),180)});$('#panel-toggle').addEventListener('click',togglePanel);$('#show-panel').addEventListener('click',()=>{state.panel=true;$('#panel').classList.remove('closed');setTimeout(()=>fit('page'),180)});$('#run-extract').addEventListener('click',simulateExtraction);$('#revision-select').addEventListener('click',()=>notice('Demo only — switching revisions is not connected.'));document.querySelectorAll('[data-navigate]').forEach(el=>el.addEventListener('click',()=>{if(el.dataset.navigate==='Documents'){location.href='powerforge-documents-prototype.html';return}notice(`${el.dataset.navigate} navigation is part of the wider prototype; this file focuses on Document/Evidence inspection.`)}));const viewport=$('#canvas-scroll');let drag=null;viewport.addEventListener('pointerdown',e=>{if(e.button!==0)return;drag={x:e.clientX,y:e.clientY,left:viewport.scrollLeft,top:viewport.scrollTop};viewport.classList.add('panning');viewport.setPointerCapture(e.pointerId)});viewport.addEventListener('pointermove',e=>{if(!drag)return;viewport.scrollLeft=drag.left-(e.clientX-drag.x);viewport.scrollTop=drag.top-(e.clientY-drag.y)});function stop(){drag=null;viewport.classList.remove('panning')}viewport.addEventListener('pointerup',stop);viewport.addEventListener('pointercancel',stop);window.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if(e.key==='+'||e.key==='=')zoom(.15);if(e.key==='-')zoom(-.15);if(e.key==='ArrowLeft')setPage(state.page-1);if(e.key==='ArrowRight')setPage(state.page+1)});}
 function togglePanel(){state.panel=!state.panel;$('#panel').classList.toggle('closed',!state.panel);setTimeout(()=>fit('page'),180)}
 for(let i=0;i<2;i++)$('#mini-'+i).innerHTML=pages[i];
 bind();renderPanel();requestAnimationFrame(()=>fit('page'));
+</script>
+<script id="phase6f-script">
+/* Phase 6F viewer additions; strictly static/local example results, never real source or canonical writes. */
+(function(){
+'use strict';
+const q=new URLSearchParams(location.search), docId=q.get('doc')||'d1';
+const docs={d1:'FMU_E101_SLD_Rev15.pdf',d2:'Panel_Schedules_Level2.pdf',d3:'TX1_750kVA_Shop_Drawings.pdf',d4:'Distribution_Notes_RevB.pdf'};
+// Legacy tab=tables links open Run history, where raw table output is available on demand.
+let tab=q.get('tab')==='history'||q.get('tab')==='tables'?'history':'candidates';
+
+/* v1.19 — Source groups have a compact list view and a focused candidate detail view.
+ * The large-example mode is a separate illustrative scalability fixture and NEVER
+ * establishes page geometry, printed text, or physical-equipment identity. */
+const browserState={
+  screen:'groups', selectedGroupId:null, query:'', pageScope:'all', type:'all', status:'all',
+  demo50:q.get('demo')==='50', limit:15, listScroll:0, selectedSampleCandidate:null
+};
+const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const originalGroups=[
+  {id:'tag-tx-101',name:'TX-101',description:'Observed on SLD',type:'Transformer',page:0,tag:'TX-101',runLabel:'Engineering · Run 01',candidateIds:['tag','sld-power'],sample:false},
+  {id:'local-spec-a',name:'Source Group A',description:'Untagged transformer specification',type:'Transformer',page:1,tag:null,runLabel:'Tables · Run 02',candidateIds:['table-power','primary','secondary','impedance'],sample:false}
+];
+const demoKinds=['Transformer','Switchgear','Motor','Generator','Breaker','Panelboard'];
+const demoGroups=Array.from({length:47},(_,j)=>{
+  const index=j+3, kind=demoKinds[j%demoKinds.length], page=j%2;
+  const name=`${({Transformer:'TX',Switchgear:'SWG',Motor:'M',Generator:'GEN',Breaker:'CB',Panelboard:'PNL'})[kind]}-${String(index).padStart(3,'0')}`;
+  return {id:`scale-${index}`,name,description:'Synthetic scalability fixture · no verified source location',type:kind,page,tag:name,
+    candidateIds:[],sample:true,demoValues:[
+      {id:`s-${index}-a`,label:'Rated voltage',value:j%3===0?'600 V':'12.47 kV',state:j%5===0?'UNMAPPED':'MAPPED'},
+      {id:`s-${index}-b`,label:'Rated power',value:j%3===0?'250 kVA':'750 kVA',state:j%7===0?'INVALID':'MAPPED'},
+      {id:`s-${index}-c`,label:'Manufacturer',value:['ABB','Schneider Electric','Eaton'][j%3],state:j%6===0?'UNMAPPED':'MAPPED'}
+    ]};
+});
+const ungroupedSample={id:'ungrouped',name:'Ungrouped observations',description:'No supported equipment grouping',type:'Unknown',page:1,tag:null,candidateIds:[],sample:true,demoValues:[
+  {id:'ungrouped-a',label:'Unassigned raw observation',value:'5.75%',state:'UNMAPPED'},
+  {id:'ungrouped-b',label:'Unassigned raw observation',value:'400 A',state:'UNMAPPED'}
+]};
+const allSourceGroups=()=>browserState.demo50?[...originalGroups,...demoGroups,ungroupedSample]:originalGroups;
+const groupCandidates=g=>g.sample?g.demoValues:g.candidateIds.map(id=>candidates.find(c=>c.id===id)).filter(Boolean);
+const statusOfGroup=g=>{
+  const states=groupCandidates(g).map(c=>c.state);
+  if(states.includes('INVALID'))return 'Has invalid';
+  if(states.includes('UNMAPPED'))return 'Has unmapped';
+  return 'Mapped';
+};
+const resultLimit=15;
+function filteredGroups(){
+  const words=browserState.query.trim().toLowerCase();
+  return allSourceGroups().filter(g=>{
+    if(browserState.pageScope==='current'&&g.page!==state.page)return false;
+    if(browserState.type!=='all'&&g.type!==browserState.type)return false;
+    if(browserState.status!=='all'&&!groupCandidates(g).some(c=>c.state===browserState.status))return false;
+    if(words){
+      const searchable=[g.name,g.type,g.description,g.tag||'',...groupCandidates(g).flatMap(c=>[c.label,c.value,c.state])].join(' ').toLowerCase();
+      if(!words.split(/\s+/).every(part=>searchable.includes(part)))return false;
+    }
+    return true;
+  });
+}
+function groupListRows(){
+  const matches=filteredGroups(), visible=matches.slice(0,browserState.limit);
+  const rows=visible.map(g=>{
+    const candidatesForGroup=groupCandidates(g), status=statusOfGroup(g);
+    return `<button type="button" class="pf6-group-row" data-pf6-open-group="${escapeHtml(g.id)}" aria-label="Inspect ${escapeHtml(g.name)}: ${candidatesForGroup.length} candidate${candidatesForGroup.length===1?'':'s'}">
+      <span class="pf6-group-top"><span class="pf6-group-name">${escapeHtml(g.name)}</span><span class="pf6-group-right"><span class="pf6-group-chip">${candidatesForGroup.length}</span><span aria-hidden="true">›</span></span></span>
+      <span class="pf6-group-meta"><b>${escapeHtml(g.type)}${g.tag?' · Observed tag':''}</b><span>Page ${g.page+1}</span><span class="pf6-group-status ${status==='Mapped'?'':'warn'}">${escapeHtml(status)}</span></span>
+      ${g.runLabel?`<span class="pf6-group-source">${escapeHtml(g.runLabel)}</span>`:''}
+    </button>`;
+  }).join('');
+  return `<div class="pf6-group-list" role="group" aria-label="Source groups">${rows||'<div class="pf6-group-empty">No source groups match your filters.<br>Try clearing the search or changing the page.</div>'}</div>
+  <div class="pf6-group-results-footer" aria-live="polite">${matches.length?`Showing ${visible.length} of ${matches.length} matching groups`:'0 matching groups'}${browserState.demo50?' · scalability example':''}</div>
+  ${visible.length<matches.length?`<button type="button" class="pf6-group-more" data-pf6-load-more>Show next ${Math.min(resultLimit,matches.length-visible.length)} groups</button>`:''}`;
+}
+function groupBrowserPanel(){
+  const groups=allSourceGroups(), candidateTotal=groups.reduce((sum,g)=>sum+groupCandidates(g).length,0);
+  return `<section class="pf6-candidate-browser" aria-label="Source group browser">
+    <div class="pf6-group-header"><strong>Source groups</strong><span class="pf6-group-count">${groups.length} groups · ${candidateTotal} candidates</span></div>
+    <div class="pf6-group-notice">Candidates include engineering prose and table-derived observations in one browser. <strong>Source-local groups are not verified equipment identities</strong>; separate runs and repeated values remain distinct.</div>
+    <label class="pf6-search-wrap"><span class="pf6-search-icon" aria-hidden="true">⌕</span><input id="pf6-group-search" type="search" aria-label="Search groups, tags, attributes or values" placeholder="Search tag, attribute, value…" value="${escapeHtml(browserState.query)}" autocomplete="off"></label>
+    <div class="pf6-page-filter" role="group" aria-label="Source group page filter">
+      <button type="button" class="${browserState.pageScope==='all'?'active':''}" aria-pressed="${browserState.pageScope==='all'}" data-pf6-scope="all">All pages</button>
+      <button type="button" class="${browserState.pageScope==='current'?'active':''}" aria-pressed="${browserState.pageScope==='current'}" data-pf6-scope="current">Current page</button>
+    </div>
+    <div class="pf6-group-filters">
+      <div class="pf6-group-filter"><label for="pf6-group-type">Equipment type hint</label>
+        <select id="pf6-group-type" aria-label="Filter by equipment type hint">${['all','Transformer','Switchgear','Motor','Generator','Breaker','Panelboard','Unknown'].map(t=>`<option value="${t}" ${browserState.type===t?'selected':''}>${t==='all'?'All types':t}</option>`).join('')}</select>
+      </div>
+      <div class="pf6-group-filter"><label for="pf6-group-status">Mapping status</label>
+        <select id="pf6-group-status" aria-label="Filter by candidate mapping status">${[['all','All statuses'],['MAPPED','Mapped'],['UNMAPPED','Unmapped'],['INVALID','Invalid']].map(([v,label])=>`<option value="${v}" ${browserState.status===v?'selected':''}>${label}</option>`).join('')}</select>
+      </div>
+    </div>
+    <button type="button" class="pf6-group-demo-toggle" data-pf6-demo50 aria-pressed="${browserState.demo50}" title="Switch between the actual two-group fixture and a 50-group usability demonstration"><span>${browserState.demo50?'✓ ':''}Preview with 50 groups</span><span aria-hidden="true">${browserState.demo50?'ON':'OFF'}</span></button>
+    ${browserState.demo50?'<p class="pf6-group-demo-note">Scalability-only example. Extra groups are synthetic; they have no matching geometry in the two-page source drawing.</p>':''}
+    <div id="pf6-group-results">${groupListRows()}</div>
+  </section>`;
+}
+function candidateProvenance(c,g){
+  const actual=!g.sample;
+  const located=actual&&Boolean(c.bbox)&&state.mode==='evidence'&&state.page===c.page;
+  const differs=actual&&c.raw!==c.value;
+  return `<div class="pf6-group-candidate-details">
+    ${actual?`<div class="pf6-candidate-facts"><span>Originating run</span><strong>${escapeHtml(g.runLabel||'Synthetic demo')}</strong><span>Text basis</span><strong>Native PDF text</strong><span>Equipment association</span><strong>Not established</strong></div>
+      ${differs?`<div class="pf6-candidate-difference"><span>Original source</span><strong>“${escapeHtml(c.raw)}”</strong><small>Differs from the interpreted value.</small></div>`:''}
+      <div class="pf6-candidate-location">${located?'<span class="pf6-location-confirmation">✓ Source highlighted on page</span>':`<button class="pf6-locate-action" type="button" data-pf6-locate="${escapeHtml(c.id)}">⌖ Locate source on page</button>`}</div>
+      <details class="pf6-candidate-more"><summary>Source details</summary><div class="pf6-candidate-more-body">${!differs?`<div class="pf6-exact-reading"><span>Verbatim reading</span><strong>“${escapeHtml(c.raw)}”</strong></div>`:''}<div class="pf6-candidate-more-note">${escapeHtml(g.name)} · Page ${c.page+1}</div><p>${escapeHtml(c.info)}</p><div class="pf6-candidate-facts"><span>Printed text checked?</span><strong>No independent verification</strong><span>Reading basis</span><strong>Native / page position</strong></div></div></details>`:
+      `<div class="pf6-group-synthetic-note">Scalability example only — no source image, evidence span or geometry is attached. This value is illustrative, not a verified extraction.</div>`}
+  </div>`;
+}
+function groupDetailPanel(){
+  const g=allSourceGroups().find(group=>group.id===browserState.selectedGroupId);
+  if(!g){browserState.screen='groups';return groupBrowserPanel();}
+  const items=groupCandidates(g);
+  return `<section class="pf6-group-detail" aria-label="Selected source group">
+    <button type="button" class="pf6-group-back" data-pf6-back-groups>← Back to source groups</button>
+    <div class="pf6-detail-heading"><span class="pf6-detail-eyebrow">Source group · not canonical equipment</span><h3>${escapeHtml(g.name)}</h3><p>${escapeHtml(g.description)}<br>${escapeHtml(g.type)} · Page ${g.page+1}${g.runLabel?`<br>${escapeHtml(g.runLabel)}`:''}</p><span class="pf6-detail-count">${items.length} candidate${items.length===1?'':'s'}</span></div>
+    ${g.sample?'<div class="pf6-group-synthetic-note">This group is part of the 50-group scalability example, not a reading from the displayed drawing. No source highlighting is available.</div>':''}
+    <div class="pf6-detail-label">Extracted candidates</div>
+    ${items.map(c=>{
+      const active=g.sample?browserState.selectedSampleCandidate===c.id:state.active===c.id;
+      const status=(c.state||'UNMAPPED').toLowerCase();
+      return `<div class="pf6-group-candidate-entry ${active?'is-selected':''}">
+        <button type="button" class="candidate ${active?'active':''}" data-pf6-group-candidate="${escapeHtml(c.id)}" aria-pressed="${active}" aria-label="${escapeHtml(c.label)}, ${escapeHtml(c.value)}, ${escapeHtml(c.state)}">
+          <div class="cand-top"><span class="cand-title">${escapeHtml(c.label)}</span><span class="tag ${status}">${escapeHtml(c.state)}</span></div>
+          <div class="cand-value">${escapeHtml(c.value)}</div><div class="cand-foot">${g.sample?'Scalability demo (no source witness)':`Page ${c.page+1} · ${escapeHtml(c.type)}`}</div>
+        </button>${active?candidateProvenance(c,g):''}
+      </div>`;
+    }).join('')}
+  </section>`;
+}
+function hierarchyPanel(){return browserState.screen==='detail'?groupDetailPanel():groupBrowserPanel();}
+function attachGroupRowHandlers(){
+  document.querySelectorAll('[data-pf6-open-group]').forEach(el=>el.addEventListener('click',()=>{
+    browserState.listScroll=document.querySelector('#panel-content')?.scrollTop||0;
+    browserState.selectedGroupId=el.dataset.pf6OpenGroup;
+    browserState.selectedSampleCandidate=null;
+    browserState.screen='detail';renderPanel();document.querySelector('#panel-content')?.scrollTo(0,0);
+  }));
+  document.querySelector('[data-pf6-load-more]')?.addEventListener('click',()=>{
+    const scroll=document.querySelector('#panel-content')?.scrollTop||0;
+    browserState.limit+=resultLimit;rerenderGroupRows();
+    if(document.querySelector('#panel-content'))document.querySelector('#panel-content').scrollTop=scroll;
+  });
+}
+function rerenderGroupRows(){
+  const target=document.querySelector('#pf6-group-results');if(!target)return;
+  target.innerHTML=groupListRows();attachGroupRowHandlers();
+}
+function attachHierarchyHandlers(){
+  const search=document.querySelector('#pf6-group-search');
+  search?.addEventListener('input',()=>{browserState.query=search.value;browserState.limit=resultLimit;rerenderGroupRows();});
+  document.querySelectorAll('[data-pf6-scope]').forEach(el=>el.addEventListener('click',()=>{
+    browserState.pageScope=el.dataset.pf6Scope;browserState.limit=resultLimit;renderPanel();
+  }));
+  const type=document.querySelector('#pf6-group-type');
+  type?.addEventListener('change',()=>{browserState.type=type.value;browserState.limit=resultLimit;rerenderGroupRows();});
+  const status=document.querySelector('#pf6-group-status');
+  status?.addEventListener('change',()=>{browserState.status=status.value;browserState.limit=resultLimit;rerenderGroupRows();});
+  document.querySelector('[data-pf6-demo50]')?.addEventListener('click',()=>{
+    browserState.demo50=!browserState.demo50;browserState.limit=resultLimit;renderPanel();
+  });
+  document.querySelector('[data-pf6-back-groups]')?.addEventListener('click',()=>{
+    browserState.screen='groups';renderPanel();
+    const scroller=document.querySelector('#panel-content');if(scroller)scroller.scrollTop=browserState.listScroll;
+    document.querySelector('#pf6-group-search')?.focus({preventScroll:true});
+  });
+  document.querySelectorAll('[data-pf6-group-candidate]').forEach(el=>el.addEventListener('click',()=>{
+    const group=allSourceGroups().find(x=>x.id===browserState.selectedGroupId);
+    if(!group)return;
+    if(group.sample){browserState.selectedSampleCandidate=el.dataset.pf6GroupCandidate;renderPanel();}
+    else inspect(el.dataset.pf6GroupCandidate);
+  }));
+  document.querySelectorAll('[data-pf6-locate]').forEach(el=>el.addEventListener('click',()=>inspect(el.dataset.pf6Locate)));
+  attachGroupRowHandlers();
+}
+
+/* v1.19.1: no dedicated Tables tab or bidirectional table navigation.
+ * Raw table results remain an optional technical disclosure in Run history.
+ * The default Candidates browser presents source-local observations from both run families.
+ * Neither duplicate-looking values nor matching tag strings are deduplicated or identity-merged. */
+function rawTableDisclosure(){return `<details class="pf6-raw-table-details"><summary>Inspect raw table output (technical)</summary>
+  <div class="pf6-raw-table-content"><p>Reconstructed source cells are retained for provenance and troubleshooting. This is not another candidate browser; printed values are not independently verified.</p>
+  <div class="pf6-table-box"><div class="pf6-table-title">Transformer specification · page 2</div>
+  <table aria-label="Raw transformer table output"><thead><tr><th style="width:62%">Source cell label</th><th>Recognized text</th></tr></thead>
+  <tbody><tr><td>Rated apparent power</td><td>750 kVA</td></tr><tr><td>Primary voltage</td><td>12.47 kV</td></tr><tr><td>Secondary voltage</td><td>600 V</td></tr><tr><td>Percent impedance</td><td>5.75%</td></tr></tbody></table></div></div></details>`;}
+function historyPanel(){return `<div class="group"><div class="group-title">Separate extraction runs</div>
+  <div class="pf6-viewer-summary"><strong>One candidate browser, separate run records</strong><div>Prose candidates come from Engineering · Run 01. Table-derived candidates come from Tables · Run 02. Both appear in Candidates, but each preserves its own run and evidence identity.</div></div>
+  <div class="pf6-history"><div class="pf6-history-head"><strong>Engineering · Run 01</strong><span class="tag mapped">Completed</span></div><p>2 prose candidates · 2 pages · source-local evidence</p><button class="btn" data-pf6-view-candidates>Browse candidates</button></div>
+  <div class="pf6-history"><div class="pf6-history-head"><strong>Tables · Run 02</strong><span class="tag mapped">Completed</span></div><p>4 table-derived candidates · 1 supported table · independent extraction run</p><button class="btn" data-pf6-view-candidates>Browse candidates</button>${rawTableDisclosure()}</div>
+  <div class="pf6-history"><div class="pf6-history-head"><strong>Previous Tables · Run 00</strong><span class="tag unmapped">Partial</span></div><p>Historical partial results remain available. Retry affects failed units only; completed outputs stay immutable.</p><button class="btn" data-pf6-retry>Retry unsuccessful units (demo)</button></div>
+  </div>`;}
+panelEvidence=function(){
+  const summary='<div class="pf6-viewer-summary"><strong>Extraction Evidence</strong><div>Browse source-grounded engineering candidates from both extraction profiles. Each remains tied to its original run and source; no canonical-equipment association is made.</div></div>';
+  const tabs=`<div class="pf6-viewer-tabs" role="tablist" aria-label="Extraction evidence sections"><button role="tab" data-pf6-tab="candidates" aria-selected="${tab==='candidates'}" class="${tab==='candidates'?'active':''}">Candidates</button><button role="tab" data-pf6-tab="history" aria-selected="${tab==='history'}" class="${tab==='history'?'active':''}">Run history</button></div>`;
+  if(docId!=='d1')return summary+tabs+'<div class="group"><div class="group-title">Extraction not available in this demo</div><div class="hint">This example has no committed extraction results. Return to Documents to start the guided source enrichment and extraction workflow.</div><button class="btn" data-pf6-documents style="margin-top:12px">Back to Documents</button></div>';
+  return summary+tabs+(tab==='history'?historyPanel():hierarchyPanel());
+
+};
+const originalRender=renderPanel;
+renderPanel=function(){
+  originalRender();
+  for(const control of document.querySelectorAll('[data-pf6-tab]'))control.addEventListener('click',()=>{tab=control.dataset.pf6Tab;renderPanel();});
+  for(const control of document.querySelectorAll('[data-pf6-view-candidates]'))control.addEventListener('click',()=>{tab='candidates';browserState.screen='groups';renderPanel();});
+  for(const control of document.querySelectorAll('[data-pf6-retry]'))control.addEventListener('click',()=>notice('Demo only: failed work unit retry requested. No backend call executed.'));
+  for(const control of document.querySelectorAll('[data-pf6-documents]'))control.addEventListener('click',()=>location.href='powerforge-documents-prototype.html');
+  if(state.mode==='evidence'&&docId==='d1'&&tab==='candidates')attachHierarchyHandlers();
+};
+document.addEventListener('click',e=>{
+  if(e.target.closest('#run-extract')){
+    e.preventDefault();e.stopImmediatePropagation();location.href=`powerforge-documents-prototype.html?extract=${encodeURIComponent(docId)}`;
+  }
+},true);
+const originalSetPage=setPage;
+setPage=function(page){const previous=state.page;originalSetPage(page);if(state.page!==previous&&browserState.pageScope==='current'&&browserState.screen==='groups'&&tab==='candidates')rerenderGroupRows();};
+const title=document.querySelector('.title-line h1');
+if(title){title.textContent=docId==='d1'?'E101 — Single Line & Transformer Data':(docs[docId]||'Document')+' — Source pages';}
+const sub=document.querySelector('.title-line .subtitle');
+if(sub)sub.textContent='Illustrative engineering document · PDF · Source and evidence inspection · No production data';
+if(q.get('mode')==='evidence'||tab==='history')setMode('evidence');else renderPanel();
+})();
+
 </script>
 <script id="powerforge-controls-script">
 /* PowerForge UX-9.1: progressive enhancement for HTML design prototypes.

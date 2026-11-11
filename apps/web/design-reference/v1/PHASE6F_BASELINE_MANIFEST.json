@@ -1,0 +1,33 @@
+{
+  "source_repository": "https://github.com/adilzafar66/PowerForge",
+  "source_branch": "main",
+  "source_commit": "a2e2ad222ef84d3751df6a88c58159eef73c20dc",
+  "source_path": "apps/web/design-reference/v1",
+  "final_version": "v1.19.2",
+  "unchanged_git_blobs": {
+    "CODEX_HANDOFF.md": "ae0156daf99821313963ade3f908e71d332bdd0a",
+    "UX10_V1_12_RELEASE_NOTES.md": "cc4a56e52438d348be78ef74bcb0f0cc382c21b3",
+    "UX10_V1_13_RELEASE_NOTES.md": "6edac3ed15b0921f81aa757efcc6d424df4e9be2",
+    "UX8_RELEASE_NOTES.md": "e3e95174e2a486d513eec0b8c6941526ba1c3a16",
+    "UX9_1_RELEASE_NOTES.md": "e1783a18ed6152eb44962b030e0cff0db5719d1c",
+    "UX9_2_RELEASE_NOTES.md": "f190b7d88fb292c6a42e8aeb7840d540a94ad256",
+    "UX9_3_RELEASE_NOTES.md": "b67a391dcd81c22b41fd76ea4170be4b7faee393",
+    "UX9_DESIGN_SYSTEM_SPEC.md": "29720df93f8a90740b8d3367e191b91a1d70d004",
+    "UX9_RELEASE_NOTES.md": "485ffd9455b25f64f231836c9605f41f1e942bc4",
+    "assets/powerforge-controls.css": "76630417a88a2a91c9ce723436ff3e24abee6539",
+    "assets/powerforge-controls.js": "0736d8afd4d59f36da46884aef8913a40cb9f802",
+    "design-tokens.css": "a8f86512c21270af99c39acf6a7d66296f986674",
+    "prototypes/powerforge-design-system-prototype.html": "1aeb4f7dc893743183a38d25b794b2ce2aac76f2",
+    "prototypes/powerforge-equipment-prototype.html": "b460e2837e05940e71e972327d24310f97a2df37",
+    "prototypes/powerforge-project-revisions-prototype.html": "8205712a616dcd565754f0424d0d645898b9d9a9",
+    "prototypes/powerforge-projects-prototype.html": "45752ab0b69f93b5ce256684d6915754a4db0ad4",
+    "prototypes/powerforge-topology-prototype.html": "ddf375bdb8b781ee873e3438e10277af637bf204"
+  },
+  "phase6f_changed_from_main": [
+    "README.md",
+    "index.html",
+    "prototypes/powerforge-documents-prototype.html",
+    "prototypes/powerforge-document-evidence-prototype.html"
+  ],
+  "note": "Additional Phase 6F design documents, screenshots, and QA tests supplied; no unrelated baseline prototype files modified."
+}
