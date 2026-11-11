@@ -598,6 +598,10 @@ def test_v3_mapping_checks_evidence_and_conflicts_instead_of_label_length(
     ("reading", "expected"),
     [
         ("kVA: 350", "MAPPED"),
+        ("kVA: 350 kVA", "MAPPED"),
+        ("kVA: 350 MAX", "UNMAPPED"),
+        ("kVA: 350 MIN.", "UNMAPPED"),
+        ("kVA: 350 fan cooled", "UNMAPPED"),
         ("350 kVA:", "UNMAPPED"),
         ("kVA: 350 / 350", "UNMAPPED"),
         ("kVA: 350.5", "UNMAPPED"),
@@ -649,6 +653,12 @@ def test_shared_source_reading_uses_unique_ordered_substrings(monkeypatch, readi
     )
     output = convert_engineering(attributes(claim), later, recognized, distributed=True)
     assert output.candidates[0].mapping_status == expected
+    if reading.endswith(("MAX", "MIN.", "fan cooled")):
+        candidate = output.candidates[0]
+        assert candidate.reason_code == "QUALIFIED_VALUE_RETAINED"
+        assert candidate.numeric_value is None and candidate.raw_value == "350"
+        assert candidate.raw_text == reading
+        assert any(e.source_snippet == reading for e in output.evidence)
     if expected == "MAPPED":
         candidate = output.candidates[0]
         assert candidate.numeric_value == 350

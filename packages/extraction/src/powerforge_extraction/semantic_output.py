@@ -200,6 +200,28 @@ def _equipment_meaning(result, proposal, passage, uncertain):
     )
 
 
+_SHORT_RATING_CONDITION = re.compile(r"\b(?:max|min)\b", re.I)
+
+
+def _unexplained_rating_suffix(value, unit):
+    anchor, selected, _, line = value
+    if not selected:
+        return ""
+    last = line.index(selected[-1])
+    fragment = render(selected)
+    matches = list(re.finditer(r"(?<!\w)" + re.escape(anchor.quote) + r"(?!\w)", fragment))
+    if len(matches) != 1:
+        return fragment
+    suffix = " ".join((fragment[matches[0].end() :], render(line[last + 1 :]))).strip()
+    if not suffix or suffix == unit:
+        return ""
+    # Preserve the existing scalar-voltage interpretation of winding notation.
+    if unit and _UNIT_SPELLINGS.get(unit.casefold(), unit) in {"V", "kV"}:
+        if suffix.casefold() in {f"delta {unit}".casefold(), f"wye {unit}".casefold()}:
+            return ""
+    return suffix
+
+
 def _qualified(sources, observation, passage, has_qualifier):
     if has_qualifier or _CONDITIONAL.search(passage):
         return True
@@ -653,6 +675,13 @@ def convert_engineering(response, sources, context=None, *, trace=None, distribu
                 value_exact = value[0].quote == obs.raw_value or bool(
                     unit and value[0].quote == f"{obs.raw_value} {unit}"
                 )
+            rating_suffix = (
+                _unexplained_rating_suffix(value, unit if unit_supported else None)
+                if distributed and obs.raw_value and legacy._NUMBER.fullmatch(obs.raw_value)
+                else ""
+            )
+            if rating_suffix and not raw.endswith(rating_suffix):
+                raw = f"{raw} {rating_suffix}"[:2000]
             result = replace(
                 result,
                 raw_text=value[0].quote if basis == "UNRESOLVED" else raw,
@@ -737,7 +766,11 @@ def convert_engineering(response, sources, context=None, *, trace=None, distribu
                         kind,
                         label[0].quote,
                         mention.raw_text,
-                        _qualified(sources, obs, passage, "QUALIFIER" in by_role),
+                        _qualified(sources, obs, passage, "QUALIFIER" in by_role)
+                        or bool(
+                            distributed
+                            and (rating_suffix or _SHORT_RATING_CONDITION.search(passage))
+                        ),
                         source_supported=distributed,
                     )
             if basis not in {"UNRESOLVED", "VISUAL_REPORTED"}:
