@@ -247,3 +247,11 @@ The original positioned 6D PDF gains four supported cells and two header paths o
 Run detail includes an optional `stage_trace` per enhanced attempt. It reports the last execution boundary, provider outcome, parsed observation totals, admitted and rejected source observations, semantic decisions and committed output counts. An empty completed stage may have returned observations that failed source checks. A table response that fails structured validation reports a safe subtype and bounded schema paths. A parsed response that refers to unowned source aliases reports a grounding failure.
 
 Migration 0018 adds an append-only trace record. The existing attempt fence and transaction govern both the trace and settlement. Prior attempts have no trace. Run History uses existing revision and document access. See the [Phase 6G handoff](PHASE6G_HANDOFF.md) for the local developer capture, confidentiality boundaries and verification.
+
+## Phase 6G M4–M5 — Compact Tables reconstruction
+
+With the semantic profiles opt-in enabled, the Documents wizard offers Engineering v3 and Tables v4 for their respective extraction families. Tables v4 asks the model to select committed partition aliases and propose their orientation. The server materializes the selected cells, exact reading evidence, spans and header relationships. Unstructured reported tables use the existing page-level evidence rules. Reported visual cells carry no verified native text offsets or cell coordinates.
+
+Tables Interpretation uses the committed reconstruction. The model proposes meaning and the converter checks the cited cell, association, qualifications, registry compatibility and normalization. Distinct installed rows retain distinct equipment mentions. A grounded provisioned quantity remains an unmapped observation with its marker cited. Candidates still require engineer review.
+
+Existing Tables and Engineering profiles remain addressable with their historical identities. The v4 recipe is stored in the existing table layout metadata and independently replayed against the bound source before publication and interpretation. See the [Phase 6G handoff](PHASE6G_HANDOFF.md) and [evaluation procedure](../evals/extraction/phase6g/README.md).

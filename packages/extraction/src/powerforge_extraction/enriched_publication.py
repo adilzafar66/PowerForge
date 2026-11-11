@@ -98,7 +98,9 @@ def prepare_publication(factory, storage, unit_id, output) -> VerifiedEnrichedPu
         profile = read_profile(configuration)
         snapshot = bound_snapshot(session, unit)
     sources = load_bound(snapshot, storage, unit, profile)
-    validate_locations(sources, output)
+    from powerforge_extraction.enriched_profiles import CompactTableProfile
+
+    validate_locations(sources, output, compact=isinstance(profile, CompactTableProfile))
     return VerifiedEnrichedPublication(
         unit_id=unit_id,
         profile_hash=run.profile_hash,
@@ -121,20 +123,29 @@ def prepare_publication(factory, storage, unit_id, output) -> VerifiedEnrichedPu
     )
 
 
-def validate_locations(sources, output):
+def validate_locations(sources, output, *, compact=False):
     generated = {}
     for reading in sources.readings:
         if "NATIVE_PREFERRED_UNALIGNED" not in reading.model.issues:
             generated[reading.model.preferred] = reading
     for table in output.tables:
-        response = EnrichedReconstructionResponse.model_validate(
-            dict(
-                schema_version="table-reconstruction-schema-v2",
-                overflowed=False,
-                tables=[table.layout.metadata["reported_observation"]],
+        if compact:
+            from powerforge_extraction.table_reconstruction_v4 import (
+                compact_response_from_layouts,
+                reconstruct_compact,
             )
-        )
-        expected, _ = reconstruct(response, sources)
+
+            response = compact_response_from_layouts([table.layout.model_dump(mode="json")])
+            expected, _ = reconstruct_compact(response, sources)
+        else:
+            response = EnrichedReconstructionResponse.model_validate(
+                dict(
+                    schema_version="table-reconstruction-schema-v2",
+                    overflowed=False,
+                    tables=[table.layout.metadata["reported_observation"]],
+                )
+            )
+            expected, _ = reconstruct(response, sources)
         if expected.tables != [table]:
             raise ValueError("Table layout does not reproduce from the exact pinned source")
         expected_evidence = {e.id: e for e in expected.evidence}

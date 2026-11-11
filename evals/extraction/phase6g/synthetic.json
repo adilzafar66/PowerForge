@@ -1,0 +1,32 @@
+{
+  "version": "phase6g-synthetic-v1",
+  "notes": "Authored source layouts and expected claims. All names and dimensions are synthetic. Numeric strings denote exact decimal values.",
+  "cases": {
+    "split_transformer": {
+      "lines": ["2-Winding Transformer", "Continuous transfer duty (kVA)", "350"],
+      "expected": {"key": "rated_apparent_power", "numeric": "350", "unit": "kVA", "source_parts": ["Continuous transfer duty (kVA)", "350"]}
+    },
+    "distributed_transformer": {
+      "page_points": [760, 650],
+      "lines": [
+        [30, 50, "Dry-type Transformer"],
+        [365, 300, "Winding Specifications"],
+        [365, 325, "Primary: 13.8 kV"],
+        [365, 350, "Secondary: 600 V"],
+        [80, 460, "Electrical Ratings"],
+        [80, 485, "kVA:"],
+        [80, 507, "350"],
+        [560, 610, "TAG: 80T1"]
+      ],
+      "expected": {"tag": "80T1", "type": "TWO_WINDING_TRANSFORMER", "rated_apparent_power": "350", "association": "CORROBORATED_SPECIFICATION_SECTION"}
+    },
+    "transformer_form": {
+      "rows": [["Field", "Reading"], ["Equipment type", "2-Winding Transformer"], ["Continuous transfer duty (kVA)", "350"]],
+      "expected": {"orientation": "ATTRIBUTE_ROWS", "tables": 1, "cells": 6, "key": "rated_apparent_power", "numeric": "350", "unit": "kVA"}
+    },
+    "breaker_schedule": {
+      "rows": [["Equipment", "Quantity"], ["LV Breaker GBH3020", "1"], ["LV Breaker GBH3020", "1"], ["PROV", "18"]],
+      "expected": {"orientation": "EQUIPMENT_ROWS", "tables": 1, "cells": 8, "installed_mentions": 2, "provisioned_count": "18", "breaker_tags": []}
+    }
+  }
+}

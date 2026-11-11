@@ -15,8 +15,26 @@ from powerforge_extraction.semantic_output import (
     _equipment_meaning,
 )
 
+_PROVISIONED = re.compile(
+    r"(?:PROV|PROVISIONED|SPARE|SPACE|RESERVED)(?:\s+(?:SPACE|POSITION))?", re.I
+)
 
-def interpret_tables(response, sources, context, *, trace=None, source_supported=False):
+
+def _provisioned_rows(table):
+    if table.kind != "EQUIPMENT_ROWS":
+        return set()
+    return {
+        c.row
+        for c in table.observation.cells
+        if c.row_span == 1
+        and c.header_role == "NONE"
+        and _PROVISIONED.fullmatch((c.raw_text or "").strip())
+    }
+
+
+def interpret_tables(
+    response, sources, context, *, trace=None, source_supported=False, compact=False
+):
     """Interpret committed cells without using terminology as the mapping gate."""
     from powerforge_extraction.table_output import _scope, headers
 
@@ -24,6 +42,10 @@ def interpret_tables(response, sources, context, *, trace=None, source_supported
     output.existing_evidence = {e.id for e in context.output.evidence}
     tables = {table.observation.local_ref: table for table in context.tables}
     mentions = {}
+    physical_mentions = {}
+    provisioned = (
+        {ref: _provisioned_rows(table) for ref, table in tables.items()} if compact else {}
+    )
     for obs in response.equipment:
         table = tables.get(obs.table_ref)
         if table is None or any(ref not in table.items for ref in obs.source_refs):
@@ -31,6 +53,31 @@ def interpret_tables(response, sources, context, *, trace=None, source_supported
                 trace.observe("GROUNDING_REJECTED", obs, reason="UNAVAILABLE_TABLE_SOURCE_ALIAS")
             continue
         scope, cells = _scope(table, obs)
+        if compact and not cells and table.kind == "ATTRIBUTE_ROWS":
+            types = [
+                c
+                for c in table.observation.cells
+                if c.state == "VALUE"
+                and c.header_role == "NONE"
+                and c.raw_text
+                and any(
+                    h.raw_text.strip().casefold() in {"equipment type", "device type"}
+                    for h in headers(table, c)
+                )
+            ]
+            cells = [
+                c
+                for c in types
+                if c.local_ref in obs.source_refs and contains(obs.raw_expression, c.raw_text)
+            ]
+            if (
+                len(types) == len(cells) == 1
+                and table.basis not in {"UNRESOLVED", "VISUAL_REPORTED"}
+                and not (
+                    table.observation.ambiguous or table.observation.truncated or cells[0].ambiguous
+                )
+            ):
+                scope = "spec"
         if not cells and table.kind == "EQUIPMENT_ROWS":
             cells = [
                 cell
@@ -63,7 +110,9 @@ def interpret_tables(response, sources, context, *, trace=None, source_supported
             if (title and title.local_ref in table.scoped and not title.ambiguous)
             else identity_text
         )
-        if re.search(r"\b(?:PROV|PROVISIONED|SPARE|SPACE)\b", passage, re.I):
+        if any(c.row in provisioned.get(obs.table_ref, ()) for c in cells) or re.search(
+            r"\b(?:PROV|PROVISIONED|SPARE|SPACE)\b", identity_text if compact else passage, re.I
+        ):
             if trace:
                 trace.observe("SOURCE_SCOPE_REJECTED", obs, reason="PROVISIONED_POSITION")
             continue
@@ -72,6 +121,25 @@ def interpret_tables(response, sources, context, *, trace=None, source_supported
             if obs.observed_tag and contains(obs.observed_tag, identity_text)
             else None
         )
+        if (
+            compact
+            and tag
+            and not any(
+                contains(tag, c.raw_text)
+                and any(
+                    h.raw_text.strip().casefold() in {"tag", "equipment tag", "designation"}
+                    for h in headers(table, c)
+                )
+                for c in cells
+            )
+        ):
+            tag = None
+        key = (obs.table_ref, scope, tuple(c.local_ref for c in cells), obs.raw_expression)
+        if compact and scope and key in physical_mentions:
+            mentions[obs.local_ref] = physical_mentions[key]
+            if trace:
+                trace.observe("DUPLICATE_OBSERVATIONS", obs, reason="DUPLICATE_SOURCE_ASSERTION")
+            continue
         evidence = [e for ref in obs.source_refs for e in table.items[ref]]
         result = _equipment_meaning(
             Interpretation(
@@ -103,6 +171,8 @@ def interpret_tables(response, sources, context, *, trace=None, source_supported
             },
         )
         mentions[obs.local_ref] = (table, scope, c, passage)
+        if compact and scope:
+            physical_mentions[key] = mentions[obs.local_ref]
         output.candidates.append(c)
         output.cite(c, evidence)
         if group:
@@ -160,7 +230,16 @@ def interpret_tables(response, sources, context, *, trace=None, source_supported
             raw_value=obs.raw_value if raw_supported else cell.raw_text,
             raw_unit=unit if unit_supported else None,
         )
-        mention = mentions.get(obs.equipment_ref)
+        is_provisioned = cell.row in provisioned.get(obs.table_ref, ())
+        if is_provisioned:
+            result = Interpretation(
+                MappingStatus.UNMAPPED,
+                "PROVISIONED_POSITION",
+                cell.raw_text,
+                raw_value=result.raw_value,
+                raw_unit=result.raw_unit,
+            )
+        mention = None if is_provisioned else mentions.get(obs.equipment_ref)
         scope = f"row:{cell.row}" if table.kind == "EQUIPMENT_ROWS" else "spec"
         if mention and (mention[0] is not table or mention[1] != scope or cell.row_span != 1):
             mention = None
@@ -203,6 +282,13 @@ def interpret_tables(response, sources, context, *, trace=None, source_supported
                 )
         primary = table.items[cell.local_ref]
         supporting = [e for h in hs for e in table.items[h.local_ref]]
+        if is_provisioned:
+            supporting.extend(
+                e
+                for item in table.observation.cells
+                if item.row == cell.row and _PROVISIONED.fullmatch((item.raw_text or "").strip())
+                for e in table.items[item.local_ref]
+            )
         evidence_parts = [{"role": "VALUE", "evidence_ids": [str(e.id) for e in primary]}]
         for role, refs in (
             ("LABEL", obs.label_refs),

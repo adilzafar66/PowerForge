@@ -243,13 +243,12 @@ EnqueueDep = Annotated[CeleryExtractionEnqueue, Depends(get_extraction_enqueue)]
 def profiles(reader: Service, settings: SettingsDep) -> ProfileList:
     from powerforge_extraction.enriched_profiles import (
         PRODUCTION,
-        SEMANTIC_PROFILES,
-        SEMANTIC_V3_PROFILES,
+        SUCCESSOR_PROFILES,
     )
     from powerforge_extraction.production_profiles import PRODUCTION_PROFILES
     from powerforge_extraction.table_profiles import TABLE_PRODUCTION_PROFILES
 
-    enriched_profiles = (*PRODUCTION, *SEMANTIC_PROFILES, *SEMANTIC_V3_PROFILES)
+    enriched_profiles = (*PRODUCTION, *SUCCESSOR_PROFILES)
     items = []
     for key in [
         FAKE_PROFILE,

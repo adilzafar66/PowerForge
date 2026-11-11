@@ -134,6 +134,10 @@ class StageDiagnostics:
             for name in ("equipment", "attributes", "tables")
             if hasattr(response, name)
         }
+        if hasattr(response, "partitions"):
+            self.counts["SELECTED_PARTITIONS"] = len(response.partitions)
+            self.counts["REPORTED_TABLES"] = len(response.reported_tables)
+            self.returned["tables"] = len(response.partitions) + len(response.reported_tables)
         if self.capture is not None:
             self.capture.response(response)
 

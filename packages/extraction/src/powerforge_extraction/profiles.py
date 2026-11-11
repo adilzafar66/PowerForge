@@ -102,10 +102,12 @@ def read_profile(configuration: dict) -> ExecutionProfile | EngineeringProfile:
     version = configuration.get("version")
     if version in {"execution-profile-v5", "execution-profile-v6"}:
         from powerforge_extraction.enriched_profiles import (
+            COMPACT_TABLES,
             DISTRIBUTED_ENGINEERING,
             SEMANTIC_ENGINEERING,
             SEMANTIC_TABLES,
             SOURCE_SUPPORTED_TABLES,
+            CompactTableProfile,
             DistributedEngineeringProfile,
             EnrichedEngineeringProfile,
             EnrichedTableProfile,
@@ -133,6 +135,8 @@ def read_profile(configuration: dict) -> ExecutionProfile | EngineeringProfile:
             and configuration.get("key") == SOURCE_SUPPORTED_TABLES
         ):
             model = SourceSupportedTableProfile
+        if version == "execution-profile-v6" and configuration.get("key") == COMPACT_TABLES:
+            model = CompactTableProfile
         return model.model_validate_json(json.dumps(configuration))
     if version == "source-layout-profile-v1":
         from powerforge_extraction.layout_profiles import SourceLayoutProfile
@@ -203,14 +207,13 @@ def engineering_profile(key: str, settings: Settings) -> EngineeringProfile:
 def resolve_profile(key: str, settings: Settings) -> ExecutionProfile:
     from powerforge_extraction.enriched_profiles import (
         PROFILES,
-        SEMANTIC_PROFILES,
-        SEMANTIC_V3_PROFILES,
+        SUCCESSOR_PROFILES,
         enriched_profile,
     )
     from powerforge_extraction.production_profiles import PRODUCTION_PROFILES, production_profile
     from powerforge_extraction.table_profiles import TABLE_PROFILES, table_profile
 
-    if key in (*PROFILES, *SEMANTIC_PROFILES, *SEMANTIC_V3_PROFILES):
+    if key in (*PROFILES, *SUCCESSOR_PROFILES):
         return enriched_profile(key, settings)
     if key in TABLE_PROFILES:
         return table_profile(key, settings)

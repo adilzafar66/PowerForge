@@ -11,6 +11,7 @@ from powerforge_extraction.enriched_grounding import line_groups, table_readings
 from powerforge_extraction.enriched_output import convert_equipment
 from powerforge_extraction.enriched_planning import metadata
 from powerforge_extraction.enriched_profiles import (
+    CompactTableProfile,
     EnrichedTableProfile,
     is_semantic,
     prompt_for,
@@ -203,14 +204,23 @@ def upstream_output(session, sources, parent, profile):
         rows = list(
             session.scalars(select(ExtractedTable).where(ExtractedTable.work_unit_id == parent.id))
         )
-        response = stage_models(profile)[parent.stage].model_validate(
-            dict(
-                schema_version=stage_schemas(profile)[parent.stage],
-                overflowed=False,
-                tables=[r.layout["metadata"]["reported_observation"] for r in rows],
+        if isinstance(profile, CompactTableProfile):
+            from powerforge_extraction.table_reconstruction_v4 import (
+                compact_response_from_layouts,
+                reconstruct_compact,
             )
-        )
-        output, context = reconstruct(response, original)
+
+            response = compact_response_from_layouts([row.layout for row in rows])
+            output, context = reconstruct_compact(response, original)
+        else:
+            response = stage_models(profile)[parent.stage].model_validate(
+                dict(
+                    schema_version=stage_schemas(profile)[parent.stage],
+                    overflowed=False,
+                    tables=[r.layout["metadata"]["reported_observation"] for r in rows],
+                )
+            )
+            output, context = reconstruct(response, original)
         actual = {
             r.id: EnrichedTableInput.model_validate_json(
                 json.dumps(

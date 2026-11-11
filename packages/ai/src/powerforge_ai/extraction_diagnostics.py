@@ -66,6 +66,8 @@ def validation_issues(exc: ValidationError, model: type[BaseModel]) -> tuple[Val
         kind = error["type"]
         reason = {
             "json_invalid": FailureDetail.MALFORMED_JSON,
+            "duplicate_table_alias": FailureDetail.DUPLICATE_ALIAS,
+            "table_response_overflow": FailureDetail.RESPONSE_OVERFLOW,
             "missing": FailureDetail.MISSING_FIELD,
             "too_long": FailureDetail.RESPONSE_OVERFLOW,
             "string_too_long": FailureDetail.RESPONSE_OVERFLOW,

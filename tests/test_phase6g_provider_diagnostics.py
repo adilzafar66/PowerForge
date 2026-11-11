@@ -98,8 +98,20 @@ def test_safe_terminal_outcome_without_response_content(changes, reason):
     assert len(client.calls) == 1
 
 
+@pytest.mark.parametrize("compact", [False, True])
 @pytest.mark.parametrize("truncated", [False, True])
-def test_sdk_raw_wrapper_preserves_valid_output_and_observable_token_limit(schedule, truncated):
+def test_sdk_raw_wrapper_preserves_valid_output_and_observable_token_limit(
+    schedule, truncated, compact
+):
+    from powerforge_extraction.table_reconstruction_v4 import CompactReconstructionResponse
+
+    if compact:
+        schedule = dict(
+            schema_version="table-reconstruction-schema-v3",
+            overflowed=False,
+            partitions=[],
+            reported_tables=[],
+        )
     calls = []
     if issubclass(openai.DefaultHttpxClient, httpx.Client):
         transport_api = httpx
@@ -133,7 +145,7 @@ def test_sdk_raw_wrapper_preserves_valid_output_and_observable_token_limit(sched
         )
 
     settings = Settings(_env_file=None, extraction_external_enabled=True)
-    profile = enriched_profile("tables-openai-enriched-v1", settings)
+    profile = enriched_profile(f"tables-openai-enriched-v{4 if compact else 1}", settings)
     req = ExtractionRequest(
         work_unit_id=uuid4(),
         unit_key="TABLE_RECONSTRUCTION:page:000001",
@@ -141,7 +153,7 @@ def test_sdk_raw_wrapper_preserves_valid_output_and_observable_token_limit(sched
         stage="TABLE_RECONSTRUCTION",
         model=profile.model,
         instructions="synthetic instructions",
-        schema_version="table-reconstruction-schema-v2",
+        schema_version=schedule["schema_version"],
         timeout_seconds=profile.timeout_seconds,
         max_output_tokens=profile.max_output_tokens,
         text='{"version":"enriched-source-context-v1","untrusted":true,"readings":[]}',
@@ -149,7 +161,7 @@ def test_sdk_raw_wrapper_preserves_valid_output_and_observable_token_limit(sched
         image=b"synthetic-image",
         image_mime_type="image/png",
         image_detail=profile.image_detail,
-        response_model=EnrichedReconstructionResponse,
+        response_model=CompactReconstructionResponse if compact else EnrichedReconstructionResponse,
     )
     with openai.OpenAI(
         api_key="fixture-only",

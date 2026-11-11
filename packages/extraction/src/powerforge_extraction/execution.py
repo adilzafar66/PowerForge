@@ -230,6 +230,7 @@ def execute_unit(
     try:
         with heartbeats(factory, claim, settings):
             from powerforge_extraction.enriched_profiles import (
+                COMPACT_TABLES,
                 DISTRIBUTED_ENGINEERING,
                 SOURCE_SUPPORTED_TABLES,
                 EnrichedTableProfile,
@@ -328,7 +329,9 @@ def execute_unit(
                                 sources,
                                 context,
                                 trace=diagnostics,
-                                source_supported=claim.profile.key == SOURCE_SUPPORTED_TABLES,
+                                source_supported=claim.profile.key
+                                in (SOURCE_SUPPORTED_TABLES, COMPACT_TABLES),
+                                compact=claim.profile.key == COMPACT_TABLES,
                             )
                         else:
                             output = convert_engineering(
@@ -345,7 +348,16 @@ def execute_unit(
                             response.result, sources, context, trace=diagnostics
                         )
                     elif request.stage == "TABLE_RECONSTRUCTION":
-                        output, _ = reconstruct(response.result, sources, trace=diagnostics)
+                        if claim.profile.key == COMPACT_TABLES:
+                            from powerforge_extraction.table_reconstruction_v4 import (
+                                reconstruct_compact,
+                            )
+
+                            output, _ = reconstruct_compact(
+                                response.result, sources, trace=diagnostics
+                            )
+                        else:
+                            output, _ = reconstruct(response.result, sources, trace=diagnostics)
                     else:
                         output = interpret(response.result, sources, context, trace=diagnostics)
                 except (ValueError, ValidationError) as exc:

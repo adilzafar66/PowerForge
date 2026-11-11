@@ -8,7 +8,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 UI-C visual fidelity rework follows the approved Projects/Revisions HTML layouts, including register toolbars, unified project details/revision activity, revision summary/workspaces/information, creation guidance rails, and edit sheets. Existing API/query/lifecycle safeguards remain. Validation: 291 frontend tests; desktop/mobile browser comparison; lint, TypeScript and production build. Necessary real-data and accessibility deviations are documented in the UI-C handoff.
 
-**Current engineering work:** Phase 6G M1–M3 diagnostics, grounding and AI-led mapping are implemented for review. The [M1 handoff](PHASE6G_HANDOFF.md) records verification and open issues. M4–M5 are pending.
+**Current engineering work:** Phase 6G M1–M5 are implemented for review. The [Phase 6G handoff](PHASE6G_HANDOFF.md) records compatibility, verification and the remaining live evaluation.
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -412,7 +412,7 @@ M1–M5 are implemented for review. Documents exposes the latest attempt and com
 
 ## Phase 6G — Extraction semantics and grounding
 
-M1 adds durable stage loss accounting, safe provider failure subtypes, opt-in local inspection, and targeted Run History diagnostics. The [plan](PHASE6G_PLAN.md) defines the later evidence, AI-led mapping, Tables and regression milestones. M2 adds role-bearing multi-reading grounding and raw retention. M3 adds the opt-in AI-led interpretation profiles for Engineering and Tables.
+M1 adds durable stage loss accounting, safe provider failure subtypes, opt-in local inspection, and targeted Run History diagnostics. M2 adds role-bearing multi-reading grounding and raw retention. M3 adds the opt-in AI-led interpretation profiles for Engineering and Tables. M4 adds compact, source-verified Tables reconstruction and distinguishes installed equipment from provisioned positions. M5 adds an annotated synthetic corpus and verifies historical replay, provider failure handling and the Documents workflow. See the [plan](PHASE6G_PLAN.md) and [handoff](PHASE6G_HANDOFF.md).
 
 ## Later phases
 
@@ -436,7 +436,7 @@ Phase 5A through 5G and the authoring refinement remain complete and frozen. Pha
 | 6B | Orchestration, provider infrastructure and execution reliability | Implemented (2026-11-03) |
 | 6C | Engineering equipment/attribute extraction | M1–M6 implemented; live quality unverified |
 | 6D–6F | Tables, OCR/layout, Documents and evidence workflows | Implemented for review; live quality unmeasured |
-| 6G | Extraction diagnostics, grounding, AI-led semantics, raw retention and table robustness | M1–M3 implemented for review; M4–M5 pending |
+| 6G | Extraction diagnostics, grounding, AI-led semantics, raw retention and table robustness | M1–M5 implemented for review |
 | 6H | Broad acceptance, live accuracy, load/cost/recovery, upgrade/restore, release hardening and Phase 6 freeze | Planned |
 | 6.5 | Spreadsheet ingestion after 6H and before 7 | Deferred; unimplemented |
 | 7 | Entity resolution | Not started |

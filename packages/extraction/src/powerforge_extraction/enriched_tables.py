@@ -29,7 +29,7 @@ class TableContext:
     output: object
 
 
-def _admit(sources, obs):
+def _admit(sources, obs, *, projected_table=False):
     source = next((t for t in sources.layout.tables if t.ref == obs.spatial_table_ref), None)
     if source is None:
         if obs.spatial_table_ref is not None:
@@ -41,7 +41,7 @@ def _admit(sources, obs):
             if all(a.source_ref == "analysis_image" for a in obs.anchors)
             else "UNRESOLVED"
         )
-    if obs.proposed_kind == "ATTRIBUTE_ROWS":
+    if obs.proposed_kind == "ATTRIBUTE_ROWS" and not projected_table:
         from powerforge_extraction.enriched_output import _known_field
 
         if source.columns != 2 or any(c.row_span != 1 or c.column_span != 1 for c in source.cells):
@@ -98,6 +98,8 @@ def _admit(sources, obs):
             # A new adapter may support explicit same-row labels from an established
             # partition; row coverage is proved, label meaning remains interpretation.
             for h in cell.header_refs:
+                if projected_table and h in expected:
+                    continue  # The committed column header is still applicable.
                 header = next((c for c in obs.cells if c.local_ref == h), None)
                 if (
                     header is None
@@ -107,14 +109,15 @@ def _admit(sources, obs):
                     or header.column + header.column_span > cell.column
                 ):
                     return "UNRESOLVED"
-        elif cell.header_refs != expected or (
-            (cell.header_role in ("COLUMN", "BOTH")) != (original.header_role == "COLUMN")
+        elif not projected_table and (
+            cell.header_refs != expected
+            or ((cell.header_role in ("COLUMN", "BOTH")) != (original.header_role == "COLUMN"))
         ):
             return "UNRESOLVED"
     return source.structure_basis
 
 
-def reconstruct(response, sources, *, trace=None):
+def reconstruct(response, sources, *, trace=None, projected_tables=frozenset()):
     if trace:
         trace.phase = "GROUNDING"
     output = Output(sources)
@@ -152,7 +155,7 @@ def reconstruct(response, sources, *, trace=None):
                 )
             )
             obs = obs.model_copy(update={"title": title})
-        basis = _admit(sources, obs)
+        basis = _admit(sources, obs, projected_table=obs.local_ref in projected_tables)
         tid = identifier(sources, "table", obs.local_ref)
         items, cells = {}, []
         source = next((t for t in sources.layout.tables if t.ref == obs.spatial_table_ref), None)

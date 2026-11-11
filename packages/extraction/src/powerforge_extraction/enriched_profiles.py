@@ -57,6 +57,8 @@ DISTRIBUTED_ENGINEERING = "engineering-openai-enriched-v3"
 SOURCE_SUPPORTED_TABLES = "tables-openai-enriched-v3"
 SEMANTIC_PROFILES = (SEMANTIC_ENGINEERING, SEMANTIC_TABLES)
 SEMANTIC_V3_PROFILES = (DISTRIBUTED_ENGINEERING, SOURCE_SUPPORTED_TABLES)
+COMPACT_TABLES = "tables-openai-enriched-v4"
+SUCCESSOR_PROFILES = (*SEMANTIC_PROFILES, *SEMANTIC_V3_PROFILES, COMPACT_TABLES)
 
 
 class SemanticEngineeringProfile(EnrichedEngineeringProfile):
@@ -83,11 +85,22 @@ class SourceSupportedTableProfile(SemanticTableProfile):
     schema_version: Literal["enriched-stage-manifest-v3"] = "enriched-stage-manifest-v3"
 
 
+class CompactTableProfile(SourceSupportedTableProfile):
+    key: Literal["tables-openai-enriched-v4"]
+    prompt_version: Literal["enriched-table-prompts-v4"] = "enriched-table-prompts-v4"
+    schema_version: Literal["enriched-stage-manifest-v4"] = "enriched-stage-manifest-v4"
+
+
 def is_semantic(profile):
     return isinstance(profile, (SemanticEngineeringProfile, SemanticTableProfile))
 
 
 def stage_models(profile):
+    if isinstance(profile, CompactTableProfile):
+        from powerforge_extraction.semantic_observations import SEMANTIC_RESPONSES
+        from powerforge_extraction.table_reconstruction_v4 import CompactReconstructionResponse
+
+        return {**SEMANTIC_RESPONSES, "TABLE_RECONSTRUCTION": CompactReconstructionResponse}
     if is_semantic(profile):
         from powerforge_extraction.semantic_observations import SEMANTIC_RESPONSES
 
@@ -105,6 +118,12 @@ def stage_schemas(profile):
 
 
 def prompt_for(profile, stage):
+    if isinstance(profile, CompactTableProfile):
+        return (
+            "prompts/table_reconstruction_v4.txt"
+            if stage == "TABLE_RECONSTRUCTION"
+            else "prompts/table_interpretation_v4.txt"
+        )
     if profile.key in SEMANTIC_V3_PROFILES and stage != "TABLE_RECONSTRUCTION":
         return "prompts/enriched_semantics_v3.txt"
     if is_semantic(profile) and stage != "TABLE_RECONSTRUCTION":
@@ -131,21 +150,41 @@ def semantic_manifest(profile):
 
 
 def semantic_runtime(profile):
+    compact = isinstance(profile, CompactTableProfile)
     distributed = profile.key in SEMANTIC_V3_PROFILES
-    archived = {"semantic_output.py", "semantic_tables.py", "execution.py", "enriched_profiles.py"}
+    archived_v3 = {
+        "enriched_profiles.py",
+        "execution.py",
+        "enriched_runtime.py",
+        "enriched_tables.py",
+        "semantic_tables.py",
+    }
+    archived = {
+        "semantic_output.py",
+        "semantic_tables.py",
+        "execution.py",
+        "enriched_profiles.py",
+    }
+    archive = archived_v3 if distributed else archived_v3 | archived
+
+    def resource(name):
+        if compact or name not in archive:
+            return name
+        if not distributed and name in archived:
+            return f"runtime_resources/semantics_v2/{name.removesuffix('.py')}.txt"
+        return f"runtime_resources/semantics_v3/{name.removesuffix('.py')}.txt"
+
     root = files("powerforge_extraction")
     return {
         **runtime_identity(),
-        "version": "enriched-page-runtime-v3" if distributed else "enriched-page-runtime-v2",
+        "version": "enriched-page-runtime-v4"
+        if compact
+        else "enriched-page-runtime-v3"
+        if distributed
+        else "enriched-page-runtime-v2",
         "semantic_rules": identity_hash(
             {
-                name: hashlib.sha256(
-                    root.joinpath(
-                        f"runtime_resources/semantics_v2/{name.removesuffix('.py')}.txt"
-                        if not distributed and name in archived
-                        else name
-                    ).read_bytes()
-                ).hexdigest()
+                name: hashlib.sha256(root.joinpath(resource(name)).read_bytes()).hexdigest()
                 for name in (
                     "semantic_observations.py",
                     "semantic_output.py",
@@ -157,6 +196,7 @@ def semantic_runtime(profile):
                     "enriched_runtime.py",
                     "enriched_input.py",
                     "enriched_profiles.py",
+                    *(("table_reconstruction_v4.py", "enriched_publication.py") if compact else ()),
                 )
             }
         ),
@@ -164,7 +204,7 @@ def semantic_runtime(profile):
 
 
 def _family(profile):
-    if (profile.key in (*PRODUCTION, *SEMANTIC_PROFILES, *SEMANTIC_V3_PROFILES)) != (
+    if (profile.key in (*PRODUCTION, *SUCCESSOR_PROFILES)) != (
         profile.provider == "openai"
     ) or profile.input_strategy != "NATIVE_TEXT_AND_IMAGE":
         raise ValueError("Enhanced source strategy and synthetic/production family must match")
@@ -251,11 +291,12 @@ def runtime_identity():
 
 
 def enriched_profile(key, settings):
-    if key in (*SEMANTIC_PROFILES, *SEMANTIC_V3_PROFILES):
+    if key in SUCCESSOR_PROFILES:
         engineering = key in (SEMANTIC_ENGINEERING, DISTRIBUTED_ENGINEERING)
-        distributed = key in SEMANTIC_V3_PROFILES
         model = (
-            DistributedEngineeringProfile
+            CompactTableProfile
+            if key == COMPACT_TABLES
+            else DistributedEngineeringProfile
             if key == DISTRIBUTED_ENGINEERING
             else SourceSupportedTableProfile
             if key == SOURCE_SUPPORTED_TABLES
@@ -268,12 +309,8 @@ def enriched_profile(key, settings):
             {
                 **base.model_dump(),
                 "key": key,
-                "schema_version": "enriched-stage-manifest-v3"
-                if distributed
-                else "enriched-stage-manifest-v2",
-                "prompt_version": "enriched-semantics-prompts-v3"
-                if distributed
-                else "enriched-semantics-prompts-v2",
+                "schema_version": model.model_fields["schema_version"].default,
+                "prompt_version": model.model_fields["prompt_version"].default,
                 "max_instruction_bytes": 131072,
             }
         )
@@ -330,7 +367,7 @@ def require_enriched(profile):
     semantic = is_semantic(profile)
     record = semantic_manifest(profile) if semantic else manifest()
     if (
-        profile.key not in (*PROFILES, *SEMANTIC_PROFILES, *SEMANTIC_V3_PROFILES)
+        profile.key not in (*PROFILES, *SUCCESSOR_PROFILES)
         or profile.manifest != record
         or profile.runtime != (semantic_runtime(profile) if semantic else runtime_identity())
         or profile.source_rules != layout_rules_identity()

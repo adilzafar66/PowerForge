@@ -20,6 +20,7 @@ from powerforge_document_processing.models import (
 )
 from powerforge_extraction.controls import RunExecution
 from powerforge_extraction.enriched_profiles import (
+    COMPACT_TABLES,
     DISTRIBUTED_ENGINEERING,
     ENGINEERING,
     SEMANTIC_ENGINEERING,
@@ -42,7 +43,13 @@ FAMILY_PROFILES = {
         SEMANTIC_ENGINEERING,
         DISTRIBUTED_ENGINEERING,
     ),
-    "tables": (*TABLE_PRODUCTION_PROFILES, TABLES, SEMANTIC_TABLES, SOURCE_SUPPORTED_TABLES),
+    "tables": (
+        *TABLE_PRODUCTION_PROFILES,
+        TABLES,
+        SEMANTIC_TABLES,
+        SOURCE_SUPPORTED_TABLES,
+        COMPACT_TABLES,
+    ),
 }
 RESULT_STATUSES = ("COMPLETED", "PARTIALLY_COMPLETED")
 

@@ -76,7 +76,10 @@ def trace_for(ctx, pending, unit_id):
     )
 
 
-def test_split_rating_is_diagnosable_and_table_schema_failure_stays_independent(native_ctx, caplog):
+@pytest.mark.parametrize("tables_version", [1, 4])
+def test_split_rating_is_diagnosable_and_table_schema_failure_stays_independent(
+    native_ctx, caplog, tables_version
+):
     ctx = build_source(
         native_ctx,
         prose_pdf(["2-Winding Transformer", "kVA:", "350", "CONFIDENTIAL_FIXTURE"]),
@@ -170,6 +173,8 @@ def test_split_rating_is_diagnosable_and_table_schema_failure_stays_independent(
     assert trace["source"]["spatial_result_id"] == binding["spatial_result_id"]
     assert extraction_detail(ctx, engineering["run"]["id"])["run"]["status"] == "COMPLETED"
 
+    reconstruction_schema = f"table-reconstruction-schema-v{2 if tables_version == 1 else 3}"
+
     class MissingTables:
         calls = 0
 
@@ -177,14 +182,14 @@ def test_split_rating_is_diagnosable_and_table_schema_failure_stays_independent(
             self.calls += 1
             options["text_format"].model_validate(
                 {
-                    "schema_version": "table-reconstruction-schema-v2",
+                    "schema_version": reconstruction_schema,
                     "overflowed": False,
                     "CONFIDENTIAL_FIXTURE": "secret provider content",
                 }
             )
 
     transport = MissingTables()
-    tables = start_enriched(ctx, binding, profile="tables-openai-enriched-v1")
+    tables = start_enriched(ctx, binding, profile=f"tables-openai-enriched-v{tables_version}")
     reconstruction = stage(tables, "TABLE_RECONSTRUCTION")
     assert execute(
         ctx,
@@ -196,7 +201,10 @@ def test_split_rating_is_diagnosable_and_table_schema_failure_stays_independent(
     failure = trace_for(ctx, tables, reconstruction)
     assert failure["phase"] == "PARSE" and failure["provider_detail"] == "MISSING_FIELD"
     assert failure["issues"] == [
-        {"reason": "MISSING_FIELD", "path": "tables"},
+        *[
+            {"reason": "MISSING_FIELD", "path": path}
+            for path in (("tables",) if tables_version == 1 else ("partitions", "reported_tables"))
+        ],
         {"reason": "SCHEMA_VALIDATION", "path": "*"},
     ]
     assert failure["returned"] is None and transport.calls == 1
@@ -208,6 +216,14 @@ def test_split_rating_is_diagnosable_and_table_schema_failure_stays_independent(
     assert interpretation["error_code"] == "PREREQUISITE_FAILED"
     assert interpretation["stage_trace"] is None
     assert table_detail["execution"]["provider_calls_started"] == 1
+    tables_candidates = client.get(
+        ctx["base"] + f"/extraction/runs/{tables['run']['id']}/candidates"
+    )
+    assert tables_candidates.status_code == 200 and tables_candidates.json()["items"] == []
+    engineering_candidates = client.get(
+        ctx["base"] + f"/extraction/runs/{engineering['run']['id']}/candidates"
+    )
+    assert engineering_candidates.json()["items"] == candidates
     assert trace_for(ctx, engineering, attributes) == trace
 
     log = next(record for record in caplog.records if getattr(record, "provider_detail", None))

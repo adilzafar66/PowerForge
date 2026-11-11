@@ -161,11 +161,10 @@ class ExtractionCoordinator:
     ) -> ExtractionRun:
         from powerforge_extraction.enriched_profiles import (
             PROFILES,
-            SEMANTIC_PROFILES,
-            SEMANTIC_V3_PROFILES,
+            SUCCESSOR_PROFILES,
         )
 
-        if profile_key in (*PROFILES, *SEMANTIC_PROFILES, *SEMANTIC_V3_PROFILES):
+        if profile_key in (*PROFILES, *SUCCESSOR_PROFILES):
             from powerforge_extraction.enriched_planning import start_enriched
 
             return start_enriched(

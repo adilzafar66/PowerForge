@@ -1,5 +1,6 @@
 """Synthetic evidence, semantic decisions and frozen profile dispatch."""
 
+import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -7,9 +8,9 @@ import pytest
 
 from enriched_pure_support import fake, native_sources, table_interpretation
 from powerforge_extraction.enriched_profiles import (
+    COMPACT_TABLES,
     DISTRIBUTED_ENGINEERING,
     SEMANTIC_PROFILES,
-    SOURCE_SUPPORTED_TABLES,
     enriched_profile,
     require_enriched,
     stage_models,
@@ -101,28 +102,34 @@ def test_successor_profiles_round_trip_with_distinct_pinned_resources(key):
     assert stage_models(profile)[profile.stages[-1]].__name__.startswith("Semantic")
 
 
-@pytest.mark.parametrize("label", ["kVA:", "Continuous transfer duty (kVA)"])
-def test_split_native_field_maps_from_proposal_even_after_unmapped_recognition(label):
+@pytest.mark.parametrize("unfamiliar", [False, True])
+def test_split_native_field_maps_from_proposal_even_after_unmapped_recognition(unfamiliar):
+    case = json.loads(Path("evals/extraction/phase6g/synthetic.json").read_text())["cases"][
+        "split_transformer"
+    ]
+    device, printed_label, printed_value = case["lines"]
+    label = printed_label if unfamiliar else "kVA:"
+    gold = case["expected"]
     sources = native_sources(
-        prose_pdf(["2-Winding Transformer", label, "350", "TAG: 80T1"]),
+        prose_pdf([device, label, printed_value, "TAG: 80T1"]),
         "EQUIPMENT_RECOGNITION",
     )
     recognized = convert_engineering(recognition(sources, mapped=False), sources)
     assert recognized.candidates[0].mapping_status == "UNMAPPED"
     assert recognized.candidates[0].observed_tag == "80T1"
-    if label.startswith("Continuous"):
+    if unfamiliar:
         assert _attribute(TRANSFORMER, label, InterpretationContext(label)) is None
     later = replace(
         sources, stage="ATTRIBUTE_EXTRACTION", unit_key="ATTRIBUTE_EXTRACTION:page:000001"
     )
     output = convert_engineering(
-        attributes(attribute(later, label, "350", "kVA", "rated_apparent_power")),
+        attributes(attribute(later, label, printed_value, gold["unit"], gold["key"])),
         later,
         recognized,
     )
     value = output.candidates[0]
-    assert value.mapping_status == "MAPPED" and value.numeric_value == 350
-    assert value.attribute_key == "rated_apparent_power"
+    assert value.mapping_status == "MAPPED" and str(value.numeric_value) == gold["numeric"]
+    assert value.attribute_key == gold["key"]
     assert value.diagnostics["relationship_basis"] == "LOCAL_FORM_GEOMETRY"
     assert {p["role"] for p in value.diagnostics["evidence_parts"]} == {"LABEL", "VALUE"}
     assert "350" in {e.source_snippet for e in output.evidence}
@@ -182,10 +189,10 @@ def test_tables_uses_proposals_against_committed_cells():
 
 @pytest.mark.integration
 @pytest.mark.parametrize(
-    ("family", "version"), [("engineering", 2), ("engineering", 3), ("tables", 2), ("tables", 3)]
+    ("family", "version"),
+    [("engineering", 2), ("engineering", 3), ("tables", 2), ("tables", 3), ("tables", 4)],
 )
 def test_successor_execution_publishes_via_existing_attempts(native_ctx, family, version):
-    import json
     from types import SimpleNamespace
     from uuid import UUID
 
@@ -223,7 +230,24 @@ def test_successor_execution_publishes_via_existing_attempts(native_ctx, family,
                     for r in projection["readings"]
                 ]
             )
-            if model is SemanticEquipmentResponse:
+            from powerforge_extraction.table_reconstruction_v4 import CompactReconstructionResponse
+
+            if model is CompactReconstructionResponse:
+                result = model.model_validate(
+                    {
+                        "schema_version": "table-reconstruction-schema-v3",
+                        "overflowed": False,
+                        "partitions": [
+                            {
+                                "local_ref": "t0",
+                                "spatial_table_ref": projection["tables"][0]["ref"],
+                                "proposed_kind": "EQUIPMENT_ROWS",
+                            },
+                        ],
+                        "reported_tables": [],
+                    }
+                )
+            elif model is SemanticEquipmentResponse:
                 result = recognition(by_ref, mapped=False)
             elif model is SemanticAttributeResponse:
                 assert upstream["equipment"][0]["mapping_status"] == "UNMAPPED"
@@ -394,7 +418,7 @@ def test_operation_opt_in_preserves_the_profile_hash_of_existing_consent():
     historical = operation_profiles(settings, ("engineering", "tables"))
     settings.extraction_operation_semantic_profiles = True
     successor = operation_profiles(settings, ("engineering", "tables"))
-    assert [p.key for p in successor] == [DISTRIBUTED_ENGINEERING, SOURCE_SUPPORTED_TABLES]
+    assert [p.key for p in successor] == [DISTRIBUTED_ENGINEERING, COMPACT_TABLES]
     for family, profile in zip(("engineering", "tables"), historical, strict=True):
         assert pinned_operation_profile(settings, family, profile.identity_hash) == profile
 
@@ -481,16 +505,10 @@ def test_distributed_specification_regions_require_single_transformer(competing)
 
     with pymupdf.open() as doc:
         page = doc.new_page(width=760, height=650)
-        fields = [
-            ((30, 50), "Dry-type Transformer"),
-            ((365, 300), "Winding Specifications"),
-            ((365, 325), "Primary: 13.8 kV"),
-            ((365, 350), "Secondary: 600 V"),
-            ((80, 460), "Electrical Ratings"),
-            ((80, 485), "kVA:"),
-            ((80, 507), "350"),
-            ((560, 610), "TAG: 80T1"),
+        case = json.loads(Path("evals/extraction/phase6g/synthetic.json").read_text())["cases"][
+            "distributed_transformer"
         ]
+        fields = [((x, y), text) for x, y, text in case["lines"]]
         if competing:
             fields.append(((30, 175), "Auxiliary Transformer"))
         for point, text in fields:
@@ -540,7 +558,7 @@ def test_distributed_specification_regions_require_single_transformer(competing)
     else:
         assert mention.mapping_status == rating.mapping_status == "MAPPED"
         assert rating.equipment_mention_candidate_id == mention.id
-        assert rating.numeric_value == 350
+        assert str(rating.numeric_value) == case["expected"]["rated_apparent_power"]
         assert (
             rating.diagnostics["equipment_association_basis"]
             == "CORROBORATED_SPECIFICATION_SECTION"
