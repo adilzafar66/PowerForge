@@ -13,8 +13,8 @@
   "version": "spatial-contract-identity-v1",
   "spatial": {
     "version": "spatial-source-contracts-v1",
-    "rules_hash": "93bd7d7b3d9a908bb1e87d8126280303206afbe5f9be92ff38c05864c9381b6d",
-    "policy_sha256": "0807a4a3abb61506a9be4c3e9e77beec32ee1938984f92ae67e51670b1795e0e"
+    "rules_hash": "2272baa582273a0bd2cf23ab7a467fd94d717d1a94d37d450ad4dc6b7c135353",
+    "policy_sha256": "6715c5a1a172b1e7cf86d9d15a73ae048a5dd01453018679f026380247259739"
   },
   "ocr": {
     "version": "positioned-ocr-provider-v1",
@@ -23,7 +23,7 @@
     "response_schema": "4eebbec24aa5c2862185a3abb315f6ec89ab9aca86fcd0f7bbe177d4b2a70add"
   },
   "schemas": {
-    "PositionedText": "f576e9af68577b13d9df0e4dfb87bbb60f61e77a1e64607cf66f8935fc9ec6bc",
+    "PositionedText": "ffa6d0c2638d23b99dfcb36c164ceb41e58b8a49f1747792a6882ef9cad1f14c",
     "SpatialPage": "ae56aea25147f1738cdbcac618780ceb0dc4a4d5f4d12da317987fd3f390b273",
     "SourceBinding": "6a7655e0a8ff8588df7abe3b9397591fd6947b59bc0e503868ba3bbcc3308e24",
     "NativeEmissionTrace": "8c4f2b75fb0b33c250abc545dffe2b314ef37a70d2a61480a43e22cb14ee05ce",
