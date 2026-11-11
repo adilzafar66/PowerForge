@@ -72,6 +72,7 @@ export type Candidate = {
   raw_unit: string | null;
   mapping_status: MappingStatus;
   equipment_type_key: string | null;
+  equipment_mention_candidate_id?: string | null;
   observed_tag: string | null;
   attribute_key: string | null;
   numeric_value: string | null;
@@ -81,6 +82,10 @@ export type Candidate = {
   unit: string | null;
   reason_code: string | null;
   explanation: string | null;
+  diagnostics?: {
+    observation?: { source_label?: string | null; proposed_attribute_key?: string | null; proposed_equipment_type?: string | null };
+    evidence_parts?: { role: string; evidence_ids: string[] }[];
+  };
   evidence: { role: "PRIMARY" | "SUPPORTING" | "CONTRADICTING"; evidence: CitationEvidence }[];
 };
 export type HistoryRun = Omit<RegisterRun, "profile_key"> & {

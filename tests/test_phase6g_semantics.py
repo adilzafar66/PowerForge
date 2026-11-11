@@ -411,16 +411,19 @@ def test_panelboard_designation_maps_to_existing_bus_type():
     ]
 
 
-def test_operation_opt_in_preserves_the_profile_hash_of_existing_consent():
+def test_default_operation_profiles_preserve_previously_pinned_consent():
     from powerforge_extraction.operation_plan import operation_profiles, pinned_operation_profile
 
     settings = Settings(_env_file=None)
-    historical = operation_profiles(settings, ("engineering", "tables"))
-    settings.extraction_operation_semantic_profiles = True
-    successor = operation_profiles(settings, ("engineering", "tables"))
-    assert [p.key for p in successor] == [DISTRIBUTED_ENGINEERING, COMPACT_TABLES]
-    for family, profile in zip(("engineering", "tables"), historical, strict=True):
-        assert pinned_operation_profile(settings, family, profile.identity_hash) == profile
+    families = ("engineering", "tables")
+    assert [p.key for p in operation_profiles(settings, families)] == [
+        DISTRIBUTED_ENGINEERING,
+        COMPACT_TABLES,
+    ]
+    for family, versions in (("engineering", (1, 2, 3)), ("tables", (1, 2, 3, 4))):
+        for version in versions:
+            profile = enriched_profile(f"{family}-openai-enriched-v{version}", settings)
+            assert pinned_operation_profile(settings, family, profile.identity_hash) == profile
 
 
 def test_manufacturer_equipment_description_uses_corroborating_winding_context():

@@ -64,7 +64,6 @@ class Settings(BaseSettings):
 
     extraction_enabled: bool = True
     extraction_external_enabled: bool = False
-    extraction_operation_semantic_profiles: bool = False
     extraction_model: str = "gpt-6-luna"
     extraction_max_pages: int = Field(default=50, ge=1, le=1000)
     extraction_max_input_bytes: int = Field(default=2_000_000, ge=1, le=16_000_000)

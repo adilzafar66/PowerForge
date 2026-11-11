@@ -34,7 +34,7 @@ function makePreview(selection: OperationSelection): OperationPreview {
       })),
     })),
     errors: [],
-    profiles: selection.families.map((family) => ({ family, key: family, provider: "openai", model: "fixture", enabled: true })),
+    profiles: selection.families.map((family) => ({ family, key: family === "engineering" ? "engineering-openai-enriched-v3" : "tables-openai-enriched-v4", provider: "openai", model: "fixture", enabled: true })),
     review_hash: selection.families.join(","),
     planned_runs: selection.families.length,
     provider_admissions: 12, ocr_attempts: 3, parallel_documents: 2,
@@ -75,6 +75,9 @@ it("validates source and OCR pages, retains targeting, and starts only after con
   await user.click(modal.getByRole("button", { name: "Continue to extraction" }));
   expect(modal.getByText("Comprehensive extraction")).toBeVisible();
   expect(await modal.findByText("2 extraction runs requested")).toBeVisible();
+  expect(modal.getByText(/engineering-openai-enriched-v3/)).toBeVisible();
+  expect(modal.getByText(/tables-openai-enriched-v4/)).toBeVisible();
+  expect(modal.getByRole("button", { name: "Start extraction" })).toBeDisabled();
   await user.click(modal.getByText("Advanced extraction settings"));
   await user.click(modal.getByRole("checkbox", { name: "Extract from engineering text" }));
   expect(modal.getByRole("checkbox", { name: "Extract from tables and schedules" })).toBeDisabled();

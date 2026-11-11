@@ -97,7 +97,9 @@ export function useViewerEvidence(scope: DocumentScope, params: Params, active: 
     retry: 1,
   });
   const candidate = selected.data?.items[0];
-  const citation = bestCitation(candidate);
+  const fragmentId = uuid(params.get("fragment"));
+  const citation = candidate?.evidence.find(({ evidence }) => evidence.id === fragmentId)?.evidence
+    ?? bestCitation(candidate);
   const source = useQuery({
     queryKey: [...key, "evidence", groupRun, citation?.id],
     queryFn: async ({ signal }) => {
@@ -264,7 +266,7 @@ function CandidateBrowser({
       groupRun: group.run_id,
       sourceGroup: group.source_group_id ?? "ungrouped",
       groupReturnPage: page,
-      candidate: null,
+      candidate: null, fragment: null,
       candidateOffset: null,
     });
     scrollRef.current?.scrollTo?.({ top: 0 });
@@ -274,13 +276,14 @@ function CandidateBrowser({
     const candidatePage = bestCitation(candidate)?.source_page_number;
     update({
       candidate: browser.candidateId === candidate.id ? null : candidate.id,
+      fragment: null,
       ...(candidatePage && browser.candidateId !== candidate.id ? { page: candidatePage } : {}),
     });
   }
 
   function clearGroup() {
     update({
-      groupRun: null, sourceGroup: null, groupReturnPage: null, candidate: null, candidateOffset: null, page: savedPage,
+      groupRun: null, sourceGroup: null, groupReturnPage: null, candidate: null, fragment: null, candidateOffset: null, page: savedPage,
     });
   }
 
@@ -321,6 +324,8 @@ function CandidateBrowser({
             page={page}
             onSelect={() => pickCandidate(candidate)}
             onLocate={(next) => update({ page: next })}
+            onFragment={(id, sourcePage) => update({ fragment: id, ...(sourcePage ? { page: sourcePage } : {}) })}
+            associatedEquipment={items.find((item) => item.id === candidate.equipment_mention_candidate_id)}
           />
         ))}
         {members.data && <EvidencePagination total={members.data.total} size={20} start={groupStart} onChange={(value) => update({ candidateOffset: value || null, candidate: null })} />}
@@ -457,7 +462,7 @@ function GroupSearch({ value, onCommit }: { value: string; onCommit: (value: str
 const mappingTones = { MAPPED: "green", UNMAPPED: "yellow", INVALID: "red" } as const satisfies Record<MappingStatus, string>;
 
 function CandidateCard({
-  candidate, expanded, highlighted, browser, page, onSelect, onLocate,
+  candidate, expanded, highlighted, browser, page, onSelect, onLocate, onFragment, associatedEquipment,
 }: {
   candidate: Candidate;
   expanded: boolean;
@@ -466,11 +471,14 @@ function CandidateCard({
   page: number;
   onSelect: () => void;
   onLocate: (page: number) => void;
+  onFragment: (id: string, page: number | null) => void;
+  associatedEquipment?: Candidate;
 }) {
-  const citation = bestCitation(candidate);
+  const citation = expanded ? browser.citation ?? bestCitation(candidate) : bestCitation(candidate);
   const locator = citation?.source_locator;
   const pageNumber = citation?.source_page_number;
-  const sourceLabel = locator?.reading_basis === "OCR" || citation?.source_kind === "OCR_TEXT" ? "OCR"
+  const sourceLabel = locator?.reading_basis === "VISUAL_REPORTED" ? "Page-only visual evidence"
+    : locator?.reading_basis === "OCR" || citation?.source_kind === "OCR_TEXT" ? "OCR"
     : locator?.reading_basis === "NATIVE_PDF" || citation?.source_kind === "NATIVE_TEXT" || citation?.grounding_precision === "TEXT_OFFSETS" ? "Native PDF" : "Page-only";
   const normalized = candidate.numeric_value ?? candidate.integer_value ?? candidate.text_value ?? candidate.boolean_value;
   const raw = [candidate.raw_value, candidate.raw_unit].filter(Boolean).join(" ") || candidate.raw_text;
@@ -478,6 +486,9 @@ function CandidateCard({
   const field = candidate.attribute_key ?? (candidate.kind === "EQUIPMENT_MENTION" ? candidate.equipment_type_key : null);
   const detailId = `candidate-detail-${candidate.id}`;
   const evidence = browser.source.data;
+  const observation = candidate.diagnostics?.observation;
+  const proposedField = candidate.kind === "EQUIPMENT_MENTION"
+    ? observation?.proposed_equipment_type : observation?.proposed_attribute_key;
   const reason = candidate.explanation ?? (candidate.reason_code ? readableKey(candidate.reason_code) : null);
   return (
     <article className={cn(card, "overflow-hidden", expanded && "border-accent/45 bg-accent-tint/35")}>
@@ -493,6 +504,11 @@ function CandidateCard({
         <div id={detailId} className="space-y-2.5 border-t border-border p-3 text-workspace-caption text-muted">
           <dl className="m-0 space-y-1.5">
             {reason && <div className="flex justify-between gap-2"><dt>Mapping</dt><dd className="m-0 break-words text-right text-ink">{reason}</dd></div>}
+            {proposedField && proposedField !== field && <div className="flex justify-between gap-2"><dt>AI proposal</dt><dd className="m-0 break-words text-right text-ink">{readableKey(proposedField)}</dd></div>}
+            {observation?.source_label && <div className="flex justify-between gap-2"><dt>Source label</dt><dd className="m-0 break-words text-right text-ink">{observation.source_label}</dd></div>}
+            {candidate.kind === "ATTRIBUTE_VALUE" && <div className="flex justify-between gap-2"><dt>Equipment association</dt><dd className="m-0 break-words text-right text-ink">{candidate.equipment_mention_candidate_id
+              ? associatedEquipment?.observed_tag || associatedEquipment?.raw_text || candidate.source_group?.tag_text || candidate.source_group?.label || "Linked source mention"
+              : "Unresolved"}</dd></div>}
             {raw !== value && <div className="flex justify-between gap-2"><dt>Original reading</dt><dd className="m-0 break-words text-right text-ink">{raw}</dd></div>}
             <div className="flex justify-between gap-2"><dt>Source</dt><dd className="m-0 font-semibold text-ink">{sourceLabel}</dd></div>
             <div className="flex justify-between gap-2"><dt>Physical identity</dt><dd className="m-0 font-semibold text-ink">Unresolved</dd></div>
@@ -505,12 +521,22 @@ function CandidateCard({
           <details className="border-t border-border pt-2">
             <summary className="cursor-pointer font-semibold text-accent">Source details</summary>
             <div className="mt-2 space-y-2 break-words">
-              {citation?.source_snippet && <blockquote className="m-0 whitespace-pre-wrap border-l-2 border-border pl-2 text-ink">{citation.source_snippet}</blockquote>}
-              {candidate.evidence.filter((item) => item.evidence.id !== citation?.id && item.evidence.source_snippet).map(({ evidence: context }) => (
-                <p key={context.id} className="m-0 whitespace-pre-wrap">Context · {context.source_snippet}</p>
-              ))}
+              {candidate.evidence.map(({ role, evidence: fragment }) => {
+                const parts = [...new Set(candidate.diagnostics?.evidence_parts
+                  ?.filter((part) => part.evidence_ids.includes(fragment.id))
+                  .map((part) => readableKey(part.role)) ?? [])];
+                const label = parts.join(", ") || readableKey(role);
+                return (
+                  <button key={fragment.id} type="button" aria-pressed={fragment.id === citation?.id}
+                    className={cn(card, "block w-full p-2 text-left hover:bg-soft focus-visible:ring-2 focus-visible:ring-ring", fragment.id === citation?.id && "border-accent")}
+                    onClick={() => onFragment(fragment.id, fragment.source_page_number)}>
+                    <span className="block font-semibold text-accent">{label}{fragment.source_page_number ? ` · Page ${fragment.source_page_number}` : ""}</span>
+                    <span className="block whitespace-pre-wrap text-ink">{fragment.source_snippet ?? "Page citation"}</span>
+                  </button>
+                );
+              })}
               <p className="m-0">Source-local group · {candidate.source_group?.tag_text || candidate.source_group?.label || "Ungrouped observations"}</p>
-              <p className="m-0">Mapping records a registry interpretation. The printed reading and equipment identity require independent verification.</p>
+              <p className="m-0">Mapping records a registry interpretation. Extraction candidates require engineer review.</p>
             </div>
           </details>
         </div>

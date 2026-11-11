@@ -49,8 +49,7 @@ COMPACT_PROFILE_KEYS = {**DISTRIBUTED_PROFILE_KEYS, "tables": COMPACT_TABLES}
 
 
 def operation_profiles(settings, families):
-    keys = COMPACT_PROFILE_KEYS if settings.extraction_operation_semantic_profiles else PROFILE_KEYS
-    return [enriched_profile(keys[family], settings) for family in families]
+    return [enriched_profile(COMPACT_PROFILE_KEYS[family], settings) for family in families]
 
 
 def pinned_operation_profile(settings, family, digest):

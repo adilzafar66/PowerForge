@@ -2,9 +2,11 @@
 
 import json
 import os
+from types import SimpleNamespace
 
 from extraction_worker import extraction_tasks, tesseract
 from extraction_worker.celery_app import celery_app as celery_app
+from powerforge_ai.extraction import ExtractionResponse
 from powerforge_ai.ocr import (
     OCRFailure,
     OCRFailureCode,
@@ -15,6 +17,8 @@ from powerforge_ai.ocr import (
     OCRWord,
 )
 from powerforge_extraction.enriched_fake import FakeEnrichedProvider
+from powerforge_extraction.enriched_observations import RESPONSES, SCHEMAS
+from powerforge_extraction.table_reconstruction_v4 import CompactReconstructionResponse
 
 
 class StubOCR:
@@ -52,4 +56,32 @@ class StubOCR:
 
 
 tesseract.TesseractProvider = StubOCR
-extraction_tasks.provider_for = lambda _claim: FakeEnrichedProvider()
+
+
+class OperationProvider:
+    def execute(self, request):
+        model = request.response_model
+        body = dict(schema_version=request.schema_version, overflowed=False)
+        if model is CompactReconstructionResponse:
+            body.update(partitions=[], reported_tables=[])
+        else:
+            legacy = FakeEnrichedProvider().execute(
+                SimpleNamespace(
+                    stage=request.stage,
+                    text=request.text,
+                    response_model=RESPONSES[request.stage],
+                    schema_version=SCHEMAS[request.stage],
+                    upstream_context=request.upstream_context,
+                )
+            )
+            body.update(legacy.result.model_dump(mode="json", exclude={"schema_version"}))
+            for item in body.get("equipment", []) + body.get("attributes", []):
+                for anchor in item.get("anchors", []):
+                    anchor.update(
+                        role="EQUIPMENT" if request.stage == "EQUIPMENT_RECOGNITION" else "CONTEXT",
+                        quote=item["raw_expression"],
+                    )
+        return ExtractionResponse[model](result=model.model_validate(body), usage={})
+
+
+extraction_tasks.provider_for = lambda _claim: OperationProvider()

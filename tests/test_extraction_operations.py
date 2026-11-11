@@ -418,14 +418,52 @@ def test_beat_advances_mixed_batch_using_real_transport(
         app.dependency_overrides[get_object_storage] = previous
 
 
-def test_wizard_automatically_uses_canonical_layout_for_dense_drawing(operation_context):
+@pytest.mark.parametrize("failure", [None, "tables", "engineering"])
+def test_wizard_uses_latest_profiles_and_isolates_family_failures(operation_context, failure):
+    from types import SimpleNamespace
+
+    from extraction_worker.openai_extraction import OpenAIExtractionProvider
     from powerforge_document_processing.layout_derive import layout_rules_identity
+    from powerforge_extraction.enriched_fake import FakeEnrichedProvider
+    from powerforge_extraction.enriched_observations import RESPONSES, SCHEMAS
     from powerforge_extraction.layout_models import SourceSpatialResult
-    from spatial_layout_support import disconnected_drawing
+    from powerforge_extraction.semantic_observations import (
+        SemanticAttributeResponse,
+        SemanticEquipmentResponse,
+        SemanticTableResponse,
+    )
+    from powerforge_extraction.table_reconstruction_v4 import CompactReconstructionResponse
+    from spatial_layout_support import drawn_table
+    from test_phase6g_semantics import attribute, attributes, recognition
 
     ctx = operation_context
-    source = new_source(ctx, "disconnected-drawing.pdf", disconnected_drawing())
-    _, request = reviewed(ctx, [source])
+    rows = [
+        ("Equipment", "Quantity"),
+        ("LV Breaker GBH3020", "1"),
+        ("LV Breaker GBH3020", "1"),
+        ("PROV", "18"),
+    ]
+    with pymupdf.open(stream=drawn_table(rows=rows), filetype="pdf") as doc:
+        page = doc[0]
+        for y, label in [
+            (250, "2-Winding Transformer"),
+            (270, "TAG: 80T1"),
+            (295, "kVA:"),
+            (315, "350"),
+        ]:
+            page.insert_text((50, y), label, fontsize=12)
+        for i in range(80):
+            x, y = 30 + (i % 20) * 25, 335 + (i // 20) * 12
+            page.draw_line((x, y), (x + 8, y))
+        source = new_source(ctx, "disconnected-drawing.pdf", doc.tobytes())
+    plan, request = reviewed(ctx, [source])
+    assert [entry["key"] for entry in plan["profiles"]] == [
+        "engineering-openai-enriched-v3",
+        "tables-openai-enriched-v4",
+    ]
+    assert (
+        start_operation(ctx, {**request, "external_processing_consent": False}).status_code == 422
+    )
     accepted = start_operation(ctx, request)
     assert accepted.status_code == 202, accepted.text
     operation_id = accepted.json()["id"]
@@ -459,3 +497,128 @@ def test_wizard_automatically_uses_canonical_layout_for_dense_drawing(operation_
     item = detail_operation(ctx, operation_id)["items"][0]
     assert set(item["profiles"]) == {"engineering", "tables"}
     assert all(step["run_id"] for step in item["profiles"].values())
+
+    calls = []
+
+    class Transport:
+        def parse(self, **options):
+            model = options["text_format"]
+            assert options["store"] is False
+            source = json.loads(options["input"][0]["content"][0]["text"])["source"]
+            upstream = (
+                json.loads(options["input"][1]["content"][0]["text"])["observations"]
+                if len(options["input"]) > 1
+                else None
+            )
+            calls.append(model)
+            if (failure == "tables" and model is CompactReconstructionResponse) or (
+                failure == "engineering" and model is SemanticEquipmentResponse
+            ):
+                model.model_validate({"overflowed": False})
+            readings = SimpleNamespace(
+                readings=[
+                    SimpleNamespace(text=r["raw_text"], model=SimpleNamespace(ref=r["ref"]))
+                    for r in source["readings"]
+                ]
+            )
+            if model is SemanticEquipmentResponse:
+                output = recognition(readings)
+            elif model is SemanticAttributeResponse:
+                output = attributes(
+                    attribute(readings, "kVA:", "350", "kVA", "rated_apparent_power")
+                )
+            elif model is CompactReconstructionResponse:
+                output = model.model_validate(
+                    dict(
+                        schema_version="table-reconstruction-schema-v3",
+                        overflowed=False,
+                        partitions=[
+                            dict(
+                                local_ref="t0",
+                                spatial_table_ref=source["tables"][0]["ref"],
+                                proposed_kind="EQUIPMENT_ROWS",
+                            )
+                        ],
+                        reported_tables=[],
+                    )
+                )
+            else:
+                assert model is SemanticTableResponse
+                stage = "TABLE_INTERPRETATION"
+                legacy = FakeEnrichedProvider().execute(
+                    SimpleNamespace(
+                        stage=stage,
+                        text=json.dumps(source),
+                        response_model=RESPONSES[stage],
+                        schema_version=SCHEMAS[stage],
+                        upstream_context=json.dumps(upstream),
+                    )
+                )
+                body = legacy.result.model_dump(mode="json")
+                body["schema_version"] = "table-interpretation-schema-v3"
+                for equipment in body["equipment"]:
+                    equipment.update(proposed_equipment_type="LV_BREAKER", observed_tag="GBH3020")
+                output = model.model_validate(body)
+            return SimpleNamespace(status="completed", output_parsed=output, output=[], usage=None)
+
+    def provider(claim):
+        return OpenAIExtractionProvider(
+            ctx["settings"],
+            client=SimpleNamespace(responses=Transport()),
+            profile=claim.profile,
+        )
+
+    document = ctx["operation_base"].removesuffix("/extraction")
+    document += f"/documents/{source['revision_document_id']}/extraction"
+    for family, step in item["profiles"].items():
+        run_id = step["run_id"]
+        base = f"{document}/runs/{run_id}"
+        detail = client.get(base).json()
+        for stage in detail["run"]["stages"]:
+            attempt = next(a for a in client.get(base).json()["attempts"] if a["stage"] == stage)
+            if attempt["status"] == "PENDING":
+                assert execute_unit(
+                    UUID(attempt["id"]), ctx["factory"], ctx["storage"], ctx["settings"], provider
+                )
+        detail = client.get(base).json()
+        candidates = client.get(base + "/candidates").json()["items"]
+        if family == failure:
+            assert detail["run"]["status"] == "FAILED"
+            (failed,) = [a["stage_trace"] for a in detail["attempts"] if a["stage_trace"]]
+            assert (failed["phase"], failed["provider_detail"]) == ("PARSE", "MISSING_FIELD")
+            assert any(a["error_code"] == "PREREQUISITE_FAILED" for a in detail["attempts"])
+            assert not candidates
+            continue
+        assert detail["run"]["status"] == "COMPLETED", detail["attempts"]
+        assert all(a["stage_trace"]["provider_outcome"] == "PARSED" for a in detail["attempts"])
+        if family == "engineering":
+            value = next(c for c in candidates if c["attribute_key"] == "rated_apparent_power")
+            assert value["numeric_value"] == "350"
+            assert {p["role"] for p in value["diagnostics"]["evidence_parts"]} >= {"LABEL", "VALUE"}
+        else:
+            mentions = [c for c in candidates if c["kind"] == "EQUIPMENT_MENTION"]
+            assert len({c["source_group_id"] for c in mentions}) == len(mentions) == 2
+            assert all(c["observed_tag"] is None for c in mentions)
+            assert any(
+                c["mapping_status"] == "UNMAPPED"
+                and c["raw_value"] == "18"
+                and c["reason_code"] == "PROVISIONED_POSITION"
+                for c in candidates
+            )
+            tables = client.get(base + "/tables").json()["items"]
+            assert len(tables) == 1 and len(tables[0]["layout"]["cells"]) == 8
+    assert len(calls) == (4 if failure is None else 3)
+    response = client.get(
+        ctx["operation_base"] + "/status",
+        params={
+            "revision_document_ids": source["revision_document_id"],
+        },
+    )
+    assert response.status_code == 200
+    (available,) = response.json()["items"]
+    for family in ("engineering", "tables"):
+        effective = available[family]["effective_result"]
+        if family == failure:
+            assert effective is None
+        else:
+            assert effective["id"] == item["profiles"][family]["run_id"]

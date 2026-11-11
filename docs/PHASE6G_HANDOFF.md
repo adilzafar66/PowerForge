@@ -53,7 +53,7 @@ The capture accepts one matching attempt and is process-local. It holds the exac
 
 The successor profiles are `engineering-openai-enriched-v2` and `tables-openai-enriched-v2`. They have a distinct stage manifest, prompt, response identities and runtime hash. They use the existing v5/v6 persistence envelopes and exact source bindings. The registry, database schema and extraction navigation use their existing contracts. Existing enriched-v1 runs retain their original hashes, prompts and converters. Table Reconstruction retains its existing schema, prompt and publication checks. M4 covers reconstruction improvements.
 
-The run API accepts either successor profile explicitly with its normal source bindings and external-processing enablement. Set `EXTRACTION_OPERATION_SEMANTIC_PROFILES=true` to offer the successor profiles in new Documents wizard previews. Existing operations still resolve the exact profile hashes consented at admission. The wizard flag defaults to false and external processing continues to require the existing opt-in.
+The run API accepts either successor profile explicitly with its normal source bindings and external-processing enablement. At the M2–M3 review boundary, the wizard used a feature flag to offer these profiles. New Documents operations now select Engineering v3 and Tables v4 by default. Existing operations still resolve the exact profile hashes consented at admission. External processing requires deployment enablement and explicit consent.
 
 ### M2 grounding and retention
 
@@ -79,7 +79,7 @@ The regression pass reported 423 targeted backend checks and 50 checks in the Po
 
 The new cases use independently authored synthetic layouts or existing synthetic tables. Both successor profiles were exercised through the real worker, PostgreSQL publication and revision-scoped API with mocked OpenAI transport. No live OpenAI calls or original customer PDF evaluations were made. Full OCR, Celery and MinIO coverage remains open. Geometric scope is conservative on irregular columns, distant headers and nested groups. Composite or qualified fields whose representation is uncertain stay raw. M4 covers irregular reconstruction, schedule robustness and additional table response handling. M5 covers broader source annotations and integration.
 
-**Recommendation:** Review M2 and M3 with the successor profiles opt-in. M4 is outside this change.
+**Recommendation:** The successor profiles were opt-in at the M2–M3 review boundary. M4 is outside this change.
 
 ### Distributed transformer specification regions
 
@@ -126,3 +126,11 @@ Frontend verification passed 355 React/unit tests, four desktop/mobile Run Histo
 Deterministic checks cannot discover an omitted observation or detect every semantically wrong but source-compatible model proposal. Irregular tables without a committed partition can remain visual-only, and source ambiguity can require abstention. Live OpenAI, the three supplied drawings and production quality remain unmeasured. Broad acceptance, deployment hardening and the Phase 6 freeze are tracked under 6H, followed by Phase 6.5.
 
 **Milestone recommendation:** M4 and M5 are ready for review. The focused Phase 6G gates passed.
+
+## Documents integration follow-up
+
+New Documents operations choose Engineering v3 and Tables v4 automatically. The wizard uses the corrected canonical spatial layout and keeps the existing deployment checks and explicit OpenAI consent. Earlier consented operation hashes resolve through their original profiles. All seven versioned production profile identities matched the starting commit.
+
+Evidence Viewer lets reviewers select individual source fragments by role, including qualifiers, and locate their pinned page or supported region. Candidate details show source labels, unresolved AI proposals and source-local equipment associations. Run History retains the existing stage diagnostics and raw table inspector, which now shows orientation, header relationships and cell states.
+
+The focused Linux suite passed 79 tests with disposable PostgreSQL, Redis and MinIO. It exercised the wizard admission flow, actual synthetic PDF preparation and layout, both versioned families and failure isolation in both directions. Frontend verification passed 356 tests, TypeScript and lint, plus four desktop and mobile Chrome checks of Run History using fixtures. No live OpenAI calls or private drawing evaluations were made.

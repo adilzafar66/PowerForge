@@ -58,6 +58,7 @@ vi.mock("@/lib/extraction", async (importOriginal) => ({
   getHistory: vi.fn(),
   getRunDetail: vi.fn(),
   getRunSources: vi.fn(),
+  getRawTables: vi.fn(),
 }));
 
 vi.mock("@/lib/engineering-model", async (importOriginal) => ({
@@ -66,7 +67,7 @@ vi.mock("@/lib/engineering-model", async (importOriginal) => ({
 }));
 
 import {
-  getEvidence, getExtractionStatuses, getGroupCandidates, getGroups, getHistory,
+  getEvidence, getExtractionStatuses, getGroupCandidates, getGroups, getHistory, getRawTables,
   getRunDetail, getRunSources, type Candidate, type EvidenceDetail, type ExtractionStatus,
 } from "@/lib/extraction";
 import { DocumentViewer, DocumentViewerPage } from "@/components/document-viewer";
@@ -398,7 +399,7 @@ describe("DocumentViewer", () => {
   it.each([
     { label: "OCR", sourceKind: "OCR_TEXT", reading: "OCR", geometry: "OCR_ENGINE" },
     { label: "Native PDF", sourceKind: "NATIVE_TEXT", reading: "NATIVE_PDF", geometry: "NATIVE_DOCUMENT" },
-    { label: "Page-only", sourceKind: "VISUAL_REGION", reading: "VISUAL_REPORTED", geometry: "NONE" },
+    { label: "Page-only visual evidence", sourceKind: "VISUAL_REGION", reading: "VISUAL_REPORTED", geometry: "NONE" },
   ] as const)("locates $label on its pinned source and restores group search", async ({ label, sourceKind, reading, geometry }) => {
     const user = userEvent.setup();
     const engineering = "10000000-0000-4000-8000-000000000001";
@@ -406,6 +407,8 @@ describe("DocumentViewer", () => {
     const group = "30000000-0000-4000-8000-000000000003";
     const candidateId = "40000000-0000-4000-8000-000000000004";
     const evidenceId = "50000000-0000-4000-8000-000000000005";
+    const qualifierId = "50000000-0000-4000-8000-000000000006";
+    const unmappedId = "40000000-0000-4000-8000-000000000007";
     const run = {
       id: engineering, status: "COMPLETED" as const, processing_run_id: "processing",
       profile_key: "engineering-openai-enriched-v1", created_at: "2026-01-20T12:00:00Z",
@@ -429,7 +432,11 @@ describe("DocumentViewer", () => {
       observed_tag: null, attribute_key: "percent_impedance", numeric_value: "5.75",
       integer_value: null, text_value: null, boolean_value: null, unit: "%",
       reason_code: null, explanation: null,
-      evidence: [{ role: "PRIMARY", evidence: citation }],
+      diagnostics: { evidence_parts: [{ role: "VALUE", evidence_ids: [evidenceId] },
+        { role: "QUALIFIER", evidence_ids: [qualifierId] }] },
+      evidence: [{ role: "PRIMARY", evidence: citation }, {
+        role: "SUPPORTING", evidence: { ...citation, id: qualifierId, source_snippet: "At 75 °C" },
+      }],
     };
     const detail: EvidenceDetail = {
       ...citation, run_id: tables, processing_run_id: "pinned-processing",
@@ -445,8 +452,21 @@ describe("DocumentViewer", () => {
       ],
       total: 2, limit: 25, offset: 0,
     });
-    vi.mocked(getGroupCandidates).mockResolvedValue({ items: [candidate], total: 1, limit: 20, offset: 0 });
-    vi.mocked(getEvidence).mockResolvedValue(detail);
+    const unmapped: Candidate = {
+      ...candidate, id: unmappedId, mapping_status: "UNMAPPED", attribute_key: null,
+      numeric_value: null, unit: null, raw_value: "5.750", reason_code: "UNRESOLVED_SOURCE_MEANING",
+      diagnostics: {
+        ...candidate.diagnostics,
+        observation: { source_label: "Impedance at 75 °C", proposed_attribute_key: "percent_impedance" },
+      },
+    };
+    vi.mocked(getGroupCandidates).mockImplementation(async (_scope, _run, _family, _group, _filters, _offset, _signal, selected) => ({
+      items: selected ? [selected === unmappedId ? unmapped : candidate] : [candidate, unmapped],
+      total: selected ? 1 : 2, limit: 20, offset: 0,
+    }));
+    vi.mocked(getEvidence).mockImplementation(async (_scope, id) => id === qualifierId
+      ? { ...detail, id, source_snippet: "At 75 °C", region: geometry === "NONE" ? null : { x: "0.6", y: "0.5", width: "0.12", height: "0.02" } }
+      : detail);
     nav.search = "mode=evidence&groupSearch=TX-009";
     const view = renderViewer();
     function followLastPush() {
@@ -475,6 +495,24 @@ describe("DocumentViewer", () => {
     }
     expect(screen.getByText("Original reading").parentElement).toHaveTextContent("5.750 %");
     expect(screen.getByText(label, { exact: true })).toBeInTheDocument();
+
+    await user.click(screen.getByText("Source details"));
+    await user.click(screen.getByRole("button", { name: /Qualifier.*At 75 °C/ }));
+    followLastPush();
+    await waitFor(() => expect(getEvidence).toHaveBeenCalledWith(expect.anything(), qualifierId, expect.anything()));
+    expect(await screen.findByRole("button", { name: /Qualifier.*At 75 °C/ })).toHaveAttribute("aria-pressed", "true");
+    if (geometry === "NONE") {
+      expect(screen.queryByRole("img", { name: "Grounded source region" })).toBeNull();
+    } else {
+      fireEvent.load(await screen.findByRole("img", { name: "Pinned source page 2" }));
+      await waitFor(() => expect(screen.getByRole("img", { name: "Grounded source region" })).toHaveStyle({ left: "60%", top: "50%" }));
+    }
+
+    await user.click(screen.getByRole("button", { name: /Observed attribute.*Unmapped/ }));
+    followLastPush();
+    expect(await screen.findByText("AI proposal")).toBeVisible();
+    expect(screen.getByText("Impedance at 75 °C")).toBeVisible();
+    expect(screen.getByText("Unresolved source meaning")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Back to source groups" }));
     followLastPush();
@@ -534,6 +572,56 @@ describe("DocumentViewer", () => {
     expect(next.get("historicalPair")).toBe("1");
     expect(next.get("engineeringRun")).toBe(historical);
     expect(next.has("tablesRun")).toBe(false);
+  });
+
+  it("shows compact Tables diagnostics, header relationships and unreadable cells in Run History", async () => {
+    const user = userEvent.setup();
+    const id = "20000000-0000-4000-8000-000000000002";
+    const run = {
+      id, status: "COMPLETED" as const, processing_run_id: "processing",
+      profile_key: "tables-openai-enriched-v4", created_at: "2026-01-19T10:00:00Z",
+      selected_pages: [1], pages_processed: 1, error_code: null,
+    };
+    vi.mocked(getHistory).mockImplementation(async (_scope, family) => ({
+      items: family === "tables" ? [run] : [], total: family === "tables" ? 1 : 0, limit: 10, offset: 0,
+    }));
+    vi.mocked(getRunDetail).mockResolvedValue({
+      run, coverage: { required_units: 2, completed_required_units: 2 },
+      attempts: [{
+        id: "attempt", unit_key: "TABLE_RECONSTRUCTION:page:000001", status: "COMPLETED",
+        attempt_number: 1, error_code: null, stage_trace: {
+          phase: "COMPLETED", reason: null, provider_outcome: "PARSED", provider_detail: null,
+          returned: { tables: 1 }, counts: { SELECTED_PARTITIONS: 1, PUBLISHED_TABLES: 1 }, reasons: {}, issues: [],
+          source: { native_readings: 4, ocr_readings: 0, withheld_readings: 0, layout_tables: 1, conflict_pairs: 0, image_present: true },
+        },
+      }],
+    });
+    vi.mocked(getRunSources).mockResolvedValue({ items: [] });
+    vi.mocked(getRawTables).mockResolvedValue({
+      total: 1, limit: 1, offset: 0, items: [{ id: "table", table_kind: "EQUIPMENT_ROWS", layout: {
+        title: "Breaker schedule", metadata: { observation: { cells: [
+          { local_ref: "c1", state: "VALUE", header_refs: [] },
+          { local_ref: "c2", state: "UNREADABLE", header_refs: ["c1"], ambiguous: true },
+        ] } },
+        cells: [
+          { id: "c1", row: 0, column: 0, row_span: 1, column_span: 1, is_header: true, text: "Equipment" },
+          { id: "c2", row: 1, column: 0, row_span: 1, column_span: 1, is_header: false, text: "" },
+        ],
+      } }],
+    });
+    nav.search = `mode=evidence&evidenceTab=history&historyFamily=tables&historyRun=${id}`;
+    renderViewer();
+    await screen.findByRole("button", { name: /Run 20000000/ });
+    await user.click(await screen.findByText("Attempts and source bindings"));
+    await user.click(screen.getByText("0 candidates · 1 tables published"));
+    expect(screen.getByText(/4 native readings/)).toBeVisible();
+    expect(screen.getByText(/Selected partitions 1/)).toBeVisible();
+    await user.click(screen.getByText("Inspect raw table output (technical)"));
+    expect(await screen.findByText(/Orientation.*Equipment rows/)).toBeVisible();
+    const row = screen.getByRole("row", { name: /R2 C1/ });
+    expect(row).toHaveTextContent("Unreadable");
+    expect(row).toHaveTextContent("Ambiguous");
+    expect(row).toHaveTextContent("Headers · R1 C1");
   });
 
   it("explains running processing without requesting pages", async () => {

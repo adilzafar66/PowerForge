@@ -259,7 +259,7 @@ function RunHistoryDetail({
                   evidencePinned: "1", historicalPair: "1",
                   engineeringRun: chosen.engineering, tablesRun: chosen.tables,
                   evidenceTab: null, groupRun: null, sourceGroup: null, groupReturnPage: null,
-                  candidate: null, groupOffset: null, candidateOffset: null,
+                  candidate: null, fragment: null, groupOffset: null, candidateOffset: null,
                 });
               }}>Browse candidates</button>
             )}
@@ -359,7 +359,12 @@ function RawTableOutput({ scope, run }: { scope: DocumentScope; run: HistoryRun 
 
 type Layout = {
   title: string | null;
-  metadata: { structure_basis?: string };
+  metadata: {
+    structure_basis?: string;
+    observation?: { cells: {
+      local_ref: string; header_refs: string[]; state: string; ambiguous?: boolean;
+    }[] };
+  };
   cells: { id: string; text: string; row: number; column: number; row_span: number; column_span: number; is_header: boolean }[];
 };
 
@@ -367,22 +372,32 @@ function TableCells({ table }: { table: RawTable }) {
   const layout = table.layout as Layout;
   const [offset, setOffset] = useState(0);
   const cells = layout.cells.slice(offset, offset + 20);
+  const observations = new Map(layout.metadata.observation?.cells.map((cell) => [cell.local_ref, cell]));
+  const positions = new Map(layout.cells.map((cell) => [cell.id, `R${cell.row + 1} C${cell.column + 1}`]));
   return (
     <div className={cn(card, "space-y-2")}>
       <p className="m-0 break-words font-semibold text-ink">{layout.title || readableKey(table.table_kind)}</p>
+      {layout.title && <p className="m-0 text-muted">Orientation · {readableKey(table.table_kind)}</p>}
       {layout.metadata.structure_basis && <p className="m-0 text-muted">Structure · {readableKey(layout.metadata.structure_basis)}</p>}
       {layout.cells.length === 0 ? <p className="m-0 text-muted">No supported cells were recorded.</p> : (
         <table className="w-full table-fixed border-collapse text-left">
           <thead><tr className="border-b border-border text-muted"><th scope="col" className="w-[40%] py-1 pr-1">Source cell</th><th scope="col" className="py-1">Recognized text</th></tr></thead>
-          <tbody>{cells.map((cell) => (
+          <tbody>{cells.map((cell) => {
+            const observation = observations.get(cell.id);
+            const headers = observation?.header_refs?.map((ref) => positions.get(ref)).filter(Boolean);
+            return (
             <tr key={cell.id} className="border-b border-border last:border-0">
               <th scope="row" className="py-1 pr-1 align-top font-medium text-muted">
                 {cell.is_header ? "Header · " : ""}R{cell.row + 1} C{cell.column + 1}
                 {(cell.row_span > 1 || cell.column_span > 1) && ` · ${cell.row_span}×${cell.column_span}`}
               </th>
-              <td className="py-1 break-words whitespace-pre-wrap text-ink">{cell.text || "—"}</td>
+              <td className="py-1 break-words whitespace-pre-wrap text-ink">
+                {cell.text || (observation?.state ? readableKey(observation.state) : "—")}
+                {observation?.ambiguous && <span className="block text-muted">Ambiguous</span>}
+                {!!headers?.length && <span className="block text-muted">Headers · {headers.join(", ")}</span>}
+              </td>
             </tr>
-          ))}</tbody>
+          ); })}</tbody>
         </table>
       )}
       <EvidencePagination total={layout.cells.length} size={20} start={offset} onChange={setOffset} />
