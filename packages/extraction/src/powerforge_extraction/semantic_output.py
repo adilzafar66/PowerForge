@@ -84,13 +84,43 @@ def _fragments(sources, observation, readings, lines):
     return parts
 
 
-def _relationship(sources, label, value):
+def _shared_reading_field(text, label_quote, value_quote):
+    """Resolve unique literal substrings without inventing new source offsets."""
+
+    def occurrences(quote):
+        return list(re.finditer(r"(?<!\w)" + re.escape(quote) + r"(?!\w)", text))
+
+    labels, values = occurrences(label_quote), occurrences(value_quote)
+    if len(labels) != 1 or len(values) != 1:
+        return False
+    label, value = labels[0], values[0]
+    if label.end() > value.start() or text[: label.start()].strip():
+        return False
+    between = text[label.end() : value.start()]
+    trailing = text[value.end() :].strip()
+    # A field delimiter or space may separate the exact fragments. A sign,
+    # decimal continuation, range, or second field cannot be ignored.
+    return bool(
+        re.fullmatch(r"\s*(?::|=)?\s*", between)
+        and (between or label_quote.endswith((":", "=")))
+        and not re.search(r"[:=\d]", trailing)
+        and not trailing.startswith((".", ",", "/", "+", "-", "–", "—"))
+    )
+
+
+def _relationship(sources, label, value, *, shared_reading=False):
     if not label[1] or not value[1]:
         return "VISUAL_REPORTED" if not label[1] and not value[1] else "UNRESOLVED"
     if label[3] == value[3]:
         if (label[0].role, value[0].role) == ("LABEL", "VALUE"):
             line = label[3]
             left, right = line.index(label[1][-1]), line.index(value[1][0])
+            if shared_reading and left == right and len(label[1]) == len(value[1]) == 1:
+                return (
+                    "SAME_SOURCE_LINE"
+                    if _shared_reading_field(line[left].text, label[0].quote, value[0].quote)
+                    else "UNRESOLVED"
+                )
             if left >= right or any(
                 ":" in r.text or any(ch.isdigit() for ch in r.text) for r in line[left + 1 : right]
             ):
@@ -183,7 +213,9 @@ def _qualified(sources, observation, passage, has_qualifier):
     )
 
 
-def _attribute_meaning(result, proposal, equipment, label, passage, qualified):
+def _attribute_meaning(
+    result, proposal, equipment, label, passage, qualified, *, source_supported=False
+):
     if (
         not equipment
         or not proposal
@@ -202,20 +234,26 @@ def _attribute_meaning(result, proposal, equipment, label, passage, qualified):
     if known and known.key != proposal:
         return replace(result, reason_code="ATTRIBUTE_PROPOSAL_CONFLICT")
     words = set(re.findall(r"[a-z]+", label.casefold()))
-    unit_words = set(re.findall(r"[a-z]+", (result.raw_unit or "").casefold()))
-    meaningful = words - unit_words
-    rating_label = (
-        words == {"kva"}
-        and equipment == "TWO_WINDING_TRANSFORMER"
-        and proposal == "rated_apparent_power"
-    )
-    if (
-        known is None
-        and not rating_label
-        and len(meaningful) < 2
-        and not (meaningful & {"primary", "secondary", "trip", "frame"})
+    if not source_supported:
+        unit_words = set(re.findall(r"[a-z]+", (result.raw_unit or "").casefold()))
+        meaningful = words - unit_words
+        rating_label = (
+            words == {"kva"}
+            and equipment == "TWO_WINDING_TRANSFORMER"
+            and proposal == "rated_apparent_power"
+        )
+        if (
+            known is None
+            and not rating_label
+            and len(meaningful) < 2
+            and not (meaningful & {"primary", "secondary", "trip", "frame"})
+        ):
+            return replace(result, reason_code="INSUFFICIENT_FIELD_CONTEXT")
+    elif proposal == "rated_apparent_power" and re.search(
+        r"\bauxiliary\s+(?:load|demand|consumption)\b", label, re.I
     ):
-        return replace(result, reason_code="INSUFFICIENT_FIELD_CONTEXT")
+        # An explicitly identified load is a different quantity from the rating.
+        return replace(result, reason_code="ATTRIBUTE_PROPOSAL_CONFLICT")
     meaning = set(proposal.casefold().split("_"))
     for first, second in (("primary", "secondary"), ("trip", "frame")):
         if (first in words and second in meaning) or (second in words and first in meaning):
@@ -302,7 +340,157 @@ def _equipment_scope(sources, heading, observations, uncertain):
     return tuple(refs[:128])
 
 
-def convert_engineering(response, sources, context=None, *, trace=None):
+_SPEC_SECTION = re.compile(
+    r"(?:(?:transformer|winding|electrical|technical|equipment|nameplate) )?"
+    r"(?:specifications|ratings|data|characteristics)\s*[:\-]?",
+    re.I,
+)
+_COMPETING_DEVICE = re.compile(
+    r"\b(?:transformer|panelboard|breaker|switchgear|generator|motor|reactor|fuse|bus|cable)\b",
+    re.I,
+)
+_WINDING_FIELD = re.compile(r"^(primary|secondary)(?:\s|:)", re.I)
+
+
+_BRANCH_BREAKERS = re.compile(
+    r"(?:installed )?branch(?: circuit)? breakers?(?: schedule)?\s*:?", re.I
+)
+
+
+def _branch_breaker_rows(lines):
+    """Return bounded branch rows and their explicit section headings."""
+    rows = sorted(
+        (row for row in lines.values() if row[0].box),
+        key=lambda row: (row[0].box[1], row[0].box[0]),
+    )
+    result = {}
+    for index, heading in enumerate(rows):
+        if not _BRANCH_BREAKERS.fullmatch(render(heading)) or any(r.model.issues for r in heading):
+            continue
+        x, y, _, bottom = heading[0].box
+        height = bottom - y
+        for row in rows[index + 1 : index + 33]:
+            left, top, _, end = row[0].box
+            if top < bottom or abs(left - x) > 2 * height:
+                continue
+            text = render(row)
+            if (
+                top - bottom > 4 * height
+                or any(r.model.issues for r in row)
+                or row[0].kind != heading[0].kind
+                or not re.search(r"\d", text)
+                or re.search(
+                    r"\b(?:panelboard|transformer|PROV|provisioned|spare|designation|tag)\b",
+                    text,
+                    re.I,
+                )
+            ):
+                break
+            result[row[0].model.ref] = heading
+            bottom = end
+    return result
+
+
+def _panelboard_designation(
+    sources, observation, heading, observations, readings, lines, branches, tag
+):
+    if observation.proposed_equipment_type != "BUS" or not re.search(
+        r"\bpanelboard\b", render(heading), re.I
+    ):
+        return ()
+    designations = {
+        match[1] for line in lines.values() if (match := _DESIGNATION.search(render(line)))
+    }
+    if designations != {tag}:
+        return ()
+    for line in lines.values():
+        if line == heading or line[0].model.ref in branches:
+            continue
+        text = render(line)
+        if not _BRANCH_BREAKERS.fullmatch(text) and (
+            legacy._equipment_type(text) or _COMPETING_DEVICE.search(text)
+        ):
+            return ()
+    context = {}
+    for peer in observations:
+        if peer is observation:
+            continue
+        if peer.ambiguous or peer.proposed_equipment_type not in {"LV_BREAKER", "HV_BREAKER"}:
+            return ()
+        try:
+            parts = _fragments(sources, peer, readings, lines)
+        except SourceRejection:
+            return ()
+        rows = [row for anchor, _, _, row in parts if anchor.role == "EQUIPMENT"]
+        if len(rows) != 1 or not rows[0] or rows[0][0].model.ref not in branches:
+            return ()
+        row = rows[0]
+        for reading in (*branches[row[0].model.ref], *row):
+            context[reading.model.ref] = reading
+    return tuple(context.values())[:32]
+
+
+def _distributed_sections(lines, heading):
+    """Bound section membership by its own heading and column."""
+    if not heading or any(r.box is None or r.model.issues for r in heading):
+        return ()
+    rows = sorted(
+        (row for row in lines.values() if row[0].box),
+        key=lambda row: (row[0].box[1], row[0].box[0]),
+    )
+    designations = set()
+    for row in rows:
+        text = render(row)
+        tag = _DESIGNATION.search(text)
+        if tag:
+            designations.add(tag[1])
+        if (
+            row != heading
+            and _COMPETING_DEVICE.search(text)
+            and not _SPEC_SECTION.fullmatch(text)
+            and not _WINDING_FIELD.match(text)
+        ):
+            return ()
+    if len(designations) > 1:
+        return ()
+    sections = []
+    winding_sides = set()
+    for index, header in enumerate(rows):
+        if not _SPEC_SECTION.fullmatch(render(header)) or any(r.model.issues for r in header):
+            continue
+        x, y, _, bottom = header[0].box
+        height = bottom - y
+        members = []
+        pending_winding = None
+        for row in rows[index + 1 :]:
+            left, top, _, end = row[0].box
+            if top < bottom or not x - height <= left <= x + 18 * height:
+                continue
+            if top - bottom > 4 * height or _SPEC_SECTION.fullmatch(render(row)):
+                break
+            if any(r.model.issues or r.kind != header[0].kind for r in row):
+                break
+            text = render(row)
+            # A new prose heading terminates the block; fields and numeric continuations belong.
+            if ":" not in text and not re.search(r"\d", text):
+                break
+            members.extend(row)
+            bottom = end
+            match = _WINDING_FIELD.match(text)
+            side = match[1].lower() if match else None
+            voltage = re.search(r"\b\d+(?:\.\d+)?\s*(?:k?V|Volts?)\b", text, re.I)
+            if voltage and (side or (pending_winding and re.match(r"^\d", text))):
+                winding_sides.add(side or pending_winding)
+            pending_winding = side if not voltage else None
+            if len(members) >= 128:
+                break
+        if members:
+            sections.append((header, {r.model.ref for r in members}))
+    # Explicit headings alone do not connect arbitrary fields to the equipment.
+    return sections if winding_sides == {"primary", "secondary"} else ()
+
+
+def convert_engineering(response, sources, context=None, *, trace=None, distributed=False):
     output = Output(sources)
     mentions = {c.diagnostics["source_local_ref"]: c for c in context.candidates} if context else {}
     if context:
@@ -312,6 +500,7 @@ def convert_engineering(response, sources, context=None, *, trace=None):
     seen = set()
     readings_by_ref = lookup(sources)
     lines = line_groups(sources)
+    branches = _branch_breaker_rows(lines) if equipment and distributed else {}
     for obs in observations:
         if trace:
             trace.phase = "GROUNDING"
@@ -342,6 +531,8 @@ def convert_engineering(response, sources, context=None, *, trace=None):
         result = Interpretation(MappingStatus.UNMAPPED, "UNRESOLVED_SOURCE_MEANING", raw)
         basis, mention, group = "UNRESOLVED", None, None
         local_context = []
+        designation_context = []
+        association_basis = None
         if equipment:
             if "EQUIPMENT" not in by_role:
                 if "TAG" in by_role:
@@ -363,10 +554,25 @@ def convert_engineering(response, sources, context=None, *, trace=None):
             tag_part = by_role.get("TAG")
             designation = _DESIGNATION.search(render(tag_part[3])) if tag_part else None
             own = by_role["EQUIPMENT"]
+            sections = (
+                _distributed_sections(lines, own[3])
+                if distributed
+                and not uncertain
+                and len(observations) == 1
+                and re.search(r"\btransformer\b", render(own[3]), re.I)
+                else ()
+            )
             corroboration = [
                 part
                 for part in parts
-                if part[0].role == "CONTEXT" and _relationship(sources, own, part) != "UNRESOLVED"
+                if part[0].role == "CONTEXT"
+                and (
+                    _relationship(sources, own, part) != "UNRESOLVED"
+                    or (
+                        part[1]
+                        and any({r.model.ref for r in part[1]} <= refs for _, refs in sections)
+                    )
+                )
             ]
             description = " ".join(
                 [render(own[3]) or own[0].quote, *(part[0].quote for part in corroboration)]
@@ -379,6 +585,7 @@ def convert_engineering(response, sources, context=None, *, trace=None):
                         (designation and designation[1] == tag)
                         or (
                             re.fullmatch(r"[A-Za-z]{1,5}-[0-9]+", tag)
+                            and own[3][0].model.ref not in branches
                             and not re.search(
                                 r"\b(?:model|catalog|part|serial)\b", render(own[3]), re.I
                             )
@@ -386,6 +593,25 @@ def convert_engineering(response, sources, context=None, *, trace=None):
                     )
                 ):
                     basis = "SAME_SOURCE_LINE"
+                elif (
+                    distributed
+                    and designation
+                    and designation[1] == tag
+                    and (
+                        panel_context := _panelboard_designation(
+                            sources,
+                            obs,
+                            own[3],
+                            observations,
+                            readings_by_ref,
+                            lines,
+                            branches,
+                            tag,
+                        )
+                    )
+                ):
+                    basis = "EXPLICIT_PANELBOARD_DESIGNATION"
+                    designation_context = [reading_evidence(sources, r) for r in panel_context]
                 elif designation and designation[1] == tag and len(observations) == 1:
                     # Another independently recognizable equipment heading makes the tag ambiguous.
                     peers = [
@@ -415,7 +641,7 @@ def convert_engineering(response, sources, context=None, *, trace=None):
             if not value:
                 continue
             if label:
-                basis = _relationship(sources, label, value)
+                basis = _relationship(sources, label, value, shared_reading=distributed)
             unit_part = by_role.get("UNIT") or label
             unit = obs.raw_unit if _agrees(unit_part, obs.raw_unit) else None
             unit_supported = not obs.raw_unit or (
@@ -444,7 +670,41 @@ def convert_engineering(response, sources, context=None, *, trace=None):
                     and label_refs <= scope
                     and basis not in {"UNRESOLVED", "VISUAL_REPORTED"}
                 )
-                if not (direct or via_label):
+                section = None
+                if (
+                    distributed
+                    and not (direct or via_label)
+                    and len(mentions) == 1
+                    and selected
+                    and label_refs
+                    and basis not in {"UNRESOLVED", "VISUAL_REPORTED"}
+                ):
+                    from powerforge_extraction.semantic_observations import SemanticEquipment
+
+                    original = SemanticEquipment.model_validate(mention.diagnostics["observation"])
+                    heading = next(
+                        (
+                            part[3]
+                            for part in _fragments(sources, original, readings_by_ref, lines)
+                            if part[0].role == "EQUIPMENT"
+                        ),
+                        (),
+                    )
+                    if not original.ambiguous and re.search(
+                        r"\btransformer\b", render(heading), re.I
+                    ):
+                        section = next(
+                            (
+                                header
+                                for header, refs in _distributed_sections(lines, heading)
+                                if selected | label_refs <= refs
+                            ),
+                            None,
+                        )
+                if section:
+                    association_basis = "CORROBORATED_SPECIFICATION_SECTION"
+                    local_context.extend(reading_evidence(sources, r) for r in section[:16])
+                elif not (direct or via_label):
                     mention = None
             if uncertain:
                 result = replace(result, reason_code="AMBIGUOUS_OBSERVATION")
@@ -478,14 +738,17 @@ def convert_engineering(response, sources, context=None, *, trace=None):
                         label[0].quote,
                         mention.raw_text,
                         _qualified(sources, obs, passage, "QUALIFIER" in by_role),
+                        source_supported=distributed,
                     )
             if basis not in {"UNRESOLVED", "VISUAL_REPORTED"}:
                 cited_refs = {r.model.ref for r in readings}
-                local_context = [
-                    reading_evidence(sources, r)
-                    for r in value[3][:16]
-                    if r.model.ref not in cited_refs
-                ]
+                local_context.extend(
+                    [
+                        reading_evidence(sources, r)
+                        for r in value[3][:16]
+                        if r.model.ref not in cited_refs
+                    ]
+                )
             group = mention.source_group_id if mention else None
         if not equipment:
             key = (
@@ -511,6 +774,10 @@ def convert_engineering(response, sources, context=None, *, trace=None):
                 for anchor, _, citations, _ in parts
             ],
         }
+        if association_basis:
+            metadata["equipment_association_basis"] = association_basis
+        if designation_context:
+            metadata["designation_context_evidence_ids"] = [str(e.id) for e in designation_context]
         if local_context:
             metadata["evidence_parts"].append(
                 {
@@ -549,7 +816,7 @@ def convert_engineering(response, sources, context=None, *, trace=None):
             if context
             else []
         )
-        output.cite(c, evidence, [*local_context, *supporting])
+        output.cite(c, evidence, [*designation_context, *local_context, *supporting])
         if group and equipment:
             output.groups.append(
                 SourceGroupInput(
@@ -563,7 +830,11 @@ def convert_engineering(response, sources, context=None, *, trace=None):
         if trace:
             trace.observe("GROUNDING_ADMITTED", obs)
             trace.observe(
-                c.mapping_status, obs, reason=c.reason_code, candidate=c, association=basis
+                c.mapping_status,
+                obs,
+                reason=c.reason_code,
+                candidate=c,
+                association=association_basis or basis,
             )
     return output.result()
 

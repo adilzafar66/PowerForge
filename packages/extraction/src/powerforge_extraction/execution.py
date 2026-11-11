@@ -230,6 +230,8 @@ def execute_unit(
     try:
         with heartbeats(factory, claim, settings):
             from powerforge_extraction.enriched_profiles import (
+                DISTRIBUTED_ENGINEERING,
+                SOURCE_SUPPORTED_TABLES,
                 EnrichedTableProfile,
                 is_enriched,
                 is_semantic,
@@ -322,11 +324,19 @@ def execute_unit(
 
                         if request.stage == "TABLE_INTERPRETATION":
                             output = interpret_tables(
-                                response.result, sources, context, trace=diagnostics
+                                response.result,
+                                sources,
+                                context,
+                                trace=diagnostics,
+                                source_supported=claim.profile.key == SOURCE_SUPPORTED_TABLES,
                             )
                         else:
                             output = convert_engineering(
-                                response.result, sources, context, trace=diagnostics
+                                response.result,
+                                sources,
+                                context,
+                                trace=diagnostics,
+                                distributed=claim.profile.key == DISTRIBUTED_ENGINEERING,
                             )
                     elif request.stage == "EQUIPMENT_RECOGNITION":
                         output = convert_equipment(response.result, sources, trace=diagnostics)

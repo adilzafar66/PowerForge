@@ -53,7 +53,10 @@ class EnrichedTableProfile(TableProfile):
 
 SEMANTIC_ENGINEERING = "engineering-openai-enriched-v2"
 SEMANTIC_TABLES = "tables-openai-enriched-v2"
+DISTRIBUTED_ENGINEERING = "engineering-openai-enriched-v3"
+SOURCE_SUPPORTED_TABLES = "tables-openai-enriched-v3"
 SEMANTIC_PROFILES = (SEMANTIC_ENGINEERING, SEMANTIC_TABLES)
+SEMANTIC_V3_PROFILES = (DISTRIBUTED_ENGINEERING, SOURCE_SUPPORTED_TABLES)
 
 
 class SemanticEngineeringProfile(EnrichedEngineeringProfile):
@@ -62,10 +65,22 @@ class SemanticEngineeringProfile(EnrichedEngineeringProfile):
     schema_version: Literal["enriched-stage-manifest-v2"] = "enriched-stage-manifest-v2"
 
 
+class DistributedEngineeringProfile(SemanticEngineeringProfile):
+    key: Literal["engineering-openai-enriched-v3"]
+    prompt_version: Literal["enriched-semantics-prompts-v3"] = "enriched-semantics-prompts-v3"
+    schema_version: Literal["enriched-stage-manifest-v3"] = "enriched-stage-manifest-v3"
+
+
 class SemanticTableProfile(EnrichedTableProfile):
     key: Literal["tables-openai-enriched-v2"]
     prompt_version: Literal["enriched-semantics-prompts-v2"] = "enriched-semantics-prompts-v2"
     schema_version: Literal["enriched-stage-manifest-v2"] = "enriched-stage-manifest-v2"
+
+
+class SourceSupportedTableProfile(SemanticTableProfile):
+    key: Literal["tables-openai-enriched-v3"]
+    prompt_version: Literal["enriched-semantics-prompts-v3"] = "enriched-semantics-prompts-v3"
+    schema_version: Literal["enriched-stage-manifest-v3"] = "enriched-stage-manifest-v3"
 
 
 def is_semantic(profile):
@@ -90,6 +105,8 @@ def stage_schemas(profile):
 
 
 def prompt_for(profile, stage):
+    if profile.key in SEMANTIC_V3_PROFILES and stage != "TABLE_RECONSTRUCTION":
+        return "prompts/enriched_semantics_v3.txt"
     if is_semantic(profile) and stage != "TABLE_RECONSTRUCTION":
         return "prompts/enriched_semantics_v2.txt"
     return "prompts/enriched_v1.txt"
@@ -98,7 +115,7 @@ def prompt_for(profile, stage):
 def semantic_manifest(profile):
     root = files("powerforge_extraction")
     return dict(
-        version="enriched-stage-manifest-v2",
+        version=profile.schema_version,
         stages=[
             dict(
                 stage=stage,
@@ -113,14 +130,22 @@ def semantic_manifest(profile):
     )
 
 
-def semantic_runtime():
+def semantic_runtime(profile):
+    distributed = profile.key in SEMANTIC_V3_PROFILES
+    archived = {"semantic_output.py", "semantic_tables.py", "execution.py", "enriched_profiles.py"}
     root = files("powerforge_extraction")
     return {
         **runtime_identity(),
-        "version": "enriched-page-runtime-v2",
+        "version": "enriched-page-runtime-v3" if distributed else "enriched-page-runtime-v2",
         "semantic_rules": identity_hash(
             {
-                name: hashlib.sha256(root.joinpath(name).read_bytes()).hexdigest()
+                name: hashlib.sha256(
+                    root.joinpath(
+                        f"runtime_resources/semantics_v2/{name.removesuffix('.py')}.txt"
+                        if not distributed and name in archived
+                        else name
+                    ).read_bytes()
+                ).hexdigest()
                 for name in (
                     "semantic_observations.py",
                     "semantic_output.py",
@@ -139,7 +164,7 @@ def semantic_runtime():
 
 
 def _family(profile):
-    if (profile.key in (*PRODUCTION, *SEMANTIC_PROFILES)) != (
+    if (profile.key in (*PRODUCTION, *SEMANTIC_PROFILES, *SEMANTIC_V3_PROFILES)) != (
         profile.provider == "openai"
     ) or profile.input_strategy != "NATIVE_TEXT_AND_IMAGE":
         raise ValueError("Enhanced source strategy and synthetic/production family must match")
@@ -226,16 +251,29 @@ def runtime_identity():
 
 
 def enriched_profile(key, settings):
-    if key in SEMANTIC_PROFILES:
-        engineering = key == SEMANTIC_ENGINEERING
-        model = SemanticEngineeringProfile if engineering else SemanticTableProfile
+    if key in (*SEMANTIC_PROFILES, *SEMANTIC_V3_PROFILES):
+        engineering = key in (SEMANTIC_ENGINEERING, DISTRIBUTED_ENGINEERING)
+        distributed = key in SEMANTIC_V3_PROFILES
+        model = (
+            DistributedEngineeringProfile
+            if key == DISTRIBUTED_ENGINEERING
+            else SourceSupportedTableProfile
+            if key == SOURCE_SUPPORTED_TABLES
+            else SemanticEngineeringProfile
+            if engineering
+            else SemanticTableProfile
+        )
         base = enriched_profile(ENGINEERING if engineering else TABLES, settings)
         profile = model.model_validate(
             {
                 **base.model_dump(),
                 "key": key,
-                "schema_version": "enriched-stage-manifest-v2",
-                "prompt_version": "enriched-semantics-prompts-v2",
+                "schema_version": "enriched-stage-manifest-v3"
+                if distributed
+                else "enriched-stage-manifest-v2",
+                "prompt_version": "enriched-semantics-prompts-v3"
+                if distributed
+                else "enriched-semantics-prompts-v2",
                 "max_instruction_bytes": 131072,
             }
         )
@@ -244,7 +282,7 @@ def enriched_profile(key, settings):
         return profile.model_copy(
             update={
                 "manifest": record,
-                "runtime": semantic_runtime(),
+                "runtime": semantic_runtime(profile),
                 "prompt_hash": digest,
                 "schema_hash": digest,
                 "adapter_hash": digest,
@@ -292,9 +330,9 @@ def require_enriched(profile):
     semantic = is_semantic(profile)
     record = semantic_manifest(profile) if semantic else manifest()
     if (
-        profile.key not in (*PROFILES, *SEMANTIC_PROFILES)
+        profile.key not in (*PROFILES, *SEMANTIC_PROFILES, *SEMANTIC_V3_PROFILES)
         or profile.manifest != record
-        or profile.runtime != (semantic_runtime() if semantic else runtime_identity())
+        or profile.runtime != (semantic_runtime(profile) if semantic else runtime_identity())
         or profile.source_rules != layout_rules_identity()
         or profile.prompt_hash != identity_hash(record)
         or profile.schema_hash != identity_hash(record)

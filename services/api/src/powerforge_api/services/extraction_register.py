@@ -20,9 +20,11 @@ from powerforge_document_processing.models import (
 )
 from powerforge_extraction.controls import RunExecution
 from powerforge_extraction.enriched_profiles import (
+    DISTRIBUTED_ENGINEERING,
     ENGINEERING,
     SEMANTIC_ENGINEERING,
     SEMANTIC_TABLES,
+    SOURCE_SUPPORTED_TABLES,
     TABLES,
 )
 from powerforge_extraction.enrichment_profiles import PURPOSE
@@ -34,8 +36,13 @@ from powerforge_persistence import Project, ProjectRevision
 
 PROFILE_KEY = RunExecution.configuration["key"].as_string()
 FAMILY_PROFILES = {
-    "engineering": (*PRODUCTION_PROFILES, ENGINEERING, SEMANTIC_ENGINEERING),
-    "tables": (*TABLE_PRODUCTION_PROFILES, TABLES, SEMANTIC_TABLES),
+    "engineering": (
+        *PRODUCTION_PROFILES,
+        ENGINEERING,
+        SEMANTIC_ENGINEERING,
+        DISTRIBUTED_ENGINEERING,
+    ),
+    "tables": (*TABLE_PRODUCTION_PROFILES, TABLES, SEMANTIC_TABLES, SOURCE_SUPPORTED_TABLES),
 }
 RESULT_STATUSES = ("COMPLETED", "PARTIALLY_COMPLETED")
 

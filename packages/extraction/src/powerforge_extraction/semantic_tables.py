@@ -16,7 +16,7 @@ from powerforge_extraction.semantic_output import (
 )
 
 
-def interpret_tables(response, sources, context, *, trace=None):
+def interpret_tables(response, sources, context, *, trace=None, source_supported=False):
     """Interpret committed cells without using terminology as the mapping gate."""
     from powerforge_extraction.table_output import _scope, headers
 
@@ -199,6 +199,7 @@ def interpret_tables(response, sources, context, *, trace=None):
                     label,
                     mention[3],
                     bool(obs.qualifier_refs or _CONDITIONAL.search(passage)),
+                    source_supported=source_supported,
                 )
         primary = table.items[cell.local_ref]
         supporting = [e for h in hs for e in table.items[h.local_ref]]

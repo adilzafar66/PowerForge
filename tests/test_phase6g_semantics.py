@@ -7,7 +7,9 @@ import pytest
 
 from enriched_pure_support import fake, native_sources, table_interpretation
 from powerforge_extraction.enriched_profiles import (
+    DISTRIBUTED_ENGINEERING,
     SEMANTIC_PROFILES,
+    SOURCE_SUPPORTED_TABLES,
     enriched_profile,
     require_enriched,
     stage_models,
@@ -179,8 +181,10 @@ def test_tables_uses_proposals_against_committed_cells():
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("family", ["engineering", "tables"])
-def test_successor_execution_publishes_via_existing_attempts(native_ctx, family):
+@pytest.mark.parametrize(
+    ("family", "version"), [("engineering", 2), ("engineering", 3), ("tables", 2), ("tables", 3)]
+)
+def test_successor_execution_publishes_via_existing_attempts(native_ctx, family, version):
     import json
     from types import SimpleNamespace
     from uuid import UUID
@@ -200,7 +204,7 @@ def test_successor_execution_publishes_via_existing_attempts(native_ctx, family)
     )
     ctx = build_source(native_ctx, pdf, "synthetic.pdf")
     binding = enrich(ctx)
-    run = start_enriched(ctx, binding, profile=f"{family}-openai-enriched-v2")
+    run = start_enriched(ctx, binding, profile=f"{family}-openai-enriched-v{version}")
     calls = []
 
     class Transport:
@@ -390,7 +394,7 @@ def test_operation_opt_in_preserves_the_profile_hash_of_existing_consent():
     historical = operation_profiles(settings, ("engineering", "tables"))
     settings.extraction_operation_semantic_profiles = True
     successor = operation_profiles(settings, ("engineering", "tables"))
-    assert [p.key for p in successor] == list(SEMANTIC_PROFILES)
+    assert [p.key for p in successor] == [DISTRIBUTED_ENGINEERING, SOURCE_SUPPORTED_TABLES]
     for family, profile in zip(("engineering", "tables"), historical, strict=True):
         assert pinned_operation_profile(settings, family, profile.identity_hash) == profile
 
@@ -469,3 +473,249 @@ def test_horizontal_form_value_associates_through_grounded_label():
     assert value.numeric_value == 350
     assert value.diagnostics["relationship_basis"] in {"SAME_SOURCE_LINE", "LOCAL_FORM_GEOMETRY"}
     assert value.equipment_mention_candidate_id == recognized.candidates[0].id
+
+
+@pytest.mark.parametrize("competing", [False, True])
+def test_distributed_specification_regions_require_single_transformer(competing):
+    import pymupdf
+
+    with pymupdf.open() as doc:
+        page = doc.new_page(width=760, height=650)
+        fields = [
+            ((30, 50), "Dry-type Transformer"),
+            ((365, 300), "Winding Specifications"),
+            ((365, 325), "Primary: 13.8 kV"),
+            ((365, 350), "Secondary: 600 V"),
+            ((80, 460), "Electrical Ratings"),
+            ((80, 485), "kVA:"),
+            ((80, 507), "350"),
+            ((560, 610), "TAG: 80T1"),
+        ]
+        if competing:
+            fields.append(((30, 175), "Auxiliary Transformer"))
+        for point, text in fields:
+            page.insert_text(point, text, fontsize=12)
+        sources = native_sources(doc.tobytes(), "EQUIPMENT_RECOGNITION")
+
+    wire = {
+        "schema_version": "equipment-recognition-schema-v3",
+        "overflowed": False,
+        "equipment": [
+            {
+                "local_ref": "eq1",
+                "raw_expression": "Dry-type Transformer",
+                "anchors": [
+                    part(sources, "EQUIPMENT", "Dry-type Transformer"),
+                    part(sources, "CONTEXT", "Primary: 13.8 kV"),
+                    part(sources, "CONTEXT", "Secondary: 600 V"),
+                    part(sources, "TAG", "80T1"),
+                ],
+                "observed_tag": "80T1",
+                "observed_name": None,
+                "proposed_equipment_type": TRANSFORMER,
+                "ambiguous": False,
+                "ambiguity_reason": None,
+            }
+        ],
+    }
+    recognized = convert_engineering(
+        SemanticEquipmentResponse.model_validate(wire),
+        sources,
+        distributed=True,
+    )
+    later = replace(
+        sources, stage="ATTRIBUTE_EXTRACTION", unit_key="ATTRIBUTE_EXTRACTION:page:000001"
+    )
+    result = convert_engineering(
+        attributes(attribute(later, "kVA:", "350", "kVA", "rated_apparent_power")),
+        later,
+        recognized,
+        distributed=True,
+    )
+    mention, rating = recognized.candidates[0], result.candidates[0]
+    assert not mention.diagnostics["scope_readings"]
+    if competing:
+        assert mention.mapping_status == rating.mapping_status == "UNMAPPED"
+        assert rating.equipment_mention_candidate_id is None
+    else:
+        assert mention.mapping_status == rating.mapping_status == "MAPPED"
+        assert rating.equipment_mention_candidate_id == mention.id
+        assert rating.numeric_value == 350
+        assert (
+            rating.diagnostics["equipment_association_basis"]
+            == "CORROBORATED_SPECIFICATION_SECTION"
+        )
+        assert "Electrical" in {item.source_snippet for item in result.evidence}
+
+
+def test_distributed_profile_pins_its_own_dispatch():
+    profile = enriched_profile(DISTRIBUTED_ENGINEERING, Settings(_env_file=None))
+    restored = read_profile(profile.model_dump(mode="json"))
+    require_enriched(restored)
+    assert restored.schema_version == "enriched-stage-manifest-v3"
+
+
+@pytest.mark.parametrize(
+    ("label", "ambiguous", "expected", "reason"),
+    [
+        ("Durchgang (kVA)", False, "MAPPED", "AI_SUPPORTED_ATTRIBUTE"),
+        ("Auxiliary Load (kVA):", False, "UNMAPPED", "ATTRIBUTE_PROPOSAL_CONFLICT"),
+        ("Durchgang (kVA)", True, "UNMAPPED", "AMBIGUOUS_OBSERVATION"),
+    ],
+)
+def test_v3_mapping_checks_evidence_and_conflicts_instead_of_label_length(
+    label,
+    ambiguous,
+    expected,
+    reason,
+):
+    source = native_sources(
+        prose_pdf(["2-Winding Transformer", label, "350", "TAG: 80T1"]),
+        "EQUIPMENT_RECOGNITION",
+    )
+    recognized = convert_engineering(recognition(source), source, distributed=True)
+    later = replace(
+        source, stage="ATTRIBUTE_EXTRACTION", unit_key="ATTRIBUTE_EXTRACTION:page:000001"
+    )
+    observation = attribute(later, label, "350", "kVA", "rated_apparent_power")
+    if ambiguous:
+        observation.update(ambiguous=True, ambiguity_reason="Equipment rating role is unclear")
+    output = convert_engineering(
+        attributes(observation),
+        later,
+        recognized,
+        distributed=True,
+    )
+    value = output.candidates[0]
+    assert value.mapping_status == expected
+    assert value.reason_code == reason
+    assert value.raw_value == "350" and value.raw_unit == "kVA"
+    assert value.diagnostics["observation"]["proposed_attribute_key"] == "rated_apparent_power"
+    assert value.numeric_value == (350 if expected == "MAPPED" else None)
+
+
+@pytest.mark.parametrize(
+    ("reading", "expected"),
+    [
+        ("kVA: 350", "MAPPED"),
+        ("350 kVA:", "UNMAPPED"),
+        ("kVA: 350 / 350", "UNMAPPED"),
+        ("kVA: 350.5", "UNMAPPED"),
+        ("kVA: 350; Secondary: 600 V", "UNMAPPED"),
+    ],
+)
+def test_shared_source_reading_uses_unique_ordered_substrings(monkeypatch, reading, expected):
+    from powerforge_extraction import enrichment_prepare
+
+    extract_native = enrichment_prepare.extract_native
+
+    def combined_reading(data, page_number):
+        native = extract_native(data, page_number)
+        # Supply a combined extractor reading before constructing the immutable artifact.
+        return replace(
+            native,
+            readings=tuple(
+                replace(item, text=reading) if item.text == "FIELD" else item
+                for item in native.readings
+            ),
+        )
+
+    monkeypatch.setattr(enrichment_prepare, "extract_native", combined_reading)
+    source = native_sources(
+        prose_pdf(["2-Winding Transformer", "FIELD", "TAG: 80T1"]),
+        "EQUIPMENT_RECOGNITION",
+    )
+    recognized = convert_engineering(recognition(source), source, distributed=True)
+    later = replace(
+        source, stage="ATTRIBUTE_EXTRACTION", unit_key="ATTRIBUTE_EXTRACTION:page:000001"
+    )
+    ref = next(item.model.ref for item in later.readings if item.text == reading)
+    anchors = [
+        dict(role=role, quote=quote, source_ref="spatial_readings", reading_refs=[ref])
+        for role, quote in (("LABEL", "kVA:"), ("VALUE", "350"))
+    ]
+    claim = dict(
+        local_ref="combined",
+        raw_expression="kVA: 350",
+        equipment_ref="eq1",
+        anchors=anchors,
+        source_label="kVA:",
+        raw_value="350",
+        raw_unit="kVA",
+        proposed_equipment_type=TRANSFORMER,
+        proposed_attribute_key="rated_apparent_power",
+        ambiguous=False,
+        ambiguity_reason=None,
+    )
+    output = convert_engineering(attributes(claim), later, recognized, distributed=True)
+    assert output.candidates[0].mapping_status == expected
+    if expected == "MAPPED":
+        candidate = output.candidates[0]
+        assert candidate.numeric_value == 350
+        assert candidate.diagnostics["relationship_basis"] == "SAME_SOURCE_LINE"
+        label, value = candidate.diagnostics["evidence_parts"]
+        assert label["evidence_ids"] == value["evidence_ids"]
+        assert any(e.source_snippet == reading for e in output.evidence)
+
+
+@pytest.mark.parametrize("conflict", [None, "competing_panel", "unscoped_breakers"])
+def test_title_block_designates_panelboard_with_two_installed_branch_breakers(conflict):
+    from powerforge_extraction.enriched_grounding import line_groups, render
+
+    first = "1 LV Breaker GBH3020"
+    second = "2 LV Breaker GBH3020"
+    branch_heading = "Installed Branch Breakers" if conflict != "unscoped_breakers" else "Devices"
+    rows = ["Panelboard", "Main Lugs Only", branch_heading, first, second]
+    if conflict == "competing_panel":
+        rows.append("Second Panelboard")
+    sources = native_sources(
+        prose_pdf([*rows, "DESIGNATION: CDP-6C"]),
+        "EQUIPMENT_RECOGNITION",
+    )
+    panel = dict(
+        local_ref="panel",
+        raw_expression="Panelboard",
+        anchors=[part(sources, "EQUIPMENT", "Panelboard"), part(sources, "TAG", "CDP-6C")],
+        observed_tag="CDP-6C",
+        observed_name=None,
+        proposed_equipment_type="BUS",
+        ambiguous=False,
+        ambiguity_reason=None,
+    )
+
+    def breaker(ref, text):
+        row = next(row for row in line_groups(sources).values() if render(row) == text)
+        return {
+            **panel,
+            "local_ref": ref,
+            "raw_expression": text,
+            "proposed_equipment_type": "LV_BREAKER",
+            # A mistaken designation proposal still has exact text evidence.
+            "anchors": [
+                dict(
+                    role="EQUIPMENT",
+                    quote=text,
+                    source_ref="spatial_readings",
+                    reading_refs=[r.model.ref for r in row],
+                ),
+                part(sources, "TAG", "CDP-6C"),
+            ],
+        }
+
+    response = SemanticEquipmentResponse.model_validate(
+        dict(
+            schema_version="equipment-recognition-schema-v3",
+            overflowed=False,
+            equipment=[panel, breaker("branch_1", first), breaker("branch_2", second)],
+        )
+    )
+    output = convert_engineering(response, sources, distributed=True)
+    host, left, right = output.candidates
+    assert host.equipment_type_key == "BUS"
+    assert host.observed_tag == ("CDP-6C" if conflict is None else None)
+    assert left.equipment_type_key == right.equipment_type_key == "LV_BREAKER"
+    assert left.observed_tag is None and right.observed_tag is None
+    assert left.source_group_id != right.source_group_id
+    if conflict is None:
+        assert host.diagnostics["relationship_basis"] == "EXPLICIT_PANELBOARD_DESIGNATION"
+        assert host.diagnostics["designation_context_evidence_ids"]

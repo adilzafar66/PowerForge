@@ -16,9 +16,11 @@ from powerforge_document_processing.models import (
     RevisionDocument,
 )
 from powerforge_extraction.enriched_profiles import (
+    DISTRIBUTED_ENGINEERING,
     ENGINEERING,
     SEMANTIC_ENGINEERING,
     SEMANTIC_TABLES,
+    SOURCE_SUPPORTED_TABLES,
     TABLES,
     enriched_profile,
 )
@@ -37,16 +39,23 @@ Mode = Literal["ensure", "reextract"]
 PROFILE_KEYS = {"engineering": ENGINEERING, "tables": TABLES}
 SEMANTIC_PROFILE_KEYS = {"engineering": SEMANTIC_ENGINEERING, "tables": SEMANTIC_TABLES}
 
+DISTRIBUTED_PROFILE_KEYS = {
+    "engineering": DISTRIBUTED_ENGINEERING,
+    "tables": SOURCE_SUPPORTED_TABLES,
+}
+
 
 def operation_profiles(settings, families):
     keys = (
-        SEMANTIC_PROFILE_KEYS if settings.extraction_operation_semantic_profiles else PROFILE_KEYS
+        DISTRIBUTED_PROFILE_KEYS
+        if settings.extraction_operation_semantic_profiles
+        else PROFILE_KEYS
     )
     return [enriched_profile(keys[family], settings) for family in families]
 
 
 def pinned_operation_profile(settings, family, digest):
-    for keys in (PROFILE_KEYS, SEMANTIC_PROFILE_KEYS):
+    for keys in (PROFILE_KEYS, SEMANTIC_PROFILE_KEYS, DISTRIBUTED_PROFILE_KEYS):
         profile = enriched_profile(keys[family], settings)
         if profile.identity_hash == digest:
             return profile
