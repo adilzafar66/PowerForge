@@ -15,7 +15,13 @@ from powerforge_document_processing.models import (
     PageArtifact,
     RevisionDocument,
 )
-from powerforge_extraction.enriched_profiles import ENGINEERING, TABLES, enriched_profile
+from powerforge_extraction.enriched_profiles import (
+    ENGINEERING,
+    SEMANTIC_ENGINEERING,
+    SEMANTIC_TABLES,
+    TABLES,
+    enriched_profile,
+)
 from powerforge_extraction.enriched_sources import selected_snapshot
 from powerforge_extraction.enrichment_models import SourceEnrichmentPageResult
 from powerforge_extraction.enrichment_service import preparation_identity, source_snapshot
@@ -29,6 +35,24 @@ from powerforge_extraction.models import ExtractionRun, ExtractionWorkUnit
 Family = Literal["engineering", "tables"]
 Mode = Literal["ensure", "reextract"]
 PROFILE_KEYS = {"engineering": ENGINEERING, "tables": TABLES}
+SEMANTIC_PROFILE_KEYS = {"engineering": SEMANTIC_ENGINEERING, "tables": SEMANTIC_TABLES}
+
+
+def operation_profiles(settings, families):
+    keys = (
+        SEMANTIC_PROFILE_KEYS if settings.extraction_operation_semantic_profiles else PROFILE_KEYS
+    )
+    return [enriched_profile(keys[family], settings) for family in families]
+
+
+def pinned_operation_profile(settings, family, digest):
+    for keys in (PROFILE_KEYS, SEMANTIC_PROFILE_KEYS):
+        profile = enriched_profile(keys[family], settings)
+        if profile.identity_hash == digest:
+            return profile
+    return None
+
+
 MAX_DOCUMENTS = 50
 CONSENT_VERSION = "external-openai-v1"
 
@@ -325,7 +349,7 @@ def preview_operation(session, settings, project_id, revision_id, selection):
         )
 
     within_limits = not errors
-    profiles = [enriched_profile(PROFILE_KEYS[family], settings) for family in selection.families]
+    profiles = operation_profiles(settings, selection.families)
     external = settings.extraction_enabled and settings.extraction_external_enabled
     if not external:
         errors.append("This deployment has not enabled external OpenAI extraction.")

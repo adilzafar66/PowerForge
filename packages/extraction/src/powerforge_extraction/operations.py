@@ -15,7 +15,6 @@ from powerforge_document_processing.models import (
     RevisionDocument,
 )
 from powerforge_document_processing.storage.base import StorageError
-from powerforge_extraction.enriched_profiles import enriched_profile
 from powerforge_extraction.enrichment_execution import read_exact
 from powerforge_extraction.enrichment_profiles import PURPOSE
 from powerforge_extraction.enrichment_service import preparation_identity, source_snapshot
@@ -31,10 +30,10 @@ from powerforge_extraction.operation_models import (
     OperationRequest,
 )
 from powerforge_extraction.operation_plan import (
-    PROFILE_KEYS,
     OperationPolicy,
     PlannedDocument,
     compatible_pair,
+    pinned_operation_profile,
     preview_operation,
 )
 from powerforge_extraction.orchestration import ACTIVE, ExtractionCoordinator
@@ -227,9 +226,12 @@ def advance_item(session, settings, item, policy, verification):
         item.blocked_reason = "PROVIDER_UNAVAILABLE"
         return
     layout = layout_profile(settings)
+    profiles = {
+        family: pinned_operation_profile(settings, family, digest)
+        for family, digest in policy.profiles.items()
+    }
     if layout.identity_hash != policy.layout_profile_hash or any(
-        enriched_profile(PROFILE_KEYS[family], settings).identity_hash != pinned_hash
-        for family, pinned_hash in policy.profiles.items()
+        profile is None for profile in profiles.values()
     ):
         item.blocked_reason = "PROFILE_CHANGED"
         return
@@ -270,11 +272,11 @@ def advance_item(session, settings, item, policy, verification):
     ]
 
     coordinator = OperationAdmission(session, settings)
-    for family in policy.profiles:
+    for family, profile in profiles.items():
         run = coordinator.start(
             item.document_id,
             revision_document_id=item.revision_document_id,
-            profile_key=PROFILE_KEYS[family],
+            profile_key=profile.key,
             pages=planned.selection.pages,
             mode=policy.mode,
             enrichment_bindings=bindings,

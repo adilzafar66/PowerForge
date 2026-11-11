@@ -241,17 +241,18 @@ EnqueueDep = Annotated[CeleryExtractionEnqueue, Depends(get_extraction_enqueue)]
 
 @router.get("/profiles", response_model=ProfileList)
 def profiles(reader: Service, settings: SettingsDep) -> ProfileList:
-    from powerforge_extraction.enriched_profiles import PRODUCTION as ENRICHED_PROFILES
+    from powerforge_extraction.enriched_profiles import PRODUCTION, SEMANTIC_PROFILES
     from powerforge_extraction.production_profiles import PRODUCTION_PROFILES
     from powerforge_extraction.table_profiles import TABLE_PRODUCTION_PROFILES
 
+    enriched_profiles = (*PRODUCTION, *SEMANTIC_PROFILES)
     items = []
     for key in [
         FAKE_PROFILE,
         OPENAI_PROFILE,
         *PRODUCTION_PROFILES,
         *TABLE_PRODUCTION_PROFILES,
-        *ENRICHED_PROFILES,
+        *enriched_profiles,
     ]:
         profile = resolve_profile(key, settings)
         items.append(
@@ -262,7 +263,7 @@ def profiles(reader: Service, settings: SettingsDep) -> ProfileList:
                 model=profile.model,
                 production_extractor=profile.execution_kind
                 in {"ENGINEERING_EXTRACTION", "TABLE_EXTRACTION"},
-                requires_enrichment=key in ENRICHED_PROFILES,
+                requires_enrichment=key in enriched_profiles,
                 enabled=settings.extraction_enabled
                 and (profile.provider == "fake" or settings.extraction_external_enabled),
                 description=(

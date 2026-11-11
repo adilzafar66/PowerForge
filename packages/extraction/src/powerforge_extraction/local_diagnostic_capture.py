@@ -82,7 +82,9 @@ class LocalDiagnosticCapture:
                 "reading_bases": tuple(
                     getattr(candidate, "diagnostics", {}).get("reading_bases", ())
                 ),
-                "mapping_basis": "FROZEN_V1_INTERPRETATION"
+                "mapping_basis": getattr(candidate, "diagnostics", {}).get(
+                    "mapping_basis", "FROZEN_V1_INTERPRETATION"
+                )
                 if getattr(candidate, "mapping_status", None) == "MAPPED"
                 else None,
             }

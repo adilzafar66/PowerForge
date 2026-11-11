@@ -8,10 +8,16 @@ from sqlalchemy import select
 
 from powerforge_extraction.contracts import CandidateInput
 from powerforge_extraction.enriched_grounding import line_groups, table_readings
-from powerforge_extraction.enriched_observations import RESPONSES, SCHEMAS
 from powerforge_extraction.enriched_output import convert_equipment
 from powerforge_extraction.enriched_planning import metadata
-from powerforge_extraction.enriched_profiles import EnrichedTableProfile, require_enriched
+from powerforge_extraction.enriched_profiles import (
+    EnrichedTableProfile,
+    is_semantic,
+    prompt_for,
+    require_enriched,
+    stage_models,
+    stage_schemas,
+)
 from powerforge_extraction.enriched_sources import bound_snapshot, load_bound
 from powerforge_extraction.enrichment_models import RunSourceEnrichmentBinding
 from powerforge_extraction.identities import canonical_json
@@ -70,6 +76,8 @@ def stage_call(session, unit, profile):
                     select(ExtractionCandidate).where(ExtractionCandidate.work_unit_id == parent.id)
                 )
             )
+            if is_semantic(profile):
+                candidates = [c for c in candidates if c.kind == "EQUIPMENT_MENTION"]
             if len(candidates) > 32 or any(c.kind != "EQUIPMENT_MENTION" for c in candidates):
                 raise ValueError("Invalid committed equipment context")
             selected = {c.equipment_type_key for c in candidates if c.equipment_type_key}
@@ -92,12 +100,19 @@ def stage_call(session, unit, profile):
         if unit.stage == "EQUIPMENT_RECOGNITION"
         else attribute_context(
             [e["key"] for e in equipment_catalog()["equipment_types"]]
-            if isinstance(profile, EnrichedTableProfile)
+            if isinstance(profile, EnrichedTableProfile) or is_semantic(profile)
             else selected
         )
     )
-    instructions = files("powerforge_extraction").joinpath("prompts/enriched_v1.txt").read_text()
-    instructions += "\nCurrent stage: " + unit.stage + ". Required schema: " + SCHEMAS[unit.stage]
+    instructions = (
+        files("powerforge_extraction").joinpath(prompt_for(profile, unit.stage)).read_text()
+    )
+    instructions += (
+        "\nCurrent stage: "
+        + unit.stage
+        + ". Required schema: "
+        + stage_schemas(profile)[unit.stage]
+    )
     instructions += "\nTrusted registry metadata and qualified terminology:\n" + canonical_json(
         dict(registry=registry, terminology=terminology_policy())
     )
@@ -107,8 +122,8 @@ def stage_call(session, unit, profile):
     ):
         raise ValueError("Enhanced instructions/upstream exceed their pinned bounds")
     return StageCall(
-        RESPONSES[unit.stage],
-        SCHEMAS[unit.stage],
+        stage_models(profile)[unit.stage],
+        stage_schemas(profile)[unit.stage],
         instructions,
         upstream,
         parent.id if parent else None,
@@ -122,7 +137,7 @@ def projection(sources, profile):
         r
         for r in sources.readings
         if "NATIVE_PREFERRED_UNALIGNED" not in r.model.issues
-        and (table or r.model.ref not in owned)
+        and (table or is_semantic(profile) or r.model.ref not in owned)
     ]
     allowed = {r.model.ref for r in readings}
     data = dict(
@@ -188,9 +203,9 @@ def upstream_output(session, sources, parent, profile):
         rows = list(
             session.scalars(select(ExtractedTable).where(ExtractedTable.work_unit_id == parent.id))
         )
-        response = RESPONSES[parent.stage].model_validate(
+        response = stage_models(profile)[parent.stage].model_validate(
             dict(
-                schema_version=SCHEMAS[parent.stage],
+                schema_version=stage_schemas(profile)[parent.stage],
                 overflowed=False,
                 tables=[r.layout["metadata"]["reported_observation"] for r in rows],
             )
@@ -219,9 +234,15 @@ def upstream_output(session, sources, parent, profile):
             select(ExtractionCandidate).where(ExtractionCandidate.work_unit_id == parent.id)
         )
     )
-    response = RESPONSES[parent.stage].model_validate(
+    if is_semantic(profile):
+        from powerforge_extraction.semantic_output import committed_recognition
+
+        return committed_recognition(
+            original, [row for row in rows if row.kind == "EQUIPMENT_MENTION"]
+        )
+    response = stage_models(profile)[parent.stage].model_validate(
         dict(
-            schema_version=SCHEMAS[parent.stage],
+            schema_version=stage_schemas(profile)[parent.stage],
             overflowed=False,
             equipment=[r.diagnostics["observation"] for r in rows],
         )

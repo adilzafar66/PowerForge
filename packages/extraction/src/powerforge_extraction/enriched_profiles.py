@@ -51,8 +51,95 @@ class EnrichedTableProfile(TableProfile):
         return _family(self)
 
 
+SEMANTIC_ENGINEERING = "engineering-openai-enriched-v2"
+SEMANTIC_TABLES = "tables-openai-enriched-v2"
+SEMANTIC_PROFILES = (SEMANTIC_ENGINEERING, SEMANTIC_TABLES)
+
+
+class SemanticEngineeringProfile(EnrichedEngineeringProfile):
+    key: Literal["engineering-openai-enriched-v2"]
+    prompt_version: Literal["enriched-semantics-prompts-v2"] = "enriched-semantics-prompts-v2"
+    schema_version: Literal["enriched-stage-manifest-v2"] = "enriched-stage-manifest-v2"
+
+
+class SemanticTableProfile(EnrichedTableProfile):
+    key: Literal["tables-openai-enriched-v2"]
+    prompt_version: Literal["enriched-semantics-prompts-v2"] = "enriched-semantics-prompts-v2"
+    schema_version: Literal["enriched-stage-manifest-v2"] = "enriched-stage-manifest-v2"
+
+
+def is_semantic(profile):
+    return isinstance(profile, (SemanticEngineeringProfile, SemanticTableProfile))
+
+
+def stage_models(profile):
+    if is_semantic(profile):
+        from powerforge_extraction.semantic_observations import SEMANTIC_RESPONSES
+
+        return SEMANTIC_RESPONSES
+    return RESPONSES
+
+
+def stage_schemas(profile):
+    if not is_semantic(profile):
+        return SCHEMAS
+    return {
+        stage: model.model_fields["schema_version"].annotation.__args__[0]
+        for stage, model in stage_models(profile).items()
+    }
+
+
+def prompt_for(profile, stage):
+    if is_semantic(profile) and stage != "TABLE_RECONSTRUCTION":
+        return "prompts/enriched_semantics_v2.txt"
+    return "prompts/enriched_v1.txt"
+
+
+def semantic_manifest(profile):
+    root = files("powerforge_extraction")
+    return dict(
+        version="enriched-stage-manifest-v2",
+        stages=[
+            dict(
+                stage=stage,
+                schema_version=stage_schemas(profile)[stage],
+                schema_hash=identity_hash(model.model_json_schema()),
+                template_sha256=hashlib.sha256(
+                    root.joinpath(prompt_for(profile, stage)).read_bytes()
+                ).hexdigest(),
+            )
+            for stage, model in stage_models(profile).items()
+        ],
+    )
+
+
+def semantic_runtime():
+    root = files("powerforge_extraction")
+    return {
+        **runtime_identity(),
+        "version": "enriched-page-runtime-v2",
+        "semantic_rules": identity_hash(
+            {
+                name: hashlib.sha256(root.joinpath(name).read_bytes()).hexdigest()
+                for name in (
+                    "semantic_observations.py",
+                    "semantic_output.py",
+                    "semantic_tables.py",
+                    "enriched_grounding.py",
+                    "enriched_output.py",
+                    "enriched_tables.py",
+                    "execution.py",
+                    "enriched_runtime.py",
+                    "enriched_input.py",
+                    "enriched_profiles.py",
+                )
+            }
+        ),
+    }
+
+
 def _family(profile):
-    if (profile.key in PRODUCTION) != (
+    if (profile.key in (*PRODUCTION, *SEMANTIC_PROFILES)) != (
         profile.provider == "openai"
     ) or profile.input_strategy != "NATIVE_TEXT_AND_IMAGE":
         raise ValueError("Enhanced source strategy and synthetic/production family must match")
@@ -84,6 +171,9 @@ def runtime_identity():
     # These compatible execution and publication fixes keep admitted v5/v6 runs
     # executable. The accepted source bytes are retained as identity data only.
     retained = {
+        "profiles.py",
+        "enriched_input.py",
+        "enriched_runtime.py",
         "enriched_grounding.py",
         "enriched_output.py",
         "enriched_tables.py",
@@ -136,6 +226,30 @@ def runtime_identity():
 
 
 def enriched_profile(key, settings):
+    if key in SEMANTIC_PROFILES:
+        engineering = key == SEMANTIC_ENGINEERING
+        model = SemanticEngineeringProfile if engineering else SemanticTableProfile
+        base = enriched_profile(ENGINEERING if engineering else TABLES, settings)
+        profile = model.model_validate(
+            {
+                **base.model_dump(),
+                "key": key,
+                "schema_version": "enriched-stage-manifest-v2",
+                "prompt_version": "enriched-semantics-prompts-v2",
+                "max_instruction_bytes": 131072,
+            }
+        )
+        record = semantic_manifest(profile)
+        digest = identity_hash(record)
+        return profile.model_copy(
+            update={
+                "manifest": record,
+                "runtime": semantic_runtime(),
+                "prompt_hash": digest,
+                "schema_hash": digest,
+                "adapter_hash": digest,
+            }
+        )
     if key not in PROFILES:
         raise ValueError("Unknown enriched extraction profile")
     table = key in (TABLES, TABLES_TEST)
@@ -175,11 +289,12 @@ def enriched_profile(key, settings):
 
 
 def require_enriched(profile):
-    record = manifest()
+    semantic = is_semantic(profile)
+    record = semantic_manifest(profile) if semantic else manifest()
     if (
-        profile.key not in PROFILES
+        profile.key not in (*PROFILES, *SEMANTIC_PROFILES)
         or profile.manifest != record
-        or profile.runtime != runtime_identity()
+        or profile.runtime != (semantic_runtime() if semantic else runtime_identity())
         or profile.source_rules != layout_rules_identity()
         or profile.prompt_hash != identity_hash(record)
         or profile.schema_hash != identity_hash(record)

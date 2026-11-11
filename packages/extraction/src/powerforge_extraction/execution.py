@@ -229,7 +229,11 @@ def execute_unit(
     failure_reason = None
     try:
         with heartbeats(factory, claim, settings):
-            from powerforge_extraction.enriched_profiles import EnrichedTableProfile, is_enriched
+            from powerforge_extraction.enriched_profiles import (
+                EnrichedTableProfile,
+                is_enriched,
+                is_semantic,
+            )
             from powerforge_extraction.enriched_publication import prepare_publication
 
             enriched = is_enriched(claim.profile)
@@ -312,7 +316,19 @@ def execute_unit(
 
                 diagnostics.phase = "CONVERSION"
                 try:
-                    if request.stage == "EQUIPMENT_RECOGNITION":
+                    if is_semantic(claim.profile) and request.stage != "TABLE_RECONSTRUCTION":
+                        from powerforge_extraction.semantic_output import convert_engineering
+                        from powerforge_extraction.semantic_tables import interpret_tables
+
+                        if request.stage == "TABLE_INTERPRETATION":
+                            output = interpret_tables(
+                                response.result, sources, context, trace=diagnostics
+                            )
+                        else:
+                            output = convert_engineering(
+                                response.result, sources, context, trace=diagnostics
+                            )
+                    elif request.stage == "EQUIPMENT_RECOGNITION":
                         output = convert_equipment(response.result, sources, trace=diagnostics)
                     elif request.stage == "ATTRIBUTE_EXTRACTION":
                         output = convert_attributes(

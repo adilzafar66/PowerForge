@@ -3,8 +3,7 @@
 import base64
 import json
 
-from powerforge_extraction.enriched_observations import RESPONSES, SCHEMAS
-from powerforge_extraction.enriched_profiles import require_enriched
+from powerforge_extraction.enriched_profiles import require_enriched, stage_models, stage_schemas
 from powerforge_extraction.identities import canonical_json
 
 
@@ -13,8 +12,8 @@ def enriched_production_input(request, profile):
     if (
         profile.provider != "openai"
         or request.stage not in profile.stages
-        or request.response_model is not RESPONSES[request.stage]
-        or request.schema_version != SCHEMAS[request.stage]
+        or request.response_model is not stage_models(profile)[request.stage]
+        or request.schema_version != stage_schemas(profile)[request.stage]
         or request.source_roles != ("spatial_readings", "analysis_image")
         or request.text is None
         or request.image is None

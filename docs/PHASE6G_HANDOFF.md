@@ -37,7 +37,7 @@ The capture accepts one matching attempt and is process-local. It holds the exac
 ## Compatibility and open issues
 
 - M1 preserves the separate execution families, registry-v1, prompt and response resources, conservative conversion, retry and publication behavior, and the Phase 6F wizard. The source-policy follow-up updated the affected v1 identity fixtures. Where diagnostics touch hashed code, the existing packaged-resource mechanism retains the accepted bytes for legacy hashes.
-- The v1 source policy permits 5,096 native primitives per page. Baseline commit `dea1ed3` raised the limit from 2,048 under the existing v1 version. This changes the spatial contract identity, the preparation rules identity, and the positioned-text schema hash. The test fixtures pin the 5,096-limit identities. Preparation and layout attempts pinned to the earlier 2,048-limit identity can fail strict identity checks when executed or retried. Re-extraction admits a new run under the current policy.
+- The v1 source policy permits 5,096 native primitives per page. Baseline commit `dea1ed3` raised the limit from 2,048 under the existing v1 version. This changes the spatial contract identity, the preparation rules identity, and the positioned-text schema hash. The test fixtures pin the 5,096-limit identities. Preparation and layout attempts pinned to the earlier 2,048-limit identity can fail strict identity checks when executed or retried. Re-extraction admits a new run under the current policy. The manually approved increase of max_native_primitives from 2,048 to 5,096 is an explicit exception to historical source-processing identity compatibility. Existing extraction profile identities remain preserved, but preparation/layout attempts pinned to the former v1 source policy are not guaranteed to be replayable.
 - This milestone used synthetic sources and mocked providers. No live OpenAI call or original drawing was processed. The original REX reconstruction failure subcause remains unknown. The full OCR, MinIO and Celery matrix was outside this verification. Three older enriched integration cases could not start with the host's missing Tesseract installation. The new native-only integration checks assert that OCR does not run.
 
 ## Verification
@@ -48,3 +48,35 @@ The capture accepts one matching attempt and is process-local. It holds the exac
 - Ruff, frontend ESLint, TypeScript, Python dependency checks and whitespace checks passed. The four added frozen archives match their accepted bytes.
 
 **Recommendation:** Review the M1 implementation now. The v1 source-policy change carries the historical retry limitation documented above. M2 is at the approval gate.
+
+## M2 and M3 implementation
+
+The successor profiles are `engineering-openai-enriched-v2` and `tables-openai-enriched-v2`. They have a distinct stage manifest, prompt, response identities and runtime hash. They use the existing v5/v6 persistence envelopes and exact source bindings. The registry, database schema and extraction navigation use their existing contracts. Existing enriched-v1 runs retain their original hashes, prompts and converters. Table Reconstruction retains its existing schema, prompt and publication checks. M4 covers reconstruction improvements.
+
+The run API accepts either successor profile explicitly with its normal source bindings and external-processing enablement. Set `EXTRACTION_OPERATION_SEMANTIC_PROFILES=true` to offer the successor profiles in new Documents wizard previews. Existing operations still resolve the exact profile hashes consented at admission. The wizard flag defaults to false and external processing continues to require the existing opt-in.
+
+### M2 grounding and retention
+
+- The Engineering schema adds bounded LABEL, VALUE, UNIT, QUALIFIER, EQUIPMENT, TAG and CONTEXT parts. The server resolves each part to the original native or OCR occurrences on the bound page. Each evidence record retains its actual token text and offsets. A multi-part display expression carries no synthetic combined source span.
+- Same-line order, bounded local form geometry and supported table header relationships provide distinct bases. Missing geometry, competing readings and distant fragments can leave the relationship unresolved. Page-image reports remain page-level and unverified. Grounded facts can survive as raw unmapped or invalid candidates. Unsupported reading references are rejected individually. The stage still publishes atomically.
+- Engineering can see text that layout marked table-contained. Tables still uses committed reconstruction and independent row/header evidence. A failure of Tables leaves the Engineering path available. Results remain separated by producing run. Independently selected runs can report overlapping observations.
+
+### M3 semantic interpretation
+
+- A bound equipment description and a sufficiently informative source field can support a model-proposed registry meaning even if the legacy terminology lookup has no match. Known contradictory terminology, incompatible registry keys, ambiguous labels, essential conditions and unproved relationships block typed mapping. The server normalizes exact decimal, integer, enum and boolean values through registry-v1 and verifies units and storage bounds. Model-proposed raw values remain separate from typed results.
+- The attribute stage receives the bounded registry projection even after unresolved recognition. Association uses the committed mention, supported scope, and distinct designation evidence. Explicit page designations require a single supported equipment context with no competing designation. Unassigned tags can survive as raw observations.
+- Tables uses scoped equipment, cells and header paths for the same authority split. Repeated installed rows stay separate. A provisioned row does not become an installed equipment mention. Candidate diagnostics carry the parsed proposal, evidence roles, relationship basis and mapping reason.
+
+### Review examples
+
+- A synthetic `kVA:` / `350` form and a novel `Continuous transfer duty (kVA)` field both map to `rated_apparent_power` using separate citations, including after unmapped recognition. A separate `Primary:` / `600 Delta Volts` value normalizes to `0.6 kV` from the literal unit spelling.
+- A proposed primary key for a source secondary-voltage label stays unmapped. A minimum capacity stays raw and a foreign reading alias is rejected. A distant label/value pair and an image-only report remain raw with their evidence limits.
+- Synthetic title-block `80T1` and panel designation `CDP-6C` bind to a single supported mention. Competing equipment blocks page-level tag assignment. A synthetic schedule keeps two identical installed breaker rows separate and retains the provisioned count without creating equipment for it.
+
+### Remaining verification
+
+The regression pass reported 423 targeted backend checks and 50 checks in the PostgreSQL-backed suite, with one live Celery transport case deselected. A focused successor and legacy identity rerun passed 20 checks, and the final horizontal-form assertion passed in a 14-case offline run. Ruff, Compose configuration and whitespace checks passed.
+
+The new cases use independently authored synthetic layouts or existing synthetic tables. Both successor profiles were exercised through the real worker, PostgreSQL publication and revision-scoped API with mocked OpenAI transport. No live OpenAI calls or original customer PDF evaluations were made. Full OCR, Celery and MinIO coverage remains open. Geometric scope is conservative on irregular columns, distant headers and nested groups. Composite or qualified fields whose representation is uncertain stay raw. M4 covers irregular reconstruction, schedule robustness and additional table response handling. M5 covers broader source annotations and integration.
+
+**Recommendation:** Review M2 and M3 with the successor profiles opt-in. M4 is outside this change.
