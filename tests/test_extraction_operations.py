@@ -416,3 +416,46 @@ def test_beat_advances_mixed_batch_using_real_transport(
 
     finally:
         app.dependency_overrides[get_object_storage] = previous
+
+
+def test_wizard_automatically_uses_canonical_layout_for_dense_drawing(operation_context):
+    from powerforge_document_processing.layout_derive import layout_rules_identity
+    from powerforge_extraction.layout_models import SourceSpatialResult
+    from spatial_layout_support import disconnected_drawing
+
+    ctx = operation_context
+    source = new_source(ctx, "disconnected-drawing.pdf", disconnected_drawing())
+    _, request = reviewed(ctx, [source])
+    accepted = start_operation(ctx, request)
+    assert accepted.status_code == 202, accepted.text
+    operation_id = accepted.json()["id"]
+    advance(ctx, operation_id)
+    item = detail_operation(ctx, operation_id)["items"][0]
+    layout_run_id = UUID(item["layout"]["run_id"])
+    with ctx["factory"]() as session:
+        units = session.scalars(
+            select(ExtractionWorkUnit)
+            .where(ExtractionWorkUnit.run_id == layout_run_id)
+            .order_by(ExtractionWorkUnit.stage)
+        ).all()
+        unit_ids = [unit.id for unit in units]
+    for unit_id in unit_ids:
+        assert execute_enrichment(
+            unit_id,
+            ctx["factory"],
+            ctx["storage"],
+            ctx["settings"],
+            lambda: pytest.fail("Native preparation should not start OCR"),
+        )
+    with ctx["factory"]() as session:
+        run = session.get(ExtractionRun, layout_run_id)
+        layout = session.scalar(
+            select(SourceSpatialResult).where(SourceSpatialResult.run_id == layout_run_id)
+        )
+        assert run.extractor_version == "source-layout-v1" and run.status == "COMPLETED"
+        assert layout.layout_hash == layout_rules_identity()
+        assert len(layout.manifest["tables"]) == 1
+    advance(ctx, operation_id)
+    item = detail_operation(ctx, operation_id)["items"][0]
+    assert set(item["profiles"]) == {"engineering", "tables"}
+    assert all(step["run_id"] for step in item["profiles"].values())

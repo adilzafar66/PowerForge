@@ -196,6 +196,9 @@ class EnrichmentReadService(ExtractionReadService):
                     page_number=s.manifest["owner"]["page_number"],
                     manifest_hash=s.manifest_hash,
                     layout_hash=s.layout_hash,
+                    unresolved_reasons=sorted(
+                        {item["reason"] for item in s.manifest["unresolved"]}
+                    ),
                     usage=s.usage,
                 )
                 for s in spatial

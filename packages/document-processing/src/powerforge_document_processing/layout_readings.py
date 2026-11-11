@@ -4,6 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal
 
+from powerforge_document_processing.layout_limits import LayoutBound
 from powerforge_provenance.layout_observations import LAYOUT_POLICY, LayoutReading, ReadingOverlap
 from powerforge_provenance.spatial_layout import SourceSupport
 from powerforge_provenance.spatial_sources import load_positioned_text
@@ -78,7 +79,7 @@ def selected_readings(prepared, geometry, text):
     if set(geometry) != {r.ref for r in prepared.representations} or set(text) != set(geometry):
         raise ValueError("Layout requires the exact selected representation set")
     if sum(r.token_count for r in prepared.representations) > LAYOUT_POLICY["max_readings"]:
-        raise ValueError("Layout reading bound exceeded; no truncation")
+        raise LayoutBound("Layout reading bound exceeded; no truncation", "LAYOUT_READING_LIMIT")
     raw = []
     bodies = {}
     for descriptor in sorted(prepared.representations, key=lambda r: r.ref):
@@ -165,7 +166,7 @@ def align_readings(raw, width, height_value):
                 continue
             candidates.add((j, i))
             if len(candidates) > LAYOUT_POLICY["max_overlap_pairs"]:
-                raise ValueError("Overlap comparison bound exceeded")
+                raise LayoutBound("Overlap comparison bound exceeded", "LAYOUT_OVERLAP_LIMIT")
             if other.kind == reading.kind:
                 if overlap / min(area(reading.box), area(other.box)) >= D(
                     LAYOUT_POLICY["overlap_iou"]

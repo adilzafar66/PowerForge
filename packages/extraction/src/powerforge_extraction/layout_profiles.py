@@ -66,11 +66,7 @@ def layout_execution_identity():
     root = files("powerforge_extraction")
     return identity_hash(
         {
-            name: hashlib.sha256(
-                root.joinpath(
-                    "runtime_resources/layout_v1/" + name.removesuffix(".py") + ".txt"
-                ).read_bytes()
-            ).hexdigest()
+            name: hashlib.sha256(root.joinpath(name).read_bytes()).hexdigest()
             for name in (
                 "layout_profiles.py",
                 "layout_service.py",

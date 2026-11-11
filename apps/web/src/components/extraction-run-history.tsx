@@ -243,6 +243,9 @@ function RunHistoryDetail({
               {data.spatial_results?.map((item) => (
                 <MiniGrid key={item.id} items={[
                   ["Layout page", item.page_number], ["Result", item.id], ["Prepared result", item.prepared_result_id],
+                  ...(item.unresolved_reasons?.length
+                    ? [["Layout assessment", item.unresolved_reasons.map(readableKey).join(", ")] as [string, string]]
+                    : []),
                 ]} />
               ))}
               {!boundSources.length && run.input_artifact_ids?.length ? <MiniGrid items={[["Source artifacts", run.input_artifact_ids.join(", ")]]} /> : null}

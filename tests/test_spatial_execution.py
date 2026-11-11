@@ -354,3 +354,55 @@ def test_corrupted_pinned_objects_do_not_fall_back_to_newer_preparation(enrichme
     assert done["run"]["status"] == "FAILED", done
     assert not done["spatial_results"] and not done["preparation_receipts"]
     assert done["ocr_requests_started"] == 0
+
+
+@pytest.mark.parametrize("segment_limit", [None, 4])
+def test_canonical_layout_reuses_preparation_and_publishes(
+    enrichment_ctx, monkeypatch, segment_limit
+):
+    from enriched_support import finish, start_enriched
+    from powerforge_document_processing import layout_grid
+    from spatial_layout_support import disconnected_drawing
+
+    ctx = enrichment_ctx
+    build_source(ctx, disconnected_drawing(), "disconnected-drawing.pdf")
+    original = start(ctx)
+    execute(ctx, stage(original, "SOURCE_PREPARE"))
+    prepared = detail(ctx, original["run"]["id"])
+    assert prepared["run"]["status"] == "COMPLETED"
+    prepared_id = prepared["results"][0]["id"]
+    if segment_limit is not None:
+        monkeypatch.setattr(
+            layout_grid,
+            "LAYOUT_POLICY",
+            {**layout_grid.LAYOUT_POLICY, "max_segments": segment_limit},
+        )
+    pending = start(ctx, profile_key="source-layout-v1", prepared_result_ids=[prepared_id])
+    assert run_unit(ctx, stage(pending, "SOURCE_PREPARE"))
+    assert run_unit(ctx, stage(pending, "SPATIAL_LAYOUT"))
+    run_id = pending["run"]["id"]
+    done = detail(ctx, run_id)
+    assert done["run"]["status"] == "COMPLETED"
+    assert done["confirmed_ocr_invocations"] == 0
+    (spatial,) = done["spatial_results"]
+    assert spatial["prepared_result_id"] == prepared_id
+    response = client.get(
+        ctx["base"] + f"/source-enrichment/runs/{run_id}/spatial-results/{spatial['id']}"
+    )
+    assert response.status_code == 200, response.text
+    manifest = response.json()["manifest"]
+    assert manifest["readings"]
+    if segment_limit is None:
+        assert len(manifest["tables"]) == 1
+        assert spatial["unresolved_reasons"] == []
+        extraction = start_enriched(
+            ctx,
+            {"prepared_result_id": prepared_id, "spatial_result_id": spatial["id"]},
+        )
+        assert finish(ctx, extraction)["run"]["status"] == "COMPLETED"
+    else:
+        assert "NATIVE_SEGMENT_LIMIT" in spatial["unresolved_reasons"]
+        assert {"reason": "NATIVE_SEGMENT_LIMIT", "region": None, "support": []} in manifest[
+            "unresolved"
+        ]
+    assert detail(ctx, original["run"]["id"]) == prepared

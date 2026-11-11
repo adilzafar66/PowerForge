@@ -17,4 +17,4 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-powerforge_extraction = ["prompts/*.txt", "prompts/*.json", "runtime_resources/page_v1/*.txt", "runtime_resources/page_v2/*.txt", "runtime_resources/table_v1/*.txt", "runtime_resources/preparation_v1/*.txt", "runtime_resources/layout_v1/*.txt", "runtime_resources/publication_v1/*.txt", "runtime_resources/enriched_v1/*.txt", "runtime_resources/semantics_v2/*.txt", "runtime_resources/semantics_v3/*.txt"]
+powerforge_extraction = ["prompts/*.txt", "prompts/*.json", "runtime_resources/page_v1/*.txt", "runtime_resources/page_v2/*.txt", "runtime_resources/table_v1/*.txt", "runtime_resources/preparation_v1/*.txt", "runtime_resources/publication_v1/*.txt", "runtime_resources/enriched_v1/*.txt", "runtime_resources/semantics_v2/*.txt", "runtime_resources/semantics_v3/*.txt"]

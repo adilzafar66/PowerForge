@@ -151,6 +151,12 @@ class UnresolvedLayout(SpatialContract):
         "UNSUPPORTED_HEADER",
         "COMPETING_PARTITIONS",
         "UNSUPPORTED_ALIGNMENT",
+        "NATIVE_SEGMENT_LIMIT",
+        "GRID_CANDIDATE_LIMIT",
+        "GRID_PARTITION_LIMIT",
+        "TABLE_SUPPORT_LIMIT",
+        "TABLE_OUTPUT_LIMIT",
+        "UNRESOLVED_REGION_LIMIT",
     ]
     support: tuple[SourceSupport, ...] = Field(max_length=512)
 

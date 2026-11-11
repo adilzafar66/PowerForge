@@ -254,4 +254,20 @@ With the semantic profiles opt-in enabled, the Documents wizard offers Engineeri
 
 Tables Interpretation uses the committed reconstruction. The model proposes meaning and the converter checks the cited cell, association, qualifications, registry compatibility and normalization. Distinct installed rows retain distinct equipment mentions. A grounded provisioned quantity remains an unmapped observation with its marker cited. Candidates still require engineer review.
 
-Existing Tables and Engineering profiles remain addressable with their historical identities. The v4 recipe is stored in the existing table layout metadata and independently replayed against the bound source before publication and interpretation. See the [Phase 6G handoff](PHASE6G_HANDOFF.md) and [evaluation procedure](../evals/extraction/phase6g/README.md).
+Engineering and Tables remain separate. The current enhanced profiles pin the spatial-layout algorithm described below. The v4 recipe is stored in the existing table layout metadata and independently replayed against the bound source before publication and interpretation. See the [Phase 6G handoff](PHASE6G_HANDOFF.md) and [evaluation procedure](../evals/extraction/phase6g/README.md).
+
+## Spatial layout and development-data reset
+
+`source-layout-v1` is the only supported spatial-layout profile. The Documents wizard uses it automatically after base processing. Standalone layout runs use the same profile through the source-enrichment API. Preparation-only requests still run only preparation. Engineering and Tables each bind the exact committed preparation and current layout.
+
+The ruled detector groups bounded native segments and applies the 64-assessment budget only to components with at least two distinct boundary coordinates on each axis. Each assessed grid must pass the existing geometric proof. Verified partitions are retained within the existing table and cell caps. Unassessed or over-limit regions carry sanitized reasons in Run History and the spatial artifact. Hard reading, overlap, ordering and manifest limits fail with dedicated reason codes.
+
+The layout algorithm, execution and contract hashes have changed. The enhanced Engineering and Tables profile hashes also change because they pin the layout algorithm. Existing source-layout runs and artifacts with a different algorithm hash are stale for retry and reuse, as are extraction attempts bound to those layouts. Prior outputs may still appear in history. Preparation and base-processing artifacts can be reused when their own identities match.
+
+To regenerate development results without deleting documents or projects:
+
+1. Rebuild the API, source-enrichment worker, extraction worker, extraction scheduler and web services in the same Compose project. Keep the existing PostgreSQL and object-storage volumes.
+2. For each affected document, open a fresh Documents extraction review and start a new operation for the desired pages and families. Cancel any unfinished operation pinned to the old layout before starting a replacement. For layout only, start a new source-enrichment run with `profile_key: "source-layout-v1"` and `mode: "ensure"`. Supply compatible `prepared_result_ids` to reuse a particular preparation, or omit them to let PowerForge select matching preparation automatically.
+3. Verify the new layout and candidates in Run History. Keep old rows and object-storage artifacts if you still need historical reads. A database reset or manual deletion is unnecessary. For an entirely clean development environment, use a separate Compose project with fresh volumes and distinct ports so the current project remains recoverable.
+
+Run `aef1950f`, page 1, was measured read-only. Its preparation contained 1,432 eligible segments across 594 disconnected components, including 511 singletons and 19 pairs. Only 38 met the grid prefilter. The corrected algorithm retained 304 readings and verified zero tables. It reported 37 irregular grids, one ambiguous assignment and three unsupported borderless headers. The diagnostic did not modify the original run or publish an artifact.

@@ -460,3 +460,64 @@ def test_structural_order_rejects_cycles_and_foreign_reading_references():
     ):
         with pytest.raises(ValueError):
             SpatialLayout.model_validate(layout.model_copy(update={"order": edges}))
+
+
+def test_successor_preserves_native_table_among_disconnected_drawing_lines():
+    from uuid import uuid4
+
+    from powerforge_document_processing.layout_derive import admit_layout, derive_layout
+    from spatial_layout_support import disconnected_drawing, sources
+
+    prepared = prepare_pdf(disconnected_drawing())
+    geometry, text = sources(prepared)
+    arguments = (prepared.manifest, geometry, text, uuid4(), uuid4(), uuid4())
+    result = derive_layout(*arguments)
+    assert len(result.tables) == 1 and len(result.tables[0].cells) == 6
+    assert result.tables[0].structure_basis == "NATIVE_GEOMETRY_SUPPORTED"
+    assert not result.unresolved
+    assert admit_layout(*arguments[:3], result) == result
+
+
+def test_candidate_budget_reports_skipped_region_and_keeps_verified_partition(monkeypatch):
+    from uuid import uuid4
+
+    import pymupdf
+
+    from powerforge_document_processing import layout_grid
+    from powerforge_document_processing.layout_derive import admit_layout, derive_layout
+    from spatial_layout_support import sources
+
+    with pymupdf.open(stream=drawn_table(), filetype="pdf") as doc:
+        page = doc[0]
+        for y in (260, 310, 360):
+            page.draw_line((100, y), (500, y))
+        for x in (100, 300, 500):
+            page.draw_line((x, 260), (x, 360))
+        prepared = prepare_pdf(doc.tobytes())
+    geometry, text = sources(prepared)
+    monkeypatch.setattr(layout_grid, "MAX_GRID_CANDIDATES", 1)
+    result = derive_layout(prepared.manifest, geometry, text, uuid4(), uuid4(), uuid4())
+    assert len(result.tables) == 1 and len(result.tables[0].cells) == 6
+    (skipped,) = result.unresolved
+    assert skipped.reason == "GRID_CANDIDATE_LIMIT"
+    assert skipped.region is not None and skipped.region.y > result.tables[0].region.bottom
+    assert admit_layout(prepared.manifest, geometry, text, result) == result
+
+
+def test_segment_budget_keeps_readings_and_reports_page_level_limit(monkeypatch):
+    from uuid import uuid4
+
+    from powerforge_document_processing import layout_grid
+    from powerforge_document_processing.layout_derive import derive_layout
+    from spatial_layout_support import sources
+
+    prepared = prepare_pdf(drawn_table())
+    geometry, text = sources(prepared)
+    monkeypatch.setattr(
+        layout_grid, "LAYOUT_POLICY", {**layout_grid.LAYOUT_POLICY, "max_segments": 4}
+    )
+    result = derive_layout(prepared.manifest, geometry, text, uuid4(), uuid4(), uuid4())
+    assert result.readings
+    assert any(
+        item.reason == "NATIVE_SEGMENT_LIMIT" and item.region is None for item in result.unresolved
+    )

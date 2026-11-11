@@ -135,7 +135,7 @@ export type RunDetail = {
   } | null;
   confirmed_ocr_invocations?: number;
   results?: { id: string; page_number: number; producer_run_id: string; reused: boolean }[];
-  spatial_results?: { id: string; page_number: number; prepared_result_id: string }[];
+  spatial_results?: { id: string; page_number: number; prepared_result_id: string; unresolved_reasons?: string[] }[];
   can_retry?: boolean;
   can_cancel?: boolean;
 };

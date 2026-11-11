@@ -7,6 +7,7 @@ from uuid import UUID, uuid4
 
 from powerforge_ai.extraction import ErrorCode
 from powerforge_document_processing.layout_derive import admit_layout, derive_layout
+from powerforge_document_processing.layout_limits import LayoutBound
 from powerforge_document_processing.storage.base import StorageError, TransientStorageError
 from powerforge_extraction.controls import RunExecution
 from powerforge_extraction.enrichment_execution import execute_preparation
@@ -86,7 +87,12 @@ def execute_enrichment(unit_id, factory, storage, settings, provider_factory):
                     publish_receipt(session, settings, claim, snapshot)
             else:
                 layout = derive_layout(
-                    snapshot.manifest, geometry, text, uuid4(), claim.run_id, claim.unit_id
+                    snapshot.manifest,
+                    geometry,
+                    text,
+                    uuid4(),
+                    claim.run_id,
+                    claim.unit_id,
                 )
                 admit_layout(snapshot.manifest, geometry, text, layout)
                 data = canonical_json(layout.model_dump(mode="json")).encode()
@@ -116,6 +122,8 @@ def execute_enrichment(unit_id, factory, storage, settings, provider_factory):
             if isinstance(exc, TransientStorageError)
             else ErrorCode.TIMEOUT.value
             if type(exc).__name__ == "SoftTimeLimitExceeded"
+            else exc.reason
+            if isinstance(exc, LayoutBound)
             else ErrorCode.INPUT.value
             if isinstance(exc, (ValueError, OSError, StorageError, UnicodeError))
             else ErrorCode.INTERNAL.value

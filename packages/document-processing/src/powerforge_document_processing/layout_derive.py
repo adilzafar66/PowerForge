@@ -5,7 +5,10 @@ import re
 from decimal import ROUND_HALF_EVEN, Decimal, localcontext
 from importlib.resources import files
 
+from pydantic import ValidationError
+
 from powerforge_document_processing.layout_grid import borderless_tables, ruled_tables
+from powerforge_document_processing.layout_limits import LayoutBound
 from powerforge_document_processing.layout_readings import (
     align_readings,
     height,
@@ -31,7 +34,12 @@ def layout_rules_identity():
             "contracts": layout_contract_identity(),
             "sources": {
                 name: hashlib.sha256(root.joinpath(name).read_bytes()).hexdigest()
-                for name in ("layout_readings.py", "layout_grid.py", "layout_derive.py")
+                for name in (
+                    "layout_readings.py",
+                    "layout_grid.py",
+                    "layout_derive.py",
+                    "layout_limits.py",
+                )
             },
         }
     )
@@ -76,11 +84,27 @@ def _derive(prepared, geometry, text, result_id, run_id, unit_id):
             )
         )
     tables = [t for i, t in enumerate(tables) if i not in bad]
-    if (
-        len(tables) > LAYOUT_POLICY["max_tables"]
-        or sum(len(t.cells) for t in tables) > LAYOUT_POLICY["max_cells"]
-    ):
-        raise ValueError("Aggregate table/cell layout bound exceeded")
+    retained = []
+    cells = 0
+    for table in tables:
+        if len(retained) >= LAYOUT_POLICY["max_tables"] or (
+            cells + len(table.cells) > LAYOUT_POLICY["max_cells"]
+        ):
+            unresolved.append(
+                UnresolvedLayout(region=table.region, reason="TABLE_OUTPUT_LIMIT", support=())
+            )
+        else:
+            retained.append(table)
+            cells += len(table.cells)
+    tables = retained
+    if len(unresolved) > 64:
+        reasons = sorted({item.reason for item in unresolved})
+        markers = [UnresolvedLayout(region=None, reason=reason, support=()) for reason in reasons]
+        unresolved = [
+            *markers,
+            UnresolvedLayout(region=None, reason="UNRESOLVED_REGION_LIMIT", support=()),
+            *unresolved[: 63 - len(markers)],
+        ]
     lookup = {r.model.ref: r for r in readings}
     edges = set()
 
@@ -175,7 +199,9 @@ def _derive(prepared, geometry, text, result_id, run_id, unit_id):
             if targets == [table.ref]:
                 captions.extend(r.model.ref for r in sorted(line, key=lambda r: r.box[0]))
         updated.append(table.model_copy(update={"captions": tuple(captions)}))
-    return SpatialLayout(
+    if len(edges) > LAYOUT_POLICY["max_edges"]:
+        raise LayoutBound("Reading order exceeds its budget", "LAYOUT_ORDER_LIMIT")
+    fields = dict(
         id=result_id,
         owner=prepared.owner,
         producer_run_id=run_id,
@@ -189,6 +215,19 @@ def _derive(prepared, geometry, text, result_id, run_id, unit_id):
         unresolved=tuple(unresolved),
     )
 
+    try:
+        return SpatialLayout(**fields)
+    except ValidationError as exc:
+        if any(
+            str(item.get("ctx", {}).get("error"))
+            == "Spatial contract exceeds its canonical UTF-8 byte limit"
+            for item in exc.errors(include_input=False, include_url=False)
+        ):
+            raise LayoutBound(
+                "Spatial manifest exceeds its byte budget", "LAYOUT_MANIFEST_LIMIT"
+            ) from None
+        raise
+
 
 def derive_layout(prepared, geometry, text, result_id, run_id, unit_id):
     with localcontext() as context:
@@ -200,8 +239,15 @@ def derive_layout(prepared, geometry, text, result_id, run_id, unit_id):
 def admit_layout(prepared, geometry, text, layout):
     """Recompute support, partition and header claims; a shape-valid manifest is not proof."""
     layout = SpatialLayout.model_validate(layout)
+    if layout.algorithm_sha256 != layout_rules_identity():
+        raise ValueError("Pinned layout algorithm is unavailable")
     expected = derive_layout(
-        prepared, geometry, text, layout.id, layout.producer_run_id, layout.producer_work_unit_id
+        prepared,
+        geometry,
+        text,
+        layout.id,
+        layout.producer_run_id,
+        layout.producer_work_unit_id,
     )
     if expected != layout:
         raise ValueError("Layout does not reproduce from its exact pinned source geometry/readings")

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from statistics import median
 
+from powerforge_document_processing.layout_limits import LayoutBound
 from powerforge_document_processing.layout_readings import (
     contains,
     height,
@@ -63,7 +64,7 @@ def native_segments(bodies, width, page_height, eps):
     result = list({(s.axis, s.coordinate, s.start, s.end): s for s in reversed(result)}.values())
     result.reverse()
     if len(result) > LAYOUT_POLICY["max_segments"]:
-        raise ValueError("Native grid segment bound exceeded")
+        raise LayoutBound("Native grid segment bound exceeded", "NATIVE_SEGMENT_LIMIT")
     return result
 
 
@@ -95,8 +96,6 @@ def connected(segments, eps):
     groups = {}
     for i, segment in enumerate(segments):
         groups.setdefault(root(i), []).append(segment)
-    if len(groups) > 64:
-        raise ValueError("Native grid component bound exceeded")
     return list(groups.values())
 
 
@@ -199,7 +198,7 @@ def grid_component(segments, readings, width, page_height, eps, ref):
     )
     supports = tuple(dict.fromkeys(s.support for s in segments))
     if len(supports) > 512:
-        raise ValueError("Table boundary support bound exceeded")
+        raise LayoutBound("Table boundary support bound exceeded", "TABLE_SUPPORT_LIMIT")
     if len(xs) < 2 or len(ys) < 2:
         return None, None, None
     box = (xs[0], ys[0], xs[-1], ys[-1])
@@ -214,7 +213,7 @@ def grid_component(segments, readings, width, page_height, eps, ref):
         or nc > LAYOUT_POLICY["max_columns"]
         or nr * nc > LAYOUT_POLICY["max_cells"]
     ):
-        raise ValueError("Native grid partition bound exceeded")
+        raise LayoutBound("Native grid partition bound exceeded", "GRID_PARTITION_LIMIT")
     if nr < 2 or nc < 2:
         return reject("OPEN_OR_IRREGULAR_GRID")
     for axis, coord, start, end in [
@@ -326,16 +325,56 @@ def grid_component(segments, readings, width, page_height, eps, ref):
     )
 
 
+# Keep the historical work budget, but apply it only to plausible components.
+MAX_GRID_CANDIDATES = 64
+
+
+def plausible_grid(component, eps):
+    # A closed grid needs two distinct boundary coordinates on each axis.
+    return all(
+        len(coordinates([s.coordinate for s in component if s.axis == axis], eps)) >= 2
+        for axis in ("H", "V")
+    )
+
+
+def component_box(component):
+    return (
+        min(s.start if s.axis == "H" else s.coordinate for s in component),
+        min(s.start if s.axis == "V" else s.coordinate for s in component),
+        max(s.end if s.axis == "H" else s.coordinate for s in component),
+        max(s.end if s.axis == "V" else s.coordinate for s in component),
+    )
+
+
 def ruled_tables(readings, bodies, width, page_height):
     eps = max(width, page_height) * D(LAYOUT_POLICY["coordinate_epsilon_fraction"])
-    segments = native_segments(bodies, width, page_height, eps)
+    try:
+        segments = native_segments(bodies, width, page_height, eps)
+    except LayoutBound as exc:
+        return [], [UnresolvedLayout(region=None, reason=exc.reason, support=())], []
     tables = []
     unresolved = []
     excluded = []
-    for component in sorted(connected(segments, eps), key=lambda g: min(s.coordinate for s in g)):
-        table, rejection, box = grid_component(
-            component, readings, width, page_height, eps, f"t{len(tables)}"
-        )
+    groups = sorted(
+        connected(segments, eps),
+        key=lambda group: min(s.coordinate for s in group),
+    )
+    groups = [group for group in groups if plausible_grid(group, eps)]
+    for index, component in enumerate(groups):
+        try:
+            if index >= MAX_GRID_CANDIDATES:
+                raise LayoutBound("Ruled grid candidate budget exhausted", "GRID_CANDIDATE_LIMIT")
+            table, rejection, box = grid_component(
+                component, readings, width, page_height, eps, f"t{len(tables)}"
+            )
+        except LayoutBound as exc:
+            box = component_box(component)
+            table = None
+            rejection = UnresolvedLayout(
+                region=normalized(box, width, page_height),
+                reason=exc.reason,
+                support=(),
+            )
         if table:
             tables.append(table)
         if rejection:
@@ -431,7 +470,18 @@ def borderless_tables(readings, excluded, width, page_height, start_index):
         region = normalized(box, width, page_height)
         support = tuple(q.model.preferred for row, _ in group for cell in row for q in cell)
         if len(support) > 512:
-            raise ValueError("Borderless table support bound exceeded")
+            unresolved.append(
+                UnresolvedLayout(region=region, reason="TABLE_SUPPORT_LIMIT", support=())
+            )
+            continue
+        if (
+            len(group) > LAYOUT_POLICY["max_rows"]
+            or len(group) * ncols > LAYOUT_POLICY["max_cells"]
+        ):
+            unresolved.append(
+                UnresolvedLayout(region=region, reason="GRID_PARTITION_LIMIT", support=())
+            )
+            continue
 
         def reject(reason, region=region, support=support):
             unresolved.append(UnresolvedLayout(region=region, reason=reason, support=support))

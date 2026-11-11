@@ -157,3 +157,13 @@ def alter_body(output, alias, change):
     )
     blobs = {**output.blobs, ref.id: (ref, data)}
     return replace(output, manifest=prepared, blobs=blobs)
+
+
+def disconnected_drawing():
+    """One readable table and 80 disconnected drawing strokes."""
+    with pymupdf.open(stream=drawn_table(), filetype="pdf") as doc:
+        page = doc[0]
+        for i in range(80):
+            x, y = 30 + (i % 20) * 25, 260 + (i // 20) * 20
+            page.draw_line((x, y), (x + 8, y))
+        return doc.tobytes()
