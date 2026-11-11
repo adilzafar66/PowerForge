@@ -354,7 +354,10 @@ def execute_unit(
                             )
 
                             output, _ = reconstruct_compact(
-                                response.result, sources, trace=diagnostics
+                                response.result,
+                                sources,
+                                trace=diagnostics,
+                                legacy_blank_cells=claim.profile.legacy_blank_cells,
                             )
                         else:
                             output, _ = reconstruct(response.result, sources, trace=diagnostics)

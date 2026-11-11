@@ -211,7 +211,9 @@ def upstream_output(session, sources, parent, profile):
             )
 
             response = compact_response_from_layouts([row.layout for row in rows])
-            output, context = reconstruct_compact(response, original)
+            output, context = reconstruct_compact(
+                response, original, legacy_blank_cells=profile.legacy_blank_cells
+            )
         else:
             response = stage_models(profile)[parent.stage].model_validate(
                 dict(

@@ -58,7 +58,7 @@ def _anchor(refs):
     ]
 
 
-def _materialize(selection, partition, readings):
+def _materialize(selection, partition, readings, *, legacy_blank_cells):
     aliases = {cell.ref: f"c{index}" for index, cell in enumerate(partition.cells)}
     kind = selection.proposed_kind
     form = (
@@ -101,6 +101,7 @@ def _materialize(selection, partition, readings):
                 role = "ROW"
             else:
                 headers.append(labels[cell.row])
+        unreadable = not cell.readings and not legacy_blank_cells
         cells.append(
             dict(
                 local_ref=aliases[cell.ref],
@@ -109,13 +110,13 @@ def _materialize(selection, partition, readings):
                 column=cell.column,
                 row_span=cell.row_span,
                 column_span=cell.column_span,
-                state="VALUE" if cell.readings else "BLANK",
-                raw_text=render([readings[ref] for ref in cell.readings]),
+                state="VALUE" if cell.readings else "UNREADABLE" if unreadable else "BLANK",
+                raw_text=None if unreadable else render([readings[ref] for ref in cell.readings]),
                 header_role=role,
                 header_refs=headers,
                 anchors=_anchor(cell.readings),
-                ambiguous=False,
-                ambiguity_reason=None,
+                ambiguous=unreadable,
+                ambiguity_reason="No committed text readings for this cell" if unreadable else None,
             )
         )
     return dict(
@@ -135,7 +136,7 @@ def _materialize(selection, partition, readings):
     )
 
 
-def reconstruct_compact(response, sources, *, trace=None):
+def reconstruct_compact(response, sources, *, trace=None, legacy_blank_cells=False):
     partitions = {item.ref: item for item in sources.layout.tables}
     if any(item.spatial_table_ref not in partitions for item in response.partitions):
         raise SourceRejection("UNAVAILABLE_SPATIAL_TABLE_ALIAS", "Unknown committed partition")
@@ -148,7 +149,12 @@ def reconstruct_compact(response, sources, *, trace=None):
 
     readings = lookup(sources)
     expanded = [
-        _materialize(item, partitions[item.spatial_table_ref], readings)
+        _materialize(
+            item,
+            partitions[item.spatial_table_ref],
+            readings,
+            legacy_blank_cells=legacy_blank_cells,
+        )
         for item in response.partitions
     ]
     try:

@@ -23,7 +23,9 @@ from powerforge_extraction.enriched_profiles import (
     SEMANTIC_TABLES,
     SOURCE_SUPPORTED_TABLES,
     TABLES,
+    CompactTableProfile,
     enriched_profile,
+    semantic_runtime,
 )
 from powerforge_extraction.enriched_sources import selected_snapshot
 from powerforge_extraction.enrichment_models import SourceEnrichmentPageResult
@@ -62,6 +64,12 @@ def pinned_operation_profile(settings, family, digest):
         profile = enriched_profile(keys[family], settings)
         if profile.identity_hash == digest:
             return profile
+        if isinstance(profile, CompactTableProfile):
+            previous = profile.model_copy(
+                update={"runtime": semantic_runtime(profile, legacy_blank_cells=True)}
+            )
+            if previous.identity_hash == digest:
+                return previous
     return None
 
 

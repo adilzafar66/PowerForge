@@ -100,7 +100,13 @@ def prepare_publication(factory, storage, unit_id, output) -> VerifiedEnrichedPu
     sources = load_bound(snapshot, storage, unit, profile)
     from powerforge_extraction.enriched_profiles import CompactTableProfile
 
-    validate_locations(sources, output, compact=isinstance(profile, CompactTableProfile))
+    compact = isinstance(profile, CompactTableProfile)
+    validate_locations(
+        sources,
+        output,
+        compact=compact,
+        legacy_blank_cells=compact and profile.legacy_blank_cells,
+    )
     return VerifiedEnrichedPublication(
         unit_id=unit_id,
         profile_hash=run.profile_hash,
@@ -123,7 +129,7 @@ def prepare_publication(factory, storage, unit_id, output) -> VerifiedEnrichedPu
     )
 
 
-def validate_locations(sources, output, *, compact=False):
+def validate_locations(sources, output, *, compact=False, legacy_blank_cells=False):
     generated = {}
     for reading in sources.readings:
         if "NATIVE_PREFERRED_UNALIGNED" not in reading.model.issues:
@@ -136,7 +142,9 @@ def validate_locations(sources, output, *, compact=False):
             )
 
             response = compact_response_from_layouts([table.layout.model_dump(mode="json")])
-            expected, _ = reconstruct_compact(response, sources)
+            expected, _ = reconstruct_compact(
+                response, sources, legacy_blank_cells=legacy_blank_cells
+            )
         else:
             response = EnrichedReconstructionResponse.model_validate(
                 dict(

@@ -90,6 +90,10 @@ class CompactTableProfile(SourceSupportedTableProfile):
     prompt_version: Literal["enriched-table-prompts-v4"] = "enriched-table-prompts-v4"
     schema_version: Literal["enriched-stage-manifest-v4"] = "enriched-stage-manifest-v4"
 
+    @property
+    def legacy_blank_cells(self):
+        return self.runtime.get("version") == "enriched-page-runtime-v4"
+
 
 def is_semantic(profile):
     return isinstance(profile, (SemanticEngineeringProfile, SemanticTableProfile))
@@ -149,7 +153,7 @@ def semantic_manifest(profile):
     )
 
 
-def semantic_runtime(profile):
+def semantic_runtime(profile, *, legacy_blank_cells=False):
     compact = isinstance(profile, CompactTableProfile)
     distributed = profile.key in SEMANTIC_V3_PROFILES
     archived_v3 = {
@@ -168,6 +172,19 @@ def semantic_runtime(profile):
     archive = archived_v3 if distributed else archived_v3 | archived
 
     def resource(name):
+        if (
+            compact
+            and legacy_blank_cells
+            and name
+            in {
+                "enriched_profiles.py",
+                "execution.py",
+                "enriched_runtime.py",
+                "enriched_publication.py",
+                "table_reconstruction_v4.py",
+            }
+        ):
+            return f"runtime_resources/semantics_v4/{name.removesuffix('.py')}.txt"
         if compact or name not in archive:
             return name
         if not distributed and name in archived:
@@ -177,7 +194,9 @@ def semantic_runtime(profile):
     root = files("powerforge_extraction")
     return {
         **runtime_identity(),
-        "version": "enriched-page-runtime-v4"
+        "version": "enriched-page-runtime-v5"
+        if compact and not legacy_blank_cells
+        else "enriched-page-runtime-v4"
         if compact
         else "enriched-page-runtime-v3"
         if distributed
@@ -366,10 +385,19 @@ def enriched_profile(key, settings):
 def require_enriched(profile):
     semantic = is_semantic(profile)
     record = semantic_manifest(profile) if semantic else manifest()
+    runtime = (
+        semantic_runtime(
+            profile,
+            legacy_blank_cells=isinstance(profile, CompactTableProfile)
+            and profile.legacy_blank_cells,
+        )
+        if semantic
+        else runtime_identity()
+    )
     if (
         profile.key not in (*PROFILES, *SUCCESSOR_PROFILES)
         or profile.manifest != record
-        or profile.runtime != (semantic_runtime(profile) if semantic else runtime_identity())
+        or profile.runtime != runtime
         or profile.source_rules != layout_rules_identity()
         or profile.prompt_hash != identity_hash(record)
         or profile.schema_hash != identity_hash(record)

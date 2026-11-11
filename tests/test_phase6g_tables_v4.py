@@ -327,3 +327,60 @@ def test_long_schedule_does_not_require_repeating_cell_payload():
     output, _ = reconstruct_compact(compact, sources)
     assert len(output.tables[0].layout.cells) == 82
     assert len(compact.model_dump_json().encode()) < len(baseline.model_dump_json().encode()) / 10
+
+
+def test_compact_image_only_cell_stays_unreadable_with_supported_table_geometry():
+    import pymupdf
+
+    rows = [("Equipment", "Quantity"), ("TX-1", ""), ("TX-2", "2")]
+    with (
+        pymupdf.open(stream=drawn_table(rows=rows), filetype="pdf") as document,
+        pymupdf.open() as image_document,
+    ):
+        image_page = image_document.new_page(width=90, height=24)
+        image_page.insert_text((3, 16), "IMAGE ONLY", fontsize=12)
+        document[0].insert_image(pymupdf.Rect(280, 104, 370, 128), pixmap=image_page.get_pixmap())
+        sources = native_sources(document.tobytes())
+    spatial = next(c for c in sources.layout.tables[0].cells if (c.row, c.column) == (1, 1))
+    assert spatial.state == "NO_READINGS"
+    request = response([select(sources, "EQUIPMENT_ROWS")])
+    output, context = reconstruct_compact(request, sources)
+    validate_locations(sources, output, compact=True)
+
+    (table,) = context.tables
+    assert table.basis == "NATIVE_GEOMETRY_SUPPORTED"
+    assert len(output.tables[0].layout.cells) == 6
+    missing = next(c for c in table.observation.cells if c.spatial_cell_ref == spatial.ref)
+    assert missing.state == "UNREADABLE" and missing.ambiguous
+    assert missing.ambiguity_reason == "No committed text readings for this cell"
+    assert missing.raw_text is None and not missing.anchors[0].reading_refs
+    (evidence,) = table.items[missing.local_ref]
+    assert evidence.source_snippet is None and evidence.text_start is None
+    assert evidence.location.reading_basis == "VISUAL_REPORTED"
+    assert evidence.location.region is None
+    assert any(c.state == "VALUE" and c.raw_text == "2" for c in table.observation.cells)
+
+    previous, old_context = reconstruct_compact(request, sources, legacy_blank_cells=True)
+    validate_locations(sources, previous, compact=True, legacy_blank_cells=True)
+    old_cell = next(
+        c for c in old_context.tables[0].observation.cells if c.local_ref == missing.local_ref
+    )
+    assert old_cell.state == "BLANK" and old_cell.raw_text == ""
+    with pytest.raises(ValueError, match="does not reproduce"):
+        validate_locations(sources, previous, compact=True)
+
+
+def test_existing_compact_consent_resolves_the_original_runtime():
+    from powerforge_extraction.enriched_profiles import semantic_runtime
+    from powerforge_extraction.operation_plan import pinned_operation_profile
+
+    settings = Settings(_env_file=None)
+    current = enriched_profile(COMPACT_TABLES, settings)
+    previous = current.model_copy(
+        update={"runtime": semantic_runtime(current, legacy_blank_cells=True)}
+    )
+    restored = read_profile(previous.model_dump(mode="json"))
+    assert not current.legacy_blank_cells and restored.legacy_blank_cells
+    assert previous.identity_hash != current.identity_hash
+    require_enriched(restored)
+    assert pinned_operation_profile(settings, "tables", previous.identity_hash) == restored
