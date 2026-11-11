@@ -215,7 +215,8 @@ Evaluation corpus should include real anonymized/approved documents or fixtures:
 | **6D** | Table/schedule structure and candidate/evidence linkage | Both table orientations and row/cell provenance tested |
 | **6E** | OCR/layout support and hybrid native-text/vision preprocessing | Scans, native PDFs and ambiguous layouts handled conservatively |
 | **6F** | Extraction/evidence UI, history, page highlighting, evaluation harness | Read-only UX and reproducible labeled evaluation |
-| **6G** | Regression, clean-stack, migration/upgrade, cost/performance and accuracy hardening | Full phase acceptance and docs; Phase 6 freeze |
+| **6G** | Stage diagnostics, multi-reading grounding, AI-led interpretation, raw retention and separate Tables robustness | Five milestone gates in the [6G plan](../PHASE6G_PLAN.md) |
+| **6H** | Regression, clean-stack, migration/upgrade, restore, cost/performance and accuracy hardening | Full phase acceptance and docs; Phase 6 freeze |
 
 Slices are boundaries, not instructions to implement all at once. Avoid introducing later-phase scope through convenience code. Historical Phase 4 classification remains separate. The protection/study-configuration domain needs its dedicated later ADR before dedicated settings extraction.
 

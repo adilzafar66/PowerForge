@@ -20,6 +20,7 @@ from powerforge_ai.extraction import (
     ExtractionResponse,
     ProviderFailure,
 )
+from powerforge_ai.extraction_diagnostics import FailureDetail, validation_issues
 from powerforge_document_processing.storage.base import (
     ObjectStorage,
     StorageError,
@@ -32,8 +33,10 @@ from powerforge_extraction.contracts import (
     WorkUnitOutput,
 )
 from powerforge_extraction.errors import LeaseLost
+from powerforge_extraction.local_diagnostic_capture import LocalDiagnosticCapture
 from powerforge_extraction.orchestration import Claim, ExtractionCoordinator, empty_table_output
 from powerforge_extraction.profiles import PROMPT, PROMPT_HASH, SCHEMA_HASH, EngineeringProfile
+from powerforge_extraction.stage_diagnostics import SourceRejection, StageDiagnostics
 from powerforge_extraction.table_profiles import TableProfile
 from powerforge_provenance.locations import SourceLocation
 from powerforge_shared.config import Settings
@@ -214,12 +217,16 @@ def execute_unit(
     storage: ObjectStorage,
     settings: Settings,
     provider_factory: Callable[[Claim], ExtractionProvider],
+    *,
+    capture: LocalDiagnosticCapture | None = None,
 ) -> bool:
     with factory.begin() as session:
         claim = ExtractionCoordinator(session, settings).claim(unit_id)
     if claim is None:
         return False
     usage = None
+    diagnostics = None
+    failure_reason = None
     try:
         with heartbeats(factory, claim, settings):
             from powerforge_extraction.enriched_profiles import EnrichedTableProfile, is_enriched
@@ -227,27 +234,36 @@ def execute_unit(
 
             enriched = is_enriched(claim.profile)
             if enriched:
+                diagnostics = StageDiagnostics(capture.bind(unit_id) if capture else None)
                 from powerforge_extraction.enriched_runtime import request_for as enriched_request
 
                 try:
                     request, sources, context = enriched_request(claim, storage, factory)
                 except (ValidationError, OSError):
                     raise ProviderFailure(ErrorCode.INPUT) from None
+                diagnostics.request_ready(request, sources)
                 if (
                     isinstance(claim.profile, EnrichedTableProfile)
                     and context is not None
                     and not context.tables
                 ):
+                    diagnostics.provider_outcome = "SKIPPED_EMPTY_PREREQUISITE"
+                    diagnostics.phase = "PUBLICATION"
+                    empty = empty_table_output()
                     try:
-                        verification = prepare_publication(
-                            factory, storage, claim.unit_id, empty_table_output()
-                        )
+                        verification = prepare_publication(factory, storage, claim.unit_id, empty)
                     except (ValidationError, OSError):
                         raise ProviderFailure(ErrorCode.INPUT) from None
                     with factory.begin() as session:
                         ExtractionCoordinator(session, settings).complete_empty_table(
-                            claim.unit_id, claim.token, storage, verification=verification
+                            claim.unit_id,
+                            claim.token,
+                            storage,
+                            verification=verification,
+                            trace=diagnostics.publication_trace(empty),
                         )
+                    if diagnostics.capture is not None:
+                        diagnostics.capture.committed()
                     return True
             elif isinstance(claim.profile, TableProfile):
                 from powerforge_extraction.table_execution import table_request
@@ -263,19 +279,29 @@ def execute_unit(
                 request, sources, context = engineering_request(claim, storage, factory)
             else:
                 request = request_for(claim, storage)
+            if diagnostics:
+                diagnostics.phase = "PROVIDER"
             provider = provider_factory(claim)
             with factory.begin() as session:
                 ExtractionCoordinator(session, settings).mark_provider_started(
                     claim.unit_id, claim.token, request
                 )
+            if diagnostics:
+                diagnostics.provider_outcome = "ATTEMPTED"
             response = provider.execute(request)
+            if diagnostics:
+                diagnostics.phase = "PARSE"
             # Revalidate objects even if an adapter bypassed constructors.
             usage = ExecutionUsage.model_validate(response.usage.model_dump())
             response = ExtractionResponse[request.response_model].model_validate(
                 response.model_dump()
             )
+            if diagnostics:
+                diagnostics.parsed(response.result)
             if usage.output_tokens is not None and usage.output_tokens > request.max_output_tokens:
-                raise ProviderFailure(ErrorCode.INVALID, usage)
+                raise ProviderFailure(
+                    ErrorCode.INVALID, usage, detail=FailureDetail.OUTPUT_TOKEN_LIMIT
+                )
             verification = None
             if enriched:
                 from powerforge_extraction.enriched_output import (
@@ -284,16 +310,22 @@ def execute_unit(
                 )
                 from powerforge_extraction.enriched_tables import interpret, reconstruct
 
+                diagnostics.phase = "CONVERSION"
                 try:
                     if request.stage == "EQUIPMENT_RECOGNITION":
-                        output = convert_equipment(response.result, sources)
+                        output = convert_equipment(response.result, sources, trace=diagnostics)
                     elif request.stage == "ATTRIBUTE_EXTRACTION":
-                        output = convert_attributes(response.result, sources, context)
+                        output = convert_attributes(
+                            response.result, sources, context, trace=diagnostics
+                        )
                     elif request.stage == "TABLE_RECONSTRUCTION":
-                        output, _ = reconstruct(response.result, sources)
+                        output, _ = reconstruct(response.result, sources, trace=diagnostics)
                     else:
-                        output = interpret(response.result, sources, context)
-                except (ValueError, ValidationError):
+                        output = interpret(response.result, sources, context, trace=diagnostics)
+                except (ValueError, ValidationError) as exc:
+                    if isinstance(exc, SourceRejection):
+                        failure_reason = exc.reason
+                        diagnostics.observe("GROUNDING_REJECTED", reason=exc.reason)
                     raise ProviderFailure(ErrorCode.INVALID, usage) from None
                 if claim.profile.execution_kind == "FAKE_TEST":
                     output = output.model_copy(
@@ -312,6 +344,9 @@ def execute_unit(
                             ]
                         }
                     )
+                diagnostics.phase = "PUBLICATION"
+                diagnostics.counts["CONVERTED_CANDIDATES"] = len(output.candidates)
+                diagnostics.counts["CONVERTED_TABLES"] = len(output.tables)
                 try:
                     verification = prepare_publication(factory, storage, claim.unit_id, output)
                 except (ValidationError, OSError):
@@ -380,8 +415,16 @@ def execute_unit(
                 output = output_for(claim, request, response)
             with factory.begin() as session:
                 ExtractionCoordinator(session, settings).complete(
-                    claim.unit_id, claim.token, output, usage, storage, verification=verification
+                    claim.unit_id,
+                    claim.token,
+                    output,
+                    usage,
+                    storage,
+                    verification=verification,
+                    trace=diagnostics.publication_trace(output) if diagnostics else None,
                 )
+            if diagnostics and diagnostics.capture is not None:
+                diagnostics.capture.committed()
     except LeaseLost:
         return False
     except Exception as exc:
@@ -397,14 +440,44 @@ def execute_unit(
             code = ErrorCode.TIMEOUT
         else:
             code = ErrorCode.INTERNAL
-        logger.warning(
-            "extraction attempt failed",
-            extra={"error_code": code.value, "work_unit_id": str(unit_id)},
-        )
+        trace = None
+        if diagnostics:
+            if diagnostics.phase in ("PROVIDER", "PARSE"):
+                if isinstance(exc, ProviderFailure):
+                    diagnostics.provider_detail, diagnostics.issues = exc.detail, exc.issues
+                elif isinstance(exc, ValidationError):
+                    diagnostics.issues = validation_issues(exc, request.response_model)
+                    diagnostics.provider_detail = (
+                        diagnostics.issues[0].reason
+                        if diagnostics.issues
+                        else FailureDetail.SCHEMA_VALIDATION
+                    )
+                if diagnostics.provider_outcome == "ATTEMPTED":
+                    diagnostics.provider_outcome = (
+                        "REQUEST_REJECTED" if code == ErrorCode.INPUT else code.value
+                    )
+                if code == ErrorCode.INVALID and diagnostics.provider_detail not in (
+                    FailureDetail.PROVIDER_HTTP_ERROR,
+                    FailureDetail.PROVIDER_FAILED_RESPONSE,
+                ):
+                    diagnostics.phase = "PARSE"
+            trace = diagnostics.result(reason=failure_reason or code.value)
+        log_context = {"error_code": code.value, "work_unit_id": str(unit_id)}
+        if trace is not None:
+            log_context.update(
+                stage=claim.unit_key.split(":", 1)[0],
+                profile_version=claim.profile.version,
+                schema_version=trace.schema_version,
+                diagnostic_phase=trace.phase,
+                diagnostic_reason=trace.reason,
+                provider_detail=trace.provider_detail,
+                validation_issues=[issue.model_dump(mode="json") for issue in trace.issues],
+            )
+        logger.warning("extraction attempt failed", extra=log_context)
         try:
             with factory.begin() as session:
                 ExtractionCoordinator(session, settings).fail(
-                    claim.unit_id, claim.token, code, usage
+                    claim.unit_id, claim.token, code, usage, trace=trace
                 )
         except LeaseLost:
             return False

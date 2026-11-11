@@ -7,6 +7,8 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import TypeVar
 
+from powerforge_ai.extraction_diagnostics import FailureDetail, ValidationIssue
+
 
 class ErrorCode(StrEnum):
     TIMEOUT = "PROVIDER_TIMEOUT"
@@ -44,8 +46,16 @@ class ExecutionUsage(BaseModel):
 class ProviderFailure(Exception):
     """Only safe categories cross the integration boundary; never SDK messages."""
 
-    def __init__(self, code: ErrorCode, usage: ExecutionUsage | None = None) -> None:
+    def __init__(
+        self,
+        code: ErrorCode,
+        usage: ExecutionUsage | None = None,
+        *,
+        detail: FailureDetail | None = None,
+        issues: tuple[ValidationIssue, ...] = (),
+    ) -> None:
         self.code, self.usage = code, usage
+        self.detail, self.issues = detail, issues
         super().__init__(code.value)
 
     @property

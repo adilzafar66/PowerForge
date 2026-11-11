@@ -18,6 +18,7 @@ from powerforge_extraction.enums import (
     TableKind,
     WorkUnitStatus,
 )
+from powerforge_extraction.stage_diagnostics import StageTrace
 from powerforge_provenance.enriched_locations import EnrichedLocation
 from powerforge_provenance.locations import Region, SourceLocation
 
@@ -70,6 +71,7 @@ class UnitResponse(ReadModel):
     finished_at: datetime | None
     error_code: str | None
     output_counts: dict[str, int]
+    stage_trace: StageTrace | None = None
     lease_expires_at: datetime | None = None
     heartbeat_at: datetime | None = None
     retryable: bool = False

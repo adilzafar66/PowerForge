@@ -28,7 +28,7 @@ This is a conceptual traceability flow, not a frozen persistence schema. AI outp
 
 Candidates proceed to entity resolution (7), reconciliation/conflict management (9), deterministic validation (10), and engineer review (11). They never silently overwrite canonical values or become engineer-verified truth. `system_frequency` and `system_phase_count` are manual-only. Phase 6 neither proposes nor writes revision-wide settings. Source frequency or phase statements may become justified equipment-specific candidates or raw unmapped observations.
 
-The approved 6A–6G slices in [ROADMAP.md](ROADMAP.md) define implementation boundaries. Study-domain/protection extraction requires approved target-domain design first.
+The approved 6A–6H slices in [ROADMAP.md](ROADMAP.md) define implementation boundaries. Study-domain/protection extraction requires approved target-domain design first.
 
 ## Phase 6A persistence and reads
 
@@ -193,7 +193,7 @@ Live evaluation is separately opt-in with `--live`, an approved canonical corpus
 
 `table_observations`, `table_layout` and `table_stages` define strict reconstruction/interpretation responses, sparse grids, explicit blank/unreadable cells, headers/spans, scoped references, conservative orientation hints and versioned prompts/registry context. Pure inspection marks text UNVERIFIED and structure UNRESOLVED. Reference validity does not prove source occurrence, row ownership or engineering mapping. No table profile is registered and no artifact, candidate or table is published by M1.
 
-The approved future profile is table-only; ordinary prose needs a separate 6C run. Existing latest-result summaries are across profiles, not a merged view; earlier results remain in run history. The planned M3 gate verifies both sets remain accessible. Native table relationships need stronger proof than matching text tokens; representative PDF/visual-dependence evaluation remains M4. See [PHASE6D_PLAN.md](PHASE6D_PLAN.md) and the [M1 handoff](PHASE6D_M1_HANDOFF.md) for delivered bounds/checks and pending work. Spreadsheet ingestion is deferred to 6.5 after 6G and before 7.
+The approved future profile is table-only; ordinary prose needs a separate 6C run. Existing latest-result summaries are across profiles, not a merged view; earlier results remain in run history. The planned M3 gate verifies both sets remain accessible. Native table relationships need stronger proof than matching text tokens; representative PDF/visual-dependence evaluation remains M4. See [PHASE6D_PLAN.md](PHASE6D_PLAN.md) and the [M1 handoff](PHASE6D_M1_HANDOFF.md) for delivered bounds/checks and pending work. Spreadsheet ingestion is deferred to 6.5 after 6H and before 7.
 
 ## Phase 6D M2 — Grounding, interpretation and publication
 
@@ -240,3 +240,10 @@ The explicit local `source-layout-v1` profile commits SOURCE_PREPARE then SPATIA
 Versioned pure document-processing algorithms retain exact native/OCR occurrences, contextual overlap agreements/conflicts, partial reading order and unresolved geometry. Closed native borders support partitions/merged spans; a stricter repeated-alignment path supports simple borderless schedules. Header relationships require actual column coverage plus conservative explicit label cues. OCR geometry remains OCR-derived; serialized cell readings are not printed quotes, missing readings are not verified blanks, and layout supplies no engineering ownership or meaning.
 
 The original positioned 6D PDF gains four supported cells and two header paths over its unchanged delimiter-only baseline. Real OCR, retry and killed-worker recovery are exercised. Accepted M1/M2 and 6C/6D identities/reports remain unchanged. M4 must add the enhanced extraction/evidence adapter; M5 owns representative accuracy evaluation. See [PHASE6E_M3_HANDOFF.md](PHASE6E_M3_HANDOFF.md) for exact rules, limits and verification. Stop for M3 review.
+
+
+## Phase 6G M1 — Stage diagnostics
+
+Run detail includes an optional `stage_trace` per enhanced attempt. It reports the last execution boundary, provider outcome, parsed observation totals, admitted and rejected source observations, semantic decisions and committed output counts. An empty completed stage may have returned observations that failed source checks. A table response that fails structured validation reports a safe subtype and bounded schema paths. A parsed response that refers to unowned source aliases reports a grounding failure.
+
+Migration 0018 adds an append-only trace record. The existing attempt fence and transaction govern both the trace and settlement. Prior attempts have no trace. Run History uses existing revision and document access. See the [Phase 6G handoff](PHASE6G_HANDOFF.md) for the local developer capture, confidentiality boundaries and verification.

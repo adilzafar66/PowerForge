@@ -20,6 +20,7 @@ from powerforge_extraction.interpretation import (
     interpret_equipment,
 )
 from powerforge_extraction.observations import AttributeObservation, EquipmentObservation
+from powerforge_extraction.stage_diagnostics import SourceRejection
 from powerforge_extraction.terminology import TERMINOLOGY
 
 
@@ -177,21 +178,30 @@ def scope_for(sources, admitted, peers):
     return tuple(result)
 
 
-def convert_equipment(response, sources):
+def convert_equipment(response, sources, *, trace=None):
     output = Output(sources)
     admitted = {}
     owned = table_readings(sources)
     for obs in response.equipment:
+        if trace:
+            trace.phase = "GROUNDING"
         try:
             item = ground(sources, obs)
-        except ValueError:
+        except ValueError as exc:
+            if trace:
+                reason = exc.reason if isinstance(exc, SourceRejection) else "GROUNDING_REJECTED"
+                trace.observe("GROUNDING_REJECTED", obs, reason=reason)
             output.count("rejected_ungrounded")
             continue
+        if trace:
+            trace.observe("GROUNDING_ADMITTED", obs)
         if (
             any(r.model.ref in owned for r in item.readings)
             or item.visual
             and sources.layout.tables
         ):
+            if trace:
+                trace.observe("SOURCE_SCOPE_REJECTED", obs, reason="TABLE_OWNED_SOURCE")
             output.count("rejected_source_fields")
             continue
         admitted[obs.local_ref] = item
@@ -200,14 +210,20 @@ def convert_equipment(response, sources):
         item = admitted.get(obs.local_ref)
         if item is None:
             continue
+        if trace:
+            trace.phase = "INTERPRETATION"
         local = semantic_observation(obs, EquipmentObservation)
         # Original expression owns its tag/name before complete line qualification.
         own = interpret_equipment(
             local, InterpretationContext(obs.raw_expression, source_kind="VISUAL_PAGE")
         )
         if own.rejected:
+            if trace:
+                trace.observe("INTERPRETATION_REJECTED", obs, reason=own.reason_code)
             output.count("rejected_source_fields")
             continue
+        if trace:
+            trace.phase = "INTERPRETATION"
         local = semantic_observation(
             obs,
             EquipmentObservation,
@@ -219,8 +235,12 @@ def convert_equipment(response, sources):
             local, InterpretationContext(item.statement, source_kind="VISUAL_PAGE")
         )
         if result.rejected:
+            if trace:
+                trace.observe("INTERPRETATION_REJECTED", obs, reason=result.reason_code)
             output.count("rejected_source_fields")
             continue
+        if trace:
+            trace.phase = "CONVERSION"
         group_id = identifier(sources, "group", obs.local_ref)
         scope = scope_for(sources, item, peers)
         c = candidate(
@@ -236,6 +256,14 @@ def convert_equipment(response, sources):
                 line_readings=[r.model.ref for r in item.readings],
             ),
         )
+        if trace:
+            trace.observe(
+                c.mapping_status,
+                obs,
+                reason=c.reason_code,
+                candidate=c,
+                association=c.diagnostics.get("association"),
+            )
         output.candidates.append(c)
         output.groups.append(
             SourceGroupInput(
@@ -247,30 +275,44 @@ def convert_equipment(response, sources):
             )
         )
         output.cite(c, item.evidence)
+    if trace:
+        trace.phase = "CONVERSION"
     return output.result()
 
 
-def convert_attributes(response, sources, context):
+def convert_attributes(response, sources, context, *, trace=None):
     output = Output(sources)
     output.existing_evidence = {e.id for e in context.evidence}
     mentions = {c.diagnostics["source_local_ref"]: c for c in context.candidates}
     owned = table_readings(sources)
     for obs in response.attributes:
+        if trace:
+            trace.phase = "GROUNDING"
         try:
             item = ground(sources, obs)
-        except ValueError:
+        except ValueError as exc:
+            if trace:
+                reason = exc.reason if isinstance(exc, SourceRejection) else "GROUNDING_REJECTED"
+                trace.observe("GROUNDING_REJECTED", obs, reason=reason)
             output.count("rejected_ungrounded")
             continue
+        if trace:
+            trace.observe("GROUNDING_ADMITTED", obs)
         if (
             any(r.model.ref in owned for r in item.readings)
             or item.visual
             and sources.layout.tables
         ):
+            if trace:
+                trace.observe("SOURCE_SCOPE_REJECTED", obs, reason="TABLE_OWNED_SOURCE")
             output.count("rejected_source_fields")
             continue
         mention = mentions.get(obs.equipment_ref)
         if obs.equipment_ref and mention is None:
-            raise ValueError("Attribute references unavailable committed equipment")
+            raise SourceRejection(
+                "UNAVAILABLE_EQUIPMENT_ALIAS",
+                "Attribute references unavailable committed equipment",
+            )
         if mention:
             selected = {r.model.ref for r in item.readings}
             visual = (
@@ -282,7 +324,11 @@ def convert_attributes(response, sources, context):
             if not (visual or positioned):
                 mention = None
         if obs.equipment_ref and mention is None:
+            if trace:
+                trace.observe("DETACHED_ASSOCIATIONS", obs, reason="OUTSIDE_EQUIPMENT_SCOPE")
             output.count("detached_associations")
+        if trace:
+            trace.phase = "INTERPRETATION"
         local = semantic_observation(
             obs,
             AttributeObservation,
@@ -296,8 +342,12 @@ def convert_attributes(response, sources, context):
             ),
         )
         if result.rejected:
+            if trace:
+                trace.observe("INTERPRETATION_REJECTED", obs, reason=result.reason_code)
             output.count("rejected_source_fields")
             continue
+        if trace:
+            trace.phase = "CONVERSION"
         c = candidate(
             sources,
             obs.local_ref,
@@ -314,6 +364,14 @@ def convert_attributes(response, sources, context):
                 else "NONE",
             ),
         )
+        if trace:
+            trace.observe(
+                c.mapping_status,
+                obs,
+                reason=c.reason_code,
+                candidate=c,
+                association=c.diagnostics.get("association"),
+            )
         output.candidates.append(c)
         supporting = [
             e
@@ -325,4 +383,6 @@ def convert_attributes(response, sources, context):
             )
         ]
         output.cite(c, item.evidence, supporting)
+    if trace:
+        trace.phase = "CONVERSION"
     return output.result()

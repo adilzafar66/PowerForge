@@ -73,3 +73,7 @@ Every Evidence, Candidate and table remains traceable to a specific immutable Do
 - Align with Phase 4's document-scoped extraction/classification history conventions without inheriting its unbounded stuck-RUNNING limitation.
 - Update `docs/ROADMAP.md`, `docs/EXTRACTION.md` and `docs/PROVENANCE.md` when Phase 6 implementation starts, explicitly removing the now-obsolete **revision-level metadata candidate** statement. Implement via slices 6A–6G defined in the companion specification.
 - **ADR accepted does not mean Phase 6 code exists.** Design is approved; Phase 6A is the next implementation step only when requested.
+
+## Phase 6G interpretation amendment
+
+The [approved Phase 6G specification](../docs/prompts/phase-6g-prompt.md) places primary source-local semantic interpretation with the AI in explicitly versioned successor profiles. A proposal can establish registry meaning when its cited context is coherent and sufficiently supports the interpretation, including when deterministic terminology has no match. PowerForge verifies source identity, occurrences, relationships, registry applicability, contradictions and qualifiers. PowerForge alone computes typed normalization. It retains supported raw observations when meaning or representation cannot be resolved. These interpretations remain source-local candidates and confer no canonical identity or verification status. Historical profiles retain their original interpretation rules. See the [Phase 6G plan](../docs/PHASE6G_PLAN.md).

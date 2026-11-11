@@ -49,7 +49,9 @@ The React screens retain the application shell, shared dialog and existing respo
 
 **Release decision.** The local implementation is ready for review. Live OpenAI accuracy, real-document coverage, production load, and deployment smoke checks remain open.
 
-## Remaining Phase 6G work
+## Remaining Phase 6H acceptance and freeze work
+
+Phase 6G covers extraction semantics, grounding, raw retention and diagnostics before these acceptance checks. See the [6G plan](PHASE6G_PLAN.md).
 
 - Measure OpenAI recognition, mapping, and grounding on an approved representative document set. Expand coverage of degraded scans, hybrid pages, irregular schedules, and real-document OCR and layout. The 6E spatial suite measures local preprocessing and scripted conversion on authored cases.
 - Measure latency, usage, concurrency, and queue recovery under deployment load. Run restore and upgrade rehearsals using representative persisted histories. Review security and access boundaries for shared deployment.

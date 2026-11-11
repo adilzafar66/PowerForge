@@ -42,6 +42,8 @@ from powerforge_extraction.profiles import (
     read_profile,
     resolve_profile,
 )
+from powerforge_extraction.stage_diagnostics import StageTrace
+from powerforge_extraction.stage_trace_persistence import record_stage_trace
 from powerforge_extraction.table_profiles import TableProfile
 from powerforge_shared.config import Settings
 
@@ -702,9 +704,11 @@ class ExtractionCoordinator:
         storage: ObjectStorage,
         *,
         verification: VerifiedEnrichedPublication | None = None,
+        trace: StageTrace | None = None,
     ) -> None:
         run, unit, _ = self._authorized(unit_id, token)
         profile = read_profile(self._execution(run.id).configuration)
+        record_stage_trace(self.session, unit, trace)
         self._telemetry(unit, profile, self.now(), "SUCCEEDED", None, usage)
         ExtractionPersistence(self.session, storage).publish(
             unit.id, output, verification=verification
@@ -718,6 +722,7 @@ class ExtractionCoordinator:
         storage: ObjectStorage,
         *,
         verification: VerifiedEnrichedPublication | None = None,
+        trace: StageTrace | None = None,
     ) -> None:
         """An ordinary leased admission; no external-call row or invented zero usage."""
         import json
@@ -736,6 +741,7 @@ class ExtractionCoordinator:
         call = stage_call(self.session, unit, profile)
         if json.loads(call.upstream_context)["tables"]:
             raise ValueError("Nonempty tables require ordinary interpretation execution")
+        record_stage_trace(self.session, unit, trace)
         ExtractionPersistence(self.session, storage).publish(
             unit.id, empty_table_output(), verification=verification
         )
@@ -769,10 +775,17 @@ class ExtractionCoordinator:
         return new
 
     def fail(
-        self, unit_id: UUID, token: UUID, code: ErrorCode, usage: ExecutionUsage | None = None
+        self,
+        unit_id: UUID,
+        token: UUID,
+        code: ErrorCode,
+        usage: ExecutionUsage | None = None,
+        *,
+        trace: StageTrace | None = None,
     ) -> None:
         run, unit, _ = self._authorized(unit_id, token)
         profile = read_profile(self._execution(run.id).configuration)
+        record_stage_trace(self.session, unit, trace)
         self._telemetry(unit, profile, self.now(), "FAILED", code.value, usage)
         self._settle_failure(run, unit, profile, code.value)
 

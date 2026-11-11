@@ -83,6 +83,33 @@ export function extractionStatus(documents, params, revision) {
   };
 }
 
+function diagnosticAttempts(run) {
+  const common = {
+    id: id(6, 100), attempt_number: 1,
+    stage_trace: {
+      provider_outcome: "PARSED", phase: "COMPLETED", reason: null, provider_detail: null,
+      source: { native_readings: 9, ocr_readings: 0, image_present: true, layout_tables: 0, withheld_readings: 0, conflict_pairs: 0 },
+      returned: { attributes: 1 }, counts: { GROUNDING_REJECTED: 1, PUBLISHED_CANDIDATES: 0 },
+      reasons: { CROSSES_SOURCE_LINES: 1 }, issues: [],
+    },
+  };
+  if (run === engineering) {
+    return [{ ...common, unit_key: "ATTRIBUTE_EXTRACTION", status: "COMPLETED", error_code: null }];
+  }
+  if (run === historicTables) {
+    return [{
+      ...common, id: id(6, 101), unit_key: "TABLE_RECONSTRUCTION",
+      status: "FAILED", error_code: "INVALID_PROVIDER_RESPONSE",
+      stage_trace: {
+        ...common.stage_trace, phase: "PARSE", provider_outcome: "INVALID_PROVIDER_RESPONSE",
+        reason: "INVALID_PROVIDER_RESPONSE", provider_detail: "MISSING_FIELD", returned: null,
+        counts: {}, reasons: {}, issues: [{ reason: "MISSING_FIELD", path: "tables.0.cells.0.raw_text" }],
+      },
+    }];
+  }
+  return [];
+}
+
 export function extractionResponse(url, tail) {
   const params = url.searchParams;
   const selected = [params.get("engineering_run_id"), params.get("tables_run_id")];
@@ -153,7 +180,7 @@ export function extractionResponse(url, tail) {
     }], params);
   }
   return {
-    run: historyRun(run), attempts: [],
+    run: historyRun(run), attempts: process.env.VISUAL_PHASE6G ? diagnosticAttempts(run) : [],
     coverage: { required_units: 2, completed_required_units: run === historicTables ? 1 : 2 },
     can_cancel: false, can_retry: false,
   };

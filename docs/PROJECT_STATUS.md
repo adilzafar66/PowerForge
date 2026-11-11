@@ -8,7 +8,7 @@ Living status of PowerForge phases. Update this file when a phase is specified, 
 
 UI-C visual fidelity rework follows the approved Projects/Revisions HTML layouts, including register toolbars, unified project details/revision activity, revision summary/workspaces/information, creation guidance rails, and edit sheets. Existing API/query/lifecycle safeguards remain. Validation: 291 frontend tests; desktop/mobile browser comparison; lint, TypeScript and production build. Necessary real-data and accessibility deviations are documented in the UI-C handoff.
 
-**Current engineering work:** Phase 6F is ready for release review. The [release handoff](PHASE6F_HANDOFF.md) records the migration, regression and browser checks, the operator checklist, and the remaining Phase 6G evaluation work.
+**Current engineering work:** Phase 6G M1 diagnostics are implemented for review. The [M1 handoff](PHASE6G_HANDOFF.md) records verification and open issues. M2–M5 await approval.
 
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
@@ -410,9 +410,13 @@ Validation: **92 focused tests pass, no skips or warnings, in 0.70 seconds**. Si
 
 M1–M5 are implemented for review. Documents exposes the latest attempt and compatible results, a shared single and bulk extraction wizard, and durable operation recovery. The viewer provides run-scoped evidence groups, pinned source highlights and separate history. M5 verifies migration 0017, historical compatibility, and the rendered application. See the [release handoff](PHASE6F_HANDOFF.md).
 
+## Phase 6G — Extraction semantics and grounding
+
+M1 adds durable stage loss accounting, safe provider failure subtypes, opt-in local inspection, and targeted Run History diagnostics. The [plan](PHASE6G_PLAN.md) defines the later evidence, AI-led mapping, Tables and regression milestones. M2 requires explicit approval.
+
 ## Later phases
 
-Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and 6C M1–M6 are implemented; live-model evaluation remains outstanding; 6D M1–M4, 6E M1–M5 and 6F M1–M5 are implemented for review; 6G remains pending. See [ROADMAP.md](ROADMAP.md).
+Phase 5A through 5G and the authoring refinement remain complete and frozen. Phase 6A/6B and 6C M1–M6 are implemented; live-model evaluation remains outstanding; 6D M1–M4, 6E M1–M5 and 6F M1–M5 are implemented for review. Phase 6H owns broad live evaluation, release hardening and the freeze. See [ROADMAP.md](ROADMAP.md).
 
 | Phase | Work | Status |
 | --- | --- | --- |
@@ -431,8 +435,10 @@ Phase 5A through 5G and the authoring refinement remain complete and frozen. Pha
 | 6A | Evidence and extraction persistence/read APIs | Implemented (2026-11-02) |
 | 6B | Orchestration, provider infrastructure and execution reliability | Implemented (2026-11-03) |
 | 6C | Engineering equipment/attribute extraction | M1–M6 implemented; live quality unverified |
-| 6D–6G | Tables, OCR, UI/evaluation and hardening | 6D delivered; 6E and 6F M1–M5 implemented for review; 6G pending; live quality unmeasured |
-| 6.5 | Spreadsheet ingestion after 6G and before 7 | Deferred; unimplemented |
+| 6D–6F | Tables, OCR/layout, Documents and evidence workflows | Implemented for review; live quality unmeasured |
+| 6G | Extraction diagnostics, grounding, AI-led semantics, raw retention and table robustness | M1 implemented for review; M2–M5 pending |
+| 6H | Broad acceptance, live accuracy, load/cost/recovery, upgrade/restore, release hardening and Phase 6 freeze | Planned |
+| 6.5 | Spreadsheet ingestion after 6H and before 7 | Deferred; unimplemented |
 | 7 | Entity resolution | Not started |
 | 8 | SLD and topology extraction | Not started |
 | 9 | Reconciliation and conflict management | Not started |

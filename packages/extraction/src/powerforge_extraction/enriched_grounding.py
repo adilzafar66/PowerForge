@@ -6,6 +6,7 @@ from uuid import uuid5
 
 from powerforge_extraction.enriched_contracts import EnrichedEvidence
 from powerforge_extraction.identities import identity_hash
+from powerforge_extraction.stage_diagnostics import SourceRejection
 from powerforge_provenance.enriched_locations import EnrichedLocation
 from powerforge_provenance.locations import Region
 
@@ -131,12 +132,15 @@ def ground(
     for anchor in observation.anchors:
         for ref in anchor.reading_refs:
             if ref not in by_ref or "NATIVE_PREFERRED_UNALIGNED" in by_ref[ref].model.issues:
-                raise ValueError("Observation references unavailable source readings")
+                raise SourceRejection(
+                    "UNAVAILABLE_READING_ALIAS",
+                    "Observation references unavailable source readings",
+                )
             if ref not in selected:
                 selected.append(ref)
     if not selected:
         if not all(a.source_ref == "analysis_image" for a in observation.anchors):
-            raise ValueError("No admitted source")
+            raise SourceRejection("NO_ADMITTED_SOURCE", "No admitted source")
         item = EnrichedEvidence(
             id=identifier(
                 sources, "visual-evidence", identity_hash(observation.model_dump(mode="json"))
@@ -161,17 +165,22 @@ def ground(
     # actual engine line; arbitrary aliases cannot assemble a fabricated source sentence.
     lines = {r.engine_line for r in readings}
     if full_line and len(lines) != 1:
-        raise ValueError("Prose anchor crosses unproved source lines")
+        raise SourceRejection("CROSSES_SOURCE_LINES", "Prose anchor crosses unproved source lines")
     readings.sort(key=lambda r: ((r.box[1] if r.box else 0), (r.box[0] if r.box else 0)))
     if len(lines) == 1:
         readings.sort(key=lambda r: (r.box[0] if r.box else 0, r.engine_order))
     if ordered_refs is not None:
         if set(ordered_refs) != set(selected):
-            raise ValueError("Reading ownership differs from the supported cell")
+            raise SourceRejection(
+                "CELL_READING_MISMATCH", "Reading ownership differs from the supported cell"
+            )
         readings = [by_ref[r] for r in ordered_refs]
     raw = getattr(observation, "raw_expression", getattr(observation, "raw_text", None))
     if raw is not None and raw and not contains(raw, render(readings)):
-        raise ValueError("Original expression is not supported by its selected occurrences")
+        raise SourceRejection(
+            "SOURCE_EXPRESSION_MISMATCH",
+            "Original expression is not supported by its selected occurrences",
+        )
     line = next(iter(lines)) if len(lines) == 1 else None
     incomplete_line = False
     if full_line:
@@ -182,7 +191,9 @@ def ground(
             if set(selected) <= {r.model.ref for r in row}
         ]
         if len(groups) != 1:
-            raise ValueError("Prose anchor crosses unsupported reading-order gaps")
+            raise SourceRejection(
+                "READING_ORDER_GAP", "Prose anchor crosses unsupported reading-order gaps"
+            )
         line, row = groups[0]
         readings = list(row)
         incomplete_line = line[1] is None or sum(key[:2] == line[:2] for key in all_groups) != 1

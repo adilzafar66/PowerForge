@@ -92,9 +92,36 @@ export type HistoryRun = Omit<RegisterRun, "profile_key"> & {
   pages_processed: number;
   input_artifact_ids?: string[];
 };
+export type StageTrace = {
+  phase: string;
+  reason: string | null;
+  provider_outcome: string;
+  provider_detail: string | null;
+  issues: { reason: string; path: string }[];
+  source: {
+    native_readings: number;
+    ocr_readings: number;
+    withheld_readings: number;
+    layout_tables: number;
+    conflict_pairs: number;
+    image_present: boolean;
+  } | null;
+  returned: Record<string, number> | null;
+  counts: Record<string, number>;
+  reasons: Record<string, number>;
+};
+
 export type RunDetail = {
   run: HistoryRun;
-  attempts: { id: string; unit_key: string; status: string; retryable?: boolean; error_code: string | null }[];
+  attempts: {
+    id: string;
+    unit_key: string;
+    status: string;
+    attempt_number?: number;
+    retryable?: boolean;
+    error_code: string | null;
+    stage_trace?: StageTrace | null;
+  }[];
   coverage?: { required_units: number; completed_required_units: number };
   execution?: {
     profile_key: string;

@@ -14,6 +14,7 @@ from powerforge_extraction.enriched_grounding import ground, identifier, lookup,
 from powerforge_extraction.enriched_observations import EnrichedTableText
 from powerforge_extraction.enriched_output import Output, candidate
 from powerforge_extraction.identities import identity_hash
+from powerforge_extraction.stage_diagnostics import SourceRejection
 from powerforge_extraction.table_output import _scope, headers
 from powerforge_extraction.table_semantics import (
     attribute_meaning,
@@ -32,7 +33,7 @@ def _admit(sources, obs):
     source = next((t for t in sources.layout.tables if t.ref == obs.spatial_table_ref), None)
     if source is None:
         if obs.spatial_table_ref is not None:
-            raise ValueError("Unknown spatial table alias")
+            raise SourceRejection("UNAVAILABLE_SPATIAL_TABLE_ALIAS", "Unknown spatial table alias")
         if any(p.kind == "CONFLICT" for p in sources.layout.overlaps):
             return "UNRESOLVED"
         return (
@@ -113,19 +114,28 @@ def _admit(sources, obs):
     return source.structure_basis
 
 
-def reconstruct(response, sources):
+def reconstruct(response, sources, *, trace=None):
+    if trace:
+        trace.phase = "GROUNDING"
     output = Output(sources)
     tables = []
     spatial_refs = [t.spatial_table_ref for t in response.tables if t.spatial_table_ref is not None]
     if len(spatial_refs) != len(set(spatial_refs)):
-        raise ValueError("A spatial partition cannot be reconstructed twice")
+        raise SourceRejection(
+            "DUPLICATE_SPATIAL_TABLE", "A spatial partition cannot be reconstructed twice"
+        )
     for obs in response.tables:
+        if trace:
+            trace.phase = "GROUNDING"
         reported = obs.model_dump(mode="json")
         source = next((t for t in sources.layout.tables if t.ref == obs.spatial_table_ref), None)
         if source and source.captions:
             caption = render([lookup(sources)[r] for r in source.captions])
             if obs.title and obs.title.raw_text not in caption:
-                raise ValueError("Reported title differs from the committed scoped caption")
+                raise SourceRejection(
+                    "SOURCE_CAPTION_MISMATCH",
+                    "Reported title differs from the committed scoped caption",
+                )
             used = {c.local_ref for c in obs.cells} | {n.local_ref for n in obs.notes}
             ref = obs.title.local_ref if obs.title else "source_caption"
             while ref in used:
@@ -163,7 +173,10 @@ def reconstruct(response, sources):
                 ordered_refs=ordered_refs,
             )
             if cell.state == "UNREADABLE" and cell.raw_text is None and value.readings:
-                raise ValueError("Entirely unreadable cells cannot acquire source text")
+                raise SourceRejection(
+                    "UNREADABLE_CELL_HAS_TEXT",
+                    "Entirely unreadable cells cannot acquire source text",
+                )
             if basis not in ("UNRESOLVED", "VISUAL_REPORTED"):
                 original = next(c for c in source.cells if c.ref == cell.spatial_cell_ref)
                 # Use M3's supported order, rather than font-top sorting or model alias order.
@@ -208,7 +221,12 @@ def reconstruct(response, sources):
                 scoped.add(text.local_ref)
         all_evidence = [e for values in items.values() for e in values]
         if not all_evidence:
-            raise ValueError("A reconstructed table requires actual source evidence")
+            raise SourceRejection(
+                "TABLE_WITHOUT_EVIDENCE", "A reconstructed table requires actual source evidence"
+            )
+        if trace:
+            trace.observe("GROUNDING_ADMITTED", obs, reason=basis)
+            trace.phase = "CONVERSION"
         table = EnrichedTableInput(
             id=tid,
             table_kind=obs.proposed_kind,
@@ -232,6 +250,8 @@ def reconstruct(response, sources):
                 ),
             ),
         )
+        if trace:
+            trace.observe("RECONSTRUCTED_TABLES", obs, candidate=table)
         tables.append(
             SimpleNamespace(
                 observation=obs,
@@ -244,11 +264,15 @@ def reconstruct(response, sources):
         )
         output_tables = getattr(output, "tables", [])
         output.tables = [*output_tables, table]
+    if trace:
+        trace.phase = "CONVERSION"
     result = output.result(tables=getattr(output, "tables", []))
     return result, TableContext(tuple(tables), result)
 
 
-def interpret(response, sources, context):
+def interpret(response, sources, context, *, trace=None):
+    if trace:
+        trace.phase = "GROUNDING"
     output = Output(sources)
     output.existing_evidence = {e.id for e in context.output.evidence}
     tables = {t.observation.local_ref: t for t in context.tables}
@@ -259,13 +283,17 @@ def interpret(response, sources, context):
     for claim in response.equipment:
         table = tables.get(claim.table_ref)
         if table is None or any(r not in table.items for r in claim.source_refs):
-            raise ValueError("Equipment references uncommitted table/cells")
+            raise SourceRejection(
+                "UNAVAILABLE_TABLE_SOURCE_ALIAS", "Equipment references uncommitted table/cells"
+            )
         scope, _ = _scope(table, claim)
         scopes.setdefault((claim.table_ref, scope), set()).add(
             (claim.raw_expression, claim.observed_tag, claim.observed_name)
         )
     mentions, seen = {}, set()
     for claim in response.equipment:
+        if trace:
+            trace.phase = "GROUNDING"
         table = tables[claim.table_ref]
         scope, cells = _scope(table, claim)
         passages = [c.raw_text for c in cells]
@@ -284,6 +312,8 @@ def interpret(response, sources, context):
         if not cells and not (
             table.observation.title and table.observation.title.local_ref in claim.source_refs
         ):
+            if trace:
+                trace.observe("GROUNDING_REJECTED", claim, reason="UNSUPPORTED_TABLE_SCOPE")
             output.count("rejected_source_fields")
             continue
         for cell in table.observation.cells:
@@ -312,6 +342,9 @@ def interpret(response, sources, context):
                         cell.raw_text or "",
                     )
                 )
+        if trace:
+            trace.observe("GROUNDING_ADMITTED", claim)
+            trace.phase = "INTERPRETATION"
         result = equipment_meaning(
             claim,
             passages,
@@ -328,6 +361,8 @@ def interpret(response, sources, context):
             or bool(table.observation.title and table.observation.title.ambiguous),
         )
         if result.rejected:
+            if trace:
+                trace.observe("INTERPRETATION_REJECTED", claim, reason=result.reason_code)
             output.count("rejected_source_fields")
             continue
         primary = [e for c in cells for e in table.items[c.local_ref]] or support
@@ -341,6 +376,8 @@ def interpret(response, sources, context):
             ]
         )
         if key in seen:
+            if trace:
+                trace.observe("DUPLICATE_OBSERVATIONS", claim, reason="DUPLICATE_SOURCE_ASSERTION")
             mentions[claim.local_ref] = mentions[
                 next(
                     k
@@ -351,6 +388,8 @@ def interpret(response, sources, context):
             continue
         seen.add(key)
         group = identifier(sources, "group", key) if scope else None
+        if trace:
+            trace.phase = "CONVERSION"
         c = candidate(
             sources,
             key,
@@ -360,6 +399,14 @@ def interpret(response, sources, context):
             group=group,
             diagnostics=dict(table_id=str(table.table_id), structure_basis=table.basis),
         )
+        if trace:
+            trace.observe(
+                c.mapping_status,
+                claim,
+                reason=c.reason_code,
+                candidate=c,
+                association="TABLE_SCOPE" if c.source_group_id else "NONE",
+            )
         output.candidates.append(c)
         if group:
             output.groups.append(
@@ -380,32 +427,45 @@ def interpret(response, sources, context):
             "\n".join([claim.raw_expression, *passages]),
         )
     for claim in response.attributes:
+        if trace:
+            trace.phase = "GROUNDING"
         table = tables.get(claim.table_ref)
         if table is None:
-            raise ValueError("Attribute references uncommitted table")
+            raise SourceRejection(
+                "UNAVAILABLE_TABLE_SOURCE_ALIAS", "Attribute references uncommitted table"
+            )
         cell = next(
             (c for c in table.observation.cells if c.local_ref == claim.value_cell_ref), None
         )
         if cell is None or cell.state == "BLANK" or cell.raw_text is None:
-            raise ValueError("Attribute requires a readable committed value cell")
+            raise SourceRejection(
+                "UNAVAILABLE_VALUE_CELL", "Attribute requires a readable committed value cell"
+            )
         hs = headers(table, cell)
         if any(
             r not in {h.local_ref for h in hs} | table.scoped
             for r in [*claim.label_refs, *claim.unit_refs, *claim.qualifier_refs]
         ):
+            if trace:
+                trace.observe("GROUNDING_REJECTED", claim, reason="UNSUPPORTED_TABLE_SCOPE")
             output.count("rejected_source_fields")
             continue
         mention = mentions.get(claim.equipment_ref)
         reported = str(mention[0].id) if mention else None
         if claim.equipment_ref and claim.equipment_ref not in claims:
-            raise ValueError("Unknown equipment alias")
+            raise SourceRejection("UNAVAILABLE_EQUIPMENT_ALIAS", "Unknown equipment alias")
         scope = f"row:{cell.row}" if table.kind == "EQUIPMENT_ROWS" else "spec"
         if mention and (
             mention[2] != scope or mention[3].table_id != table.table_id or cell.row_span != 1
         ):
             mention = None
         if reported and not mention:
+            if trace:
+                trace.observe("DETACHED_ASSOCIATIONS", claim, reason="OUTSIDE_EQUIPMENT_SCOPE")
             output.count("detached_associations")
+        if trace:
+            trace.observe("GROUNDING_ADMITTED", claim)
+            trace.phase = "INTERPRETATION"
         result = attribute_meaning(
             claim,
             cell,
@@ -419,6 +479,8 @@ def interpret(response, sources, context):
             notes=[n.raw_text for n in table.observation.notes],
         )
         if result.rejected:
+            if trace:
+                trace.observe("INTERPRETATION_REJECTED", claim, reason=result.reason_code)
             output.count("rejected_source_fields")
             continue
         key = "attribute/" + identity_hash(
@@ -432,9 +494,13 @@ def interpret(response, sources, context):
             ]
         )
         if key in seen:
+            if trace:
+                trace.observe("DUPLICATE_OBSERVATIONS", claim, reason="DUPLICATE_SOURCE_ASSERTION")
             continue
         seen.add(key)
         primary = table.items[cell.local_ref]
+        if trace:
+            trace.phase = "CONVERSION"
         c = candidate(
             sources,
             key,
@@ -444,6 +510,14 @@ def interpret(response, sources, context):
             mention=mention[0].id if mention else None,
             diagnostics=dict(table_id=str(table.table_id), structure_basis=table.basis),
         )
+        if trace:
+            trace.observe(
+                c.mapping_status,
+                claim,
+                reason=c.reason_code,
+                candidate=c,
+                association="TABLE_SCOPE" if c.source_group_id else "NONE",
+            )
         output.candidates.append(c)
         support = [e for h in hs for e in table.items[h.local_ref]]
         support += [e for ref in table.scoped for e in table.items[ref]]
@@ -456,4 +530,6 @@ def interpret(response, sources, context):
                 if link.candidate_id == mention[0].id and link.evidence_id == e.id
             ]
         output.cite(c, primary, support)
+    if trace:
+        trace.phase = "CONVERSION"
     return output.result()

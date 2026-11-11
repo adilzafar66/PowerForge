@@ -84,6 +84,9 @@ def runtime_identity():
     # These compatible execution and publication fixes keep admitted v5/v6 runs
     # executable. The accepted source bytes are retained as identity data only.
     retained = {
+        "enriched_grounding.py",
+        "enriched_output.py",
+        "enriched_tables.py",
         "enriched_profiles.py",
         "enriched_publication.py",
         "orchestration.py",

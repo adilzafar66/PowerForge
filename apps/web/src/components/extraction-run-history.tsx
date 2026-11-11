@@ -22,6 +22,7 @@ import {
   type RawTable,
   type RunPair,
   type RunStatus,
+  type StageTrace,
 } from "@/lib/extraction";
 import { formatDateShort } from "@/lib/projects";
 import { isRunning, jobInterval } from "@/lib/query-hooks";
@@ -217,7 +218,10 @@ function RunHistoryDetail({
             <summary className="cursor-pointer font-semibold text-accent">Attempts and source bindings</summary>
             <div className="mt-2 max-h-64 space-y-2 overflow-auto break-words">
               {data.attempts.map((attempt) => (
-                <p key={attempt.id} className="m-0">{readableKey(attempt.unit_key)} · {readableKey(attempt.status)}{attempt.error_code ? ` · ${readableKey(attempt.error_code)}` : ""}</p>
+                <div key={attempt.id} className="space-y-1">
+                  <p className="m-0">{readableKey(attempt.unit_key)}{attempt.attempt_number ? ` · Attempt ${attempt.attempt_number}` : ""} · {readableKey(attempt.status)}{attempt.error_code ? ` · ${readableKey(attempt.error_code)}` : ""}</p>
+                  {attempt.stage_trace && <AttemptDiagnostics trace={attempt.stage_trace} />}
+                </div>
               ))}
               {sources.error && <PanelMessage error retry={() => void sources.refetch()}>Exact source bindings could not load.</PanelMessage>}
               {boundSources.map((item) => (
@@ -286,6 +290,41 @@ function RunHistoryDetail({
         />
       )}
     </div>
+  );
+}
+
+function AttemptDiagnostics({ trace }: { trace: StageTrace }) {
+  const failure = trace.provider_detail ?? trace.reason;
+  return (
+    <details className="pl-2">
+      <summary className="cursor-pointer text-accent">
+        {failure
+          ? `${readableKey(trace.phase)} · ${readableKey(failure)}`
+          : `${trace.counts.PUBLISHED_CANDIDATES ?? 0} candidates · ${trace.counts.PUBLISHED_TABLES ?? 0} tables published`}
+      </summary>
+      <div className="mt-1 space-y-1">
+        <p className="m-0">Provider · {readableKey(trace.provider_outcome)}</p>
+        {trace.source && <p className="m-0">
+          Input · {trace.source.native_readings} native readings · {trace.source.ocr_readings} OCR readings
+          {trace.source.image_present ? " · Page image" : ""} · {trace.source.layout_tables} layout tables
+          · {trace.source.withheld_readings} withheld readings · {trace.source.conflict_pairs} conflicting pairs
+        </p>}
+        {trace.returned && <p className="m-0">
+          Returned · {Object.entries(trace.returned).map(([kind, count]) => `${readableKey(kind)} ${count}`).join(" · ")}
+        </p>}
+        {Object.keys(trace.counts).length > 0 && <p className="m-0">
+          {Object.entries(trace.counts).map(([reason, count]) => `${readableKey(reason)} ${count}`).join(" · ")}
+        </p>}
+        {Object.keys(trace.reasons).length > 0 && <ul className="m-0 list-disc pl-4">
+          {Object.entries(trace.reasons).map(([reason, count]) => <li key={reason}>{readableKey(reason)} · {count}</li>)}
+        </ul>}
+        {trace.issues.length > 0 && <ul className="m-0 list-disc pl-4">
+          {trace.issues.map((issue, index) => <li key={index}>
+            {readableKey(issue.reason)}{issue.path ? ` · ${issue.path}` : ""}
+          </li>)}
+        </ul>}
+      </div>
+    </details>
   );
 }
 

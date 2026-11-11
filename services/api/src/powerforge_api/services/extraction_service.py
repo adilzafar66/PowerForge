@@ -55,6 +55,7 @@ from powerforge_extraction.models import (
 )
 from powerforge_extraction.persistence import effective_units
 from powerforge_extraction.profiles import read_profile
+from powerforge_extraction.stage_trace_persistence import ExtractionStageTrace
 from powerforge_provenance.locations import Region
 
 
@@ -236,7 +237,17 @@ class ExtractionReadService:
                 if all_reported and calls and all(c.estimated_cost_usd is not None for c in calls)
                 else None,
             )
-        computed = {"effective", "retryable", "stale"}
+        traces = {
+            entry.work_unit_id: entry.trace
+            for entry in self.session.scalars(
+                select(ExtractionStageTrace)
+                .join(
+                    ExtractionWorkUnit, ExtractionStageTrace.work_unit_id == ExtractionWorkUnit.id
+                )
+                .where(ExtractionWorkUnit.run_id == run.id)
+            )
+        }
+        computed = {"effective", "retryable", "stale", "stage_trace"}
         return RunDetail(
             run=RunResponse.model_validate(run),
             coverage=coverage,
@@ -247,6 +258,7 @@ class ExtractionReadService:
                         **{
                             k: getattr(r, k) for k in UnitResponse.model_fields if k not in computed
                         },
+                        "stage_trace": traces.get(r.id),
                         "effective": r.status == WorkUnitStatus.COMPLETED,
                         "retryable": bool(
                             profile

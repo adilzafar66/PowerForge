@@ -277,7 +277,26 @@ try {
       await shot(`${prefix}-equipment-edit-${tab}`);
     }
   }
-  if (process.env.VISUAL_PHASE6F_OPERATIONS) {
+  if (process.env.VISUAL_PHASE6G) {
+    for (const width of [1440, 390]) {
+      await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
+      await go(r + "/documents/doc?mode=evidence&evidenceTab=history");
+      const engineering = page.getByRole("region", { name: "Engineering history" });
+      await engineering.getByRole("button", { name: /Run / }).click();
+      await engineering.getByText("Attempts and source bindings", { exact: true }).click();
+      await engineering.getByText("0 candidates · 0 tables published", { exact: true }).click();
+      await engineering.getByText("Crosses source lines · 1", { exact: true }).waitFor();
+      await engineering.getByText("Returned · Attributes 1", { exact: true }).waitFor();
+      await shot(`phase6g-engineering-loss-${width}`);
+
+      const tables = page.getByRole("region", { name: "Tables history" });
+      await tables.getByRole("button", { name: /Run .*Partial/ }).click();
+      await tables.getByText("Attempts and source bindings", { exact: true }).click();
+      await tables.getByText("Parse · Missing field", { exact: true }).click();
+      await tables.getByText("Missing field · tables.0.cells.0.raw_text", { exact: true }).waitFor();
+      await shot(`phase6g-table-parse-${width}`);
+    }
+  } else if (process.env.VISUAL_PHASE6F_OPERATIONS) {
     for (const width of [1440, 1024, 768, 390]) {
       resetOperationsFixture();
       await page.setViewportSize({ width, height: width === 390 ? 844 : 1000 });
