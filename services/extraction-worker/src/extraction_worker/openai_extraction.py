@@ -7,6 +7,7 @@ from typing import Any
 import openai
 from pydantic import BaseModel, ValidationError
 
+from extraction_worker.openai_response_log import save_structured_response
 from powerforge_ai.extraction import (
     ErrorCode,
     ExecutionUsage,
@@ -152,6 +153,7 @@ class OpenAIExtractionProvider:
         if client is None and not settings.openai_api_key:
             raise ProviderFailure(ErrorCode.AUTH)
         self.profile = profile
+        self.response_log_dir = settings.openai_response_log_dir
         self.client = (
             client
             if client is not None
@@ -236,6 +238,15 @@ class OpenAIExtractionProvider:
                 else:
                     detail = _raw_terminal_detail(raw_response) or FailureDetail.SDK_PARSE_FAILURE
             raise ProviderFailure(code, detail=detail) from None
+        save_structured_response(
+            self.response_log_dir,
+            response,
+            stage=request.stage,
+            schema_version=request.schema_version,
+            work_unit_id=str(request.work_unit_id),
+            attempt_number=request.attempt_number,
+            model=request.model,
+        )
         raw = getattr(response, "usage", None)
         try:
             usage = ExecutionUsage(

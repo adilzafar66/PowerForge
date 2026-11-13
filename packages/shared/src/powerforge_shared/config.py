@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     ai_classification_timeout_seconds: int = Field(default=60, gt=0)
     ai_classification_task_soft_time_limit_seconds: int = Field(default=600, gt=0)
     ai_classification_task_hard_time_limit_seconds: int = Field(default=660, gt=0)
+    openai_response_log_dir: str = ""
     openai_api_key: str | None = Field(default=None, repr=False)
 
     enrichment_enabled: bool = False

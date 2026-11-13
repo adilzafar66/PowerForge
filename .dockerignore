@@ -9,3 +9,6 @@ venv
 .env
 **/*.egg-info
 **/*.tsbuildinfo
+
+# Local OpenAI structured responses may contain private source text.
+**/openai_logs/

@@ -10,6 +10,7 @@ from typing import Any
 import openai
 from pydantic import BaseModel, ValidationError
 
+from extraction_worker.openai_response_log import save_structured_response
 from powerforge_ai.providers import (
     ClassificationImageInput,
     ClassificationUsage,
@@ -88,6 +89,14 @@ class OpenAIClassificationProvider:
                     store=False,
                     reasoning={"effort": self._settings.ai_classification_reasoning_effort},
                     timeout=float(self._settings.ai_classification_timeout_seconds),
+                )
+                save_structured_response(
+                    self._settings.openai_response_log_dir,
+                    response,
+                    stage="CLASSIFICATION",
+                    schema=schema.__name__,
+                    model=self._settings.ai_classification_model,
+                    attempt_number=attempt,
                 )
                 parsed = _validated(response, schema)
                 return parsed, _usage(self._settings, response, image_count, started)

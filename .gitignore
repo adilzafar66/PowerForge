@@ -29,3 +29,6 @@ evals/spatial/private/
 
 # Local deterministic visual baselines, font cache, and comparison artifacts.
 apps/web/.visual-artifacts/
+
+# Local OpenAI structured responses may contain private source text.
+**/openai_logs/

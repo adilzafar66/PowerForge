@@ -180,6 +180,9 @@ services:
       AI_CLASSIFICATION_ENABLED: "true"
       AI_PROVIDER: fake
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_RESPONSE_LOG_DIR: ${OPENAI_RESPONSE_LOG_DIR:-}
+    volumes:
+      - ./packages/extraction/src/powerforge_extraction/openai_logs:/app/openai_logs
     depends_on:
       postgres:
         condition: service_healthy

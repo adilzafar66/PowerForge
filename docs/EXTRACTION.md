@@ -271,3 +271,9 @@ To regenerate development results without deleting documents or projects:
 3. Verify the new layout and candidates in Run History. Keep old rows and object-storage artifacts if you still need historical reads. A database reset or manual deletion is unnecessary. For an entirely clean development environment, use a separate Compose project with fresh volumes and distinct ports so the current project remains recoverable.
 
 Run `aef1950f`, page 1, was measured read-only. Its preparation contained 1,432 eligible segments across 594 disconnected components, including 511 singletons and 19 pairs. Only 38 met the grid prefilter. The corrected algorithm retained 304 readings and verified zero tables. It reported 37 irregular grids, one ambiguous assignment and three unsupported borderless headers. The diagnostic did not modify the original run or publish an artifact.
+
+### Local OpenAI response files
+
+Set `OPENAI_RESPONSE_LOG_DIR=/app/openai_logs` in your local Compose `.env` and rebuild and recreate `extraction-worker` with `docker compose up -d --build extraction-worker`. Each parsed OpenAI structured response from extraction or classification gets its own JSON file under `packages/extraction/src/powerforge_extraction/openai_logs/` on the host. The worker records the parsed result before PowerForge's domain validation and grounding. Responses that fail to parse, along with request prompts and image bytes, are outside this capture. The directory is excluded from Git and Docker builds.
+
+The files can contain private source text. Leave the setting empty to disable logging, and remove captured files when no longer needed. Capture does not change OpenAI's `store=false` setting. A local write failure is logged without the payload and does not fail extraction.

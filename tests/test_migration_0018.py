@@ -85,3 +85,27 @@ def test_upgrade_and_empty_downgrade_preserve_historical_and_pending_attempts(sc
         assert history() == before
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize("starting_revision", ["0018_classification_dismissal", REVISION])
+def test_merge_preserves_each_applied_migration_and_adds_the_other(scratch_url, starting_revision):
+    _alembic(scratch_url, "upgrade", starting_revision)
+    engine = create_engine(scratch_url)
+    try:
+        source = _seed_phase3(engine)
+        _alembic(scratch_url, "upgrade", "head")
+        assert _version(engine) == "0019_merge_classification_trace"
+        schema = inspect(engine)
+        assert schema.has_table("extraction_stage_traces")
+        assert "fk_revision_documents_dismissed_prediction" in {
+            key["name"] for key in schema.get_foreign_keys("revision_documents")
+        }
+        with engine.connect() as connection:
+            assert (
+                connection.scalar(
+                    text("SELECT id FROM documents WHERE id = :id"), {"id": source["document_id"]}
+                )
+                == source["document_id"]
+            )
+    finally:
+        engine.dispose()
