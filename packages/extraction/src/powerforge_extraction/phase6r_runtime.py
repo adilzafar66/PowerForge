@@ -16,17 +16,20 @@ from powerforge_extraction.models import ExtractionWorkUnit
 from powerforge_extraction.phase6r_contracts import (
     VERSION,
     AttributeRequest,
+    AttributeResponse,
     NoEligibleAttributes,
     PinnedPageContext,
+    ReadingCitation,
     ReadingText,
     RecognitionRequest,
     RecognitionResponse,
+    VisualCitation,
     attribute_catalog,
     contract_hash,
     equipment_catalog,
     validate_request,
 )
-from powerforge_extraction.phase6r_profile import PROMPT, RESPONSES, STAGES
+from powerforge_extraction.phase6r_profile import PROMPTS, RESPONSES, STAGES
 from powerforge_persistence.base import Base
 from powerforge_provenance.spatial_sources import PageOwner
 
@@ -45,6 +48,7 @@ class StageResult(Base):
     request_hash: Mapped[str]
     result_hash: Mapped[str]
     payload: Mapped[dict] = mapped_column(JSONB)
+    diagnostics: Mapped[list[dict]] = mapped_column(JSONB)
 
 
 def prerequisite_result(session, unit):
@@ -188,7 +192,7 @@ def request_for(factory, storage, claim):
         unit_key=claim.unit_key,
         attempt_number=claim.attempt_number,
         model=profile.model,
-        instructions=PROMPT,
+        instructions=PROMPTS[unit.stage],
         schema_version=VERSION,
         timeout_seconds=profile.timeout_seconds,
         max_output_tokens=profile.max_output_tokens,
@@ -212,6 +216,75 @@ def request_for(factory, storage, claim):
     if encoded_size > profile.max_transport_bytes:
         raise ValueError("Phase 6R encoded input exceeds its transport budget")
     return wire, request
+
+
+def stage_diagnostics(wire, result):
+    """Keep invalid proposals and citations inspectable without establishing links."""
+    diagnostics = []
+    if isinstance(result, NoEligibleAttributes):
+        return diagnostics
+    readings = {reading.reading_ref: reading for reading in wire.page.readings}
+    if isinstance(result, AttributeResponse):
+        owners = {item.local_ref: item for item in wire.upstream.equipment}
+        definitions = {(item.equipment_type, item.key): item for item in wire.attribute_catalog}
+        from powerforge_extraction.phase6r_contracts import RegistryAssertion
+
+        for item in (*result.attributes, *result.raw_unmapped):
+            owner = owners.get(item.equipment_ref)
+            if (
+                item.association == "UNASSIGNED"
+                and item.equipment_ref is not None
+                or item.association != "UNASSIGNED"
+                and owner is None
+                or owner is not None
+                and owner.qualification == "LEGEND_ONLY"
+            ):
+                diagnostics.append({"ref": item.local_ref, "code": "INVALID_OWNER_REFERENCE"})
+            if isinstance(item, RegistryAssertion):
+                definition = (
+                    definitions.get((owner.registry_type, item.attribute_key)) if owner else None
+                )
+                if definition is None and owner is not None:
+                    diagnostics.append({"ref": item.local_ref, "code": "UNSUPPORTED_ATTRIBUTE_KEY"})
+                elif (
+                    definition is not None
+                    and item.proposed_enum_value is not None
+                    and (
+                        definition.value_type != "ENUM"
+                        or item.proposed_enum_value not in definition.allowed_values
+                    )
+                ):
+                    diagnostics.append({"ref": item.local_ref, "code": "INVALID_ENUM_PROPOSAL"})
+        observations = (*result.attributes, *result.raw_unmapped)
+    else:
+        observations = result.equipment
+    for item in observations:
+        for index, citation in enumerate(item.evidence):
+            code = None
+            if isinstance(citation, ReadingCitation):
+                reading = readings.get(citation.reading_ref)
+                if reading is None:
+                    code = "UNKNOWN_READING_REFERENCE"
+                elif citation.quote is not None and not any(
+                    citation.quote in value for value in (reading.text, *reading.alternate_texts)
+                ):
+                    code = "READING_QUOTE_MISMATCH"
+            elif isinstance(citation, VisualCitation):
+                box = citation.region
+                if (
+                    box.x < 0
+                    or box.y < 0
+                    or box.width <= 0
+                    or box.height <= 0
+                    or box.x + box.width > 1
+                    or box.y + box.height > 1
+                ):
+                    code = "INVALID_VISUAL_BOUNDS"
+            if code:
+                diagnostics.append({"ref": item.local_ref, "citation": index, "code": code})
+    if len(diagnostics) > 128:
+        return [*diagnostics[:127], {"code": "DIAGNOSTIC_LIMIT", "omitted": len(diagnostics) - 127}]
+    return diagnostics
 
 
 def store_result(session, unit, wire, result):
@@ -239,6 +312,7 @@ def store_result(session, unit, wire, result):
             request_hash=contract_hash(wire),
             result_hash=contract_hash(result),
             payload=result.model_dump(mode="json"),
+            diagnostics=stage_diagnostics(wire, result),
         )
     )
     session.flush()

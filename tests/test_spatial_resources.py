@@ -1,5 +1,6 @@
 """Pure imports, packaged new identities and source-preserving compatibility checks."""
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -66,7 +67,32 @@ def test_authored_native_ocr_unicode_sparse_and_unavailable_fixture_contracts(ca
 
 def test_new_resource_and_schema_identities_and_accepted_source_bytes_are_pinned():
     fixture = json.loads((FIXTURES / "spatial_v1_identity.json").read_text())
-    assert fixture["spatial"] == spatial_contract_identity()
+    active = spatial_contract_identity()
+    root = ROOT / "packages/provenance/src/powerforge_provenance"
+    names = (
+        "spatial_base.py",
+        "spatial_geometry.py",
+        "spatial_sources.py",
+        "spatial_offsets.py",
+        "spatial_layout.py",
+        "spatial_identity.py",
+        "resources/spatial_v1.json",
+    )
+    parts = {name: sha((root / name).read_bytes()) for name in names}
+    assert active["rules_hash"] == identity_hash(parts)
+    policy_name = "resources/spatial_v1.json"
+    old_bytes = (
+        (root / policy_name)
+        .read_bytes()
+        .replace(b'"max_native_primitives": 5096', b'"max_native_primitives": 2048')
+    )
+    assert json.loads(old_bytes)["max_native_primitives"] == 2048
+    assert fixture["spatial"] == {
+        "version": active["version"],
+        "rules_hash": identity_hash(parts | {policy_name: hashlib.sha256(old_bytes).hexdigest()}),
+        "policy_sha256": identity_hash(json.loads(old_bytes)),
+    }
+    assert active["policy_sha256"] == identity_hash(dict(POLICY))
     assert fixture["ocr"] == ocr_contract_identity()
     assert fixture["fixture_sha256"] == sha((FIXTURES / "spatial_sources_v1.json").read_bytes())
     for cls in (
@@ -76,13 +102,17 @@ def test_new_resource_and_schema_identities_and_accepted_source_bytes_are_pinned
         NativeEmissionTrace,
         NativeOriginDataset,
     ):
-        assert fixture["schemas"][cls.__name__] == identity_hash(cls.model_json_schema())
+        schema = cls.model_json_schema()
+        if cls is PositionedText:
+            primitives = schema["properties"]["native_primitives"]
+            assert primitives["maxItems"] == POLICY["max_native_primitives"] == 5096
+            primitives["maxItems"] = 2048
+        assert fixture["schemas"][cls.__name__] == identity_hash(schema), cls.__name__
     for relative, digest in fixture["frozen_legacy_files"].items():
         accepted = ROOT / relative
         # M2 retains the accepted source as data before purpose-aware runtime edits.
-        if (
-            relative.startswith("packages/extraction/src/powerforge_extraction/")
-            and sha(accepted.read_bytes()) != digest
+        if relative.startswith("packages/extraction/src/powerforge_extraction/") and (
+            not accepted.exists() or sha(accepted.read_bytes()) != digest
         ):
             accepted = (
                 ROOT

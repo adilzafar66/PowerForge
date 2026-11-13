@@ -36,6 +36,7 @@ function makePreview(selection: OperationSelection): OperationPreview {
     errors: [],
     profile: { key: "phase-6r", provider: "openai", model: "fixture", enabled: true },
     review_hash: "reviewed",
+    review_expires_at: new Date(Date.now() + 15 * 60_000).toISOString(),
     planned_runs: selection.documents.length,
     provider_admissions: 12, ocr_attempts: 3, parallel_documents: 2,
     consent_version: "external-openai-v1",

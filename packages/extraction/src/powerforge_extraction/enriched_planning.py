@@ -15,7 +15,7 @@ from powerforge_extraction.errors import ExtractionConflict, ExtractionDisabled,
 from powerforge_extraction.identities import identity_hash
 from powerforge_extraction.models import ExtractionRun
 from powerforge_extraction.persistence import ExtractionPersistence
-from powerforge_extraction.phase6r_profile import phase6r_profile
+from powerforge_extraction.phase6r_profile import phase6r_profile, provider_available
 
 
 class EnrichmentSelection(BaseModel):
@@ -36,11 +36,9 @@ def metadata(profile, stage, page, binding):
 
 def start_phase6r(coordinator, document_id, revision_document_id, pages, mode, selections):
     session, settings = coordinator.session, coordinator.settings
-    if not settings.extraction_enabled:
-        raise ExtractionDisabled("Extraction is disabled")
     profile = phase6r_profile(settings)
-    if not settings.extraction_phase6r_fake:
-        raise ExtractionDisabled("Phase 6R live extraction is not available at this milestone")
+    if not provider_available(settings, profile.provider):
+        raise ExtractionDisabled("Extraction provider is disabled")
     if mode not in ("ensure", "reextract"):
         raise ExtractionError("Unknown extraction request mode")
     document = session.scalar(select(Document).where(Document.id == document_id).with_for_update())

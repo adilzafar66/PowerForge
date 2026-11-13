@@ -22,11 +22,17 @@ KEY = "phase-6r"
 PROFILE_VERSION = "phase-6r-profile-v1"
 STAGES = ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION")
 RESPONSES = dict(zip(STAGES, (RecognitionResponse, AttributeResponse), strict=True))
-PROMPT_VERSION = "phase-6r-bootstrap-v1"
-PROMPT = files("powerforge_extraction").joinpath("prompts/phase6r_bootstrap_v1.txt").read_text()
+PROMPT_VERSION = "phase-6r-stages-v1"
+PROMPTS = {
+    stage: files("powerforge_extraction")
+    .joinpath(f"prompts/phase6r_{stage.lower()}_v1.txt")
+    .read_text(encoding="utf-8")
+    for stage in STAGES
+}
 
 
 class Phase6RProfile(ExecutionProfile):
+    provider: Literal["fake", "openai"]
     key: Literal["phase-6r"] = KEY
     version: Literal["phase-6r-profile-v1"] = PROFILE_VERSION
     execution_kind: Literal["FAKE_TEST", "UNIFIED_EXTRACTION"]
@@ -37,6 +43,31 @@ class Phase6RProfile(ExecutionProfile):
     manifest: dict
     source_rules: str
     max_transport_bytes: int = Field(gt=0)
+
+    @property
+    def identity_hash(self):
+        # PostgreSQL JSONB can reorder nested manifest keys on reload.
+        return identity_hash(self.model_dump(mode="json"))
+
+
+def structured_schema(value: dict) -> dict:
+    """Project the portable shape. Local contracts still enforce every bound."""
+    properties = {}
+    for name, child in value.items():
+        if name in {"properties", "$defs"}:
+            properties[name] = {key: structured_schema(item) for key, item in child.items()}
+        elif name in {"items"}:
+            properties[name] = structured_schema(child)
+        elif name == "anyOf":
+            properties[name] = [structured_schema(item) for item in child]
+        elif name == "const":
+            properties["enum"] = [child]
+        elif name in {"type", "$ref", "enum", "title", "description"}:
+            properties[name] = child
+    if properties.get("type") == "object":
+        properties["required"] = list(properties.get("properties", ()))
+        properties["additionalProperties"] = False
+    return properties
 
 
 def manifest():
@@ -77,9 +108,16 @@ def manifest():
                 [item.model_dump(mode="json") for item in attribute_catalog(sample)],
             ]
         ),
-        "prompt_hash": identity_hash(PROMPT),
+        "prompt_hash": identity_hash(PROMPTS),
         "stages": [
-            {"stage": stage, "schema_hash": identity_hash(model.model_json_schema())}
+            {
+                "stage": stage,
+                "prompt_hash": identity_hash(PROMPTS[stage]),
+                "schema_hash": identity_hash(model.model_json_schema()),
+                "transport_schema_hash": identity_hash(
+                    structured_schema(model.model_json_schema())
+                ),
+            }
             for stage, model in RESPONSES.items()
         ],
     }
@@ -126,3 +164,17 @@ def require_profile(profile):
         or (profile.provider == "fake") != (profile.execution_kind == "FAKE_TEST")
     ):
         raise ValueError("Pinned Phase 6R resources do not match this installation")
+
+
+def provider_available(settings, provider):
+    if provider == "local":
+        return settings.enrichment_enabled
+    if not settings.extraction_enabled:
+        return False
+    if provider == "fake":
+        return settings.extraction_phase6r_fake
+    return (
+        provider == "openai"
+        and settings.extraction_external_enabled
+        and not (settings.extraction_phase6r_fake or settings.enrichment_worker_only)
+    )

@@ -10,6 +10,7 @@ from powerforge_extraction.operation_models import UNKNOWN_PROVIDER_OUTCOME
 from powerforge_extraction.operation_plan import OperationPolicy, PlannedDocument
 from powerforge_extraction.operations import child_runs, included, items_for
 from powerforge_extraction.orchestration import ACTIVE
+from powerforge_extraction.phase6r_profile import provider_available
 from powerforge_extraction.phase6r_runtime import StageResult
 
 
@@ -18,11 +19,7 @@ def describe_run(session, run, settings, can_write):
         select(ExtractionWorkUnit).where(ExtractionWorkUnit.run_id == run.id)
     ).all()
     control = session.get(RunExecution, run.id)
-    enabled = (
-        settings.enrichment_enabled
-        if run.provider == "local"
-        else (settings.extraction_enabled and settings.extraction_phase6r_fake)
-    )
+    enabled = provider_available(settings, run.provider)
     keys = retryable_keys(units, control.configuration["max_attempts"]) if control else set()
     return {
         "run_id": run.id,

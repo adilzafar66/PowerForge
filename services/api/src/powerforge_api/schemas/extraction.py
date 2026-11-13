@@ -61,6 +61,7 @@ class UnitResponse(ReadModel):
     finished_at: datetime | None
     error_code: str | None
     output_counts: dict[str, int]
+    stage_diagnostics: list[dict] = Field(default_factory=list)
     stage_outcome: Literal["RESULT", "NO_ELIGIBLE_ATTRIBUTES"] | None = None
     lease_expires_at: datetime | None = None
     heartbeat_at: datetime | None = None

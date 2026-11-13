@@ -1,12 +1,13 @@
 """Advance reviewed Phase 6F intents using the existing per-document coordinators."""
 
 import logging
+import secrets
 from dataclasses import dataclass
 from datetime import timedelta
 from uuid import UUID
 
-from sqlalchemy import func, select
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import delete, func, select
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from powerforge_document_processing.models import (
     Document,
@@ -23,10 +24,11 @@ from powerforge_extraction.identities import identity_hash
 from powerforge_extraction.layout_models import SourceSpatialResult
 from powerforge_extraction.layout_profiles import layout_profile
 from powerforge_extraction.layout_service import start_layout
-from powerforge_extraction.models import ExtractionRun
+from powerforge_extraction.models import ExtractionRun, ExtractionWorkUnit
 from powerforge_extraction.operation_models import (
     ExtractionOperation,
     OperationItem,
+    OperationPreview,
     OperationRequest,
 )
 from powerforge_extraction.operation_plan import (
@@ -36,7 +38,7 @@ from powerforge_extraction.operation_plan import (
     preview_operation,
 )
 from powerforge_extraction.orchestration import ACTIVE, ExtractionCoordinator
-from powerforge_extraction.phase6r_profile import phase6r_profile
+from powerforge_extraction.phase6r_profile import phase6r_profile, provider_available
 from powerforge_persistence import Project, ProjectRevision
 
 logger = logging.getLogger(__name__)
@@ -44,6 +46,29 @@ logger = logging.getLogger(__name__)
 
 def now(session):
     return session.scalar(select(func.clock_timestamp()))
+
+
+PREVIEW_LIFETIME = timedelta(minutes=15)
+
+
+def issue_preview(session, revision_id, preview):
+    response = preview.response()
+    if preview.review_hash is None:
+        return {**response, "review_expires_at": None}
+    timestamp = now(session)
+    session.execute(
+        delete(OperationPreview).where(
+            OperationPreview.revision_id == revision_id, OperationPreview.expires_at <= timestamp
+        )
+    )
+    record = OperationPreview(
+        id=secrets.token_hex(32),
+        revision_id=revision_id,
+        plan_hash=preview.review_hash,
+        expires_at=timestamp + PREVIEW_LIFETIME,
+    )
+    session.add(record)
+    return {**response, "review_hash": record.id, "review_expires_at": record.expires_at}
 
 
 def admit_operation(
@@ -59,22 +84,21 @@ def admit_operation(
             raise ExtractionConflict("This submission key was used for a different review.")
         return session.get(ExtractionOperation, previous.operation_id)
 
+    review = session.get(OperationPreview, review_hash)
+    if review is None or review.revision_id != revision_id or review.expires_at <= now(session):
+        raise ExtractionConflict("The extraction preview is invalid or expired. Review it again.")
     preview = preview_operation(session, settings, project_id, revision_id, selection)
-    if preview.review_hash is None or preview.review_hash != review_hash:
+    if (
+        preview.review_hash is None
+        or preview.review_hash != review.plan_hash
+        or review.expires_at <= now(session)
+    ):
         raise ExtractionConflict(
             "The reviewed extraction plan changed. Review it before submitting."
         )
     policy = preview.policy.model_dump(mode="json")
-    intent = identity_hash(
-        {
-            "selection": selection.model_dump(mode="json"),
-            "profile_hash": policy["profile_hash"],
-            "layout": policy["layout_profile_hash"],
-            "page_identities": [
-                [page.preparation_hash for page in item.pages] for item in preview.documents
-            ],
-        }
-    )
+    # Coalesce only identical reviews, including exact reuse decisions and policy.
+    intent = review.plan_hash
     operation = session.scalar(
         select(ExtractionOperation).where(
             ExtractionOperation.revision_id == revision_id,
@@ -136,6 +160,40 @@ def included(association, operation, item):
         and association.project_id == operation.project_id
         and association.revision_id == operation.revision_id
         and association.document_id == item.document_id
+    )
+
+
+def live_admission_authorized(session, run, profile):
+    stmt = (
+        select(ExtractionOperation, OperationItem, RevisionDocument, Project, ProjectRevision)
+        .select_from(ExtractionOperation)
+        .join(OperationItem, OperationItem.operation_id == ExtractionOperation.id)
+        .join(RevisionDocument, RevisionDocument.id == OperationItem.revision_document_id)
+        .join(ProjectRevision, ProjectRevision.id == ExtractionOperation.revision_id)
+        .join(Project, Project.id == ExtractionOperation.project_id)
+        .where(OperationItem.extraction_run_id == run.id, OperationItem.owns_extraction)
+    )
+    try:
+        with session.begin_nested():
+            row = session.execute(
+                stmt.with_for_update(of=(Project, ProjectRevision), read=True, nowait=True)
+            ).one_or_none()
+    except OperationalError as exc:
+        if getattr(exc.orig, "sqlstate", None) != "55P03":
+            raise
+        from powerforge_ai.extraction import ErrorCode, ProviderFailure
+
+        raise ProviderFailure(ErrorCode.SOURCE_UNAVAILABLE) from None
+    if row is None:
+        return False
+    operation, item, association, project, revision = row
+    policy = OperationPolicy.model_validate(operation.policy)
+    return (
+        operation.cancel_requested_at is None
+        and policy.profile_hash == profile.identity_hash
+        and run.profile_hash == profile.identity_hash
+        and included(association, operation, item)
+        and writable(project, revision)
     )
 
 
@@ -214,17 +272,14 @@ def verify_plan_sources(session, planned, layout):
 
 
 def advance_item(session, settings, item, policy, verification):
-    if (
-        not settings.enrichment_enabled
-        or not settings.extraction_enabled
-        or not settings.extraction_phase6r_fake
-    ):
+    profile = phase6r_profile(settings)
+    if not settings.enrichment_enabled or not provider_available(settings, profile.provider):
         item.blocked_reason = "PROCESSING_DISABLED"
         return
     layout = layout_profile(settings)
     if (
         layout.identity_hash != policy.layout_profile_hash
-        or phase6r_profile(settings).identity_hash != policy.profile_hash
+        or profile.identity_hash != policy.profile_hash
     ):
         item.blocked_reason = "PROFILE_CHANGED"
         return
@@ -247,6 +302,8 @@ def advance_item(session, settings, item, policy, verification):
             ],
             allow_partial_prepared=True,
         )
+        coordinator = ExtractionCoordinator(session, settings)
+        coordinator._run(run.id)
         item.layout_run_id = run.id
         return
 
@@ -272,6 +329,7 @@ def advance_item(session, settings, item, policy, verification):
         mode=policy.mode,
         enrichment_bindings=bindings,
     )
+    coordinator._run(run.id)
     item.extraction_run_id = run.id
     item.owns_extraction = run.id in coordinator.created
     session.flush()
@@ -324,7 +382,9 @@ class Verification:
 
 def verify_ready_document(factory, settings, storage, operation_id):
     """Check one ready document per scan without holding scheduling or publication locks."""
-    if not settings.enrichment_enabled or not settings.extraction_phase6r_fake:
+    if not settings.enrichment_enabled or not provider_available(
+        settings, phase6r_profile(settings).provider
+    ):
         return None
     try:
         layout = layout_profile(settings)
@@ -477,6 +537,45 @@ def cancel_operation(session, settings, operation):
         operation.next_check_at = None
 
 
+def lock_retry_operations(session, run_id):
+    """Serialize a restart with the scheduler of every operation sharing the run."""
+    try:
+        with session.begin_nested():
+            return session.scalars(
+                select(ExtractionOperation)
+                .where(
+                    ExtractionOperation.id.in_(
+                        select(OperationItem.operation_id).where(
+                            (OperationItem.extraction_run_id == run_id)
+                            | (OperationItem.layout_run_id == run_id)
+                        )
+                    ),
+                    ExtractionOperation.cancel_requested_at.is_(None),
+                )
+                .order_by(ExtractionOperation.id)
+                .with_for_update(nowait=True)
+            ).all()
+    except OperationalError as exc:
+        if getattr(exc.orig, "sqlstate", None) != "55P03":
+            raise
+        raise ExtractionConflict("An operation is scheduling this run. Try again.") from None
+
+
+def check_retry_slots(session, operations, run_id):
+    for operation in operations:
+        policy = OperationPolicy.model_validate(operation.policy)
+        items = items_for(session, operation)
+        runs = child_runs(session, items)
+        active = sum(active_child(item, runs) for item in items)
+        if active >= policy.parallel_documents and any(
+            run_id in (item.layout_run_id, item.extraction_run_id) and not active_child(item, runs)
+            for item in items
+        ):
+            raise ExtractionConflict(
+                "All operation document slots are busy. Try again when a document finishes."
+            )
+
+
 def retry_operation_item(
     session,
     settings,
@@ -496,7 +595,6 @@ def retry_operation_item(
     association = session.get(RevisionDocument, revision_document_id)
     if item is None or not included(association, operation, item):
         raise ExtractionNotFound("Extraction operation source not found.")
-    policy = OperationPolicy.model_validate(operation.policy)
     if operation.next_check_at is None and session.scalar(
         select(ExtractionOperation.id).where(
             ExtractionOperation.id != operation.id,
@@ -523,19 +621,18 @@ def retry_operation_item(
         if not run_id:
             raise ExtractionConflict("This step has not been admitted.")
         coordinator = ExtractionCoordinator(session, settings)
-        run = coordinator._run(run_id)
-        if stage is None and len(coordinator._units(run.id)) != expected_attempts:
+        if (
+            stage is None
+            and session.scalar(
+                select(func.count())
+                .select_from(ExtractionWorkUnit)
+                .where(ExtractionWorkUnit.run_id == run_id)
+            )
+            != expected_attempts
+        ):
             return  # This action was based on an older attempt list.
-        if run.status not in ACTIVE:
-            runs = child_runs(session, items_for(session, operation))
-            if sum(
-                active_child(source, runs) for source in items_for(session, operation)
-            ) >= policy.parallel_documents and not active_child(item, runs):
-                raise ExtractionConflict(
-                    "All operation document slots are busy. Try again when a document finishes."
-                )
         coordinator.retry(
-            run.id,
+            run_id,
             purpose=PURPOSE if step == "layout" else "EXTRACTION",
             acknowledge_unknown_outcome=acknowledge_unknown,
             page_id=page_id,

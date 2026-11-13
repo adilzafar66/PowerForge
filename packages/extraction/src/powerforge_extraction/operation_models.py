@@ -23,6 +23,15 @@ class ExtractionOperation(Record, Base):
     cancel_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
+class OperationPreview(Base):
+    __tablename__ = "extraction_operation_previews"
+
+    id: Mapped[str] = mapped_column(Text, primary_key=True)
+    revision_id: Mapped[UUID]
+    plan_hash: Mapped[str] = mapped_column(Text)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class OperationRequest(Base):
     __tablename__ = "extraction_operation_requests"
 

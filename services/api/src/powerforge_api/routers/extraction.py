@@ -25,6 +25,7 @@ from powerforge_api.services.revision_writes import lock_writable_revision
 from powerforge_extraction.enqueue import CeleryExtractionEnqueue, get_extraction_enqueue
 from powerforge_extraction.errors import ExtractionError
 from powerforge_extraction.orchestration import ExtractionCoordinator
+from powerforge_extraction.phase6r_profile import provider_available
 from powerforge_shared.config import Settings, get_settings
 
 router = APIRouter(
@@ -90,10 +91,8 @@ def detail(
         result = reader.detail(run_id)
         if not revision_read_only(reader.session, project_id, reader.revision_id):
             result.can_cancel = result.run.status in {"PENDING", "RUNNING"}
-            result.can_retry = (
-                settings.extraction_enabled
-                and settings.extraction_phase6r_fake
-                and any(unit.retryable for unit in result.attempts)
+            result.can_retry = provider_available(settings, result.run.provider) and any(
+                unit.retryable for unit in result.attempts
             )
         return result
 

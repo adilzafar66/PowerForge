@@ -10,16 +10,21 @@ from powerforge_document_processing.storage.factory import build_s3_storage
 from powerforge_extraction.enqueue import QUEUE, RECOVER_TASK, UNIT_TASK, CeleryExtractionEnqueue
 from powerforge_extraction.execution import execute_unit
 from powerforge_extraction.orchestration import Claim, ExtractionCoordinator
+from powerforge_extraction.phase6r_profile import provider_available
 from powerforge_shared.config import get_settings
 
 
 def provider_for(claim: Claim) -> ExtractionProvider:
+    settings = get_settings()
+    if not provider_available(settings, claim.profile.provider):
+        raise ProviderFailure(ErrorCode.DISABLED)
     if claim.profile.provider == "fake":
         from powerforge_extraction.phase6r_runtime import FakePhase6RProvider
 
         return FakePhase6RProvider(claim.profile.fake_scenario)
-    # The live provider adapter and semantic prompts land together in 6R-C.
-    raise ProviderFailure(ErrorCode.DISABLED)
+    from extraction_worker.openai_phase6r import OpenAIPhase6RProvider
+
+    return OpenAIPhase6RProvider(settings, claim.profile)
 
 
 @celery_app.task(

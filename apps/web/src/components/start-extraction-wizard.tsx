@@ -127,6 +127,16 @@ export function StartExtractionWizard({
     retry: 1,
   });
   const reviewed = reviewKey === selectionKey ? preview.data : undefined;
+  const reviewExpiry = reviewed?.review_expires_at;
+  useEffect(() => {
+    if (!reviewExpiry) return;
+    const timer = window.setTimeout(() => {
+      // A submission already in progress may have succeeded under the original key.
+      // Keep that key and let the server resolve the replay.
+      if (!submitting.current) void preview.refetch();
+    }, Math.max(0, Date.parse(reviewExpiry) - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [reviewExpiry, preview.refetch]);
   const hash = reviewed && reviewed.errors.length === 0 && reviewed.items.every((item) => !item.error)
     ? reviewed.review_hash : null;
   const reviewReady = hash !== null && !preview.isFetching && !preview.isError;

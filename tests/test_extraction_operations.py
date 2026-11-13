@@ -172,6 +172,82 @@ def admitted_page(ctx, source):
     return operation_id, run_id, units
 
 
+def test_preview_expiry_and_revalidation_preserve_idempotent_replay(operation_context):
+    from powerforge_extraction.operation_models import OperationPreview
+
+    ctx = operation_context
+    source = new_source(ctx, "expiry.pdf")
+    preview, body = reviewed(ctx, [source])
+    assert preview["review_expires_at"]
+    assert (
+        start_operation(
+            ctx, {**body, "selection": {**body["selection"], "mode": "reextract"}}
+        ).status_code
+        == 409
+    )
+    ctx["settings"].extraction_max_attempts += 1
+    assert start_operation(ctx, body).status_code == 409
+    ctx["settings"].extraction_max_attempts -= 1
+    accepted = start_operation(ctx, body)
+    assert accepted.status_code == 202, accepted.text
+    with ctx["factory"].begin() as session:
+        record = session.get(OperationPreview, body["review_hash"])
+        record.expires_at = now(session) - timedelta(seconds=1)
+    assert start_operation(ctx, body).json() == accepted.json()
+    expired = start_operation(ctx, {**body, "request_key": str(uuid4())})
+    assert expired.status_code == 409 and "expired" in expired.text
+
+
+def test_run_history_and_operation_retry_share_the_document_slot_limit(operation_context):
+    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider
+
+    ctx = operation_context
+    sources = [new_source(ctx, "one.pdf"), new_source(ctx, "two.pdf")]
+    for source in sources:
+        preparation(ctx, source)
+    _, body = reviewed(ctx, sources)
+    reply = start_operation(ctx, body)
+    assert reply.status_code == 202, reply.text
+    operation_id = reply.json()["id"]
+    advance(ctx, operation_id)
+    items = detail_operation(ctx, operation_id)["items"]
+    first = next(item for item in items if item["extraction"]["run_id"])
+    run_id = UUID(first["extraction"]["run_id"])
+    with ctx["factory"]() as session:
+        recognition = session.scalar(
+            select(ExtractionWorkUnit.id).where(
+                ExtractionWorkUnit.run_id == run_id,
+                ExtractionWorkUnit.stage == "EQUIPMENT_RECOGNITION",
+            )
+        )
+    assert execute_unit(
+        recognition,
+        ctx["factory"],
+        ctx["storage"],
+        ctx["settings"],
+        lambda _: FakePhase6RProvider("invalid"),
+    )
+    advance(ctx, operation_id)
+    items = detail_operation(ctx, operation_id)["items"]
+    assert all(item["extraction"]["run_id"] for item in items)
+    first = next(item for item in items if item["extraction"]["run_id"] == str(run_id))
+    doc_id = first["revision_document_id"]
+    base = ctx["operation_base"].removesuffix("/extraction")
+    history = client.post(f"{base}/documents/{doc_id}/extraction/runs/{run_id}/retry")
+    assert history.status_code == 409 and "slots are busy" in history.text
+    target = first["extraction"]["retry_targets"][0]
+    operation = client.post(
+        ctx["operation_base"] + f"/operations/{operation_id}/retry",
+        json={
+            "revision_document_id": doc_id,
+            "stage": target["stage"],
+            "page_id": target["page_id"],
+            "expected_attempt": target["expected_attempt"],
+        },
+    )
+    assert operation.status_code == 409 and "slots are busy" in operation.text
+
+
 def test_admission_reviews_exact_inputs_and_coalesces_concurrent_submissions(operation_context):
     ctx = operation_context
     first = new_source(ctx, "first.pdf")
@@ -498,6 +574,7 @@ def test_disabled_test_profile_and_insufficient_budget_block_review(operation_co
     source = new_source(ctx, "limits.pdf")
     settings = ctx["settings"]
     settings.extraction_phase6r_fake = False
+    settings.extraction_external_enabled = False
     disabled, _ = reviewed(ctx, [source])
     assert disabled["review_hash"] is None
     assert disabled["profile"]["enabled"] is False
@@ -778,23 +855,18 @@ def test_retry_can_exhaust_budget_before_dependent_admission(operation_context):
 
 @pytest.mark.parametrize("limit", ["calls", "attempts", "none"])
 def test_unknown_provider_outcome_requires_acknowledgement_and_keeps_limits(
-    operation_context, monkeypatch, limit
+    operation_context, limit
 ):
-    from powerforge_extraction import enriched_planning, operation_plan, operations
     from powerforge_extraction.controls import RunExecution, UnitExecution
     from powerforge_extraction.operation_models import UNKNOWN_PROVIDER_OUTCOME
-    from powerforge_extraction.phase6r_profile import phase6r_profile
     from powerforge_extraction.phase6r_runtime import StageResult, request_for
 
     ctx = operation_context
     settings = ctx["settings"]
     settings.extraction_max_calls = 2 if limit == "calls" else 6
     settings.extraction_max_attempts = 1 if limit == "attempts" else 3
-    # Pin the OpenAI identity in the database but keep B's fake-only runtime gate.
-    # Simulate a worker disappearing after admission without making a provider request.
-    profile = phase6r_profile(settings.model_copy(update={"extraction_phase6r_fake": False}))
-    for module in (enriched_planning, operation_plan, operations):
-        monkeypatch.setattr(module, "phase6r_profile", lambda _: profile)
+    settings.extraction_phase6r_fake = False
+    settings.extraction_external_enabled = True
     source = new_source(ctx, "unknown-outcome.pdf")
     operation_id, run_id, units = admitted_page(ctx, source)
     recognition = units["EQUIPMENT_RECOGNITION"]
@@ -908,3 +980,103 @@ def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operat
     assert table_refs <= readings.keys()
     assert "600" in {readings[ref] for ref in table_refs}
     assert any("Unrelated" in text for ref, text in readings.items() if ref not in table_refs)
+
+
+def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(operation_context):
+    from types import SimpleNamespace
+
+    from extraction_worker.openai_phase6r import OpenAIPhase6RProvider
+    from powerforge_extraction.models import ExtractionAICall
+    from powerforge_extraction.phase6r_runtime import StageResult
+    from spatial_layout_support import drawn_table
+
+    ctx = operation_context
+    ctx["settings"].extraction_phase6r_fake = False
+    ctx["settings"].extraction_external_enabled = True
+    source = new_source(ctx, "mocked-live-schedule.pdf", drawn_table(nearby=True))
+    _, run_id, units = admitted_page(ctx, source)
+    calls = []
+
+    class Responses:
+        def create(self, **kwargs):
+            wire = json.loads(kwargs["input"][0]["content"][0]["text"])
+            calls.append(wire)
+            payload = {key: wire[key] for key in ("version", "stage", "page_context_hash")}
+            if wire["stage"] == "EQUIPMENT_RECOGNITION":
+                payload["equipment"] = [
+                    {
+                        "local_ref": "local-1",
+                        "source_description": "Transformer",
+                        "registry_type": "TWO_WINDING_TRANSFORMER",
+                        "tag_state": "ABSENT",
+                        "tag": None,
+                        "qualification": "UNKNOWN",
+                        "raw_qualification": None,
+                        "evidence": [
+                            {
+                                "kind": "READING",
+                                "role": "EQUIPMENT",
+                                "reading_ref": "unavailable-reading",
+                                "quote": None,
+                            }
+                        ],
+                    }
+                ]
+            else:
+                assert wire["upstream"]["equipment"][0]["local_ref"] == "local-1"
+                assert {item["equipment_type"] for item in wire["attribute_catalog"]} == {
+                    "TWO_WINDING_TRANSFORMER"
+                }
+                payload.update(
+                    upstream_hash=wire["upstream_hash"],
+                    attributes=[],
+                    raw_unmapped=[
+                        {
+                            "local_ref": "raw-1",
+                            "equipment_ref": "foreign-owner",
+                            "association": "ASSERTED",
+                            "raw_label": "Unsupported",
+                            "raw_value": "source reading",
+                            "raw_unit": None,
+                            "qualifiers": [],
+                            "value_form": "SINGLE",
+                            "evidence": [],
+                        }
+                    ],
+                )
+            return SimpleNamespace(
+                status="completed",
+                usage=SimpleNamespace(input_tokens=100, output_tokens=30),
+                output=[
+                    SimpleNamespace(
+                        type="message",
+                        content=[SimpleNamespace(type="output_text", text=json.dumps(payload))],
+                    )
+                ],
+            )
+
+    for stage in ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"):
+        assert execute_unit(
+            units[stage],
+            ctx["factory"],
+            ctx["storage"],
+            ctx["settings"],
+            lambda claim: OpenAIPhase6RProvider(
+                ctx["settings"], claim.profile, SimpleNamespace(responses=Responses())
+            ),
+        )
+    assert len(calls) == 2
+    assert calls[0]["page"] == calls[1]["page"]
+    with ctx["factory"]() as session:
+        recognition = session.get(StageResult, units["EQUIPMENT_RECOGNITION"])
+        attribute = session.get(StageResult, units["ATTRIBUTE_EXTRACTION"])
+        assert calls[1]["upstream"] == recognition.payload
+        assert recognition.diagnostics[0]["code"] == "UNKNOWN_READING_REFERENCE"
+        assert attribute.diagnostics[0]["code"] == "INVALID_OWNER_REFERENCE"
+        assert attribute.payload["raw_unmapped"][0]["equipment_ref"] == "foreign-owner"
+        audit = session.scalars(
+            select(ExtractionAICall).where(ExtractionAICall.run_id == run_id)
+        ).all()
+        assert len(audit) == 2
+        assert all(call.input_tokens == 100 and call.output_tokens == 30 for call in audit)
+        assert all(call.estimated_cost_usd is None for call in audit)

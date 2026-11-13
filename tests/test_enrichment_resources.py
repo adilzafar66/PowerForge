@@ -10,6 +10,7 @@ from powerforge_extraction.enrichment_profiles import (
     PreparationProfile,
     preparation_profile,
     preparation_rules,
+    require_preparation,
 )
 from powerforge_extraction.profiles import read_profile, resolve_profile
 from powerforge_provenance.spatial_base import identity_hash
@@ -21,8 +22,22 @@ RECORD = json.loads(
 )
 
 
-def test_preparation_policy_profile_and_retained_v4_sources_are_pinned():
-    assert preparation_rules() == RECORD["preparation_rules"]
+def test_retained_preparation_identity_and_v4_archive_are_pinned():
+    from powerforge_provenance.spatial_base import POLICY
+
+    # Reconstruct the historical policy over the frozen preparation source inputs.
+    # The active profile includes the current policy and must reject the old digest.
+    archive = (
+        ROOT / "packages/extraction/src/powerforge_extraction/runtime_resources/preparation_v1"
+    )
+    archived_sources = {
+        path.stem + ".py": hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in archive.glob("*.txt")
+    }
+    old_policy = dict(POLICY) | {"max_native_primitives": 2048}
+    assert identity_hash(archived_sources | {"policy": old_policy}) == RECORD["preparation_rules"]
+    assert POLICY["max_native_primitives"] == 5096
+    assert identity_hash(archived_sources | {"policy": dict(POLICY)}) == preparation_rules()
     assert identity_hash(PreparationProfile.model_json_schema()) == RECORD["profile_schema"]
     archive = ROOT / "packages/extraction/src/powerforge_extraction/runtime_resources/table_v1"
     assert set(RECORD["retained_v4_inputs"]) == {p.name for p in archive.glob("*.txt")}
@@ -39,6 +54,9 @@ def test_pinned_local_wire_has_no_model_prompt_or_registry_and_round_trips():
         enrichment_ocr_configuration=json.dumps(RECORD["configuration"]),
     )
     profile = preparation_profile(settings)
+    require_preparation(profile)
+    with pytest.raises(ValueError, match="Pinned preparation resources"):
+        require_preparation(profile.model_copy(update={"rules_hash": RECORD["preparation_rules"]}))
     assert read_profile(json.loads(profile.model_dump_json())) == profile
     assert {"registry_version", "model", "prompt_version", "prompt_hash"}.isdisjoint(
         profile.model_dump()

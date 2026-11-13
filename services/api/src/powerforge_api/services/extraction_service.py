@@ -152,7 +152,7 @@ class ExtractionReadService:
                     UnitExecution.run_id == run.id, UnitExecution.provider_started_at.is_not(None)
                 )
             )
-            all_reported = len(calls) == control.calls_admitted
+            all_reported = len(calls) == started
             execution = ExecutionSummary(
                 profile_key=profile.key,
                 execution_kind=profile.execution_kind,
@@ -173,14 +173,11 @@ class ExtractionReadService:
                 if all_reported and calls and all(c.estimated_cost_usd is not None for c in calls)
                 else None,
             )
-        outcomes = dict(
-            self.session.execute(
-                select(StageResult.work_unit_id, StageResult.outcome).where(
-                    StageResult.run_id == run.id
-                )
-            ).all()
-        )
-        computed = {"effective", "retryable", "stale", "stage_outcome"}
+        results = {
+            row.work_unit_id: row
+            for row in self.session.scalars(select(StageResult).where(StageResult.run_id == run.id))
+        }
+        computed = {"effective", "retryable", "stale", "stage_outcome", "stage_diagnostics"}
         return RunDetail(
             run=RunResponse.model_validate(run),
             coverage=coverage,
@@ -192,7 +189,8 @@ class ExtractionReadService:
                             k: getattr(r, k) for k in UnitResponse.model_fields if k not in computed
                         },
                         "effective": r.status == WorkUnitStatus.COMPLETED,
-                        "stage_outcome": outcomes.get(r.id),
+                        "stage_outcome": results[r.id].outcome if r.id in results else None,
+                        "stage_diagnostics": results[r.id].diagnostics if r.id in results else [],
                         "retryable": bool(
                             profile
                             and run.status

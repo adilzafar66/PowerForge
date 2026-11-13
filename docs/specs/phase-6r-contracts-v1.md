@@ -28,7 +28,7 @@ Use this single Alembic chain, with each new revision ID under the default 32-ch
 
 1. Retain the current chain through `0010_authoring_refinement`.
 2. B creates `6r_0011_runtime` with run, logical work, attempt, stage-result and call/control tables. B adds `6r_0012_sources` with the active local preparation and layout tables and exact per-run page bindings. B adds `6r_0013_operations` with revision-scoped operation/selection/request tables. Each revision points to the preceding ID.
-3. D adds `6r_0014_publication` after `6r_0013_operations`, with candidate and evidence tables and atomic publication constraints. The only final head is `6r_0014_publication`. Remove the replaced `0011`–`0017` revisions as the new chain lands. Never stamp or upgrade a populated old installation onto this graph.
+3. C adds `6r_0013c_admission` after `6r_0013_operations` for expiring previews and stage diagnostics. D adds `6r_0014_publication` after `6r_0013c_admission`, with candidate and evidence tables and atomic publication constraints. The only final head is `6r_0014_publication`. Remove the replaced `0011`–`0017` revisions as the new chain lands. Never stamp or upgrade a populated old installation onto this graph.
 
 Logical rows and constraints for the migration authors:
 

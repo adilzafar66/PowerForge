@@ -344,6 +344,13 @@ Order: **6R-A → 6R-B → 6R-C → 6R-D → 6R-E → 6R-F** under the approved 
 
 **Acceptance:** two-call semantics work against mocks with explicit failure diagnostics; the small authorized live OpenAI feasibility test covers prose, schedules and diagrams, and its report includes the six measurement areas above and is reviewed **before 6R-D begins**. No mandatory alias or deterministic owner/enum-synonym classifier exists; unknown/tag-less/conflicting observations survive. C is a feasibility checkpoint, not a pass/fail claim against provisional numerical performance targets. Comprehensive held-out quality remains an F gate; numerical thresholds stay provisional until representative live results, corpus sizes and evaluation procedures have been reviewed, then are frozen before that evaluation. Any missed-equipment recovery strategy beyond the agreed two calls requires a separate design decision, not a hidden C change.
 
+**Source identity verification**
+
+- Commit `dea1ed3` raised the spatial policy's native-primitive limit from 2,048 to 5,096. The preparation hash includes that live policy alongside the frozen preparation source archive. The spatial rules hash includes the policy file bytes, and the positioned-text schema includes the primitive limit. Those three changes explain the two historical fixture failures.
+- The tests reconstruct the archived identities under the 2,048 policy and retain the original fixture digests. Separately, they verify the active 5,096 policy and schema and reject a preparation profile pinned to the obsolete rules hash. Existing layout identity and exact source-artifact verification remain in force.
+
+The [6R-C feasibility checkpoint](../evals/phase6r/FEASIBILITY_6R_C.md) is ready for review.
+
 ### 6R-D — Thin validation, normalization, and publication
 
 **Dependencies:** C model outputs and completed/reviewed live OpenAI feasibility report covering prose, schedules and diagrams; B immutable source/stage binding; A schema/status/unit policies. Do not begin D before the C feasibility checkpoint is complete.

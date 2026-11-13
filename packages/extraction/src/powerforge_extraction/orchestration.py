@@ -11,7 +11,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import exists, func, or_, select, text
 from sqlalchemy.orm import Session, aliased
 
-from powerforge_ai.extraction import ErrorCode, ExecutionUsage, ExtractionRequest
+from powerforge_ai.extraction import ErrorCode, ExecutionUsage, ExtractionRequest, ProviderFailure
 from powerforge_document_processing.models import (
     DocumentPage,
     PageArtifact,
@@ -263,7 +263,7 @@ class ExtractionCoordinator:
             if unit.stage == "SPATIAL_LAYOUT" and prerequisite_unit(self.session, unit) is None:
                 self.aggregate(run)
                 return None
-        from powerforge_extraction.phase6r_profile import Phase6RProfile
+        from powerforge_extraction.phase6r_profile import Phase6RProfile, provider_available
         from powerforge_extraction.phase6r_runtime import prerequisite_result, validate_plan
 
         no_call = False
@@ -313,11 +313,7 @@ class ExtractionCoordinator:
             or sum(r[0] == run.id for r in running) >= profile.max_concurrent
         ):
             return None
-        if (
-            not self.settings.enrichment_enabled
-            if run.execution_purpose == "SOURCE_ENRICHMENT"
-            else not (self.settings.extraction_enabled and self.settings.extraction_phase6r_fake)
-        ) or (profile.provider == "openai" and not self.settings.extraction_external_enabled):
+        if not provider_available(self.settings, profile.provider):
             unit.status, unit.error_code, unit.finished_at = (
                 US.FAILED,
                 ErrorCode.DISABLED.value,
@@ -407,14 +403,23 @@ class ExtractionCoordinator:
         if delivery.provider_started_at is not None:
             raise LeaseLost("This attempt already crossed the provider-call boundary")
         profile = read_profile(self._execution(run.id).configuration)
+        from powerforge_extraction.phase6r_profile import provider_available
+
         if profile.provider == "local":
             raise ValueError("Local source jobs cannot start an AI call")
-        from powerforge_extraction.phase6r_profile import PROMPT, RESPONSES
+        if not provider_available(self.settings, profile.provider):
+            raise ProviderFailure(ErrorCode.DISABLED)
+        if profile.provider == "openai":
+            from powerforge_extraction.operations import live_admission_authorized
+
+            if not live_admission_authorized(self.session, run, profile):
+                raise ProviderFailure(ErrorCode.DISABLED)
+        from powerforge_extraction.phase6r_profile import PROMPTS, RESPONSES
 
         if request is None or (
             request.work_unit_id != unit.id
             or request.stage != unit.stage
-            or request.instructions != PROMPT
+            or request.instructions != PROMPTS[unit.stage]
             or request.response_model is not RESPONSES[unit.stage]
             or request.schema_version != profile.schema_version
         ):
@@ -591,7 +596,10 @@ class ExtractionCoordinator:
         stage: str | None = None,
         expected_attempt: int | None = None,
     ) -> ExtractionRun:
+        from powerforge_extraction.operations import check_retry_slots, lock_retry_operations
+
         run = self._run(run_id)
+        operations = lock_retry_operations(self.session, run_id)
         if run.execution_purpose != purpose:
             raise ExtractionNotFound("Run not found")
         if run.status in ACTIVE:
@@ -602,11 +610,9 @@ class ExtractionCoordinator:
             )
         control = self._execution(run.id)
         profile = read_profile(control.configuration)
-        if (
-            not self.settings.enrichment_enabled
-            if run.execution_purpose == "SOURCE_ENRICHMENT"
-            else not (self.settings.extraction_enabled and self.settings.extraction_phase6r_fake)
-        ) or (profile.provider == "openai" and not self.settings.extraction_external_enabled):
+        from powerforge_extraction.phase6r_profile import provider_available
+
+        if not provider_available(self.settings, profile.provider):
             raise ExtractionDisabled("Extraction provider is disabled")
         if control.calls_admitted >= profile.max_calls:
             raise ExtractionConflict(
@@ -654,6 +660,7 @@ class ExtractionCoordinator:
             raise ExtractionConflict(
                 "Provider outcome unknown. Confirm that retry may incur another charge."
             )
+        check_retry_slots(self.session, operations, run_id)
         run.status, run.finished_at, run.error_code = RS.RUNNING, None, None
         self.session.flush()
         for unit in eligible:

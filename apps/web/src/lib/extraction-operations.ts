@@ -45,6 +45,7 @@ export type OperationPreview = {
   profile: { key: string; provider: string; model: string; enabled: boolean };
   errors: string[];
   review_hash: string | null;
+  review_expires_at: string | null;
   planned_runs: number;
   provider_admissions: number | null;
   ocr_attempts: number | null;

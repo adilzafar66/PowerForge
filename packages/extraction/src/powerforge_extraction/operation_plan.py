@@ -24,7 +24,7 @@ from powerforge_extraction.layout_models import SourceSpatialResult
 from powerforge_extraction.layout_profiles import layout_profile
 from powerforge_extraction.layout_sources import successful_prepared
 from powerforge_extraction.models import ExtractionRun, ExtractionWorkUnit
-from powerforge_extraction.phase6r_profile import phase6r_profile
+from powerforge_extraction.phase6r_profile import phase6r_profile, provider_available
 
 Mode = Literal["ensure", "reextract"]
 MAX_DOCUMENTS = 50
@@ -317,11 +317,9 @@ def preview_operation(session, settings, project_id, revision_id, selection):
 
     within_limits = not errors
     profile = phase6r_profile(settings)
-    external = settings.extraction_enabled and settings.extraction_phase6r_fake
+    external = provider_available(settings, profile.provider)
     if not external:
-        errors.append(
-            "Live extraction is unavailable until the Phase 6R provider adapter is installed."
-        )
+        errors.append("The selected extraction provider is disabled on this deployment.")
     try:
         layout = layout_profile(settings) if settings.enrichment_enabled else None
     except (ValueError, KeyError):

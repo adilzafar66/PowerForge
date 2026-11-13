@@ -31,6 +31,7 @@ from powerforge_extraction.operations import (
     admit_operation,
     cancel_operation,
     get_operation,
+    issue_preview,
     retry_operation_item,
 )
 
@@ -115,7 +116,9 @@ def preview(
         result = preview_operation(session, settings, project_id, revision_id, body)
         if readonly:
             result.errors.append("This revision is read-only.")
-        return result.response()
+        response = issue_preview(session, revision_id, result)
+        session.commit()
+        return response
 
 
 @router.post("", status_code=202)
