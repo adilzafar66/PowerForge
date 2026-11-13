@@ -1,6 +1,7 @@
 # ADR-008: Evidence, Candidate, and Structured Extraction Architecture
 
-**Status:** Accepted (architecture only; implementation pending)  
+**Status:** Superseded for Phase 6R by [ADR-009](ADR-009-phase-6r-unified-extraction.md). Historical baseline decision.
+
 **Date:** 2026-10-27  
 **Decision owners:** PowerForge maintainers  
 **Related phase:** Phase 6 — Evidence, Candidates & Structured Extraction  

@@ -1,0 +1,113 @@
+{
+  "id": "positioned-transformer-schedule",
+  "split": "OFFLINE_DEVELOPMENT",
+  "source": "evals/tables/v1/sources/positioned_schedule.pdf",
+  "sha256": "bd21efd868337a72d5e3eeb8d8f5621635de5a22c851a6aa6eacd14776adc26a",
+  "strata": [
+    "schedule",
+    "header_unit"
+  ],
+  "pages": [
+    {
+      "page_number": 1,
+      "equipment": [
+        {
+          "id": "e1",
+          "description": "2-Winding Transformer",
+          "registry_type": "TWO_WINDING_TRANSFORMER",
+          "tag": "TX-1",
+          "tag_state": "PRESENT",
+          "qualification": "UNKNOWN",
+          "evidence": [
+            {
+              "role": "EQUIPMENT",
+              "source_text": "2-Winding Transformer Schedule",
+              "text_artifact_sha256": "32cc68dd58bb26fffbbd05590a643e376e336fa2dca660322d07a63419fbc7f5",
+              "span": [
+                0,
+                30
+              ],
+              "region": null,
+              "localization": "RESOLVED"
+            },
+            {
+              "role": "TAG",
+              "source_text": "TX-1",
+              "text_artifact_sha256": "32cc68dd58bb26fffbbd05590a643e376e336fa2dca660322d07a63419fbc7f5",
+              "span": [
+                55,
+                59
+              ],
+              "region": null,
+              "localization": "RESOLVED"
+            }
+          ]
+        }
+      ],
+      "attributes": [
+        {
+          "id": "a1",
+          "equipment_id": "e1",
+          "attribute_key": "secondary_voltage",
+          "raw_label": "Secondary (V)",
+          "raw_value": "600",
+          "raw_unit": "V",
+          "qualifiers": [],
+          "proposed_enum_value": null,
+          "mapping_status": "MAPPED",
+          "normalized": {
+            "type": "NUMBER",
+            "value": "0.6",
+            "unit": "kV"
+          },
+          "evidence": [
+            {
+              "role": "EQUIPMENT",
+              "source_text": "TX-1",
+              "text_artifact_sha256": "32cc68dd58bb26fffbbd05590a643e376e336fa2dca660322d07a63419fbc7f5",
+              "span": [
+                55,
+                59
+              ],
+              "region": null,
+              "localization": "RESOLVED"
+            },
+            {
+              "role": "HEADER",
+              "source_text": "Secondary (V)",
+              "text_artifact_sha256": "32cc68dd58bb26fffbbd05590a643e376e336fa2dca660322d07a63419fbc7f5",
+              "span": [
+                41,
+                54
+              ],
+              "region": null,
+              "localization": "RESOLVED"
+            },
+            {
+              "role": "UNIT",
+              "source_text": "(V)",
+              "text_artifact_sha256": "32cc68dd58bb26fffbbd05590a643e376e336fa2dca660322d07a63419fbc7f5",
+              "span": [
+                51,
+                54
+              ],
+              "region": null,
+              "localization": "RESOLVED"
+            },
+            {
+              "role": "VALUE",
+              "source_text": "600",
+              "text_artifact_sha256": "32cc68dd58bb26fffbbd05590a643e376e336fa2dca660322d07a63419fbc7f5",
+              "span": [
+                60,
+                63
+              ],
+              "region": null,
+              "localization": "RESOLVED"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
