@@ -105,6 +105,7 @@ export interface RunSummary {
 }
 
 export interface PageBinding {
+  document_id: Id;
   page_id: Id;
   page_number: number;
   page_image_id: Id;
@@ -173,6 +174,40 @@ export interface AttributeCandidate extends CandidateBase {
 }
 
 export type Candidate = EquipmentCandidate | AttributeCandidate;
+
+export type CandidateGroupId = Id | "unassigned";
+
+export interface CandidateFilters {
+  search?: string;
+  page_id?: Id;
+  equipment_type?: string;
+  mapping_status?: MappingStatus;
+  kind?: Candidate["kind"];
+}
+
+type CandidatePagination = { limit?: number; cursor?: string };
+
+export type CandidateQuery = CandidateFilters & CandidatePagination & (
+  | { view: "groups" }
+  | { view: "members"; group_id: CandidateGroupId; candidate_id?: Id }
+  | { view?: "flat"; equipment_id?: Id }
+);
+
+export type CandidateGroup = {
+  page_numbers: number[];
+  matching_candidate_count: number;
+} & (
+  | { kind: "EQUIPMENT"; group_id: Id; label: string; tag: string | null; registry_type: string | null }
+  | { kind: "UNASSIGNED"; group_id: "unassigned"; label: "Ungrouped observations"; tag: null; registry_type: null }
+);
+
+export interface CandidateBrowserPage<T> extends Page<T> {
+  total: number;
+  previous_cursor: string | null;
+}
+
+export type CandidateGroupList = CandidateBrowserPage<CandidateGroup>;
+export type CandidateGroupMembers = CandidateBrowserPage<Candidate> & { group: CandidateGroup };
 
 export interface Region {
   x: DecimalString;

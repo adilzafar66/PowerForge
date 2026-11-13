@@ -431,6 +431,8 @@ Adapt the existing extraction routes and operations contract for **one new extra
 
 The **operation-based extraction workflow is the single supported user-facing start path**: source selection → preview → consent-bound operation creation. Remove the old direct user-facing `POST /runs` start route rather than preserving a second start API. Internal run creation remains an implementation detail of the operation/runtime infrastructure. Read, retry and cancellation APIs retain appropriate scope and authorization; stage-result diagnostics are access-controlled.
 
+The run-scoped candidates API supports a two-level source-group browser. List compact, searchable, filtered and paginated groups, then fetch members for the selected group. Group identity derives from a persisted equipment observation within the run, with an explicit run-scoped bucket for unassigned attributes. See the [v1 contract](phase-6r-contracts-v1.md#two-level-candidate-browser).
+
 ### UI
 
 Preserve the Phase 6F Documents-centered interaction model, responsive drawers, shared components, page viewer, and basic run-history UX, but **remove all support and navigation for pre-6R data**:

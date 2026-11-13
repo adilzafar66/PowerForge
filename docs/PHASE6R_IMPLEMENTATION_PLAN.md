@@ -1,6 +1,6 @@
 # Phase 6R implementation plan
 
-Status: **6R-A complete. The unified runtime begins in 6R-B.**
+Status: **6R-A corrections ready for review. Begin 6R-B after review of the updated artifacts.**
 
 Prepared: 2026-11-13. Authority: `docs/specs/phase-6r-extraction-redesign.md`, including its Evidence Identification and Source Localization Contract. If this plan conflicts with that specification, the specification wins.
 
@@ -123,7 +123,7 @@ Preserve revision-document scoping under the existing extraction route prefix. T
 
 - **ADAPT:** `routers/extraction.py`, `schemas/extraction.py`, `services/extraction_service.py`: unified summary, paginated runs, run detail/coverage/attempts, candidates, evidence detail, bound sources, retry and cancellation. Candidates represent source-local equipment and attributes; they are not canonical equipment API objects.
 - **ADAPT:** `routers/extraction_operations.py` and `services/extraction_operations.py`: sources → preview → consent-bound start; operation detail/recent/retry/cancel. Remove `families`, profile maps, and `engineering`/`tables` retry branches; retry addresses a failed stage/page or resumes pending work under the pinned operation policy.
-- **REPLACE internals:** `services/extraction_register.py` and `services/evidence_groups.py`: one extraction status and effective-run selection; observation grouping uses persistent source-local equipment identity, never tag matching or cross-run merging.
+- **REPLACE internals:** `services/extraction_register.py` and `services/evidence_groups.py`: one extraction status and effective-run selection; the unified candidates endpoint exposes searchable group summaries and paginated members using persistent source-local equipment identity, plus a run-scoped unassigned bucket. See the [candidate browser contract](specs/phase-6r-contracts-v1.md#two-level-candidate-browser).
 - **REPLACE:** `services/enriched_evidence.py`: return ordered, role-bearing evidence fragments with independently resolved locations, artifact identity, and signed access. Reading evidence must never launch extraction or enrichment.
 - **DELETE:** `GET /runs/{run_id}/tables`, `TableList` / old table-layout responses, raw-table result readers, `family` query arguments, dual `engineering_run_id`/`tables_run_id` selection, old profile-list entries and old start payloads. If `/profiles` remains for capability metadata, it exposes only the active 6R extraction profile; no selector for old execution modes.
 - **APPROVED start boundary:** operation creation is the single supported user-facing extraction start path, owning source selection, preview, consent and preparation. Remove the old direct user-facing `POST /runs` start route; internal run creation remains part of operation/runtime infrastructure, not a second public start API.

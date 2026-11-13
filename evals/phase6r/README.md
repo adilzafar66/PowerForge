@@ -36,6 +36,12 @@ Use a small real-world sample. Start with one authorized representative page per
 
 Match one-to-one within page using independent source occurrences and reference identities. Break ambiguous matches using source adjudication. Do not pair assertions by tag or value alone. Report sample counts and numerators/denominators for each measure, using unavailable for an empty denominator. Failures and omitted results stay in the relevant recall denominators. The checkpoint provides feedback on feasibility and does not apply final numerical gates.
 
+## Capacity review before live execution
+
+The current limits are suitable starting ceilings for the small feasibility sample. The positioned schedule fits the local contracts for both requests. Keep the existing observation, citation, JSON and image caps and apply any lower deployment or provider limits. A page can exceed an aggregate byte or token cap before reaching its item caps. The schedule fixture exercises contract fit, while representative input and output headroom still needs measurement.
+
+In C, include a schedule with representative row density, record the encoded request size, returned JSON size, observation and citation counts, image bytes and pixels, measured tokens, and the effective profile caps by stage. Record which limit prevented execution or caused overflow and keep those pages in recall reporting. Use these observations to review the initial caps and decide whether to change the versioned limits before comprehensive evaluation. Keep one page projection per stage and explicit overflow reporting.
+
 ## 6R-F comprehensive evaluation
 
 Freeze the independent held-out benchmark, sample sizes by stratum, scoring rules and model configuration. Review representative live results, corpus sizes and evaluation procedures before finalizing thresholds. Record those thresholds before running the benchmark. Use the complete production path and report precision, recall, type/tag accuracy, exact normalized attributes, source/owner coverage and correctness, conflicts and raw preservation in addition to the C measures. Report per-stratum counts, full failures, usage, latency distributions and reproducibility. Reproduce the baseline only where the prior pipeline's scope and scoring are comparable. Held-out results are used for release assessment. Known limitations remain visible in the handoff.

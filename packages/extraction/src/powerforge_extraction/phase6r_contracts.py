@@ -19,6 +19,7 @@ from powerforge_engineering_model.registry_v1 import REGISTRY
 from powerforge_extraction.identities import canonical_json, identity_hash
 from powerforge_provenance.layout_observations import SpatialLayout
 from powerforge_provenance.spatial_base import ExactDecimal
+from powerforge_provenance.spatial_sources import PageOwner
 
 VERSION = "phase-6r-v1"
 MAX_REQUEST_BYTES = 2 * 1024 * 1024
@@ -132,6 +133,7 @@ class ReadingText(Contract):
 
 
 class PinnedPageContext(Contract):
+    owner: PageOwner
     source_sha256: Hash
     page_image_id: UUID
     image_sha256: Hash
@@ -226,8 +228,13 @@ def contract_hash(value: Contract) -> str:
     return identity_hash(value.model_dump(mode="json"))
 
 
-def validate_request(request: RecognitionRequest | AttributeRequest) -> None:
+def validate_request(
+    request: RecognitionRequest | AttributeRequest, *, expected_owner: PageOwner
+) -> None:
+    """Compare request ownership with the coordinator's authorized run/page binding."""
     page = request.page
+    if page.owner != expected_owner or page.layout.owner != expected_owner:
+        raise ValueError("Page ownership differs from the authorized run/page binding")
     reading_refs = [item.reading_ref for item in page.readings]
     if (
         page.image_width * page.image_height > MAX_IMAGE_PIXELS
