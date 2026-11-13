@@ -34,9 +34,19 @@ def test_legacy_profile_versions_are_not_readable(version):
     "key",
     [
         "infrastructure-fake-v1",
+        "infrastructure-openai-v1",
         "engineering-openai-v1",
+        "engineering-openai-text-v1",
+        "engineering-test-v1",
+        "engineering-test-text-v1",
         "tables-openai-v1",
+        "tables-openai-text-v1",
+        "tables-test-v1",
+        "tables-test-text-v1",
         "engineering-openai-enriched-v1",
+        "engineering-test-enriched-v1",
+        "tables-openai-enriched-v1",
+        "tables-test-enriched-v1",
     ],
 )
 def test_legacy_profile_keys_are_not_admitted(key):

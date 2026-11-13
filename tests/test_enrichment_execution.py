@@ -21,10 +21,10 @@ from powerforge_extraction.enrichment_profiles import PURPOSE
 from powerforge_extraction.enrichment_service import start_preparation
 from powerforge_extraction.models import (
     ExtractionAICall,
-    ExtractionCandidate,
     ExtractionWorkUnit,
 )
 from powerforge_extraction.orchestration import ExtractionCoordinator
+from powerforge_extraction.phase6r_runtime import StageResult
 from powerforge_provenance.spatial_sources import PreparedPage, load_positioned_text
 from test_enrichment_native import scan_png
 
@@ -93,9 +93,7 @@ def test_real_preparation_reuses_exact_results_and_never_changes_phase3_or_canon
         )
         assert (
             session.scalar(
-                select(func.count())
-                .select_from(ExtractionCandidate)
-                .where(ExtractionCandidate.run_id == UUID(rid))
+                select(func.count()).select_from(StageResult).where(StageResult.run_id == UUID(rid))
             )
             == 0
         )

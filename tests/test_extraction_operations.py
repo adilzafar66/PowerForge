@@ -5,6 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
+from threading import Event
 from uuid import UUID, uuid4
 
 import pymupdf
@@ -22,6 +23,7 @@ from powerforge_document_processing.models import (
     PageArtifact,
     RevisionDocument,
 )
+from powerforge_document_processing.storage.base import TransientStorageError
 from powerforge_extraction.enqueue import get_extraction_enqueue
 from powerforge_extraction.execution import execute_unit
 from powerforge_extraction.layout_execution import execute_enrichment
@@ -152,6 +154,24 @@ def advance(ctx, operation_id):
     reconcile_operations(ctx["factory"], ctx["settings"], ctx["storage"])
 
 
+def admitted_page(ctx, source):
+    preparation(ctx, source)
+    _, body = reviewed(ctx, [source])
+    reply = start_operation(ctx, body)
+    assert reply.status_code == 202, reply.text
+    operation_id = reply.json()["id"]
+    advance(ctx, operation_id)
+    run_id = UUID(detail_operation(ctx, operation_id)["items"][0]["extraction"]["run_id"])
+    with ctx["factory"]() as session:
+        units = {
+            unit.stage: unit.id
+            for unit in session.scalars(
+                select(ExtractionWorkUnit).where(ExtractionWorkUnit.run_id == run_id)
+            )
+        }
+    return operation_id, run_id, units
+
+
 def test_admission_reviews_exact_inputs_and_coalesces_concurrent_submissions(operation_context):
     ctx = operation_context
     first = new_source(ctx, "first.pdf")
@@ -163,6 +183,13 @@ def test_admission_reviews_exact_inputs_and_coalesces_concurrent_submissions(ope
     )
     assert client.post(runs_url, json={}).status_code == 405
     selected = [first, second]
+    for key in ("engineering-openai-enriched-v1", "tables-openai-enriched-v1"):
+        assert (
+            client.post(
+                root + "/operations/preview", json={"documents": selected, "profile_key": key}
+            ).status_code
+            == 422
+        )
     discovery = client.post(
         root + "/operations/sources",
         json={"revision_document_ids": [item["revision_document_id"] for item in selected]},
@@ -482,7 +509,8 @@ def test_disabled_test_profile_and_insufficient_budget_block_review(operation_co
 
 
 def test_expired_recognition_lease_is_fenced_and_reconciled(operation_context):
-    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+    from powerforge_extraction.errors import LeaseLost
+    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult, request_for
 
     ctx = operation_context
     source = new_source(ctx, "expired-lease.pdf")
@@ -506,6 +534,11 @@ def test_expired_recognition_lease_is_fenced_and_reconciled(operation_context):
         assert coordinator.claim(attributes) is None
         claim = coordinator.claim(recognition)
         assert claim is not None
+    wire, request = request_for(ctx["factory"], ctx["storage"], claim)
+    with ctx["factory"].begin() as session:
+        ExtractionCoordinator(session, ctx["settings"]).mark_provider_started(
+            recognition, claim.token, request
+        )
         session.get(ExtractionWorkUnit, recognition).lease_expires_at = now(session) - timedelta(
             seconds=1
         )
@@ -523,6 +556,11 @@ def test_expired_recognition_lease_is_fenced_and_reconciled(operation_context):
         assert retry.stage == "EQUIPMENT_RECOGNITION"
         retry_id = retry.id
 
+    response = FakePhase6RProvider("success").execute(request)
+    with pytest.raises(LeaseLost), ctx["factory"].begin() as session:
+        ExtractionCoordinator(session, ctx["settings"]).complete_stage(
+            recognition, claim.token, wire, response.result, response.usage
+        )
     for unit_id in (retry_id, attributes):
         assert execute_unit(
             unit_id,
@@ -576,6 +614,246 @@ def test_worker_task_dispatches_only_the_ready_stage(operation_context, monkeypa
     assert len(messages) == 1
     with ctx["factory"]() as session:
         assert session.get(ExtractionRun, run_id).status == "COMPLETED"
+
+
+@pytest.mark.parametrize("failure", ["missing", "same_size_corruption", "transient"])
+def test_worker_reverifies_pinned_layout_after_admission(operation_context, monkeypatch, failure):
+    from powerforge_ai.extraction import ErrorCode
+    from powerforge_extraction.controls import UnitExecution
+    from powerforge_extraction.enriched_sources import bound_snapshot
+    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+
+    ctx = operation_context
+    _, run_id, units = admitted_page(ctx, new_source(ctx, "damaged-layout.pdf"))
+    recognition = units["EQUIPMENT_RECOGNITION"]
+    with ctx["factory"]() as session:
+        key = bound_snapshot(session, session.get(ExtractionWorkUnit, recognition)).spatial_key
+    storage = ctx["storage"]
+    original = storage.objects[key]
+    if failure != "transient":
+        storage.delete(key)
+        if failure == "same_size_corruption":
+            corrupted = bytes([original.data[0] ^ 1]) + original.data[1:]
+            storage.put(key, BytesIO(corrupted), len(corrupted), original.content_type)
+    else:
+        read = storage.get
+
+        def interrupted(object_key):
+            if object_key == key:
+                raise TransientStorageError("test interruption")
+            return read(object_key)
+
+        monkeypatch.setattr(storage, "get", interrupted)
+
+    assert execute_unit(
+        recognition,
+        ctx["factory"],
+        storage,
+        ctx["settings"],
+        lambda _: pytest.fail("Unverified source reached the provider"),
+    )
+    with ctx["factory"]() as session:
+        attempt = session.get(ExtractionWorkUnit, recognition)
+        assert attempt.status == "FAILED"
+        assert session.get(UnitExecution, recognition).provider_started_at is None
+        assert session.get(StageResult, recognition) is None
+        successor = session.scalar(
+            select(ExtractionWorkUnit).where(
+                ExtractionWorkUnit.run_id == run_id, ExtractionWorkUnit.attempt_number == 2
+            )
+        )
+        if failure != "transient":
+            assert attempt.error_code == ErrorCode.INPUT
+            assert successor is None
+            assert session.get(ExtractionWorkUnit, units["ATTRIBUTE_EXTRACTION"]).error_code == (
+                ErrorCode.DEPENDENCY
+            )
+            return
+        assert attempt.error_code == ErrorCode.SOURCE_UNAVAILABLE
+        assert successor is not None
+        retry_id = successor.id
+
+    monkeypatch.undo()
+    for unit_id in (retry_id, units["ATTRIBUTE_EXTRACTION"]):
+        assert execute_unit(
+            unit_id,
+            ctx["factory"],
+            storage,
+            ctx["settings"],
+            lambda _: FakePhase6RProvider("success"),
+        )
+    with ctx["factory"]() as session:
+        assert session.get(StageResult, units["ATTRIBUTE_EXTRACTION"]).upstream_work_unit_id == (
+            retry_id
+        )
+
+
+def test_concurrent_redelivery_cannot_start_another_call(operation_context):
+    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+
+    ctx = operation_context
+    _, _, units = admitted_page(ctx, new_source(ctx, "duplicate.pdf"))
+    recognition = units["EQUIPMENT_RECOGNITION"]
+    entered, release = Event(), Event()
+
+    class HeldProvider:
+        def execute(self, request):
+            entered.set()
+            assert release.wait(10)
+            return FakePhase6RProvider("success").execute(request)
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        worker = pool.submit(
+            execute_unit,
+            recognition,
+            ctx["factory"],
+            ctx["storage"],
+            ctx["settings"],
+            lambda _: HeldProvider(),
+        )
+        try:
+            assert entered.wait(10)
+            assert not execute_unit(
+                recognition,
+                ctx["factory"],
+                ctx["storage"],
+                ctx["settings"],
+                lambda _: pytest.fail("A duplicate delivery reached the provider"),
+            )
+        finally:
+            release.set()
+        assert worker.result(timeout=10)
+    with ctx["factory"]() as session:
+        assert session.get(StageResult, recognition) is not None
+
+
+def test_retry_can_exhaust_budget_before_dependent_admission(operation_context):
+    from powerforge_ai.extraction import ErrorCode
+    from powerforge_extraction.controls import RunExecution, UnitExecution
+    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+
+    ctx = operation_context
+    settings = ctx["settings"]
+    settings.extraction_max_calls = 2
+    _, run_id, units = admitted_page(ctx, new_source(ctx, "retry-budget.pdf"))
+    assert execute_unit(
+        units["EQUIPMENT_RECOGNITION"],
+        ctx["factory"],
+        ctx["storage"],
+        settings,
+        lambda _: FakePhase6RProvider("transient"),
+    )
+    with ctx["factory"]() as session:
+        successor = session.scalar(
+            select(ExtractionWorkUnit).where(
+                ExtractionWorkUnit.run_id == run_id, ExtractionWorkUnit.attempt_number == 2
+            )
+        )
+        assert successor.stage == "EQUIPMENT_RECOGNITION"
+        retry_id = successor.id
+    assert execute_unit(
+        retry_id,
+        ctx["factory"],
+        ctx["storage"],
+        settings,
+        lambda _: FakePhase6RProvider("success"),
+    )
+    attributes = units["ATTRIBUTE_EXTRACTION"]
+    assert not execute_unit(
+        attributes,
+        ctx["factory"],
+        ctx["storage"],
+        settings,
+        lambda _: pytest.fail("An exhausted budget allowed another provider call"),
+    )
+    with ctx["factory"]() as session:
+        assert session.get(RunExecution, run_id).calls_admitted == 2
+        assert session.get(UnitExecution, attributes).provider_started_at is None
+        assert session.get(ExtractionWorkUnit, attributes).error_code == ErrorCode.BUDGET
+        assert session.get(StageResult, retry_id) is not None
+        assert session.get(StageResult, attributes) is None
+        run = session.get(ExtractionRun, run_id)
+        assert (run.status, run.pages_processed) == ("PARTIALLY_COMPLETED", 0)
+
+
+@pytest.mark.parametrize("limit", ["calls", "attempts", "none"])
+def test_unknown_provider_outcome_requires_acknowledgement_and_keeps_limits(
+    operation_context, monkeypatch, limit
+):
+    from powerforge_extraction import enriched_planning, operation_plan, operations
+    from powerforge_extraction.controls import RunExecution, UnitExecution
+    from powerforge_extraction.operation_models import UNKNOWN_PROVIDER_OUTCOME
+    from powerforge_extraction.phase6r_profile import phase6r_profile
+    from powerforge_extraction.phase6r_runtime import StageResult, request_for
+
+    ctx = operation_context
+    settings = ctx["settings"]
+    settings.extraction_max_calls = 2 if limit == "calls" else 6
+    settings.extraction_max_attempts = 1 if limit == "attempts" else 3
+    # Pin the OpenAI identity in the database but keep B's fake-only runtime gate.
+    # Simulate a worker disappearing after admission without making a provider request.
+    profile = phase6r_profile(settings.model_copy(update={"extraction_phase6r_fake": False}))
+    for module in (enriched_planning, operation_plan, operations):
+        monkeypatch.setattr(module, "phase6r_profile", lambda _: profile)
+    source = new_source(ctx, "unknown-outcome.pdf")
+    operation_id, run_id, units = admitted_page(ctx, source)
+    recognition = units["EQUIPMENT_RECOGNITION"]
+    # Consume one earlier admission, before the provider boundary, to exhaust the
+    # two-call budget with the next attempt.
+    if limit == "calls":
+        with ctx["factory"].begin() as session:
+            coordinator = ExtractionCoordinator(session, settings)
+            assert coordinator.claim(recognition) is not None
+            session.get(ExtractionWorkUnit, recognition).lease_expires_at = now(
+                session
+            ) - timedelta(seconds=1)
+        with ctx["factory"].begin() as session:
+            assert ExtractionCoordinator(session, settings).reconcile() == 1
+            recognition = session.scalar(
+                select(ExtractionWorkUnit.id).where(
+                    ExtractionWorkUnit.run_id == run_id, ExtractionWorkUnit.attempt_number == 2
+                )
+            )
+    with ctx["factory"].begin() as session:
+        claim = ExtractionCoordinator(session, settings).claim(recognition)
+        assert claim is not None
+    _, request = request_for(ctx["factory"], ctx["storage"], claim)
+    with ctx["factory"].begin() as session:
+        coordinator = ExtractionCoordinator(session, settings)
+        coordinator.mark_provider_started(recognition, claim.token, request)
+        session.get(ExtractionWorkUnit, recognition).lease_expires_at = now(session) - timedelta(
+            seconds=1
+        )
+    with ctx["factory"].begin() as session:
+        coordinator = ExtractionCoordinator(session, settings)
+        assert coordinator.reconcile() == 1
+        attempt = session.get(ExtractionWorkUnit, recognition)
+        assert attempt.error_code == UNKNOWN_PROVIDER_OUTCOME
+        assert not coordinator.heartbeat(recognition, claim.token)
+        assert session.get(StageResult, recognition) is None
+        admitted = session.get(RunExecution, run_id).calls_admitted
+        assert admitted == (2 if limit == "calls" else 1)
+        assert len(coordinator._units(run_id)) == admitted + 1
+        assert session.get(UnitExecution, recognition).provider_started_at is not None
+        retry = {
+            "revision_document_id": source["revision_document_id"],
+            "stage": attempt.stage,
+            "page_id": attempt.execution_metadata["source_page_id"],
+            "expected_attempt": attempt.attempt_number,
+        }
+    url = ctx["operation_base"] + f"/operations/{operation_id}/retry"
+    rejected = client.post(url, json=retry)
+    assert rejected.status_code == 409, rejected.text
+    retry["acknowledge_unknown_outcome"] = True
+    acknowledged = client.post(url, json=retry)
+    if limit != "none":
+        assert acknowledged.status_code == 409, acknowledged.text
+        assert ("budget exhausted" if limit == "calls" else "attempt limit") in acknowledged.text
+    else:
+        assert "Provider outcome unknown" in rejected.text
+        assert acknowledged.status_code == 202, acknowledged.text
+    with ctx["factory"]() as session:
+        assert session.get(RunExecution, run_id).calls_admitted == admitted
 
 
 def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operation_context):
