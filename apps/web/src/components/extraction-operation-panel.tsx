@@ -9,7 +9,7 @@ import { docButtonClass, StatusChip, type ChipTone } from "@/components/document
 import { AsyncState } from "@/components/ui/async-state";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { apiErrorOf } from "@/lib/api";
-import { extractionHistoryHref, families, familyLabel, type DocumentScope } from "@/lib/extraction";
+import { extractionHistoryHref, type DocumentScope } from "@/lib/extraction";
 import {
   cancelExtractionOperation,
   extractionOperationHref,
@@ -21,12 +21,12 @@ import {
   type OperationDetail,
   type OperationStatus,
   type OperationStep,
+  type RetryTarget,
   type RevisionScope,
 } from "@/lib/extraction-operations";
 import { formatDateShort } from "@/lib/projects";
 import { jobInterval } from "@/lib/query-hooks";
 import { keys } from "@/lib/query-keys";
-import { documentViewerHref } from "@/lib/workspace-navigation";
 
 const statuses: Record<OperationStatus | OperationChild["status"], [string, ChipTone]> = {
   QUEUED: ["Queued", "gray"],
@@ -66,7 +66,7 @@ function useOperation(scope: RevisionScope, id: string | null) {
   });
   const progress = query.data && JSON.stringify(query.data.items.map((item) => [
     item.revision_document_id, item.status, item.layout.status,
-    ...families.map((family) => item.profiles[family]?.status ?? null),
+    item.extraction.status,
   ]));
   useEffect(() => {
     if (progress) void client.invalidateQueries({
@@ -110,7 +110,7 @@ export function ExtractionOperationToast({
 }
 
 type Action = { kind: "cancel" } | {
-  kind: "retry"; documentId: string; step: OperationStep; child?: OperationChild;
+  kind: "retry"; documentId: string; step: OperationStep; child?: OperationChild; target?: RetryTarget;
 };
 
 export function ExtractionOperationPanel({
@@ -159,7 +159,8 @@ export function ExtractionOperationPanel({
       const updated = action.kind === "cancel" ? await cancelExtractionOperation(scope, id)
         : await retryExtractionOperation(
           scope, id, action.documentId, action.step,
-          action.child?.attempts ?? 0, action.child?.unknown_provider_outcome ?? false,
+          action.child?.attempts ?? 0, action.target?.unknown_provider_outcome ?? action.child?.unknown_provider_outcome ?? false,
+          action.target,
         );
       client.setQueryData(keys.extractionOperation(scope.projectId, scope.revisionId, id), updated);
       for (const item of updated.items) {
@@ -230,8 +231,8 @@ export function ExtractionOperationPanel({
         <ConfirmDialog
           title={pendingCancel ? "Cancel this operation?" : "Retry this step?"}
           message={pendingCancel
-            ? "Future steps will stop. Runs already admitted can continue and incur charges. Completed results are kept."
-            : action.child?.unknown_provider_outcome
+            ? "Scheduling and owned extraction work will stop. Completed results are kept."
+            : (action.target?.unknown_provider_outcome ?? action.child?.unknown_provider_outcome)
               ? "A previous OpenAI call may have been billed and its outcome is unknown. Another call can incur charges. Successful work is kept."
               : action.step === "layout" || action.step === "resume"
                 ? "Successful source work is kept. The approved OpenAI runs can start once every required page is ready."
@@ -260,14 +261,9 @@ function OperationItem({
   onNavigate: (href: string) => void;
 }) {
   const itemScope = { ...scope, documentId: item.revision_document_id };
-  const entries = Object.entries(item.profiles) as [typeof families[number], OperationChild][];
-  const resultRuns = entries.filter(([, child]) => child.run_id && ["COMPLETED", "PARTIALLY_COMPLETED"].includes(child.status));
-
-  function viewEvidence() {
-    const query = new URLSearchParams({ evidencePinned: "1", historicalPair: "1" });
-    for (const [family, child] of resultRuns) query.set(`${family}Run`, child.run_id!);
-    onNavigate(`${documentViewerHref(scope.projectId, scope.revisionId, item.revision_document_id, { mode: "evidence" })}&${query}`);
-  }
+  const entries: [Exclude<OperationStep, "resume">, OperationChild][] = [
+    ["layout", item.layout], ["extraction", item.extraction],
+  ];
 
   return (
     <div className="space-y-2 rounded-md border border-border bg-panel p-2.5 text-workspace-caption text-muted">
@@ -278,26 +274,34 @@ function OperationItem({
       <p className="m-0">Pages {pageRanges(item.pages)}{item.force_ocr_pages.length ? ` · Force OCR ${pageRanges(item.force_ocr_pages)}` : ""}</p>
       {item.blocked_reason && <p className="m-0 text-warning">{blockedReasons[item.blocked_reason] ?? item.blocked_reason}</p>}
       <ul className="m-0 list-none space-y-1.5 p-0">
-        {([["layout", item.layout], ...entries] as [Exclude<OperationStep, "resume">, OperationChild][]).map(([step, child]) => (
+        {entries.map(([step, child]) => (
           <li key={step}>
             <div className="flex flex-wrap items-center justify-between gap-1.5">
-              <span>{step === "layout" ? "Preparation and layout" : familyLabel[step]} · {statuses[child.status][0]}</span>
+              <span>{step === "layout" ? "Preparation and layout" : "Extraction"} · {statuses[child.status][0]}</span>
               <span className="flex gap-1.5">
                 {child.run_id && (
-                  <button type="button" className="font-semibold text-accent hover:underline" onClick={() => onNavigate(extractionHistoryHref(itemScope, step === "layout" ? "enrichment" : step, child.run_id!))}>Run details</button>
+                  <button type="button" className="font-semibold text-accent hover:underline" onClick={() => onNavigate(extractionHistoryHref(itemScope, step === "layout" ? "enrichment" : "engineering", child.run_id!))}>Run details</button>
                 )}
-                {child.can_retry && (
+                {child.can_retry && step === "layout" && (
                   <button type="button" className="font-semibold text-accent hover:underline" onClick={() => onAction({ kind: "retry", documentId: item.revision_document_id, step, child })}>Retry</button>
                 )}
               </span>
             </div>
+            {step === "extraction" && child.can_retry && child.retry_targets.map((target) => (
+              <button key={`${target.page_id}:${target.stage}`} type="button" className="mr-3 font-semibold text-accent hover:underline"
+                onClick={() => onAction({ kind: "retry", documentId: item.revision_document_id, step, child, target })}>
+                Retry {target.stage === "EQUIPMENT_RECOGNITION" ? "recognition" : "attributes"} on page {target.page_number}
+              </button>
+            ))}
+            {child.stage_outcomes.some((stage) => stage.outcome === "NO_ELIGIBLE_ATTRIBUTES") && (
+              <p className="m-0">Attribute extraction skipped on pages with no eligible equipment.</p>
+            )}
             {child.unknown_provider_outcome && <p className="m-0 text-warning">Provider outcome unknown. The call may have been billed.</p>}
             {!child.unknown_provider_outcome && child.error_code && <p className="m-0 text-warning">{child.error_code.replaceAll("_", " ").toLowerCase()}</p>}
           </li>
         ))}
       </ul>
       {item.can_resume && <button type="button" className={docButtonClass("tiny")} onClick={() => onAction({ kind: "retry", documentId: item.revision_document_id, step: "resume" })}>Resume scheduling</button>}
-      {!!resultRuns.length && <button type="button" className={docButtonClass("tiny")} onClick={viewEvidence}>View evidence</button>}
     </div>
   );
 }

@@ -114,9 +114,7 @@ def test_reciprocal_direct_id_api_denials_have_no_side_effects(enrichment_ctx):
     ctx = enrichment_ctx
     source = start(ctx)
     sid = source["run"]["id"]
-    extraction = client.post(ctx["base"] + "/extraction/runs", json={})
-    assert extraction.status_code == 202, extraction.text
-    eid = extraction.json()["run"]["id"]
+    eid = str(uuid4())
 
     def counts():
         with ctx["factory"]() as session:
@@ -142,15 +140,14 @@ def test_reciprocal_direct_id_api_denials_have_no_side_effects(enrichment_ctx):
             client.get(ctx["base"] + f"/source-enrichment/runs/{eid}" + suffix).status_code == 404
         )
     assert counts() == before
-    for rid, purpose in ((sid, "EXTRACTION"), (eid, PURPOSE)):
-        with ctx["factory"].begin() as session:
-            coordinator = ExtractionCoordinator(session, ctx["settings"])
-            uid = session.scalar(
-                select(ExtractionWorkUnit.id).where(ExtractionWorkUnit.run_id == UUID(rid))
-            )
-            assert coordinator.claim(uid, purpose=purpose) is None
-            with pytest.raises(Exception, match="not found"):
-                coordinator.cancel(UUID(rid), purpose=purpose)
+    with ctx["factory"].begin() as session:
+        coordinator = ExtractionCoordinator(session, ctx["settings"])
+        uid = session.scalar(
+            select(ExtractionWorkUnit.id).where(ExtractionWorkUnit.run_id == UUID(sid))
+        )
+        assert coordinator.claim(uid, purpose="EXTRACTION") is None
+        with pytest.raises(Exception, match="not found"):
+            coordinator.cancel(UUID(sid), purpose="EXTRACTION")
     assert counts() == before
 
 
@@ -341,30 +338,6 @@ def test_partial_tiff_success_survives_retry_without_repeating_completed_ocr(
     assert snapshot_base(ctx) == before
 
 
-def test_enrichment_never_replaces_extraction_summary_and_history_remains_separate(enrichment_ctx):
-    from powerforge_extraction.execution import execute_unit
-    from powerforge_extraction.fake import FakeExtractionProvider
-
-    ctx = enrichment_ctx
-    extraction = client.post(ctx["base"] + "/extraction/runs", json={}).json()
-    rid = extraction["run"]["id"]
-    execute_unit(
-        UUID(extraction["attempts"][0]["id"]),
-        ctx["factory"],
-        ctx["storage"],
-        ctx["settings"],
-        lambda claim: FakeExtractionProvider(),
-    )
-    source = start(ctx)
-    execute(ctx, source["attempts"][0]["id"])
-    summary = client.get(ctx["base"] + "/extraction").json()
-    assert summary["latest_result"]["id"] == summary["current_run"]["id"] == rid
-    history = client.get(ctx["base"] + "/extraction/runs").json()
-    assert [r["id"] for r in history["items"]] == [rid]
-    sources = client.get(ctx["base"] + "/source-enrichment/runs").json()
-    assert [r["id"] for r in sources["items"]] == [source["run"]["id"]]
-
-
 def test_hybrid_pdf_requires_explicit_selection_and_ocr_keeps_separate_native_readings(
     enrichment_ctx,
 ):
@@ -530,27 +503,15 @@ def test_publication_rechecks_original_body_bytes_and_exact_source_set(enrichmen
         )
 
 
-def test_sql_does_not_allow_local_jobs_to_publish_engineering_evidence_or_ai_telemetry(
+def test_sql_does_not_allow_local_jobs_to_publish_ai_telemetry(
     enrichment_ctx,
 ):
-    from powerforge_extraction.contracts import AICallInput, EvidenceInput, WorkUnitOutput
+    from powerforge_extraction.contracts import AICallInput
     from powerforge_extraction.persistence import ExtractionPersistence
-    from powerforge_provenance.locations import SourceLocation
 
     ctx = enrichment_ctx
-    claim, output = prepared_attempt(ctx)
-    evidence = EvidenceInput(
-        location=SourceLocation(document_page_id=output.manifest.owner.document_page_id),
-        source_kind="VISUAL_REGION",
-        extraction_method="AI_VISION",
-    )
+    claim, _ = prepared_attempt(ctx)
     with ctx["factory"]() as session:
-        with pytest.raises(DBAPIError, match=r"Local jobs cannot\s+publish"):
-            ExtractionCoordinator(session, ctx["settings"])._authorized(claim.unit_id, claim.token)
-            ExtractionPersistence(session).publish(
-                claim.unit_id, WorkUnitOutput(evidence=[evidence])
-            )
-        session.rollback()
         coordinator = ExtractionCoordinator(session, ctx["settings"])
         coordinator._authorized(claim.unit_id, claim.token)
         now = coordinator.now()
@@ -598,32 +559,6 @@ def test_ocr_timeout_uses_bounded_retry_and_records_actual_started_invocations(
     done = detail(ctx, rid)
     assert done["run"]["status"] == "COMPLETED" and done["ocr_requests_started"] == 2
     assert len(calls) == 2
-
-
-def test_local_cpu_and_model_admission_limits_are_independent(enrichment_ctx):
-    ctx = enrichment_ctx
-    ctx["settings"].extraction_max_concurrent_global = 1
-    extraction = client.post(ctx["base"] + "/extraction/runs", json={}).json()
-    with ctx["factory"].begin() as session:
-        assert ExtractionCoordinator(session, ctx["settings"]).claim(
-            UUID(extraction["attempts"][0]["id"])
-        )
-    local = start(ctx)
-    with ctx["factory"].begin() as session:
-        assert ExtractionCoordinator(session, ctx["settings"]).claim(
-            UUID(local["attempts"][0]["id"]), purpose=PURPOSE
-        )
-    # An explicitly different OCR selection is a different compatible target,
-    # but still shares the bounded CPU admission pool.
-    second = start(ctx, force_ocr_pages=[1])
-    with ctx["factory"].begin() as session:
-        assert (
-            ExtractionCoordinator(session, ctx["settings"]).claim(
-                UUID(second["attempts"][0]["id"]), purpose=PURPOSE
-            )
-            is None
-        )
-    assert detail(ctx, second["run"]["id"])["run"]["admissions"] == 0
 
 
 def test_source_input_discovery_is_read_only_and_exposes_completed_processing_ids(enrichment_ctx):

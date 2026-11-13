@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     enrichment_worker_only: bool = False
 
     extraction_enabled: bool = True
+    extraction_phase6r_fake: bool = False
     extraction_external_enabled: bool = False
     extraction_model: str = "gpt-6-luna"
     extraction_max_pages: int = Field(default=50, ge=1, le=1000)

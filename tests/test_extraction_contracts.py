@@ -130,25 +130,12 @@ def test_telemetry_requires_pricing_basis_and_valid_timing():
         )
 
 
-def test_openapi_preserves_6a_reads_and_integer_decimal_strings():
-    schema = app.openapi()
-    base = (
-        "/api/projects/{project_id}/revisions/{revision_id}"
-        "/documents/{revision_document_id}/extraction"
-    )
-    for suffix in (
-        "",
-        "/profiles",
-        "/runs",
-        "/runs/{run_id}",
-        "/runs/{run_id}/candidates",
-        "/runs/{run_id}/tables",
-        "/runs/{run_id}/sources",
-        "/evidence/{evidence_id}",
-    ):
-        assert "get" in schema["paths"][base + suffix]
-    for suffix in ("/runs", "/runs/{run_id}/retry", "/runs/{run_id}/cancel"):
-        assert "post" in schema["paths"][base + suffix]
-    candidate = schema["components"]["schemas"]["CandidateResponse"]["properties"]
-    for field in ["integer_value", "numeric_value"]:
-        assert {v["type"] for v in candidate[field]["anyOf"]} == {"string", "null"}
+def test_openapi_allows_start_only_through_the_unified_operation():
+    paths = app.openapi()["paths"]
+    root = "/api/projects/{project_id}/revisions/{revision_id}"
+    base = root + "/documents/{revision_document_id}/extraction"
+    assert "post" in paths[root + "/extraction/operations"]
+    assert set(paths[base + "/runs"]) == {"get"}
+    assert base + "/profiles" not in paths
+    assert base + "/groups" not in paths
+    assert base + "/runs/{run_id}/tables" not in paths

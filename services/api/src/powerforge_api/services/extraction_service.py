@@ -2,79 +2,38 @@
 
 from uuid import UUID
 
-from sqlalchemy import Select, exists, func, or_, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session
 
-from powerforge_api.exceptions import RevisionDocumentNotFound, StorageDownloadFailed
+from powerforge_api.exceptions import RevisionDocumentNotFound
 from powerforge_api.schemas.extraction import (
-    CandidateList,
-    CandidateResponse,
-    Citation,
     Coverage,
-    EvidenceDetail,
-    EvidenceSummary,
     ExecutionSummary,
     ExtractionSummary,
     RunDetail,
     RunList,
     RunResponse,
-    SourceGroupSummary,
-    TableList,
-    TableResponse,
     UnitResponse,
 )
-from powerforge_api.services.evidence_groups import group_list, observation_filters
-from powerforge_api.services.extraction_register import FAMILY_PROFILES, PROFILE_KEY
 from powerforge_document_model import RevisionDocumentStatus
 from powerforge_document_processing.models import (
     Document,
-    DocumentPage,
-    PageArtifact,
     ProjectRevision,
     RevisionDocument,
 )
-from powerforge_document_processing.storage.base import ObjectStorage, StorageError
 from powerforge_extraction.controls import RunExecution, UnitExecution
 from powerforge_extraction.dependencies import retryable_keys
 from powerforge_extraction.enums import (
-    CandidateKind,
-    EvidenceRole,
     ExtractionRunStatus,
-    MappingStatus,
     WorkUnitStatus,
 )
 from powerforge_extraction.models import (
-    CandidateEvidence,
-    Evidence,
-    ExtractedTable,
     ExtractionAICall,
-    ExtractionCandidate,
     ExtractionRun,
     ExtractionWorkUnit,
-    SourceGroup,
 )
-from powerforge_extraction.persistence import effective_units
+from powerforge_extraction.phase6r_runtime import StageResult
 from powerforge_extraction.profiles import read_profile
-from powerforge_provenance.locations import Region
-
-
-def _evidence_summary(row: Evidence, artifact_type: str | None = None) -> EvidenceSummary:
-    precision = "PAGE_ONLY"
-    if row.enrichment_artifact_id is not None:
-        precision = "TEXT_OFFSETS" if row.text_start is not None else "TEXT_PAGE"
-    elif row.source_kind in {"NATIVE_TEXT", "OCR_TEXT"}:
-        precision = "TEXT_OFFSETS" if row.text_start is not None else "TEXT_PAGE"
-    elif row.source_kind == "VISUAL_REGION":
-        precision = "VISUAL_REGION" if row.x is not None else "VISUAL_PAGE"
-    elif row.source_kind == "TABLE_CELL":
-        if artifact_type == "NATIVE_TEXT" and row.source_snippet is not None:
-            precision = "TEXT_OFFSETS" if row.text_start is not None else "TEXT_PAGE"
-        elif artifact_type == "ANALYSIS_IMAGE":
-            precision = "VISUAL_REGION" if row.x is not None else "VISUAL_PAGE"
-    return EvidenceSummary(
-        **EvidenceSummary.model_validate(row).model_dump(exclude={"grounding_precision"}),
-        grounding_precision=precision,
-    )
 
 
 class ExtractionReadService:
@@ -131,30 +90,8 @@ class ExtractionReadService:
             current_run=RunResponse.model_validate(current) if current else None,
         )
 
-    def family_runs(self, family):
-        return (
-            self._runs()
-            .join(RunExecution, RunExecution.run_id == ExtractionRun.id)
-            .where(ExtractionRun.provider == "openai", PROFILE_KEY.in_(FAMILY_PROFILES[family]))
-        )
-
-    def family_run(self, run_id, family):
-        run = self.session.scalar(self.family_runs(family).where(ExtractionRun.id == run_id))
-        if run is None:
-            raise RevisionDocumentNotFound("Extraction run not found in this family")
-        return run
-
-    def groups(self, engineering, tables, limit, offset, **filters):
-        families = {}
-        for family, run_id in (("engineering", engineering), ("tables", tables)):
-            if run_id is None:
-                continue
-            self.family_run(run_id, family)
-            families[run_id] = family
-        return group_list(self.session, families, limit, offset, **filters)
-
-    def history(self, limit: int, offset: int, family=None) -> RunList:
-        stmt = self.family_runs(family) if family else self._runs()
+    def history(self, limit: int, offset: int) -> RunList:
+        stmt = self._runs()
         total = self.session.scalar(select(func.count()).select_from(stmt.subquery()))
         rows = self.session.scalars(
             stmt.order_by(ExtractionRun.created_at.desc(), ExtractionRun.id.desc())
@@ -236,7 +173,14 @@ class ExtractionReadService:
                 if all_reported and calls and all(c.estimated_cost_usd is not None for c in calls)
                 else None,
             )
-        computed = {"effective", "retryable", "stale"}
+        outcomes = dict(
+            self.session.execute(
+                select(StageResult.work_unit_id, StageResult.outcome).where(
+                    StageResult.run_id == run.id
+                )
+            ).all()
+        )
+        computed = {"effective", "retryable", "stale", "stage_outcome"}
         return RunDetail(
             run=RunResponse.model_validate(run),
             coverage=coverage,
@@ -248,6 +192,7 @@ class ExtractionReadService:
                             k: getattr(r, k) for k in UnitResponse.model_fields if k not in computed
                         },
                         "effective": r.status == WorkUnitStatus.COMPLETED,
+                        "stage_outcome": outcomes.get(r.id),
                         "retryable": bool(
                             profile
                             and run.status
@@ -269,240 +214,4 @@ class ExtractionReadService:
                 )
                 for r in rows
             ],
-        )
-
-    def candidates(
-        self,
-        run_id: UUID,
-        limit: int,
-        offset: int,
-        *,
-        kind: CandidateKind | None = None,
-        mapping_status: MappingStatus | None = None,
-        source_group_id: UUID | None = None,
-        equipment_type_key: str | None = None,
-        attribute_key: str | None = None,
-        supported_only: bool = True,
-        ungrouped: bool = False,
-        candidate_id: UUID | None = None,
-        page: int | None = None,
-        search: str | None = None,
-        equipment_hint: str | None = None,
-    ) -> CandidateList:
-        run = self._run(run_id)
-        supported = exists(
-            select(CandidateEvidence.id).where(
-                CandidateEvidence.candidate_id == ExtractionCandidate.id,
-                CandidateEvidence.role.in_([EvidenceRole.PRIMARY, EvidenceRole.SUPPORTING]),
-            )
-        )
-        stmt = select(ExtractionCandidate).where(
-            ExtractionCandidate.run_id == run_id,
-            ExtractionCandidate.work_unit_id.in_(effective_units(run_id)),
-        )
-        for key, value in {
-            "kind": kind,
-            "mapping_status": mapping_status,
-            "source_group_id": source_group_id,
-            "equipment_type_key": equipment_type_key,
-            "attribute_key": attribute_key,
-        }.items():
-            if value is not None:
-                stmt = stmt.where(getattr(ExtractionCandidate, key) == value)
-        if ungrouped:
-            stmt = stmt.where(ExtractionCandidate.source_group_id.is_(None))
-        if candidate_id is not None:
-            stmt = stmt.where(ExtractionCandidate.id == candidate_id)
-        if search or equipment_hint:
-            stmt = stmt.outerjoin(
-                SourceGroup, SourceGroup.id == ExtractionCandidate.source_group_id
-            )
-        stmt = stmt.where(
-            *observation_filters(page=page, search=search, equipment_hint=equipment_hint)
-        )
-        if supported_only:
-            stmt = stmt.where(supported)
-        total = self.session.scalar(select(func.count()).select_from(stmt.subquery()))
-        rows = list(
-            self.session.scalars(
-                stmt.order_by(ExtractionCandidate.created_at, ExtractionCandidate.id)
-                .limit(limit)
-                .offset(offset)
-            )
-        )
-        links = (
-            self.session.execute(
-                select(CandidateEvidence, Evidence, DocumentPage.page_number)
-                .join(Evidence, Evidence.id == CandidateEvidence.evidence_id)
-                .join(DocumentPage, DocumentPage.id == Evidence.document_page_id)
-                .where(CandidateEvidence.candidate_id.in_([r.id for r in rows]))
-                .order_by(CandidateEvidence.position, CandidateEvidence.evidence_id)
-            ).all()
-            if rows
-            else []
-        )
-        artifact_types = (
-            dict(
-                self.session.execute(
-                    select(PageArtifact.id, PageArtifact.artifact_type).where(
-                        PageArtifact.id.in_(
-                            [
-                                e.page_artifact_id
-                                for _, e, _ in links
-                                if e.source_kind == "TABLE_CELL"
-                            ]
-                        )
-                    )
-                ).all()
-            )
-            if links
-            else {}
-        )
-        grouped = {}
-        for link, evidence, page_number in links:
-            grouped.setdefault(link.candidate_id, []).append(
-                Citation(
-                    evidence=_evidence_summary(
-                        evidence, artifact_types.get(evidence.page_artifact_id)
-                    ).model_copy(update={"source_page_number": page_number}),
-                    role=link.role,
-                    position=link.position,
-                )
-            )
-        group_ids = {r.source_group_id for r in rows if r.source_group_id is not None}
-        groups = (
-            {
-                g.id: SourceGroupSummary.model_validate(g)
-                for g in self.session.scalars(
-                    select(SourceGroup).where(SourceGroup.id.in_(group_ids))
-                )
-            }
-            if group_ids
-            else {}
-        )
-        items = []
-        for row in rows:
-            item = CandidateResponse.model_validate(row)
-            citations = grouped.get(row.id, [])
-            items.append(
-                item.model_copy(
-                    update={
-                        "evidence": citations,
-                        "source_group": groups.get(row.source_group_id),
-                        "supported": any(
-                            c.role in [EvidenceRole.PRIMARY, EvidenceRole.SUPPORTING]
-                            for c in citations
-                        ),
-                    }
-                )
-            )
-        return CandidateList(
-            run_id=run.id,
-            status=run.status,
-            coverage=self.coverage(run)[0],
-            items=items,
-            total=total,
-            limit=limit,
-            offset=offset,
-        )
-
-    def tables(self, run_id: UUID, limit: int, offset: int) -> TableList:
-        run = self._run(run_id)
-        stmt = select(ExtractedTable).where(
-            ExtractedTable.run_id == run_id,
-            ExtractedTable.work_unit_id.in_(effective_units(run_id)),
-        )
-        total = self.session.scalar(select(func.count()).select_from(stmt.subquery()))
-        rows = self.session.scalars(
-            stmt.order_by(ExtractedTable.created_at, ExtractedTable.id).limit(limit).offset(offset)
-        )
-        return TableList(
-            run_id=run.id,
-            status=run.status,
-            coverage=self.coverage(run)[0],
-            items=[TableResponse.model_validate(r) for r in rows],
-            total=total,
-            limit=limit,
-            offset=offset,
-        )
-
-    def evidence(
-        self, evidence_id: UUID, storage: ObjectStorage, expires: int, *, include_source_image=False
-    ) -> EvidenceDetail:
-        row = self.session.scalar(
-            select(Evidence).where(
-                Evidence.id == evidence_id,
-                Evidence.document_id == self.document_id,
-                Evidence.work_unit_id.in_(
-                    select(ExtractionWorkUnit.id).where(
-                        ExtractionWorkUnit.status == WorkUnitStatus.COMPLETED
-                    )
-                ),
-            )
-        )
-        if row is None:
-            raise RevisionDocumentNotFound("Extraction evidence not found")
-        self._run(row.run_id)
-        if row.source_locator is not None:
-            from powerforge_api.services.enriched_evidence import evidence_detail
-
-            return evidence_detail(self, row, storage, expires)
-        page = self.session.get(DocumentPage, row.document_page_id)
-        url, artifact = None, None
-        if row.page_artifact_id:
-            artifact = self.session.get(PageArtifact, row.page_artifact_id)
-            try:
-                url = storage.create_download_url(
-                    artifact.storage_key,
-                    f"page-{page.page_number}",
-                    artifact.mime_type,
-                    "inline",
-                    expires,
-                )
-            except StorageError as exc:
-                raise StorageDownloadFailed("Evidence artifact access unavailable") from exc
-        source_image = None
-        source_image_url = None
-        if include_source_image:
-            source_image = self.session.scalar(
-                select(PageArtifact).where(
-                    PageArtifact.processing_run_id == row.processing_run_id,
-                    PageArtifact.document_page_id == row.document_page_id,
-                    PageArtifact.artifact_type == "ANALYSIS_IMAGE",
-                )
-            )
-            if source_image:
-                try:
-                    source_image_url = (
-                        url
-                        if artifact == source_image
-                        else storage.create_download_url(
-                            source_image.storage_key,
-                            f"page-{page.page_number}.png",
-                            "image/png",
-                            "inline",
-                            expires,
-                        )
-                    )
-                except StorageError as exc:
-                    raise StorageDownloadFailed("Pinned page image unavailable") from exc
-        return EvidenceDetail(
-            **_evidence_summary(row, artifact.artifact_type if artifact else None).model_dump(),
-            run_id=row.run_id,
-            document_id=row.document_id,
-            processing_run_id=row.processing_run_id,
-            work_unit_id=row.work_unit_id,
-            page_number=page.page_number,
-            region=Region(x=row.x, y=row.y, width=row.width, height=row.height)
-            if row.x is not None
-            else None,
-            text_start=row.text_start,
-            text_end=row.text_end,
-            offset_convention=row.offset_convention,
-            created_at=row.created_at,
-            artifact_url=url,
-            artifact_url_expires_seconds=expires if url or source_image_url else None,
-            source_image_url=source_image_url,
-            source_image_width_px=source_image.width_px if source_image else None,
-            source_image_height_px=source_image.height_px if source_image else None,
         )

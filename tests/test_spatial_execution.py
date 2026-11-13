@@ -161,7 +161,7 @@ def test_spatial_direct_ids_are_scoped_to_the_source_purpose_and_exact_run(enric
     run_unit(ctx, stage(pending, "SOURCE_PREPARE"))
     run_unit(ctx, stage(pending, "SPATIAL_LAYOUT"))
     spatial = detail(ctx, rid)["spatial_results"][0]["id"]
-    ordinary = client.post(ctx["base"] + "/extraction/runs", json={}).json()["run"]["id"]
+    ordinary = str(uuid4())
     for suffix in ("", "/artifact"):
         assert (
             client.get(

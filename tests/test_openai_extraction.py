@@ -10,7 +10,7 @@ import pytest
 
 from extraction_worker.openai_extraction import OpenAIExtractionProvider
 from powerforge_ai.extraction import ErrorCode, ExtractionRequest, ProbeResult, ProviderFailure
-from powerforge_extraction.profiles import FAKE_PROFILE, PROMPT, SCHEMA_VERSION, resolve_profile
+from powerforge_extraction.profiles import PROMPT, SCHEMA_VERSION
 from powerforge_shared.config import Settings
 
 
@@ -150,14 +150,6 @@ def test_provider_failures_are_classified_without_sdk_messages(status, error, co
         OpenAIExtractionProvider(enabled(), client).execute(request())
     assert exc.value.code == code and "SECRET" not in str(exc.value)
     assert len(client.calls) == 1  # Persistence owns bounded retry attempts.
-
-
-def test_profile_hash_versions_all_material_execution_configuration():
-    a = Settings(_env_file=None)
-    b = Settings(_env_file=None, extraction_max_calls=a.extraction_max_calls + 1)
-    c = Settings(_env_file=None, extraction_lease_seconds=a.extraction_lease_seconds + 1)
-    assert len({resolve_profile(FAKE_PROFILE, s).identity_hash for s in [a, b, c]}) == 3
-    assert not a.extraction_external_enabled
 
 
 @pytest.mark.parametrize(

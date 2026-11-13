@@ -100,18 +100,12 @@ class EngineeringProfile(ExecutionProfile):
 
 def read_profile(configuration: dict) -> ExecutionProfile | EngineeringProfile:
     version = configuration.get("version")
-    if version in {"execution-profile-v5", "execution-profile-v6"}:
-        from powerforge_extraction.enriched_profiles import (
-            EnrichedEngineeringProfile,
-            EnrichedTableProfile,
-        )
+    if version == "phase-6r-profile-v1":
+        from powerforge_extraction.phase6r_profile import Phase6RProfile, require_profile
 
-        model = (
-            EnrichedEngineeringProfile
-            if version == "execution-profile-v5"
-            else EnrichedTableProfile
-        )
-        return model.model_validate_json(json.dumps(configuration))
+        profile = Phase6RProfile.model_validate_json(json.dumps(configuration))
+        require_profile(profile)
+        return profile
     if version == "source-layout-profile-v1":
         from powerforge_extraction.layout_profiles import SourceLayoutProfile
 
@@ -120,18 +114,6 @@ def read_profile(configuration: dict) -> ExecutionProfile | EngineeringProfile:
         from powerforge_extraction.enrichment_profiles import PreparationProfile
 
         return PreparationProfile.model_validate_json(json.dumps(configuration))
-    if version == "execution-profile-v1":
-        return ExecutionProfile.model_validate(configuration)
-    if version == "execution-profile-v2":
-        return EngineeringProfile.model_validate(configuration)
-    if version == "execution-profile-v3":
-        from powerforge_extraction.production_profiles import ProductionProfile
-
-        return ProductionProfile.model_validate(configuration)
-    if version == "execution-profile-v4":
-        from powerforge_extraction.table_profiles import TableProfile
-
-        return TableProfile.model_validate(configuration)
     raise ValueError("Unsupported pinned execution profile version")
 
 
@@ -179,38 +161,8 @@ def engineering_profile(key: str, settings: Settings) -> EngineeringProfile:
 
 
 def resolve_profile(key: str, settings: Settings) -> ExecutionProfile:
-    from powerforge_extraction.enriched_profiles import PROFILES, enriched_profile
-    from powerforge_extraction.production_profiles import PRODUCTION_PROFILES, production_profile
-    from powerforge_extraction.table_profiles import TABLE_PROFILES, table_profile
+    from powerforge_extraction.phase6r_profile import KEY, phase6r_profile
 
-    if key in PROFILES:
-        return enriched_profile(key, settings)
-    if key in TABLE_PROFILES:
-        return table_profile(key, settings)
-    if key in PRODUCTION_PROFILES:
-        return production_profile(key, settings)
-    if key in {ENGINEERING_TEST_PROFILE, ENGINEERING_TEXT_TEST_PROFILE}:
-        return engineering_profile(key, settings)
-    if key not in {FAKE_PROFILE, OPENAI_PROFILE}:
-        raise ValueError("Unknown extraction profile; production extractors are not available")
-    live = key == OPENAI_PROFILE
-    return ExecutionProfile(
-        key=key,
-        execution_kind="INFRASTRUCTURE_PROBE" if live else "FAKE_TEST",
-        provider="openai" if live else "fake",
-        model=settings.extraction_model if live else "deterministic-fake-v1",
-        max_pages=settings.extraction_max_pages,
-        max_input_bytes=settings.extraction_max_input_bytes,
-        max_image_pixels=settings.extraction_max_image_pixels,
-        max_output_tokens=settings.extraction_max_output_tokens,
-        max_attempts=settings.extraction_max_attempts,
-        max_calls=settings.extraction_max_calls,
-        max_concurrent=settings.extraction_max_concurrent_per_run,
-        timeout_seconds=settings.extraction_timeout_seconds,
-        lease_seconds=settings.extraction_lease_seconds,
-        backoff_seconds=settings.extraction_backoff_seconds,
-        fake_scenario=settings.extraction_fake_scenario,
-        pricing_basis=settings.extraction_pricing_basis if live else None,
-        input_usd_per_million=settings.extraction_input_usd_per_million if live else None,
-        output_usd_per_million=settings.extraction_output_usd_per_million if live else None,
-    )
+    if key != KEY:
+        raise ValueError("Unknown extraction profile")
+    return phase6r_profile(settings)

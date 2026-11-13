@@ -34,9 +34,9 @@ function makePreview(selection: OperationSelection): OperationPreview {
       })),
     })),
     errors: [],
-    profiles: selection.families.map((family) => ({ family, key: family, provider: "openai", model: "fixture", enabled: true })),
-    review_hash: selection.families.join(","),
-    planned_runs: selection.families.length,
+    profile: { key: "phase-6r", provider: "openai", model: "fixture", enabled: true },
+    review_hash: "reviewed",
+    planned_runs: selection.documents.length,
     provider_admissions: 12, ocr_attempts: 3, parallel_documents: 2,
     consent_version: "external-openai-v1",
   };
@@ -51,7 +51,7 @@ beforeEach(() => {
   vi.mocked(startExtractionOperation).mockResolvedValue({ id: "operation" });
 });
 
-it("validates source and OCR pages, retains targeting, and starts only after consent", async () => {
+it("validates source and OCR pages, and starts only after consent", async () => {
   const user = userEvent.setup();
   const started = vi.fn();
   render(<StartExtractionWizard scope={scope} launch={{ documentIds: ["source"] }} onClose={vi.fn()} onStarted={started} />);
@@ -73,24 +73,16 @@ it("validates source and OCR pages, retains targeting, and starts only after con
   await user.type(ocr, "2");
   await waitFor(() => expect(modal.getByRole("button", { name: "Continue to extraction" })).toBeEnabled());
   await user.click(modal.getByRole("button", { name: "Continue to extraction" }));
-  expect(modal.getByText("Comprehensive extraction")).toBeVisible();
-  expect(await modal.findByText("2 extraction runs requested")).toBeVisible();
-  await user.click(modal.getByText("Advanced extraction settings"));
-  await user.click(modal.getByRole("checkbox", { name: "Extract from engineering text" }));
-  expect(modal.getByRole("checkbox", { name: "Extract from tables and schedules" })).toBeDisabled();
+  expect(modal.getByText("Unified extraction")).toBeVisible();
   expect(await modal.findByText("1 extraction run requested")).toBeVisible();
-
-  await user.click(modal.getByRole("button", { name: "Back" }));
-  await user.click(modal.getByRole("button", { name: "Continue to extraction" }));
-  expect(modal.getByText("Targeted extraction")).toBeVisible();
   expect(startExtractionOperation).not.toHaveBeenCalled();
   expect(modal.getByRole("button", { name: "Start extraction" })).toBeDisabled();
-  await user.click(modal.getByRole("checkbox", { name: /I authorize.*OpenAI.*tables and schedules/ }));
+  await user.click(modal.getByRole("checkbox", { name: /I authorize.*OpenAI/ }));
   await user.click(modal.getByRole("button", { name: "Start extraction" }));
   expect(startExtractionOperation).toHaveBeenCalledWith(scope, {
     documents: [{ revision_document_id: "source", processing_run_id: "processing-version", pages: [1, 2], force_ocr_pages: [2] }],
-    families: ["tables"], mode: "ensure",
-  }, "tables", expect.any(String));
+    mode: "ensure",
+  }, "reviewed", expect.any(String));
   expect(started).toHaveBeenCalledWith("operation", "source");
 });
 
@@ -115,7 +107,7 @@ it.each([
   expect(startExtractionOperation).not.toHaveBeenCalled();
 });
 
-it("refreshes a stale review and requires fresh consent for a valid replacement", async () => {
+it("clears consent when refreshing a stale review returns a blocked plan", async () => {
   const conflict = "The reviewed extraction plan changed. Review it before submitting.";
   vi.mocked(startExtractionOperation).mockRejectedValueOnce(Object.assign(new Error(conflict), {
     status: 409, apiError: { detail: conflict },
@@ -148,14 +140,4 @@ it("refreshes a stale review and requires fresh consent for a valid replacement"
   expect(startExtractionOperation).toHaveBeenCalledTimes(1);
   expect(started).not.toHaveBeenCalled();
 
-  await user.click(modal.getByText("Advanced extraction settings"));
-  await user.click(modal.getByRole("checkbox", { name: "Extract from engineering text" }));
-  await waitFor(() => expect(consent).toBeEnabled());
-  expect(consent).not.toBeChecked();
-  expect(start).toBeDisabled();
-  await user.click(consent);
-  await user.click(start);
-  expect(startExtractionOperation).toHaveBeenCalledTimes(2);
-  expect(startExtractionOperation).toHaveBeenLastCalledWith(scope, expect.objectContaining({ families: ["tables"] }), "tables", expect.any(String));
-  expect(started).toHaveBeenCalledWith("operation", "source");
 });

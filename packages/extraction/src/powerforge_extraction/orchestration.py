@@ -12,15 +12,12 @@ from sqlalchemy import exists, func, or_, select, text
 from sqlalchemy.orm import Session, aliased
 
 from powerforge_ai.extraction import ErrorCode, ExecutionUsage, ExtractionRequest
-from powerforge_document_model import PageArtifactType, ProcessingRunStatus
 from powerforge_document_processing.models import (
-    Document,
     DocumentPage,
-    DocumentProcessingRun,
     PageArtifact,
 )
 from powerforge_document_processing.storage.base import ObjectStorage
-from powerforge_extraction.contracts import AICallInput, RunInput, WorkUnitInput, WorkUnitOutput
+from powerforge_extraction.contracts import AICallInput, WorkUnitInput, WorkUnitOutput
 from powerforge_extraction.controls import RunExecution, UnitExecution
 from powerforge_extraction.dependencies import latest_units, retryable_keys, unit_key
 from powerforge_extraction.enums import ExtractionRunStatus as RS
@@ -36,13 +33,9 @@ from powerforge_extraction.grounding import PageSpec
 from powerforge_extraction.models import ExtractionRun, ExtractionWorkUnit
 from powerforge_extraction.persistence import ExtractionPersistence
 from powerforge_extraction.profiles import (
-    FAKE_PROFILE,
-    EngineeringProfile,
     ExecutionProfile,
     read_profile,
-    resolve_profile,
 )
-from powerforge_extraction.table_profiles import TableProfile
 from powerforge_shared.config import Settings
 
 if TYPE_CHECKING:
@@ -66,10 +59,6 @@ class Enqueue(Protocol):
     def enqueue(self, unit_id: UUID) -> None: ...
 
     def enqueue_source(self, unit_id: UUID) -> None: ...
-
-
-def empty_table_output() -> WorkUnitOutput:
-    return WorkUnitOutput(diagnostic_counts={"skipped_empty_tables": 1})
 
 
 @dataclass(frozen=True)
@@ -142,9 +131,7 @@ class ExtractionCoordinator:
     def _execution(self, run_id: UUID) -> RunExecution:
         row = self.session.get(RunExecution, run_id, populate_existing=True)
         if row is None:
-            raise ExtractionConflict(
-                "This historical run has no executable profile; re-extract instead"
-            )
+            raise ExtractionConflict("Run has no pinned execution configuration")
         return row
 
     def start(
@@ -152,206 +139,19 @@ class ExtractionCoordinator:
         document_id: UUID,
         *,
         revision_document_id: UUID | None = None,
-        profile_key: str = FAKE_PROFILE,
+        profile_key: str = "phase-6r",
         pages: list[int] | None = None,
         mode: str = "ensure",
         enrichment_bindings=None,
     ) -> ExtractionRun:
-        from powerforge_extraction.enriched_profiles import PROFILES
+        from powerforge_extraction.enriched_planning import start_phase6r
+        from powerforge_extraction.phase6r_profile import KEY
 
-        if profile_key in PROFILES:
-            from powerforge_extraction.enriched_planning import start_enriched
-
-            return start_enriched(
-                self,
-                document_id,
-                revision_document_id,
-                profile_key,
-                pages,
-                mode,
-                enrichment_bindings,
-            )
-        if enrichment_bindings:
-            raise ExtractionError("Enrichment bindings require an enhanced extraction profile")
-        if not self.settings.extraction_enabled:
-            raise ExtractionDisabled("Extraction is disabled")
-        try:
-            profile = resolve_profile(profile_key, self.settings)
-        except ValueError:
-            raise ExtractionError("Unknown or invalid extraction profile") from None
-        if profile.provider == "openai" and not self.settings.extraction_external_enabled:
-            raise ExtractionDisabled("External extraction must be explicitly enabled")
-        document = self.session.scalar(
-            select(Document).where(Document.id == document_id).with_for_update()
+        if profile_key != KEY:
+            raise ExtractionError("Unknown extraction profile")
+        return start_phase6r(
+            self, document_id, revision_document_id, pages, mode, enrichment_bindings
         )
-        if document is None:
-            raise ExtractionError("Source document not found")
-        if document.size_bytes > self.settings.extraction_max_document_bytes:
-            raise ExtractionError("Document exceeds the configured extraction size limit")
-        processing = self.session.scalar(
-            select(DocumentProcessingRun)
-            .where(
-                DocumentProcessingRun.document_id == document_id,
-                DocumentProcessingRun.status == ProcessingRunStatus.COMPLETED,
-            )
-            .order_by(DocumentProcessingRun.created_at.desc(), DocumentProcessingRun.id.desc())
-            .limit(1)
-        )
-        if processing is None:
-            raise ExtractionConflict("A completed document-processing run is required")
-        page_rows = list(
-            self.session.scalars(
-                select(DocumentPage)
-                .where(DocumentPage.document_id == document_id)
-                .order_by(DocumentPage.page_number)
-            )
-        )
-        selected = pages if pages is not None else [p.page_number for p in page_rows]
-        if (
-            not selected
-            or selected != sorted(set(selected))
-            or len(selected) > profile.max_pages
-            or min(selected) < 1
-        ):
-            raise ExtractionError("Select distinct ascending pages within the configured limit")
-        by_number = {p.page_number: p for p in page_rows}
-        artifacts = list(
-            self.session.scalars(
-                select(PageArtifact).where(PageArtifact.processing_run_id == processing.id)
-            )
-        )
-        chosen = []
-        for number in selected:
-            page = by_number.get(number)
-            if page is None:
-                raise ExtractionError("Selected page does not belong to the document")
-            available = {a.artifact_type: a for a in artifacts if a.document_page_id == page.id}
-            native = available.get(PageArtifactType.NATIVE_TEXT)
-            image = available.get(PageArtifactType.ANALYSIS_IMAGE)
-            if isinstance(profile, (EngineeringProfile, TableProfile)):
-                if profile.input_strategy == "NATIVE_TEXT_ONLY" and native is None:
-                    raise ExtractionError("This profile requires pinned native text on every page")
-                selected_artifacts = [
-                    a
-                    for a in (native, image)
-                    if a is not None
-                    and (a is native or profile.input_strategy != "NATIVE_TEXT_ONLY")
-                ]
-                if sum(a.size_bytes for a in selected_artifacts) > profile.max_total_input_bytes:
-                    raise ExtractionError("Selected page exceeds the combined input limit")
-            else:
-                selected_artifacts = [native or image] if native or image else []
-            if not selected_artifacts or any(
-                a.size_bytes > profile.max_input_bytes for a in selected_artifacts
-            ):
-                raise ExtractionError("Selected page lacks a usable bounded processing artifact")
-            for artifact in selected_artifacts:
-                if isinstance(
-                    profile, (EngineeringProfile, TableProfile)
-                ) and artifact.mime_type != (
-                    "text/plain"
-                    if artifact.artifact_type == PageArtifactType.NATIVE_TEXT
-                    else "image/png"
-                ):
-                    raise ExtractionError("Selected artifact has an unsupported media type")
-                if artifact.artifact_type == PageArtifactType.ANALYSIS_IMAGE and (
-                    artifact.width_px is None
-                    or artifact.height_px is None
-                    or artifact.width_px * artifact.height_px > profile.max_image_pixels
-                ):
-                    raise ExtractionError(
-                        "Selected analysis image exceeds the configured pixel limit"
-                    )
-            chosen.append((page, selected_artifacts))
-        compatible = select(ExtractionRun).where(
-            ExtractionRun.document_id == document_id,
-            ExtractionRun.execution_purpose == "EXTRACTION",
-            ExtractionRun.processing_run_id == processing.id,
-            ExtractionRun.profile_hash == profile.identity_hash,
-            ExtractionRun.selected_pages == selected,
-            ExtractionRun.context_fingerprint.is_(None),
-        )
-        latest = self.session.scalar(
-            compatible.order_by(ExtractionRun.created_at.desc(), ExtractionRun.id.desc()).limit(1)
-        )
-        active = self.session.scalar(compatible.where(ExtractionRun.status.in_(ACTIVE)).limit(1))
-        if active is not None:
-            return active
-        if mode == "ensure":
-            completed = self.session.scalar(
-                compatible.where(ExtractionRun.status == RS.COMPLETED)
-                .order_by(ExtractionRun.created_at.desc(), ExtractionRun.id.desc())
-                .limit(1)
-            )
-            if completed is not None:
-                return completed
-            if latest is not None:
-                # A repeated ensure is not permission to spend a fresh full-run budget.
-                # Preserve partial successes and require explicit retry/re-extraction.
-                return latest
-        elif mode != "reextract":
-            raise ExtractionError("Unknown extraction request mode")
-        predecessor = latest
-        if mode == "reextract" and predecessor is None:
-            predecessor = self.session.scalar(
-                select(ExtractionRun)
-                .where(
-                    ExtractionRun.document_id == document_id,
-                    ExtractionRun.execution_purpose == "EXTRACTION",
-                    ExtractionRun.status.not_in(ACTIVE),
-                    ExtractionRun.context_fingerprint.is_(None),
-                )
-                .order_by(ExtractionRun.created_at.desc(), ExtractionRun.id.desc())
-                .limit(1)
-            )
-        run = self.persistence.create_run(
-            RunInput(
-                document_id=document_id,
-                processing_run_id=processing.id,
-                initiated_from_revision_document_id=revision_document_id,
-                extractor_version="orchestration-v1",
-                schema_version=profile.schema_version,
-                profile_version=profile.version,
-                profile_hash=profile.identity_hash,
-                provider=profile.provider,
-                model=profile.model,
-                prompt_version=profile.prompt_version,
-                prompt_hash=profile.prompt_hash,
-                selected_pages=selected,
-                stages=list(profile.stages)
-                if isinstance(profile, (EngineeringProfile, TableProfile))
-                else [profile.stage],
-                input_artifact_ids=[a.id for _, artifacts in chosen for a in artifacts],
-                reextracts_run_id=predecessor.id if predecessor else None,
-            )
-        )
-        self.session.add(RunExecution(run_id=run.id, configuration=profile.model_dump(mode="json")))
-        self.session.flush()
-        for page, artifacts in chosen:
-            stages = (
-                profile.stages
-                if isinstance(profile, (EngineeringProfile, TableProfile))
-                else [profile.stage]
-            )
-            for stage in stages:
-                metadata = {}
-                if isinstance(profile, (EngineeringProfile, TableProfile)):
-                    from powerforge_extraction.stage_runtime import planned_metadata
-
-                    metadata = planned_metadata(profile, stage, page.page_number)
-                unit = self.persistence.create_work_unit(
-                    run.id,
-                    WorkUnitInput(
-                        unit_key=unit_key(stage, page.page_number),
-                        stage=stage,
-                        page_numbers=[page.page_number],
-                        input_artifact_ids=[artifact.id for artifact in artifacts],
-                        execution_metadata=metadata,
-                    ),
-                )
-                self._delivery(unit, self.now())
-        self.session.flush()
-        return run
 
     def _delivery(self, unit: ExtractionWorkUnit, available: datetime) -> None:
         self.session.add(
@@ -443,6 +243,8 @@ class ExtractionCoordinator:
             or delivery.available_at > now
         ):
             return None
+        if (profile.provider == "local") != (purpose == "SOURCE_ENRICHMENT"):
+            return None
         if profile.version == "source-layout-profile-v1":
             from powerforge_extraction.layout_service import validate_layout_plan
             from powerforge_extraction.layout_sources import prerequisite_unit
@@ -461,19 +263,21 @@ class ExtractionCoordinator:
             if unit.stage == "SPATIAL_LAYOUT" and prerequisite_unit(self.session, unit) is None:
                 self.aggregate(run)
                 return None
-        if isinstance(profile, (EngineeringProfile, TableProfile)):
-            from powerforge_extraction.stage_runtime import successful_prerequisite, validate_plan
+        from powerforge_extraction.phase6r_profile import Phase6RProfile
+        from powerforge_extraction.phase6r_runtime import prerequisite_result, validate_plan
 
+        no_call = False
+        if isinstance(profile, Phase6RProfile):
             try:
-                validate_plan(unit, profile)
-                from powerforge_extraction.enriched_profiles import is_enriched
+                validate_plan(self.session, unit, profile)
+                if unit.stage == "ATTRIBUTE_EXTRACTION":
+                    from powerforge_extraction.phase6r_contracts import attribute_catalog
+                    from powerforge_extraction.phase6r_runtime import recognition_result
 
-                if is_enriched(profile):
-                    from powerforge_extraction.enriched_runtime import (
-                        validate_plan as enriched_plan,
-                    )
-
-                    enriched_plan(self.session, unit, profile)
+                    parent = prerequisite_result(self.session, unit)
+                    if parent is None:
+                        return None
+                    no_call = not attribute_catalog(recognition_result(parent))
             except (ValueError, KeyError, StopIteration):
                 unit.status, unit.error_code, unit.finished_at = (
                     US.FAILED,
@@ -483,13 +287,7 @@ class ExtractionCoordinator:
                 self.session.flush()
                 self.aggregate(run)
                 return None
-            if (
-                unit.execution_metadata.get("prerequisite_key")
-                and successful_prerequisite(self.session, unit) is None
-            ):
-                self.aggregate(run)
-                return None
-        if control.calls_admitted >= profile.max_calls:
+        if not no_call and control.calls_admitted >= profile.max_calls:
             unit.status, unit.error_code, unit.finished_at = US.FAILED, ErrorCode.BUDGET.value, now
             self.session.flush()
             self.aggregate(run)
@@ -518,7 +316,7 @@ class ExtractionCoordinator:
         if (
             not self.settings.enrichment_enabled
             if run.execution_purpose == "SOURCE_ENRICHMENT"
-            else not self.settings.extraction_enabled
+            else not (self.settings.extraction_enabled and self.settings.extraction_phase6r_fake)
         ) or (profile.provider == "openai" and not self.settings.extraction_external_enabled):
             unit.status, unit.error_code, unit.finished_at = (
                 US.FAILED,
@@ -541,18 +339,10 @@ class ExtractionCoordinator:
         unit.lease_expires_at = now + timedelta(seconds=min(profile.lease_seconds, timeout + 15))
         delivery.token = token
         delivery.hard_deadline_at = now + timedelta(seconds=timeout + 15)
-        control.calls_admitted += 1
+        control.calls_admitted += int(not no_call)
         self.session.flush()
         artifact = self.session.get(PageArtifact, UUID(unit.input_artifact_ids[0]))
         page = self.session.get(DocumentPage, artifact.document_page_id)
-        page_spec, upstream_id = None, None
-        if isinstance(profile, (EngineeringProfile, TableProfile)):
-            from powerforge_extraction.engineering_sources import page_spec_for_unit
-            from powerforge_extraction.stage_runtime import successful_prerequisite
-
-            page_spec = page_spec_for_unit(self.session, unit.id)
-            parent = successful_prerequisite(self.session, unit)
-            upstream_id = parent.id if parent else None
         return Claim(
             run.id,
             unit.id,
@@ -568,8 +358,6 @@ class ExtractionCoordinator:
             artifact.mime_type,
             artifact.size_bytes,
             artifact.sha256,
-            page_spec,
-            upstream_id,
         )
 
     def _authorized(self, unit_id: UUID, token: UUID):
@@ -619,19 +407,18 @@ class ExtractionCoordinator:
         if delivery.provider_started_at is not None:
             raise LeaseLost("This attempt already crossed the provider-call boundary")
         profile = read_profile(self._execution(run.id).configuration)
-        if isinstance(profile, (EngineeringProfile, TableProfile)):
-            from powerforge_extraction.stage_runtime import require_supported, stage_call
+        if profile.provider == "local":
+            raise ValueError("Local source jobs cannot start an AI call")
+        from powerforge_extraction.phase6r_profile import PROMPT, RESPONSES
 
-            require_supported(profile)
-            call = stage_call(self.session, unit, profile)
-            if request is None or (
-                request.stage != unit.stage
-                or request.instructions != call.instructions
-                or request.schema_version != call.schema_version
-                or request.response_model is not call.response_model
-                or request.upstream_context != call.upstream_context
-            ):
-                raise ValueError("Request differs from its pinned stage context")
+        if request is None or (
+            request.work_unit_id != unit.id
+            or request.stage != unit.stage
+            or request.instructions != PROMPT
+            or request.response_model is not RESPONSES[unit.stage]
+            or request.schema_version != profile.schema_version
+        ):
+            raise ValueError("Request differs from its pinned Phase 6R stage")
         delivery.provider_started_at = self.now()
         self.session.flush()
 
@@ -651,12 +438,6 @@ class ExtractionCoordinator:
             return
         prompt_version, prompt_hash = profile.prompt_version, profile.prompt_hash
         schema_version, correlation = profile.schema_version, str(unit.id)
-        if isinstance(profile, (EngineeringProfile, TableProfile)):
-            from powerforge_extraction.stage_runtime import stage_call
-
-            call = stage_call(self.session, unit, profile)
-            prompt_hash, schema_version = call.instruction_hash, call.schema_version
-            correlation = call.correlation_id(unit.id)
         # Missing usage stays unknown; admissions retain interrupted call uncertainty.
         cost = None
         if (
@@ -711,33 +492,26 @@ class ExtractionCoordinator:
         )
         self.aggregate(run)
 
-    def complete_empty_table(
-        self,
-        unit_id: UUID,
-        token: UUID,
-        storage: ObjectStorage,
-        *,
-        verification: VerifiedEnrichedPublication | None = None,
-    ) -> None:
-        """An ordinary leased admission; no external-call row or invented zero usage."""
-        import json
-
-        from powerforge_extraction.stage_runtime import require_supported, stage_call
+    def complete_stage(self, unit_id, token, wire, result, usage):
+        from powerforge_extraction.phase6r_contracts import NoEligibleAttributes
+        from powerforge_extraction.phase6r_runtime import store_result
 
         run, unit, delivery = self._authorized(unit_id, token)
+        if isinstance(result, NoEligibleAttributes) != (delivery.provider_started_at is None):
+            raise ValueError("Stage outcome differs from the provider call boundary")
+        if run.execution_purpose != "EXTRACTION":
+            raise ValueError("AI stage results require an extraction run")
         profile = read_profile(self._execution(run.id).configuration)
-        if (
-            not isinstance(profile, TableProfile)
-            or unit.stage != "TABLE_INTERPRETATION"
-            or delivery.provider_started_at is not None
-        ):
-            raise ValueError("Empty completion requires an uncalled table interpretation")
-        require_supported(profile)
-        call = stage_call(self.session, unit, profile)
-        if json.loads(call.upstream_context)["tables"]:
-            raise ValueError("Nonempty tables require ordinary interpretation execution")
-        ExtractionPersistence(self.session, storage).publish(
-            unit.id, empty_table_output(), verification=verification
+        store_result(self.session, unit, wire, result)
+        self._telemetry(unit, profile, self.now(), "SUCCEEDED", None, usage)
+        unit.status, unit.finished_at = US.COMPLETED, self.now()
+        self.session.flush()
+        units = self._units(run.id)
+        successful = {row.unit_key for row in units if row.status == US.COMPLETED}
+        run.units_completed = len(successful)
+        run.pages_processed = sum(
+            all(unit_key(stage, page) in successful for stage in profile.stages)
+            for page in run.selected_pages
         )
         self.aggregate(run)
 
@@ -813,6 +587,9 @@ class ExtractionCoordinator:
         *,
         purpose: str = "EXTRACTION",
         acknowledge_unknown_outcome: bool = False,
+        page_id: UUID | None = None,
+        stage: str | None = None,
+        expected_attempt: int | None = None,
     ) -> ExtractionRun:
         run = self._run(run_id)
         if run.execution_purpose != purpose:
@@ -828,7 +605,7 @@ class ExtractionCoordinator:
         if (
             not self.settings.enrichment_enabled
             if run.execution_purpose == "SOURCE_ENRICHMENT"
-            else not self.settings.extraction_enabled
+            else not (self.settings.extraction_enabled and self.settings.extraction_phase6r_fake)
         ) or (profile.provider == "openai" and not self.settings.extraction_external_enabled):
             raise ExtractionDisabled("Extraction provider is disabled")
         if control.calls_admitted >= profile.max_calls:
@@ -839,6 +616,32 @@ class ExtractionCoordinator:
         latest = latest_units(units)
         keys = retryable_keys(units, profile.max_attempts)
         eligible = [u for u in latest.values() if u.unit_key in keys]
+        if stage is not None:
+            target = next(
+                (
+                    u
+                    for u in latest.values()
+                    if u.stage == stage
+                    and u.execution_metadata.get("source_page_id") == str(page_id)
+                ),
+                None,
+            )
+            if target is None:
+                raise ExtractionNotFound("Extraction page stage not found")
+            if target.attempt_number != expected_attempt:
+                raise ExtractionConflict("The selected attempt changed")
+            if target in eligible:
+                eligible = [target]
+                # Reopen a dependent that was never called because recognition failed.
+                eligible.extend(
+                    u
+                    for u in latest.values()
+                    if u.unit_key in keys
+                    and u.error_code == ErrorCode.DEPENDENCY.value
+                    and u.execution_metadata.get("prerequisite_key") == target.unit_key
+                )
+            else:
+                eligible = []
         if not eligible:
             raise ExtractionConflict(
                 "No unsuccessful logical units remain within the pinned attempt limit"

@@ -9,41 +9,17 @@ from powerforge_ai.extraction import ErrorCode, ExtractionProvider, ProviderFail
 from powerforge_document_processing.storage.factory import build_s3_storage
 from powerforge_extraction.enqueue import QUEUE, RECOVER_TASK, UNIT_TASK, CeleryExtractionEnqueue
 from powerforge_extraction.execution import execute_unit
-from powerforge_extraction.fake import FakeEngineeringProvider, FakeExtractionProvider
 from powerforge_extraction.orchestration import Claim, ExtractionCoordinator
-from powerforge_extraction.production_profiles import ProductionProfile
-from powerforge_extraction.profiles import EngineeringProfile
-from powerforge_extraction.table_profiles import TableProfile
 from powerforge_shared.config import get_settings
 
 
 def provider_for(claim: Claim) -> ExtractionProvider:
     if claim.profile.provider == "fake":
-        from powerforge_extraction.enriched_profiles import is_enriched
+        from powerforge_extraction.phase6r_runtime import FakePhase6RProvider
 
-        if is_enriched(claim.profile):
-            from powerforge_extraction.enriched_fake import FakeEnrichedProvider
-
-            return FakeEnrichedProvider(claim.profile.fake_scenario)
-        if isinstance(claim.profile, TableProfile):
-            from powerforge_extraction.table_fake import FakeTableProvider
-
-            return FakeTableProvider(claim.profile.fake_scenario)
-        if isinstance(claim.profile, EngineeringProfile):
-            return FakeEngineeringProvider(claim.profile.fake_scenario)
-        return FakeExtractionProvider(claim.profile.fake_scenario)
-    if isinstance(claim.profile, EngineeringProfile) and not isinstance(
-        claim.profile, ProductionProfile
-    ):
-        raise ProviderFailure(ErrorCode.DISABLED)
-    from extraction_worker.openai_extraction import OpenAIExtractionProvider
-
-    return OpenAIExtractionProvider(
-        get_settings(),
-        profile=claim.profile
-        if isinstance(claim.profile, (ProductionProfile, TableProfile))
-        else None,
-    )
+        return FakePhase6RProvider(claim.profile.fake_scenario)
+    # The live provider adapter and semantic prompts land together in 6R-C.
+    raise ProviderFailure(ErrorCode.DISABLED)
 
 
 @celery_app.task(

@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Text, func, or_, select, text
+from sqlalchemy import Boolean, DateTime, Text, func, select, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -41,10 +41,8 @@ class OperationItem(Base):
     processing_run_id: Mapped[UUID]
     selection: Mapped[dict] = mapped_column(JSONB)
     layout_run_id: Mapped[UUID | None]
-    engineering_run_id: Mapped[UUID | None]
-    tables_run_id: Mapped[UUID | None]
-    owns_engineering: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
-    owns_tables: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    extraction_run_id: Mapped[UUID | None]
+    owns_extraction: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     blocked_reason: Mapped[str | None] = mapped_column(Text)
 
 
@@ -55,12 +53,7 @@ def managed_remote_run(session, run_id):
     return (
         session.scalar(
             select(OperationItem.operation_id)
-            .where(
-                or_(
-                    (OperationItem.engineering_run_id == run_id) & OperationItem.owns_engineering,
-                    (OperationItem.tables_run_id == run_id) & OperationItem.owns_tables,
-                )
-            )
+            .where(OperationItem.extraction_run_id == run_id, OperationItem.owns_extraction)
             .limit(1)
         )
         is not None

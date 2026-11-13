@@ -1,4 +1,4 @@
-"""Durable Phase 6F admission, source barriers, recovery and scope."""
+"""Phase 6R admission, source barriers, recovery and scope."""
 
 import json
 from concurrent.futures import ThreadPoolExecutor
@@ -9,11 +9,11 @@ from uuid import UUID, uuid4
 
 import pymupdf
 import pytest
-from sqlalchemy import select
+from sqlalchemy import inspect, select, text
+from sqlalchemy.exc import DBAPIError
 
 from documents_support import client, make_project, make_revision
 from enrichment_support import Delivery, build_source
-from powerforge_ai.extraction import ErrorCode, ProviderFailure
 from powerforge_api.db import get_session_factory
 from powerforge_api.main import app
 from powerforge_document_processing.models import (
@@ -22,7 +22,6 @@ from powerforge_document_processing.models import (
     PageArtifact,
     RevisionDocument,
 )
-from powerforge_document_processing.storage.factory import get_object_storage
 from powerforge_extraction.enqueue import get_extraction_enqueue
 from powerforge_extraction.execution import execute_unit
 from powerforge_extraction.layout_execution import execute_enrichment
@@ -32,8 +31,7 @@ from powerforge_extraction.operation_models import ExtractionOperation, Operatio
 from powerforge_extraction.operations import now, reconcile_operations
 from powerforge_extraction.orchestration import ACTIVE, ExtractionCoordinator
 from powerforge_shared.config import Settings, get_settings
-from test_enrichment_native import native_pdf, scan_png
-from test_extraction_celery_integration import live_worker, wait_for
+from test_enrichment_native import native_pdf
 
 pytestmark = pytest.mark.integration
 
@@ -47,11 +45,11 @@ def operation_context(ctx):
         enrichment_enabled=True,
         enrichment_ocr_configuration=configuration,
         extraction_external_enabled=True,
+        extraction_phase6r_fake=True,
         extraction_operation_max_concurrent_documents=1,
         extraction_backoff_seconds=0,
         extraction_recovery_interval_seconds=1,
         extraction_redispatch_seconds=1,
-        openai_api_key="phase6f-test-stub",
     )
     delivery = Delivery()
     app.dependency_overrides[get_settings] = lambda: settings
@@ -159,6 +157,11 @@ def test_admission_reviews_exact_inputs_and_coalesces_concurrent_submissions(ope
     first = new_source(ctx, "first.pdf")
     second = new_source(ctx, "second.pdf")
     root = ctx["operation_base"]
+    runs_url = (
+        root.removesuffix("/extraction")
+        + f"/documents/{first['revision_document_id']}/extraction/runs"
+    )
+    assert client.post(runs_url, json={}).status_code == 405
     selected = [first, second]
     discovery = client.post(
         root + "/operations/sources",
@@ -168,8 +171,8 @@ def test_admission_reviews_exact_inputs_and_coalesces_concurrent_submissions(ope
     assert all(item["available_pages"] == [1] for item in discovery.json()["items"])
     plan, request = reviewed(ctx, selected)
     assert plan["review_hash"]
-    assert plan["planned_runs"] == 4
-    assert plan["provider_admissions"] == 24
+    assert plan["planned_runs"] == 2
+    assert plan["provider_admissions"] == 12
     assert all(not item["pages"][0]["reuse_layout"] for item in plan["items"])
     with ctx["factory"]() as session:
         assert (
@@ -232,19 +235,13 @@ def test_admission_reviews_exact_inputs_and_coalesces_concurrent_submissions(ope
     advance(ctx, operation_id)
     active = detail_operation(ctx, operation_id)
     assert sum(item["layout"]["run_id"] is not None for item in active["items"]) == 1
-    assert all(
-        step["run_id"] is None for item in active["items"] for step in item["profiles"].values()
-    )
+    assert all(item["extraction"]["run_id"] is None for item in active["items"])
     reply = client.post(root + f"/operations/{operation_id}/cancel")
     assert reply.status_code == 200 and reply.json()["cancel_requested"]
     advance(ctx, operation_id)
     cancelled = detail_operation(ctx, operation_id)
     assert sum(item["layout"]["run_id"] is not None for item in cancelled["items"]) == 1
-    assert all(
-        step["status"] == "CANCELLED"
-        for item in cancelled["items"]
-        for step in item["profiles"].values()
-    )
+    assert all(item["extraction"]["status"] == "CANCELLED" for item in cancelled["items"])
     assert start_operation(ctx, request).json()["id"] == operation_id
     first_admitted = next(item for item in cancelled["items"] if item["layout"]["run_id"])
     doc_id = first_admitted["revision_document_id"]
@@ -254,54 +251,6 @@ def test_admission_reviews_exact_inputs_and_coalesces_concurrent_submissions(ope
     assert hidden["unavailable_sources"] == 1
     assert all(item["revision_document_id"] != doc_id for item in hidden["items"])
     assert first_admitted["layout"]["run_id"] not in json.dumps(hidden)
-
-
-def test_ambiguous_provider_outcome_requires_acknowledgement(operation_context):
-    ctx = operation_context
-    source = new_source(ctx, "exact.pdf")
-    preparation(ctx, source)
-    ready, request = reviewed(ctx, [source], families=["engineering"])
-    assert ready["items"][0]["pages"][0]["reuse_layout"]
-    forced, _ = reviewed(ctx, [{**source, "force_ocr_pages": [1]}], families=["engineering"])
-    assert forced["review_hash"] != ready["review_hash"]
-    assert not forced["items"][0]["pages"][0]["reuse_preparation"]
-    response = start_operation(ctx, request)
-    assert response.status_code == 202, response.text
-    operation_id = response.json()["id"]
-    advance(ctx, operation_id)
-    item = detail_operation(ctx, operation_id)["items"][0]
-    assert item["layout"]["status"] == "REUSED"
-    run_id = item["profiles"]["engineering"]["run_id"]
-    assert run_id
-    with ctx["factory"]() as session:
-        unit_id = session.scalar(
-            select(ExtractionWorkUnit.id).where(
-                ExtractionWorkUnit.run_id == UUID(run_id),
-                ExtractionWorkUnit.stage == "EQUIPMENT_RECOGNITION",
-            )
-        )
-
-    class Timeout:
-        def execute(self, _request):
-            raise ProviderFailure(ErrorCode.TIMEOUT)
-
-    execute_unit(unit_id, ctx["factory"], ctx["storage"], ctx["settings"], lambda _claim: Timeout())
-    failed = detail_operation(ctx, operation_id)["items"][0]["profiles"]["engineering"]
-    assert failed["unknown_provider_outcome"]
-    assert failed["can_retry"]
-    assert failed["attempts"] == 2  # No automatic third attempt.
-    retry = ctx["operation_base"] + f"/operations/{operation_id}/retry"
-    body = {
-        "revision_document_id": source["revision_document_id"],
-        "step": "engineering",
-        "expected_attempts": failed["attempts"],
-    }
-    assert client.post(retry, json=body).status_code == 409
-    approved = client.post(retry, json={**body, "acknowledge_unknown_outcome": True})
-    assert approved.status_code == 202, approved.text
-    replay = client.post(retry, json={**body, "acknowledge_unknown_outcome": True})
-    assert replay.status_code == 202
-    assert replay.json()["items"][0]["profiles"]["engineering"]["attempts"] == 4
 
 
 def test_missing_object_on_one_selected_page_blocks_all_provider_runs(operation_context):
@@ -333,7 +282,7 @@ def test_missing_object_on_one_selected_page_blocks_all_provider_runs(operation_
     item = detail_operation(ctx, operation_id)["items"][0]
     assert item["blocked_reason"] == "SOURCE_ARTIFACT_UNAVAILABLE"
     assert item["can_resume"]
-    assert all(step["run_id"] is None for step in item["profiles"].values())
+    assert item["extraction"]["run_id"] is None
     ctx["storage"].put(key, BytesIO(original.data), len(original.data), original.content_type)
     reply = client.post(
         ctx["operation_base"] + f"/operations/{operation_id}/retry",
@@ -342,77 +291,342 @@ def test_missing_object_on_one_selected_page_blocks_all_provider_runs(operation_
     assert reply.status_code == 202, reply.text
     advance(ctx, operation_id)
     item = detail_operation(ctx, operation_id)["items"][0]
-    assert all(step["run_id"] for step in item["profiles"].values())
+    assert item["extraction"]["run_id"]
 
 
-def test_beat_advances_mixed_batch_using_real_transport(
-    operation_context, s3_scratch_storage, tmp_path
-):
+@pytest.mark.parametrize("scenario", ["success", "empty"])
+def test_unified_operation_finishes_with_immutable_page_results(operation_context, scenario):
+    from powerforge_extraction.controls import RunExecution
+    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+
     ctx = operation_context
-    storage = s3_scratch_storage
-    ctx["storage"] = storage
-    previous = app.dependency_overrides[get_object_storage]
-    app.dependency_overrides[get_object_storage] = lambda: storage
-    try:
-        ready = new_source(ctx, "ready.pdf")
-        missing = new_source(ctx, "unreadable-ocr.png", scan_png())
-        automatic = new_source(ctx, "force-ocr.pdf")
-        automatic["force_ocr_pages"] = [1]
-        preparation(ctx, ready)
-        preview, request = reviewed(ctx, [ready, missing, automatic])
-        assert preview["review_hash"]
-        result = start_operation(ctx, request)
-        assert result.status_code == 202, result.text
-        operation_id = result.json()["id"]
-        assert detail_operation(ctx, operation_id)["status"] == "QUEUED"
-        with live_worker(
-            ctx,
-            storage,
-            tmp_path / "operations",
-            beat=True,
-            app_module="operation_test_worker",
-            queue="document_extraction,source_enrichment",
-            extra_env={
-                "ENRICHMENT_ENABLED": "true",
-                "ENRICHMENT_OCR_CONFIGURATION": ctx["settings"].enrichment_ocr_configuration,
-                "EXTRACTION_EXTERNAL_ENABLED": "true",
-                "EXTRACTION_BACKOFF_SECONDS": "0",
-                "OPENAI_API_KEY": "phase6f-test-stub",
-            },
-        ):
-            wait_for(lambda: detail_operation(ctx, operation_id)["status"] == "PARTIAL")
-        result = detail_operation(ctx, operation_id)
-        by_name = {item["filename"]: item for item in result["items"]}
-        assert by_name["ready.pdf"]["status"] == "COMPLETED"
-        assert by_name["ready.pdf"]["layout"]["status"] == "REUSED"
-        assert {step["status"] for step in by_name["ready.pdf"]["profiles"].values()} == {
-            "COMPLETED"
-        }
-        assert by_name["force-ocr.pdf"]["status"] == "COMPLETED", by_name["force-ocr.pdf"]
-        assert by_name["force-ocr.pdf"]["layout"]["status"] == "COMPLETED"
-        assert by_name["force-ocr.pdf"]["force_ocr_pages"] == [1]
-        assert {step["status"] for step in by_name["force-ocr.pdf"]["profiles"].values()} == {
-            "COMPLETED"
-        }
-        assert by_name["unreadable-ocr.png"]["status"] == "BLOCKED"
-        assert by_name["unreadable-ocr.png"]["layout"]["status"] == "FAILED"
-        assert all(
-            step["run_id"] is None for step in by_name["unreadable-ocr.png"]["profiles"].values()
+    ctx["settings"].extraction_fake_scenario = scenario
+    with pymupdf.open(stream=native_pdf(), filetype="pdf") as page, pymupdf.open() as document:
+        document.insert_pdf(page)
+        document.insert_pdf(page)
+        source = new_source(ctx, "two-pages.pdf", document.tobytes())
+    source["pages"] = [1, 2]
+    preparation(ctx, source)
+    plan, body = reviewed(ctx, [source])
+    assert plan["planned_runs"] == 1
+    reply = start_operation(ctx, body)
+    assert reply.status_code == 202, reply.text
+    operation_id = reply.json()["id"]
+    advance(ctx, operation_id)
+    run_id = UUID(detail_operation(ctx, operation_id)["items"][0]["extraction"]["run_id"])
+    with ctx["factory"]() as session:
+        units = session.scalars(
+            select(ExtractionWorkUnit).where(ExtractionWorkUnit.run_id == run_id)
+        ).all()
+    recognition = [unit for unit in units if unit.stage == "EQUIPMENT_RECOGNITION"]
+    attributes = [unit for unit in units if unit.stage == "ATTRIBUTE_EXTRACTION"]
+    assert len(recognition) == len(attributes) == 2
+
+    class FixtureProvider:
+        def execute(self, request):
+            result = FakePhase6RProvider("success").execute(request)
+            if scenario == "empty" and request.stage == "EQUIPMENT_RECOGNITION":
+                (equipment,) = result.result.equipment
+                unknown = equipment.model_copy(update={"registry_type": None})
+                result.result = result.result.model_copy(update={"equipment": (unknown,)})
+            elif scenario == "empty":
+                pytest.fail("An unknown equipment observation must not start Call 2")
+            return result
+
+    def execute(unit):
+        return execute_unit(
+            unit.id,
+            ctx["factory"],
+            ctx["storage"],
+            ctx["settings"],
+            lambda _: FixtureProvider(),
         )
 
-        original_id = by_name["ready.pdf"]["profiles"]["engineering"]["run_id"]
-        _, reextract = reviewed(ctx, [ready], families=["engineering"], mode="reextract")
-        again = start_operation(ctx, reextract)
-        assert again.status_code == 202, again.text
-        advance(ctx, again.json()["id"])
-        replacement = detail_operation(ctx, again.json()["id"])["items"][0]["profiles"][
-            "engineering"
-        ]
-        assert replacement["run_id"] != original_id
-        with ctx["factory"]() as session:
-            assert session.get(
-                ExtractionRun, UUID(replacement["run_id"])
-            ).reextracts_run_id == UUID(original_id)
+    assert not execute(attributes[0])
+    for unit in recognition + attributes:
+        assert execute(unit)
+        assert not execute(unit)
+    with ctx["factory"]() as session:
+        run = session.get(ExtractionRun, run_id)
+        assert (run.status, run.pages_processed, run.units_completed) == ("COMPLETED", 2, 4)
+        assert session.get(RunExecution, run_id).calls_admitted == (2 if scenario == "empty" else 4)
+        results = session.scalars(select(StageResult).where(StageResult.run_id == run_id)).all()
+        assert len(results) == 4
+        by_unit = {row.work_unit_id: row for row in results}
+        for unit in attributes:
+            row = by_unit[unit.id]
+            parent = by_unit[row.upstream_work_unit_id]
+            assert (row.document_page_id, row.page_context_hash, row.upstream_hash) == (
+                parent.document_page_id,
+                parent.page_context_hash,
+                parent.result_hash,
+            )
+            assert row.outcome == ("NO_ELIGIBLE_ATTRIBUTES" if scenario == "empty" else "RESULT")
+            if scenario == "empty":
+                (unknown,) = parent.payload["equipment"]
+                assert unknown["registry_type"] is None
+        tables = set(inspect(session.connection()).get_table_names())
+        assert "extraction_stage_results" in tables
+        assert not {"extraction_candidates", "extracted_tables"} & tables
+        with pytest.raises(DBAPIError, match="Stage results are immutable"), session.begin_nested():
+            session.execute(
+                text("UPDATE extraction_stage_results SET outcome=outcome WHERE work_unit_id=:id"),
+                {"id": recognition[0].id},
+            )
+    root = ctx["operation_base"].removesuffix("/extraction")
+    reply = client.get(
+        f"{root}/documents/{source['revision_document_id']}/extraction/runs/{run_id}"
+    )
+    assert reply.status_code == 200, reply.text
+    assert {attempt["stage_outcome"] for attempt in reply.json()["attempts"]} == (
+        {"RESULT", "NO_ELIGIBLE_ATTRIBUTES"} if scenario == "empty" else {"RESULT"}
+    )
+    register = client.get(
+        ctx["operation_base"] + "/status",
+        params={"revision_document_ids": source["revision_document_id"]},
+    )
+    assert register.status_code == 200, register.text
+    (status,) = register.json()["items"]
+    assert status["extraction"]["latest_attempt"]["id"] == str(run_id)
+    assert status["extraction"]["effective_result"] is None
 
-    finally:
-        app.dependency_overrides[get_object_storage] = previous
+
+@pytest.mark.parametrize("cancel", [False, True])
+def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
+    operation_context, cancel
+):
+    from powerforge_ai.extraction import ErrorCode, ProviderFailure
+    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+
+    ctx = operation_context
+    source = new_source(ctx, "retry.pdf")
+    preparation(ctx, source)
+    _, body = reviewed(ctx, [source])
+    reply = start_operation(ctx, body)
+    assert reply.status_code == 202, reply.text
+    operation_id = reply.json()["id"]
+    advance(ctx, operation_id)
+    run_id = UUID(detail_operation(ctx, operation_id)["items"][0]["extraction"]["run_id"])
+    fake = FakePhase6RProvider("success")
+
+    def execute(unit_id, provider=fake):
+        return execute_unit(
+            unit_id, ctx["factory"], ctx["storage"], ctx["settings"], lambda _claim: provider
+        )
+
+    with ctx["factory"]() as session:
+        units = {
+            unit.stage: unit.id
+            for unit in session.scalars(
+                select(ExtractionWorkUnit).where(ExtractionWorkUnit.run_id == run_id)
+            )
+        }
+    recognition = units["EQUIPMENT_RECOGNITION"]
+    attributes = units["ATTRIBUTE_EXTRACTION"]
+    assert execute(recognition)
+    root = ctx["operation_base"] + f"/operations/{operation_id}"
+
+    class AttributeProvider:
+        def execute(self, request):
+            if cancel:
+                reply = client.post(root + "/cancel")
+                assert reply.status_code == 200 and reply.json()["cancel_requested"]
+                return fake.execute(request)
+            raise ProviderFailure(ErrorCode.INVALID)
+
+    assert execute(attributes, AttributeProvider()) is not cancel
+    with ctx["factory"]() as session:
+        assert session.get(StageResult, attributes) is None
+        digest = session.get(StageResult, recognition).result_hash
+        run = session.get(ExtractionRun, run_id)
+        assert run.status == ("CANCELLED" if cancel else "PARTIALLY_COMPLETED")
+        assert run.pages_processed == 0
+    if cancel:
+        return
+    (target,) = detail_operation(ctx, operation_id)["items"][0]["extraction"]["retry_targets"]
+    target.pop("page_number")
+    target.pop("unknown_provider_outcome")
+    response = client.post(
+        root + "/retry", json={"revision_document_id": source["revision_document_id"], **target}
+    )
+    assert response.status_code == 202, response.text
+    with ctx["factory"]() as session:
+        retry = session.scalar(
+            select(ExtractionWorkUnit).where(
+                ExtractionWorkUnit.run_id == run_id,
+                ExtractionWorkUnit.attempt_number == 2,
+            )
+        )
+        assert retry.stage == "ATTRIBUTE_EXTRACTION"
+        retry_id = retry.id
+    assert execute(retry_id)
+    with ctx["factory"]() as session:
+        result = session.get(StageResult, retry_id)
+        assert (result.upstream_work_unit_id, result.upstream_hash) == (recognition, digest)
+        assert session.get(ExtractionRun, run_id).status == "COMPLETED"
+
+
+def test_disabled_test_profile_and_insufficient_budget_block_review(operation_context):
+    ctx = operation_context
+    source = new_source(ctx, "limits.pdf")
+    settings = ctx["settings"]
+    settings.extraction_phase6r_fake = False
+    disabled, _ = reviewed(ctx, [source])
+    assert disabled["review_hash"] is None
+    assert disabled["profile"]["enabled"] is False
+    settings.extraction_phase6r_fake = True
+    settings.extraction_max_calls = 1
+    limited, _ = reviewed(ctx, [source])
+    assert limited["review_hash"] is None
+    assert "admission budget" in limited["items"][0]["error"]
+
+
+def test_expired_recognition_lease_is_fenced_and_reconciled(operation_context):
+    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+
+    ctx = operation_context
+    source = new_source(ctx, "expired-lease.pdf")
+    preparation(ctx, source)
+    _, body = reviewed(ctx, [source])
+    reply = start_operation(ctx, body)
+    assert reply.status_code == 202, reply.text
+    operation_id = reply.json()["id"]
+    advance(ctx, operation_id)
+    run_id = UUID(detail_operation(ctx, operation_id)["items"][0]["extraction"]["run_id"])
+    with ctx["factory"].begin() as session:
+        units = {
+            unit.stage: unit.id
+            for unit in session.scalars(
+                select(ExtractionWorkUnit).where(ExtractionWorkUnit.run_id == run_id)
+            )
+        }
+        recognition = units["EQUIPMENT_RECOGNITION"]
+        attributes = units["ATTRIBUTE_EXTRACTION"]
+        coordinator = ExtractionCoordinator(session, ctx["settings"])
+        assert coordinator.claim(attributes) is None
+        claim = coordinator.claim(recognition)
+        assert claim is not None
+        session.get(ExtractionWorkUnit, recognition).lease_expires_at = now(session) - timedelta(
+            seconds=1
+        )
+    with ctx["factory"].begin() as session:
+        coordinator = ExtractionCoordinator(session, ctx["settings"])
+        assert not coordinator.heartbeat(recognition, claim.token)
+        assert coordinator.reconcile() == 1
+        assert coordinator.claim(attributes) is None
+        retry = session.scalar(
+            select(ExtractionWorkUnit).where(
+                ExtractionWorkUnit.run_id == run_id,
+                ExtractionWorkUnit.attempt_number == 2,
+            )
+        )
+        assert retry.stage == "EQUIPMENT_RECOGNITION"
+        retry_id = retry.id
+
+    for unit_id in (retry_id, attributes):
+        assert execute_unit(
+            unit_id,
+            ctx["factory"],
+            ctx["storage"],
+            ctx["settings"],
+            lambda _: FakePhase6RProvider("success"),
+        )
+    with ctx["factory"]() as session:
+        assert session.get(StageResult, recognition) is None
+        assert session.get(StageResult, attributes).upstream_work_unit_id == retry_id
+        assert session.get(ExtractionRun, run_id).status == "COMPLETED"
+
+
+def test_worker_task_dispatches_only_the_ready_stage(operation_context, monkeypatch):
+    from extraction_worker import extraction_tasks
+    from powerforge_extraction.enqueue import QUEUE, UNIT_TASK
+
+    ctx = operation_context
+    source = new_source(ctx, "worker-task.pdf")
+    preparation(ctx, source)
+    _, body = reviewed(ctx, [source])
+    reply = start_operation(ctx, body)
+    assert reply.status_code == 202, reply.text
+    operation_id = reply.json()["id"]
+    advance(ctx, operation_id)
+    run_id = UUID(detail_operation(ctx, operation_id)["items"][0]["extraction"]["run_id"])
+    with ctx["factory"]() as session:
+        units = {
+            unit.stage: unit.id
+            for unit in session.scalars(
+                select(ExtractionWorkUnit).where(ExtractionWorkUnit.run_id == run_id)
+            )
+        }
+    recognition = units["EQUIPMENT_RECOGNITION"]
+    attributes = units["ATTRIBUTE_EXTRACTION"]
+    messages = []
+
+    def send(task, *, args, queue, retry):
+        messages.append((task, args, queue, retry))
+
+    monkeypatch.setattr(extraction_tasks, "_engine", lambda: ctx["factory"].kw["bind"])
+    monkeypatch.setattr(extraction_tasks, "get_settings", lambda: ctx["settings"])
+    monkeypatch.setattr(extraction_tasks, "build_s3_storage", lambda _: ctx["storage"])
+    monkeypatch.setattr(extraction_tasks.celery_app, "send_task", send)
+    task = extraction_tasks.celery_app.tasks[UNIT_TASK]
+    task.run(str(recognition))
+    assert messages == [(UNIT_TASK, [str(attributes)], QUEUE, False)]
+    task.run(str(attributes))
+    task.run(str(recognition))
+    assert len(messages) == 1
+    with ctx["factory"]() as session:
+        assert session.get(ExtractionRun, run_id).status == "COMPLETED"
+
+
+def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operation_context):
+    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider
+    from spatial_layout_support import drawn_table
+
+    ctx = operation_context
+    source = new_source(ctx, "mixed.pdf", drawn_table(nearby=True))
+    preparation(ctx, source)
+    _, body = reviewed(ctx, [source])
+    reply = start_operation(ctx, body)
+    assert reply.status_code == 202, reply.text
+    operation_id = reply.json()["id"]
+    advance(ctx, operation_id)
+    run_id = UUID(detail_operation(ctx, operation_id)["items"][0]["extraction"]["run_id"])
+    with ctx["factory"]() as session:
+        units = {
+            unit.stage: unit.id
+            for unit in session.scalars(
+                select(ExtractionWorkUnit).where(ExtractionWorkUnit.run_id == run_id)
+            )
+        }
+
+    class CapturingProvider:
+        def execute(self, request):
+            assert request.image_mime_type == "image/png"
+            assert request.image.startswith(b"\x89PNG")
+            calls.append(json.loads(request.text))
+            return FakePhase6RProvider("success").execute(request)
+
+    calls = []
+    for stage in ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"):
+        assert execute_unit(
+            units[stage],
+            ctx["factory"],
+            ctx["storage"],
+            ctx["settings"],
+            lambda _claim: CapturingProvider(),
+        )
+    first, second = calls
+    assert first["page_context_hash"] == second["page_context_hash"]
+    assert first["page"] == second["page"]
+    page = first["page"]
+    table_refs = {
+        ref
+        for table in page["layout"]["tables"]
+        for cell in table["cells"]
+        for ref in cell["readings"]
+    }
+    assert table_refs
+    readings = {reading["reading_ref"]: reading["text"] for reading in page["readings"]}
+    assert table_refs <= readings.keys()
+    assert "600" in {readings[ref] for ref in table_refs}
+    assert any("Unrelated" in text for ref, text in readings.items() if ref not in table_refs)

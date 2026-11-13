@@ -1,11 +1,11 @@
 import { request } from "@/lib/api";
-import type { RunFamily, RunStatus } from "@/lib/extraction";
+import type { RunStatus } from "@/lib/extraction";
 
 export type RevisionScope = { projectId: string; revisionId: string };
 export type ExtractionMode = "ensure" | "reextract";
 export type OperationStatus = "QUEUED" | "RUNNING" | "COMPLETED" | "PARTIAL" | "BLOCKED" | "FAILED" | "CANCELLED";
 export type StepStatus = RunStatus | "REUSED" | "BLOCKED" | "WAITING";
-export type OperationStep = "layout" | RunFamily | "resume";
+export type OperationStep = "layout" | "extraction" | "resume";
 
 export type SourceOption = {
   revision_document_id: string;
@@ -31,7 +31,6 @@ export type OperationSelection = {
     pages: number[];
     force_ocr_pages: number[];
   }[];
-  families: RunFamily[];
   mode: ExtractionMode;
 };
 
@@ -43,7 +42,7 @@ export type OperationPreview = {
     error: string | null;
     pages: { page_number: number; force_ocr: boolean; reuse_preparation: boolean; reuse_layout: boolean }[];
   }[];
-  profiles: { family: RunFamily; key: string; provider: string; model: string; enabled: boolean }[];
+  profile: { key: string; provider: string; model: string; enabled: boolean };
   errors: string[];
   review_hash: string | null;
   planned_runs: number;
@@ -53,11 +52,22 @@ export type OperationPreview = {
   consent_version: string;
 };
 
+export type AIStage = "EQUIPMENT_RECOGNITION" | "ATTRIBUTE_EXTRACTION";
+export type RetryTarget = {
+  page_id: string;
+  page_number: number;
+  stage: AIStage;
+  expected_attempt: number;
+  unknown_provider_outcome: boolean;
+};
+
 export type OperationChild = {
   run_id: string | null;
   status: StepStatus;
   error_code: string | null;
   attempts: number;
+  retry_targets: RetryTarget[];
+  stage_outcomes: { page_id: string; stage: AIStage; outcome: "RESULT" | "NO_ELIGIBLE_ATTRIBUTES" }[];
   unknown_provider_outcome: boolean;
   can_retry: boolean;
 };
@@ -81,7 +91,7 @@ export type OperationDetail = {
     blocked_reason: string | null;
     can_resume: boolean;
     layout: OperationChild;
-    profiles: Partial<Record<RunFamily, OperationChild>>;
+    extraction: OperationChild;
   }[];
 };
 
@@ -130,12 +140,15 @@ export function cancelExtractionOperation(scope: RevisionScope, id: string) {
 
 export function retryExtractionOperation(
   scope: RevisionScope, id: string, documentId: string, step: OperationStep,
-  expectedAttempts: number, acknowledgeUnknownOutcome: boolean,
+  expectedAttempts: number, acknowledgeUnknownOutcome: boolean, target?: RetryTarget,
 ) {
   return request<OperationDetail>(`${path(scope)}/${encodeURIComponent(id)}/retry`, {
     method: "POST",
     body: JSON.stringify({
-      revision_document_id: documentId, step, expected_attempts: expectedAttempts,
+      revision_document_id: documentId,
+      ...(target
+        ? { stage: target.stage, page_id: target.page_id, expected_attempt: target.expected_attempt }
+        : { step, expected_attempts: expectedAttempts }),
       acknowledge_unknown_outcome: acknowledgeUnknownOutcome,
     }),
   });

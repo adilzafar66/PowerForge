@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from sqlalchemy import and_, case, exists, func, or_, select, true
+from sqlalchemy import and_, exists, func, or_, select, true
 from sqlalchemy.orm import Session, aliased
 
 from powerforge_api.exceptions import ProjectError, RevisionNotFound
@@ -19,20 +19,12 @@ from powerforge_document_processing.models import (
     RevisionDocument,
 )
 from powerforge_extraction.controls import RunExecution
-from powerforge_extraction.enriched_profiles import ENGINEERING, TABLES
 from powerforge_extraction.enrichment_profiles import PURPOSE
 from powerforge_extraction.models import ExtractionRun
 from powerforge_extraction.operation_models import ExtractionOperation, OperationItem
-from powerforge_extraction.production_profiles import PRODUCTION_PROFILES
-from powerforge_extraction.table_profiles import TABLE_PRODUCTION_PROFILES
 from powerforge_persistence import Project, ProjectRevision
 
 PROFILE_KEY = RunExecution.configuration["key"].as_string()
-FAMILY_PROFILES = {
-    "engineering": (*PRODUCTION_PROFILES, ENGINEERING),
-    "tables": (*TABLE_PRODUCTION_PROFILES, TABLES),
-}
-RESULT_STATUSES = ("COMPLETED", "PARTIALLY_COMPLETED")
 
 
 def revision_read_only(session: Session, project_id: UUID, revision_id: UUID) -> bool:
@@ -74,8 +66,7 @@ def register_status(
             OperationItem.revision_document_id == RevisionDocument.id,
             OperationItem.document_id == RevisionDocument.document_id,
             OperationItem.blocked_reason.is_(None),
-            OperationItem.engineering_run_id.is_(None),
-            OperationItem.tables_run_id.is_(None),
+            OperationItem.extraction_run_id.is_(None),
             or_(layout.id.is_(None), layout.status.in_(["PENDING", "RUNNING", "COMPLETED"])),
         )
         .order_by(ExtractionOperation.created_at.desc(), ExtractionOperation.id.desc())
@@ -144,13 +135,7 @@ def register_status(
         return [status_by_id[id_] for id_ in dict.fromkeys(ids) if id_ in status_by_id]
 
     run = ExtractionRun
-    family = case(
-        (run.execution_purpose == PURPOSE, "enrichment"),
-        (PROFILE_KEY.in_(FAMILY_PROFILES["engineering"]), "engineering"),
-        else_="tables",
-    )
     order = (run.created_at.desc(), run.id.desc())
-    effective = and_(run.processing_run_id.in_(processing_ids), run.status.in_(RESULT_STATUSES))
     ranked = (
         select(
             run.id,
@@ -159,14 +144,10 @@ def register_status(
             run.processing_run_id,
             run.created_at,
             PROFILE_KEY.label("profile_key"),
-            family.label("family"),
-            effective.label("effective"),
+            run.execution_purpose,
             func.row_number()
-            .over(partition_by=(run.document_id, family), order_by=order)
+            .over(partition_by=(run.document_id, run.execution_purpose), order_by=order)
             .label("attempt_rank"),
-            func.row_number()
-            .over(partition_by=(run.document_id, family, effective), order_by=order)
-            .label("result_rank"),
         )
         .join(RunExecution, RunExecution.run_id == run.id)
         .where(
@@ -174,30 +155,17 @@ def register_status(
             or_(run.context_revision_id.is_(None), run.context_revision_id == revision_id),
             or_(
                 and_(run.execution_purpose == PURPOSE, run.processing_run_id.in_(processing_ids)),
-                and_(
-                    run.execution_purpose == "EXTRACTION",
-                    run.provider == "openai",
-                    PROFILE_KEY.in_([*FAMILY_PROFILES["engineering"], *FAMILY_PROFILES["tables"]]),
-                ),
+                run.execution_purpose == "EXTRACTION",
             ),
         )
         .subquery()
     )
-    for row in session.execute(
-        select(ranked).where(
-            or_(ranked.c.attempt_rank == 1, and_(ranked.c.effective, ranked.c.result_rank == 1))
-        )
-    ):
+    for row in session.execute(select(ranked).where(ranked.c.attempt_rank == 1)):
         status = status_by_id[included[row.document_id]]
         value = RegisterRun.model_validate(row)
-        if row.family == "enrichment":
-            if row.attempt_rank == 1:
-                status.enrichment = value
+        if row.execution_purpose == PURPOSE:
+            status.enrichment = value
         else:
-            runs = status.engineering if row.family == "engineering" else status.tables
-            if row.attempt_rank == 1:
-                runs.latest_attempt = value
-            if row.effective and row.result_rank == 1:
-                runs.effective_result = value
+            status.extraction.latest_attempt = value
 
     return [status_by_id[id_] for id_ in dict.fromkeys(ids) if id_ in status_by_id]

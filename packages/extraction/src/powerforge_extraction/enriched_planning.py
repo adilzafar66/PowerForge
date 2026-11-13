@@ -9,13 +9,13 @@ from powerforge_document_processing.models import Document
 from powerforge_extraction.contracts import RunInput, WorkUnitInput
 from powerforge_extraction.controls import RunExecution
 from powerforge_extraction.dependencies import prerequisite, unit_key
-from powerforge_extraction.enriched_profiles import enriched_profile
 from powerforge_extraction.enriched_sources import selected_snapshot
 from powerforge_extraction.enrichment_models import RunSourceEnrichmentBinding
 from powerforge_extraction.errors import ExtractionConflict, ExtractionDisabled, ExtractionError
 from powerforge_extraction.identities import identity_hash
 from powerforge_extraction.models import ExtractionRun
 from powerforge_extraction.persistence import ExtractionPersistence
+from powerforge_extraction.phase6r_profile import phase6r_profile
 
 
 class EnrichmentSelection(BaseModel):
@@ -34,15 +34,13 @@ def metadata(profile, stage, page, binding):
     )
 
 
-def start_enriched(
-    coordinator, document_id, revision_document_id, profile_key, pages, mode, selections
-):
+def start_phase6r(coordinator, document_id, revision_document_id, pages, mode, selections):
     session, settings = coordinator.session, coordinator.settings
     if not settings.extraction_enabled:
         raise ExtractionDisabled("Extraction is disabled")
-    profile = enriched_profile(profile_key, settings)
-    if profile.provider == "openai" and not settings.extraction_external_enabled:
-        raise ExtractionDisabled("External extraction must be explicitly enabled")
+    profile = phase6r_profile(settings)
+    if not settings.extraction_phase6r_fake:
+        raise ExtractionDisabled("Phase 6R live extraction is not available at this milestone")
     if mode not in ("ensure", "reextract"):
         raise ExtractionError("Unknown extraction request mode")
     document = session.scalar(select(Document).where(Document.id == document_id).with_for_update())
@@ -106,8 +104,9 @@ def start_enriched(
         document_id=document_id,
         processing_run_id=owners[0].processing_run_id,
         initiated_from_revision_document_id=revision_document_id,
-        extractor_version="enriched-extraction-v1",
+        extractor_version="phase-6r-v1",
         schema_version=profile.schema_version,
+        registry_version=profile.manifest["registry_version"],
         profile_version=profile.version,
         profile_hash=profile.identity_hash,
         provider=profile.provider,

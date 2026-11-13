@@ -187,11 +187,14 @@ def test_document_worker_does_not_import_openai_or_the_extraction_worker() -> No
 
 
 def test_openai_key_is_required_only_for_an_enabled_openai_worker() -> None:
-    require_openai_credentials(Settings())
-    require_openai_credentials(Settings(ai_classification_enabled=True))
-    require_openai_credentials(Settings(ai_provider="openai", openai_api_key="sk-test"))
+    require_openai_credentials(Settings(_env_file=None))
+    require_openai_credentials(Settings(_env_file=None, ai_classification_enabled=True))
+    require_openai_credentials(
+        Settings(_env_file=None, ai_provider="openai", openai_api_key="sk-test")
+    )
     require_openai_credentials(
         Settings(
+            _env_file=None,
             ai_classification_enabled=True,
             ai_provider="openai",
             openai_api_key="sk-test",
@@ -199,7 +202,7 @@ def test_openai_key_is_required_only_for_an_enabled_openai_worker() -> None:
     )
     with pytest.raises(SystemExit):
         require_openai_credentials(
-            Settings(ai_classification_enabled=True, ai_provider="openai")
+            Settings(_env_file=None, ai_classification_enabled=True, ai_provider="openai")
         )
 
 
@@ -441,9 +444,7 @@ def test_provider_timeout_and_task_timeout_stay_distinct(session: Session) -> No
 
     other, other_processing = _processed(session, storage, _pdf())
     other_enqueue = RecordingEnqueue()
-    maybe_enqueue_classification(
-        session, storage, other_processing.id, other_enqueue, _enabled()
-    )
+    maybe_enqueue_classification(session, storage, other_processing.id, other_enqueue, _enabled())
     with pytest.raises(SoftTimeLimitExceeded):
         execute_classification_run(
             other_enqueue.calls[0],
@@ -521,9 +522,7 @@ def test_backfill_selects_only_work_ensure_would_enqueue(session: Session) -> No
     settings = _enabled()
     origin = datetime(2024, 1, 1, tzinfo=UTC)
 
-    failed_document, _failed_processing = _document_with_processing(
-        session, uploaded_at=origin
-    )
+    failed_document, _failed_processing = _document_with_processing(session, uploaded_at=origin)
     _mark(session, storage, failed_document, ClassificationRunStatus.FAILED, settings)
 
     running_document, _running_processing = _document_with_processing(

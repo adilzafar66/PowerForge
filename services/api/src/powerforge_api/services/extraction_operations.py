@@ -10,6 +10,7 @@ from powerforge_extraction.operation_models import UNKNOWN_PROVIDER_OUTCOME
 from powerforge_extraction.operation_plan import OperationPolicy, PlannedDocument
 from powerforge_extraction.operations import child_runs, included, items_for
 from powerforge_extraction.orchestration import ACTIVE
+from powerforge_extraction.phase6r_runtime import StageResult
 
 
 def describe_run(session, run, settings, can_write):
@@ -20,7 +21,7 @@ def describe_run(session, run, settings, can_write):
     enabled = (
         settings.enrichment_enabled
         if run.provider == "local"
-        else (settings.extraction_enabled and settings.extraction_external_enabled)
+        else (settings.extraction_enabled and settings.extraction_phase6r_fake)
     )
     keys = retryable_keys(units, control.configuration["max_attempts"]) if control else set()
     return {
@@ -28,6 +29,25 @@ def describe_run(session, run, settings, can_write):
         "status": run.status,
         "error_code": run.error_code,
         "attempts": len(units),
+        "retry_targets": [
+            {
+                "page_id": unit.execution_metadata["source_page_id"],
+                "page_number": unit.page_numbers[0],
+                "stage": unit.stage,
+                "expected_attempt": unit.attempt_number,
+                "unknown_provider_outcome": unit.error_code == UNKNOWN_PROVIDER_OUTCOME,
+            }
+            for unit in latest_units(units).values()
+            if run.provider != "local"
+            and unit.unit_key in keys
+            and unit.error_code != "PREREQUISITE_FAILED"
+        ],
+        "stage_outcomes": [
+            {"page_id": row.document_page_id, "stage": row.stage, "outcome": row.outcome}
+            for row in session.scalars(select(StageResult).where(StageResult.run_id == run.id))
+        ]
+        if run.provider != "local"
+        else [],
         "unknown_provider_outcome": any(
             unit.error_code == UNKNOWN_PROVIDER_OUTCOME for unit in latest_units(units).values()
         ),
@@ -47,13 +67,15 @@ def pending_step(status):
         "status": status,
         "error_code": None,
         "attempts": 0,
+        "retry_targets": [],
+        "stage_outcomes": [],
         "unknown_provider_outcome": False,
         "can_retry": False,
     }
 
 
-def item_status(layout, children, blocked, cancelled):
-    statuses = [child["status"] for child in children.values()]
+def item_status(layout, extraction, blocked, cancelled):
+    statuses = [extraction["status"]]
     if "RUNNING" in statuses or layout["status"] == "RUNNING":
         return "RUNNING"
     if "PENDING" in statuses or layout["status"] == "PENDING":
@@ -127,11 +149,10 @@ def operation_detail(session, settings, operation, *, can_write):
         waiting = "CANCELLED" if cancelled else "BLOCKED" if blocked else "WAITING"
         if layout is None:
             layout = pending_step("REUSED" if local_ready else waiting)
-        families = {
-            family: descriptions.get(getattr(item, f"{family}_run_id"), pending_step(waiting))
-            for family in policy.profiles
-        }
-        can_cancel |= waiting == "WAITING" and any(not run["run_id"] for run in families.values())
+        extraction = descriptions.get(item.extraction_run_id, pending_step(waiting))
+        can_cancel |= waiting == "WAITING" and (
+            not extraction["run_id"] or (item.owns_extraction and extraction["status"] in ACTIVE)
+        )
         items.append(
             {
                 "revision_document_id": item.revision_document_id,
@@ -139,7 +160,7 @@ def operation_detail(session, settings, operation, *, can_write):
                 "processing_run_id": item.processing_run_id,
                 "pages": planned.selection.pages,
                 "force_ocr_pages": planned.selection.force_ocr_pages,
-                "status": item_status(layout, families, blocked, cancelled),
+                "status": item_status(layout, extraction, blocked, cancelled),
                 "blocked_reason": blocked,
                 "can_resume": can_write
                 and not cancelled
@@ -151,7 +172,7 @@ def operation_detail(session, settings, operation, *, can_write):
                     "SOURCE_ARTIFACT_UNAVAILABLE",
                 },
                 "layout": layout,
-                "profiles": families,
+                "extraction": extraction,
             }
         )
     unavailable = len(rows) - len(visible)

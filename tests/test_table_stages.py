@@ -120,16 +120,6 @@ assert get_table_stage('TABLE_INTERPRETATION').render_instructions().text
     assert done.returncode == 0, done.stderr
 
 
-def test_table_execution_uses_a_separate_explicit_profile_family():
-    from powerforge_extraction.profiles import resolve_profile
-    from powerforge_extraction.table_profiles import TableProfile
-    from powerforge_shared.config import Settings
-
-    profile = resolve_profile("tables-openai-v1", Settings(_env_file=None))
-    assert isinstance(profile, TableProfile)
-    assert profile.stages == ("TABLE_RECONSTRUCTION", "TABLE_INTERPRETATION")
-
-
 def test_interpretation_capacity_and_utf8_byte_limits_do_not_disguise_partial_output():
     data = copy.deepcopy(CASES[0]["interpretation"])
     prototype = data["attributes"][0]

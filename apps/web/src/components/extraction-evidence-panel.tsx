@@ -75,8 +75,8 @@ export function useViewerEvidence(scope: DocumentScope, params: Params, active: 
   const statuses = useExtractionStatuses(scope.projectId, scope.revisionId, active ? [scope.documentId] : []);
   const status = statuses.data?.[scope.documentId];
   const latest: RunPair = {
-    engineering: status?.engineering.effective_result?.id ?? null,
-    tables: status?.tables.effective_result?.id ?? null,
+    engineering: status?.extraction.effective_result?.id ?? null,
+    tables: null,
   };
   const pinned = params.get("evidencePinned") === "1";
   const pair = pinned ? {
@@ -229,6 +229,7 @@ function CandidateBrowser({
   const start = offset(params.get("groupOffset"));
   const groupStart = offset(params.get("candidateOffset"));
   const hasRuns = !!(pair.engineering || pair.tables);
+  const attempt = status?.extraction.latest_attempt;
   const groups = useQuery({
     queryKey: [...key, "groups", pair, filters, start],
     queryFn: ({ signal }) => getGroups(scope, pair, filters, start, signal),
@@ -336,16 +337,10 @@ function CandidateBrowser({
       </div>
       <PanelMessage>
         Groups organize cited observations within a source. Equipment identity remains unresolved.
-        {families.map((item) => {
-          const selectedRun = pair[item];
-          const attempt = status?.[item].latest_attempt;
-          return (
-            <span key={item} title={selectedRun ?? undefined} className="mt-1 block break-words">
-              <strong>{familyLabel[item]}</strong> · {selectedRun ? `Run ${selectedRun.slice(0, 8)}` : "No result selected"}
-              {isRunning(attempt?.status) && <span> · Latest attempt {runState(attempt).label.toLowerCase()}</span>}
-            </span>
-          );
-        })}
+        <span title={pair.engineering ?? undefined} className="mt-1 block break-words">
+          <strong>{familyLabel.engineering}</strong> · {pair.engineering ? `Run ${pair.engineering.slice(0, 8)}` : "No result selected"}
+          {isRunning(attempt?.status) && <span> · Latest attempt {runState(attempt).label.toLowerCase()}</span>}
+        </span>
         {browser.pinned && (
           <button type="button" className="mt-1 text-accent hover:underline" onClick={() => update({ evidencePinned: null, historicalPair: null, engineeringRun: null, tablesRun: null, groupOffset: null })}>
             View latest results

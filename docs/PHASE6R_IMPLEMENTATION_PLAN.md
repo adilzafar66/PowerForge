@@ -313,6 +313,12 @@ Order: **6R-A → 6R-B → 6R-C → 6R-D → 6R-E → 6R-F** under the approved 
 
 **Acceptance:** mock end-to-end operation completes through the new stages on an isolated fresh database; no table-family dispatch occurs; successful Call 1 context is immutable and correctly bound; partial pages are reported honestly; reusable ingestion/enrichment/classification still work. B does not claim live extraction quality or final candidate-publication acceptance.
 
+**Implementation handoff**
+
+- The operation pins one `phase-6r` profile. Phase 6R-B enables the deterministic provider only when `EXTRACTION_PHASE6R_FAKE=true`. Both page stages use the same verified projection, with Call 2 bound to the exact successful recognition result. Run detail and operation monitoring expose the skip outcome.
+- The B chain ends at `6r_0013_operations`. The schema reuses `run_source_enrichment_bindings` for page ownership and `extraction_work_units` for both the logical stage key and its attempts. Database constraints and triggers enforce binding, retry ancestry, and atomic immutable stage results.
+- The fresh-install and mock workflow checks use a disposable database. Phase 6R-C owns the provider transport, semantic prompts and authorized feasibility run. Candidate and evidence publication, cursor-based browse endpoints and the remaining Documents browser cutover belong to D and E. The target database reset remains part of the rollout.
+
 ### 6R-C — AI recognition and attribute extraction
 
 **Dependencies:** B source projection, stage runtime, durable prerequisites and transport boundary; A observation/value contracts; representative authorized real-world sources, explicit provider opt-in and a bounded live-validation budget.

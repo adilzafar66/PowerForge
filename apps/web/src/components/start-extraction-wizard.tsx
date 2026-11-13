@@ -8,7 +8,6 @@ import { FileIcon } from "@/components/document-list";
 import { docButtonClass, DocumentsDialog, StatusChip } from "@/components/documents-ui";
 import { AsyncState } from "@/components/ui/async-state";
 import { apiErrorOf } from "@/lib/api";
-import { families, familyLabel, type RunFamily } from "@/lib/extraction";
 import {
   getOperationSources,
   pageRanges,
@@ -28,11 +27,6 @@ import { cn } from "@/lib/utils";
 const panel = "rounded-[var(--pf-radius-lg)] border border-border";
 const callout = cn(panel, "bg-selection/45 p-3.5 text-workspace-caption leading-relaxed text-muted");
 const field = "h-9 w-full rounded-[var(--pf-radius-control)] border border-border bg-panel px-2.5 text-workspace-label text-ink focus-visible:outline-2 focus-visible:outline-ring";
-const labels: Record<RunFamily, string> = {
-  engineering: "Extract from engineering text",
-  tables: "Extract from tables and schedules",
-};
-
 type Draft = { pages?: string; ocr?: string };
 type SourceDraft = {
   source: SourceOption;
@@ -64,7 +58,6 @@ export function StartExtractionWizard({
   const title = launch.mode === "reextract" ? "Re-extract" : "Start extraction";
   const [step, setStep] = useState(1);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
-  const [selectedFamilies, setSelectedFamilies] = useState<RunFamily[]>([...families]);
   const [acceptedHash, setAcceptedHash] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -117,7 +110,6 @@ export function StartExtractionWizard({
         pages: row.pages,
         force_ocr_pages: row.forceOcrPages,
       })),
-      families: selectedFamilies,
       mode: launch.mode ?? "ensure",
     } : null;
   const selectionKey = selection ? JSON.stringify(selection) : null;
@@ -157,14 +149,6 @@ export function StartExtractionWizard({
     setStep(next);
   }
 
-  function toggleFamily(family: RunFamily) {
-    setAcceptedHash(null);
-    setSubmitError(null);
-    setSelectedFamilies((current) => current.includes(family)
-      ? current.length > 1 ? current.filter((key) => key !== family) : current
-      : families.filter((key) => key === family || current.includes(key)));
-  }
-
   async function submit() {
     if (!reviewReady || !authorized || !selection || submitting.current) return;
     submitting.current = true;
@@ -187,9 +171,6 @@ export function StartExtractionWizard({
     }
   }
 
-  const comprehensive = selectedFamilies.length === 2;
-  const processing = selectedFamilies.map((family) =>
-    family === "engineering" ? "engineering text" : "tables and schedules").join(" and ");
   const descriptions = ["Choose source pages", "Automatic source preparation plan", "Confirm preparation and OpenAI extraction"];
   return (
     <DocumentsDialog
@@ -227,7 +208,7 @@ export function StartExtractionWizard({
           <p className="m-0 mt-1 text-workspace-label leading-relaxed text-muted">
             {step === 1 ? "Choose the page range for each document. PowerForge pins the processing version you review."
               : step === 2 ? "PowerForge reuses compatible source results and prepares missing native text, OCR and page layout locally after confirmation."
-                : "Engineering text and tables or schedules are included by default. Each family has its own run, results, and retries."}
+                : "The reviewed pages use equipment recognition followed by attribute extraction."}
           </p>
         </div>
         {step === 1 && (
@@ -331,31 +312,19 @@ export function StartExtractionWizard({
             <div className={cn(callout, "flex items-start gap-3")}>
               <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-positive" />
               <div>
-                <strong className="block text-workspace-label text-ink">{comprehensive ? "Comprehensive extraction" : "Targeted extraction"}</strong>
-                {comprehensive ? "Engineering text and tables or schedules are included." : `The plan includes only ${processing}.`}
+                <strong className="block text-workspace-label text-ink">Unified extraction</strong>
+                Text, schedules and diagrams are included.
               </div>
             </div>
-            <details className={cn(panel, "p-3.5 text-workspace-label")}>
-              <summary className="cursor-pointer font-semibold text-accent">Advanced extraction settings</summary>
-              <div className="mt-3 space-y-2">
-                {families.map((family) => (
-                  <label key={family} className="flex items-center gap-2">
-                    <input type="checkbox" className="size-4 accent-accent" checked={selectedFamilies.includes(family)}
-                      disabled={sending || (selectedFamilies.length === 1 && selectedFamilies.includes(family))}
-                      onChange={() => toggleFamily(family)} />
-                    {labels[family]}
-                  </label>
-                ))}
-                <p className="m-0 text-workspace-caption text-muted">Select at least one extraction family.</p>
-              </div>
-            </details>
             {reviewed && <FinalPlan preview={reviewed} totalPages={totalPages} mode={launch.mode ?? "ensure"} />}
             <label className="flex items-start gap-2.5 text-workspace-label leading-relaxed text-ink">
               <input type="checkbox" checked={authorized} disabled={!reviewReady || sending}
                 className="mt-0.5 size-4 shrink-0 accent-accent"
                 onChange={(event) => setAcceptedHash(event.target.checked && hash ? hash : null)} />
               <span>
-                I authorize sending the selected source content to OpenAI <strong>after automatic preparation</strong> for {processing}.
+                {reviewed?.profile.provider === "fake"
+                  ? "I authorize the reviewed local test extraction."
+                  : "I authorize sending the selected source content to OpenAI after automatic preparation."}
                 {launch.mode === "reextract" ? " I authorize new extraction runs for the reviewed source." : ""}
                 {" "}Extracted observations require engineering verification.
               </span>
@@ -440,16 +409,14 @@ function FinalPlan({ preview, totalPages, mode }: { preview: OperationPreview; t
         </ul>
       </details>
       <ul className="m-0 list-none space-y-1 p-0">
-        {preview.profiles.map((profile) => (
-          <li key={profile.key} className="break-words">
-            <strong>{familyLabel[profile.family]}</strong> · OpenAI · {profile.model} · {profile.key} · {profile.enabled ? "Enabled by deployment" : "Unavailable"}
-          </li>
-        ))}
+        <li className="break-words">
+          {preview.profile.provider === "fake" ? "Local test provider" : "OpenAI"} · {preview.profile.model} · {preview.profile.key} · {preview.profile.enabled ? "Enabled by deployment" : "Unavailable"}
+        </li>
       </ul>
       {preview.provider_admissions !== null && (
         <p className="m-0">Maximum {preview.provider_admissions} provider admissions, {preview.ocr_attempts} OCR attempts, and {preview.parallel_documents} documents in parallel.</p>
       )}
-      <p className="m-0">Local preparation and layout run first. OpenAI processing may incur charges. <strong>Estimated cost is unknown.</strong>
+      <p className="m-0">Local preparation and layout run first. {preview.profile.provider === "openai" && "OpenAI processing may incur charges."} <strong>Estimated cost is unknown.</strong>
         {mode === "ensure" ? " Compatible existing extraction runs may be reused." : " Re-extraction can create new provider runs."}
       </p>
       {preview.items.filter((item) => item.error).map((item) => (

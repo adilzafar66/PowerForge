@@ -89,6 +89,7 @@ def bound_snapshot(session, unit):
     if (
         owner.document_id != unit.document_id
         or owner.processing_run_id != unit.processing_run_id
+        or owner.document_page_id != binding.document_page_id
         or [owner.page_number] != unit.page_numbers
         or binding.manifest_hash != result.prepared.manifest.identity_hash
         or binding.spatial_manifest_hash != result.layout.identity_hash

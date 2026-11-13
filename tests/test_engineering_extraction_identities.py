@@ -7,15 +7,6 @@ from pathlib import Path
 
 from powerforge_extraction.engineering_stages import STAGES, engineering_manifest
 from powerforge_extraction.identities import canonical_json, content_hash, identity_hash
-from powerforge_extraction.profiles import (
-    FAKE_PROFILE,
-    OPENAI_PROFILE,
-    PROMPT_HASH,
-    SCHEMA_HASH,
-    ExecutionProfile,
-    resolve_profile,
-)
-from powerforge_shared.config import Settings
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures/extraction"
 
@@ -30,23 +21,6 @@ def test_v1_engineering_resource_manifest_matches_pinned_definition():
         assert stage.template_hash == content_hash(stage.template)
         assert rendered.instruction_hash == expected["empty_context_instructions"][stage.key]
     # New resource content/schema/terminology versions must be introduced deliberately.
-
-
-def test_accepted_probe_hashes_and_profile_wire_identities_remain_unchanged():
-    # Captured before M1 from accepted 6B, with all profile-affecting settings explicit.
-    expected = json.loads((FIXTURE_DIR / "legacy_source_probe_v1.json").read_text())
-    settings = Settings(_env_file=None, **expected["settings"])
-    assert PROMPT_HASH == expected["prompt_hash"]
-    assert SCHEMA_HASH == expected["schema_hash"]
-    for key in (FAKE_PROFILE, OPENAI_PROFILE):
-        profile = resolve_profile(key, settings)
-        snapshot = expected["profiles"][key]
-        assert profile.model_dump_json() == snapshot["wire_json"]
-        assert profile.identity_hash == snapshot["identity_hash"]
-        assert (
-            ExecutionProfile.model_validate_json(snapshot["wire_json"]).identity_hash
-            == (snapshot["identity_hash"])
-        )
 
 
 def test_new_contracts_context_and_prompts_import_without_infrastructure_or_sdk():

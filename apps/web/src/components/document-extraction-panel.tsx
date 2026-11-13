@@ -21,7 +21,6 @@ import {
 import { formatDateShort } from "@/lib/projects";
 import { isRunning, jobInterval } from "@/lib/query-hooks";
 import { keys } from "@/lib/query-keys";
-import { documentViewerHref } from "@/lib/workspace-navigation";
 
 export function useExtractionStatuses(projectId: string, revisionId: string, ids: string[]) {
   return useQuery({
@@ -31,7 +30,7 @@ export function useExtractionStatuses(projectId: string, revisionId: string, ids
     retry: 1,
     refetchInterval: (query) => jobInterval(
       Object.values(query.state.data ?? {}).some((item) => !!item.pending_operation || [
-        item.engineering.latest_attempt, item.tables.latest_attempt, item.enrichment,
+        item.extraction.latest_attempt, item.enrichment,
       ].some((run) => isRunning(run?.status))),
       query.state.fetchFailureCount,
     ),
@@ -54,8 +53,7 @@ export function DocumentExtractionPanel({
   const status = useExtractionStatuses(scope.projectId, scope.revisionId, [scope.documentId]);
   const data = status.data?.[scope.documentId];
   const runs: [HistoryFamily, RegisterRun | null | undefined][] = [
-    ["engineering", data?.engineering.latest_attempt],
-    ["tables", data?.tables.latest_attempt],
+    ["engineering", data?.extraction.latest_attempt],
     ["enrichment", data?.enrichment],
   ];
   const recent = runs.flatMap(([family, run]) => run ? [{ family, run }] : [])
@@ -78,7 +76,7 @@ export function DocumentExtractionPanel({
               : run ? runState(run).label : family === "enrichment" ? "No recorded preparation" : "Not extracted",
           ])} />
           <p className="m-0 text-workspace-caption text-muted">
-            {data.ineligible_reason ? ineligibleLabel[data.ineligible_reason] : "Source preparation is scheduled with extraction. Engineering and table runs have separate results."}
+            {data.ineligible_reason ? ineligibleLabel[data.ineligible_reason] : "Source preparation is scheduled with extraction."}
           </p>
           {data.ineligible_reason !== "REMOVED" && (
             <div className="flex flex-wrap gap-2">
@@ -87,12 +85,10 @@ export function DocumentExtractionPanel({
                   Start extraction
                 </button>
               )}
-              {(data.engineering.effective_result || data.tables.effective_result || recent.length > 0) && (
+              {(data.extraction.effective_result || recent.length > 0) && (
                 <button type="button" className={docButtonClass("tiny")} onClick={() => onNavigate(
-                  data.engineering.effective_result || data.tables.effective_result
-                    ? documentViewerHref(scope.projectId, scope.revisionId, scope.documentId, { mode: "evidence" })
-                    : extractionHistoryHref(scope),
-                )}>View results</button>
+                  extractionHistoryHref(scope, data.extraction.effective_result ? "engineering" : undefined, data.extraction.effective_result?.id),
+                )}>View run history</button>
               )}
             </div>
           )}

@@ -13,7 +13,7 @@ export type RegisterRun = {
   created_at: string;
   profile_key: string;
 };
-export type FamilyRuns = {
+export type ExtractionRuns = {
   latest_attempt: RegisterRun | null;
   effective_result: RegisterRun | null;
 };
@@ -21,8 +21,7 @@ export type ExtractionStatus = {
   revision_document_id: string;
   processing_run_id: string | null;
   ineligible_reason: "REMOVED" | "READ_ONLY" | "PROCESSING_REQUIRED" | "NO_PAGE_ARTIFACTS" | null;
-  engineering: FamilyRuns;
-  tables: FamilyRuns;
+  extraction: ExtractionRuns;
   enrichment: RegisterRun | null;
   pending_operation?: { id: string; preparing: boolean } | null;
 };
@@ -94,7 +93,7 @@ export type HistoryRun = Omit<RegisterRun, "profile_key"> & {
 };
 export type RunDetail = {
   run: HistoryRun;
-  attempts: { id: string; unit_key: string; status: string; retryable?: boolean; error_code: string | null }[];
+  attempts: { id: string; unit_key: string; status: string; retryable?: boolean; error_code: string | null; stage_outcome?: "RESULT" | "NO_ELIGIBLE_ATTRIBUTES" | null }[];
   coverage?: { required_units: number; completed_required_units: number };
   execution?: {
     profile_key: string;
@@ -111,6 +110,7 @@ export type RunDetail = {
   spatial_results?: { id: string; page_number: number; prepared_result_id: string }[];
   can_retry?: boolean;
   can_cancel?: boolean;
+  can_browse_candidates?: boolean;
 };
 type SourceBinding = {
   page_number: number;
@@ -119,7 +119,6 @@ type SourceBinding = {
   preparation_producer_run_id: string;
   layout_producer_run_id: string;
 };
-export type RawTable = { id: string; table_kind: string; layout: unknown };
 export type EvidenceFilters = {
   search?: string;
   page?: number;
@@ -130,7 +129,7 @@ export type RunPair = Record<RunFamily, string | null>;
 export type DocumentScope = { projectId: string; revisionId: string; documentId: string };
 
 export const families = ["engineering", "tables"] as const;
-export const familyLabel = { engineering: "Engineering", tables: "Tables", enrichment: "Source enrichment" };
+export const familyLabel = { engineering: "Engineering extraction", tables: "Tables", enrichment: "Source enrichment" };
 export const ineligibleLabel = {
   REMOVED: "Removed from this revision",
   READ_ONLY: "Revision is read-only",
@@ -155,35 +154,25 @@ export function runState(run?: { status: RunStatus } | null): CellState {
 export function extractionCell(item?: ExtractionStatus): CellState {
   if (!item) return { label: "Unknown", tone: "neutral" };
   if (item.ineligible_reason === "REMOVED") return { label: "Unavailable", tone: "neutral", detail: ineligibleLabel.REMOVED };
-  const runs = families.map((family) => item[family].latest_attempt);
-  if (!runs.some(Boolean) && !item.pending_operation) {
+  const { latest_attempt: run, effective_result: result } = item.extraction;
+  if (!run && !item.pending_operation) {
     if (item.ineligible_reason === "NO_PAGE_ARTIFACTS" || item.ineligible_reason === "PROCESSING_REQUIRED") {
       return { label: "Unavailable", tone: "neutral", detail: ineligibleLabel[item.ineligible_reason] };
     }
     return notExtracted;
   }
-  const states = runs.map((run) => run?.status);
-  const active = states.includes("RUNNING") ? "RUNNING" : states.includes("PENDING") ? "PENDING" : null;
-  const detail = families.map((family) => {
-    const { latest_attempt: run, effective_result: result } = item[family];
-    const version = run && run.processing_run_id !== item.processing_run_id ? " (earlier source)" : "";
-    const resultType = result?.status === "PARTIALLY_COMPLETED" ? "partial result" : "result";
-    const available = result && result.id !== run?.id
-      ? ` (previous ${resultType} available)`
-      : "";
-    return `${familyLabel[family]} · ${runState(run).label}${version}${available}`;
-  }).join(" / ");
-  const sameSource = !!item.processing_run_id && runs.every((run) => run?.processing_run_id === item.processing_run_id);
+  const earlier = run && run.processing_run_id !== item.processing_run_id;
+  const resultType = result?.status === "PARTIALLY_COMPLETED" ? "partial result" : "result";
+  const available = result && result.id !== run?.id ? ` (previous ${resultType} available)` : "";
+  const detail = earlier || available ? `${runState(run).label}${earlier ? " (earlier source)" : ""}${available}` : undefined;
   if (item.pending_operation) {
     return {
       ...runStates[item.pending_operation.preparing ? "RUNNING" : "PENDING"],
-      detail: `Waiting for exact source bindings${runs.some(Boolean) ? ` · ${detail}` : ""}`,
+      detail: `Waiting for exact source bindings${detail ? ` · ${detail}` : ""}`,
     };
   }
-  if (active) return { ...runStates[active], detail };
-  if (sameSource && states.every((status) => status === "COMPLETED")) return runStates.COMPLETED;
-  if (states.includes("COMPLETED") || states.includes("PARTIALLY_COMPLETED")) return { ...runStates.PARTIALLY_COMPLETED, detail };
-  return { ...runStates[states.includes("FAILED") ? "FAILED" : "CANCELLED"], detail };
+  if (earlier && run?.status === "COMPLETED") return { ...runStates.PARTIALLY_COMPLETED, detail };
+  return { ...runState(run), detail };
 }
 
 function revisionPath(projectId: string, revisionId: string) {
@@ -241,17 +230,17 @@ export function getEvidence(scope: DocumentScope, id: string, signal?: AbortSign
 }
 
 export function getHistory(scope: DocumentScope, family: HistoryFamily, offset: number, signal?: AbortSignal) {
-  const query = queryString({ family: family === "enrichment" ? null : family, limit: 10, offset });
+  const query = queryString({ limit: 10, offset });
   return request<Page<HistoryRun>>(`${documentPath(scope, family)}/runs${query}`, { signal });
 }
 
 export function getRunDetail(scope: DocumentScope, family: HistoryFamily, runId: string, signal?: AbortSignal) {
-  const query = family === "enrichment" ? "?viewer=true" : queryString({ family });
+  const query = family === "enrichment" ? "?viewer=true" : "";
   return request<RunDetail>(`${documentPath(scope, family)}/runs/${runId}${query}`, { signal });
 }
 
 export function runHistoryAction(scope: DocumentScope, family: HistoryFamily, runId: string, action: "retry" | "cancel") {
-  const query = family === "enrichment" ? "?viewer=true" : queryString({ family });
+  const query = family === "enrichment" ? "?viewer=true" : "";
   return request<RunDetail>(`${documentPath(scope, family)}/runs/${runId}/${action}${query}`, {
     method: "POST",
     body: action === "retry" && family !== "enrichment"
@@ -262,10 +251,6 @@ export function runHistoryAction(scope: DocumentScope, family: HistoryFamily, ru
 
 export function getRunSources(scope: DocumentScope, runId: string, signal?: AbortSignal) {
   return request<{ items: SourceBinding[] }>(`${documentPath(scope)}/runs/${runId}/sources`, { signal });
-}
-
-export function getRawTables(scope: DocumentScope, runId: string, offset: number, signal?: AbortSignal) {
-  return request<Page<RawTable>>(`${documentPath(scope)}/runs/${runId}/tables?limit=1&offset=${offset}`, { signal });
 }
 
 export function extractionHistoryHref(scope: DocumentScope, family?: HistoryFamily, runId?: string) {

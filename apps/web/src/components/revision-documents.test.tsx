@@ -206,8 +206,7 @@ function extractionFor(id: string, changes: Partial<ExtractionStatus> = {}): Ext
     revision_document_id: id,
     processing_run_id: "processing-1",
     ineligible_reason: null,
-    engineering: { latest_attempt: null, effective_result: null },
-    tables: { latest_attempt: null, effective_result: null },
+    extraction: { latest_attempt: null, effective_result: null },
     enrichment: null,
     ...changes,
   };
@@ -392,7 +391,7 @@ describe("RevisionDocuments rows", () => {
     expect(screen.queryByRole("button", { name: "Actions for a.pdf" })).toBeNull();
   });
 
-  it("reports each extraction family and selects a confirmed type without using AI suggestions", async () => {
+  it("reports unified extraction status and selects a confirmed document type", async () => {
     const user = userEvent.setup();
     const confirmed = makeRow({ name: "confirmed.pdf", document_type: "SINGLE_LINE_DIAGRAM" });
     const suggested = makeRow({
@@ -404,7 +403,7 @@ describe("RevisionDocuments rows", () => {
     const completed = { id: "run", status: "COMPLETED" as const, processing_run_id: "processing-1", profile_key: "engineering-openai-enriched-v1", created_at: "2026-01-20T12:00:00Z" };
     list.mockResolvedValue([confirmed, suggested, removed]);
     extractionStatus.mockImplementation(async (_project, _revision, ids) => Object.fromEntries(ids.map((id) => [
-      id, extractionFor(id, id === confirmed.id ? { engineering: { latest_attempt: completed, effective_result: completed } }
+      id, extractionFor(id, id === confirmed.id ? { extraction: { latest_attempt: completed, effective_result: completed } }
         : id === removed.id ? { ineligible_reason: "REMOVED" } : {}),
     ])));
     renderWorkspace(true);
@@ -413,7 +412,7 @@ describe("RevisionDocuments rows", () => {
     const headers = within(register).getAllByRole("columnheader").map((item) => item.textContent?.trim());
     expect(headers.slice(4)).toEqual(["AI classification", "AI Extraction", "Origin"]);
     const row = await screen.findByRole("row", { name: /confirmed\.pdf/ });
-    expect(await within(row).findByText("Partial")).toBeInTheDocument();
+    expect(await within(row).findByText("Completed")).toBeInTheDocument();
     await selectOption(screen.getByRole("combobox", { name: "Select documents by scope" }), "type:SINGLE_LINE_DIAGRAM");
     expect(await screen.findByText("1 eligible document selected")).toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Select confirmed.pdf for extraction" })).toBeChecked();
@@ -435,7 +434,7 @@ describe("RevisionDocuments rows", () => {
     list.mockResolvedValue([row]);
     extractionStatus.mockResolvedValue({
       [row.id]: extractionFor(row.id, {
-        engineering: {
+        extraction: {
           latest_attempt: {
             ...completed,
             id: "failed-run",
@@ -450,12 +449,12 @@ describe("RevisionDocuments rows", () => {
 
     const registerRow = await screen.findByRole("row", { name: /retained\.pdf/ });
     expect(
-      await within(registerRow).findByText(/Engineering · Failed \(previous result available\)/),
+      await within(registerRow).findByText(/Failed \(previous result available\)/),
     ).toBeVisible();
     const drawer = await openDrawer(user, "retained.pdf");
-    await user.click(await within(drawer).findByRole("button", { name: "View results" }));
+    await user.click(await within(drawer).findByRole("button", { name: "View run history" }));
     expect(nav.push).toHaveBeenLastCalledWith(
-      `/projects/${P}/revisions/${R}/documents/${row.id}?mode=evidence`,
+      `/projects/${P}/revisions/${R}/documents/${row.id}?mode=evidence&evidenceTab=history&historyFamily=engineering&historyRun=completed-run`,
     );
   });
 
@@ -476,7 +475,8 @@ describe("RevisionDocuments rows", () => {
       items: [{
         revision_document_id: row.id, filename: "resumed.pdf", processing_run_id: "processing-1",
         pages: [1], force_ocr_pages: [], status: "QUEUED", blocked_reason: null, can_resume: false,
-        layout: waiting, profiles: { engineering: waiting },
+        layout: { ...waiting, retry_targets: [], stage_outcomes: [] },
+        extraction: { ...waiting, retry_targets: [], stage_outcomes: [] },
       }],
     };
     vi.mocked(getExtractionOperation).mockResolvedValue(detail);
@@ -486,7 +486,7 @@ describe("RevisionDocuments rows", () => {
     renderWorkspace(true);
     const drawer = await findInspector("resumed.pdf");
     expect(await within(drawer).findByText(`Operation ID · ${operationId}`)).toBeVisible();
-    expect(within(drawer).getByText("Engineering · Waiting")).toBeVisible();
+    expect(within(drawer).getByText("Extraction · Waiting")).toBeVisible();
     await user.click(within(drawer).getByRole("button", { name: "Cancel operation" }));
     expect(cancelExtractionOperation).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Stop scheduling" }));

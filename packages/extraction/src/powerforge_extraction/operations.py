@@ -15,7 +15,6 @@ from powerforge_document_processing.models import (
     RevisionDocument,
 )
 from powerforge_document_processing.storage.base import StorageError
-from powerforge_extraction.enriched_profiles import enriched_profile
 from powerforge_extraction.enrichment_execution import read_exact
 from powerforge_extraction.enrichment_profiles import PURPOSE
 from powerforge_extraction.enrichment_service import preparation_identity, source_snapshot
@@ -31,13 +30,13 @@ from powerforge_extraction.operation_models import (
     OperationRequest,
 )
 from powerforge_extraction.operation_plan import (
-    PROFILE_KEYS,
     OperationPolicy,
     PlannedDocument,
     compatible_pair,
     preview_operation,
 )
 from powerforge_extraction.orchestration import ACTIVE, ExtractionCoordinator
+from powerforge_extraction.phase6r_profile import phase6r_profile
 from powerforge_persistence import Project, ProjectRevision
 
 logger = logging.getLogger(__name__)
@@ -69,7 +68,7 @@ def admit_operation(
     intent = identity_hash(
         {
             "selection": selection.model_dump(mode="json"),
-            "profiles": policy["profiles"],
+            "profile_hash": policy["profile_hash"],
             "layout": policy["layout_profile_hash"],
             "page_identities": [
                 [page.preparation_hash for page in item.pages] for item in preview.documents
@@ -152,7 +151,7 @@ def child_runs(session, items):
     ids = {
         run_id
         for item in items
-        for run_id in (item.layout_run_id, item.engineering_run_id, item.tables_run_id)
+        for run_id in (item.layout_run_id, item.extraction_run_id)
         if run_id
     }
     if not ids:
@@ -166,12 +165,12 @@ def child_runs(session, items):
 def active_child(item, runs):
     return any(
         run_id in runs and runs[run_id].status in ACTIVE
-        for run_id in (item.layout_run_id, item.engineering_run_id, item.tables_run_id)
+        for run_id in (item.layout_run_id, item.extraction_run_id)
     )
 
 
-def ready_to_admit(item, policy, runs):
-    if item.blocked_reason or any(getattr(item, f"{family}_run_id") for family in policy.profiles):
+def ready_to_admit(item, runs):
+    if item.blocked_reason or item.extraction_run_id:
         return False
     return item.layout_run_id is None or runs[item.layout_run_id].status == "COMPLETED"
 
@@ -218,18 +217,14 @@ def advance_item(session, settings, item, policy, verification):
     if (
         not settings.enrichment_enabled
         or not settings.extraction_enabled
-        or not settings.extraction_external_enabled
+        or not settings.extraction_phase6r_fake
     ):
         item.blocked_reason = "PROCESSING_DISABLED"
         return
-    # The API does not need the credential. Only the extraction worker verifies it.
-    if not settings.openai_api_key:
-        item.blocked_reason = "PROVIDER_UNAVAILABLE"
-        return
     layout = layout_profile(settings)
-    if layout.identity_hash != policy.layout_profile_hash or any(
-        enriched_profile(PROFILE_KEYS[family], settings).identity_hash != pinned_hash
-        for family, pinned_hash in policy.profiles.items()
+    if (
+        layout.identity_hash != policy.layout_profile_hash
+        or phase6r_profile(settings).identity_hash != policy.profile_hash
     ):
         item.blocked_reason = "PROFILE_CHANGED"
         return
@@ -270,17 +265,15 @@ def advance_item(session, settings, item, policy, verification):
     ]
 
     coordinator = OperationAdmission(session, settings)
-    for family in policy.profiles:
-        run = coordinator.start(
-            item.document_id,
-            revision_document_id=item.revision_document_id,
-            profile_key=PROFILE_KEYS[family],
-            pages=planned.selection.pages,
-            mode=policy.mode,
-            enrichment_bindings=bindings,
-        )
-        setattr(item, f"{family}_run_id", run.id)
-        setattr(item, f"owns_{family}", run.id in coordinator.created)
+    run = coordinator.start(
+        item.document_id,
+        revision_document_id=item.revision_document_id,
+        pages=planned.selection.pages,
+        mode=policy.mode,
+        enrichment_bindings=bindings,
+    )
+    item.extraction_run_id = run.id
+    item.owns_extraction = run.id in coordinator.created
     session.flush()
 
 
@@ -331,7 +324,7 @@ class Verification:
 
 def verify_ready_document(factory, settings, storage, operation_id):
     """Check one ready document per scan without holding scheduling or publication locks."""
-    if not settings.enrichment_enabled or not settings.extraction_external_enabled:
+    if not settings.enrichment_enabled or not settings.extraction_phase6r_fake:
         return None
     try:
         layout = layout_profile(settings)
@@ -347,7 +340,7 @@ def verify_ready_document(factory, settings, storage, operation_id):
         if sum(active_child(item, runs) for item in items) >= policy.parallel_documents:
             return None
         for item in items:
-            if not ready_to_admit(item, policy, runs):
+            if not ready_to_admit(item, runs):
                 continue
             association = session.get(RevisionDocument, item.revision_document_id)
             if not included(association, operation, item):
@@ -422,10 +415,10 @@ def reconcile_operation(session, settings, operation_id, project_id, revision_id
             item.blocked_reason = "SOURCE_UNAVAILABLE"
             continue
         if not writable(project, revision):
-            if not any(getattr(item, f"{family}_run_id") for family in policy.profiles):
+            if not item.extraction_run_id:
                 item.blocked_reason = "REVISION_READ_ONLY"
             continue
-        if not slots or operation.cancel_requested_at or not ready_to_admit(item, policy, runs):
+        if not slots or operation.cancel_requested_at or not ready_to_admit(item, runs):
             continue
         try:
             with session.begin_nested():
@@ -440,7 +433,7 @@ def reconcile_operation(session, settings, operation_id, project_id, revision_id
             slots -= 1
     waiting = any(
         active_child(item, runs)
-        or (not operation.cancel_requested_at and ready_to_admit(item, policy, runs))
+        or (not operation.cancel_requested_at and ready_to_admit(item, runs))
         for item in items
     )
     operation.next_check_at = (
@@ -472,15 +465,30 @@ def reconcile_operations(factory, settings, storage, limit=20):
             logger.warning("Extraction operation reconciliation deferred (%s)", type(exc).__name__)
 
 
-def cancel_operation(session, operation):
+def cancel_operation(session, settings, operation):
     if operation.cancel_requested_at is None and operation.next_check_at is not None:
         operation.cancel_requested_at = now(session)
-        # Already admitted child runs have their own leases and may be shared.
+        coordinator = ExtractionCoordinator(session, settings)
+        for item in items_for(session, operation):
+            if item.owns_extraction:
+                run = coordinator._run(item.extraction_run_id)
+                if run.status in ACTIVE:
+                    coordinator.cancel(run.id)
         operation.next_check_at = None
 
 
 def retry_operation_item(
-    session, settings, operation, revision_document_id, step, expected_attempts, acknowledge_unknown
+    session,
+    settings,
+    operation,
+    revision_document_id,
+    step,
+    expected_attempts,
+    acknowledge_unknown,
+    *,
+    page_id=None,
+    stage=None,
+    expected_attempt=None,
 ):
     if operation.cancel_requested_at:
         raise ExtractionConflict("A cancelled operation cannot be retried.")
@@ -509,14 +517,14 @@ def retry_operation_item(
             raise ExtractionConflict("This source requires a new review before it can be started.")
         item.blocked_reason = None
     else:
-        if step != "layout" and step not in policy.profiles:
+        if step != "layout" and step != "extraction":
             raise ExtractionNotFound("Extraction operation step not found.")
         run_id = getattr(item, f"{step}_run_id")
         if not run_id:
             raise ExtractionConflict("This step has not been admitted.")
         coordinator = ExtractionCoordinator(session, settings)
         run = coordinator._run(run_id)
-        if len(coordinator._units(run.id)) != expected_attempts:
+        if stage is None and len(coordinator._units(run.id)) != expected_attempts:
             return  # This action was based on an older attempt list.
         if run.status not in ACTIVE:
             runs = child_runs(session, items_for(session, operation))
@@ -530,6 +538,9 @@ def retry_operation_item(
             run.id,
             purpose=PURPOSE if step == "layout" else "EXTRACTION",
             acknowledge_unknown_outcome=acknowledge_unknown,
+            page_id=page_id,
+            stage=stage,
+            expected_attempt=expected_attempt,
         )
         item.blocked_reason = None
     operation.next_check_at = now(session)

@@ -4,7 +4,7 @@ from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter
-from pydantic import Field, StrictBool, StrictInt, field_validator
+from pydantic import Field, StrictBool, StrictInt, field_validator, model_validator
 from sqlalchemy import select
 
 from powerforge_api.routers.errors import model_api_errors
@@ -67,9 +67,21 @@ class StartRequest(Contract):
 
 class RetryRequest(Contract):
     revision_document_id: UUID
-    step: Literal["layout", "engineering", "tables", "resume"]
+    step: Literal["layout", "resume"] | None = None
+    stage: Literal["EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"] | None = None
+    page_id: UUID | None = None
+    expected_attempt: StrictInt | None = Field(default=None, ge=1)
     expected_attempts: StrictInt = Field(default=0, ge=0)
     acknowledge_unknown_outcome: StrictBool = False
+
+    @model_validator(mode="after")
+    def target(self):
+        if self.stage is not None:
+            if self.step is not None or self.page_id is None or self.expected_attempt is None:
+                raise ValueError("Select the page and expected attempt for this AI stage")
+        elif self.step is None or self.page_id is not None or self.expected_attempt is not None:
+            raise ValueError("Select either a preparation action or a page stage")
+        return self
 
 
 @router.post("/sources")
@@ -179,7 +191,7 @@ def cancel(
         lock_writable_revision(session, project_id, revision_id)
         operation = get_operation(session, project_id, revision_id, operation_id, lock=True)
         if operation_detail(session, settings, operation, can_write=True)["can_cancel"]:
-            cancel_operation(session, operation)
+            cancel_operation(session, settings, operation)
         session.commit()
         return operation_detail(session, settings, operation, can_write=True)
 
@@ -202,9 +214,12 @@ def retry(
             settings,
             operation,
             body.revision_document_id,
-            body.step,
+            body.step or "extraction",
             body.expected_attempts,
             body.acknowledge_unknown_outcome,
+            page_id=body.page_id,
+            stage=body.stage,
+            expected_attempt=body.expected_attempt,
         )
         session.commit()
         dispatch_committed(session, settings, enqueue)

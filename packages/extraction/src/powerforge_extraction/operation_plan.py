@@ -15,7 +15,6 @@ from powerforge_document_processing.models import (
     PageArtifact,
     RevisionDocument,
 )
-from powerforge_extraction.enriched_profiles import ENGINEERING, TABLES, enriched_profile
 from powerforge_extraction.enriched_sources import selected_snapshot
 from powerforge_extraction.enrichment_models import SourceEnrichmentPageResult
 from powerforge_extraction.enrichment_service import preparation_identity, source_snapshot
@@ -25,10 +24,9 @@ from powerforge_extraction.layout_models import SourceSpatialResult
 from powerforge_extraction.layout_profiles import layout_profile
 from powerforge_extraction.layout_sources import successful_prepared
 from powerforge_extraction.models import ExtractionRun, ExtractionWorkUnit
+from powerforge_extraction.phase6r_profile import phase6r_profile
 
-Family = Literal["engineering", "tables"]
 Mode = Literal["ensure", "reextract"]
-PROFILE_KEYS = {"engineering": ENGINEERING, "tables": TABLES}
 MAX_DOCUMENTS = 50
 CONSENT_VERSION = "external-openai-v1"
 
@@ -59,19 +57,13 @@ class SourceSelection(Contract):
 
 class OperationSelection(Contract):
     documents: list[SourceSelection] = Field(min_length=1, max_length=MAX_DOCUMENTS)
-    families: list[Family] = Field(
-        default_factory=lambda: list(PROFILE_KEYS), min_length=1, max_length=2
-    )
     mode: Mode = "ensure"
 
     @model_validator(mode="after")
     def normalize(self):
         if len({doc.revision_document_id for doc in self.documents}) != len(self.documents):
             raise ValueError("Select each document once")
-        if len(set(self.families)) != len(self.families):
-            raise ValueError("Select each extraction family once")
         self.documents.sort(key=lambda doc: doc.revision_document_id)
-        self.families.sort()
         return self
 
 
@@ -92,7 +84,7 @@ class PlannedDocument(Contract):
 class OperationPolicy(Contract):
     consent_version: Literal["external-openai-v1"] = CONSENT_VERSION
     mode: Mode
-    profiles: dict[Family, str]
+    profile_hash: str
     layout_profile_hash: str
     provider_admissions: int
     ocr_attempts: int
@@ -104,7 +96,7 @@ class Preview:
     documents: list[PlannedDocument]
     policy: OperationPolicy | None
     items: list[dict]
-    profiles: list[dict]
+    profile: dict
     errors: list[str]
 
     @property
@@ -122,9 +114,9 @@ class Preview:
         return {
             "items": self.items,
             "errors": self.errors,
-            "profiles": self.profiles,
+            "profile": self.profile,
             "review_hash": self.review_hash,
-            "planned_runs": len(self.items) * len(self.profiles),
+            "planned_runs": len(self.items),
             "provider_admissions": self.policy.provider_admissions if self.policy else None,
             "ocr_attempts": self.policy.ocr_attempts if self.policy else None,
             "parallel_documents": self.policy.parallel_documents if self.policy else None,
@@ -225,11 +217,11 @@ def compatible_pair(session, planned, prepared_id, spatial_id, layout_hash, proc
     return source
 
 
-def plan_document(session, source, selection, layout, profiles):
+def plan_document(session, source, selection, layout, profile):
     _, document, processing = source
     if selection.processing_run_id != processing.id:
         raise ExtractionError("The processed source changed. Review the source again.")
-    if len(selection.pages) > min(layout.max_pages, *(profile.max_pages for profile in profiles)):
+    if len(selection.pages) > min(layout.max_pages, profile.max_pages):
         raise ExtractionError("The selected pages exceed the profile page limit.")
     pages = {
         page.page_number: page
@@ -248,13 +240,12 @@ def plan_document(session, source, selection, layout, profiles):
         page = pages[number]
         owner, original, base, _ = source_snapshot(session, document, processing, page)
         image = next(a for a in base if a.role == "ANALYSIS_IMAGE")
-        if any(
+        if (
             image.size_bytes > profile.max_input_bytes
             or image.width_px * image.height_px > profile.max_image_pixels
-            for profile in profiles
         ):
             raise ExtractionError(
-                f"Page {number} exceeds the image limits for the selected profiles."
+                f"Page {number} exceeds the image limits for the selected profile."
             )
         preparation = preparation_identity(
             layout.preparation, original, base, force_ocr=number in selection.force_ocr_pages
@@ -325,10 +316,12 @@ def preview_operation(session, settings, project_id, revision_id, selection):
         )
 
     within_limits = not errors
-    profiles = [enriched_profile(PROFILE_KEYS[family], settings) for family in selection.families]
-    external = settings.extraction_enabled and settings.extraction_external_enabled
+    profile = phase6r_profile(settings)
+    external = settings.extraction_enabled and settings.extraction_phase6r_fake
     if not external:
-        errors.append("This deployment has not enabled external OpenAI extraction.")
+        errors.append(
+            "Live extraction is unavailable until the Phase 6R provider adapter is installed."
+        )
     try:
         layout = layout_profile(settings) if settings.enrichment_enabled else None
     except (ValueError, KeyError):
@@ -344,15 +337,13 @@ def preview_operation(session, settings, project_id, revision_id, selection):
         plan = None
         if not error and layout and within_limits:
             try:
-                plan = plan_document(session, source, doc, layout, profiles)
+                plan = plan_document(session, source, doc, layout, profile)
                 missing = sum(page.spatial_result_id is None for page in plan.pages)
                 if missing * 2 > layout.max_calls:
                     raise ExtractionError(
                         "The local admission budget cannot cover all required stages."
                     )
-                if any(
-                    len(doc.pages) * len(profile.stages) > profile.max_calls for profile in profiles
-                ):
+                if len(doc.pages) * len(profile.stages) > profile.max_calls:
                     raise ExtractionError(
                         "The provider admission budget cannot cover all required stages."
                     )
@@ -367,9 +358,8 @@ def preview_operation(session, settings, project_id, revision_id, selection):
             ocr_attempts += (
                 sum(page.prepared_result_id is None for page in plan.pages) * layout.max_attempts
             )
-            remote_attempts += sum(
-                min(profile.max_calls, len(doc.pages) * len(profile.stages) * profile.max_attempts)
-                for profile in profiles
+            remote_attempts += min(
+                profile.max_calls, len(doc.pages) * len(profile.stages) * profile.max_attempts
             )
         items.append(
             {
@@ -400,10 +390,7 @@ def preview_operation(session, settings, project_id, revision_id, selection):
         documents=plans,
         policy=OperationPolicy(
             mode=selection.mode,
-            profiles={
-                family: profile.identity_hash
-                for family, profile in zip(selection.families, profiles, strict=True)
-            },
+            profile_hash=profile.identity_hash,
             layout_profile_hash=layout.identity_hash,
             provider_admissions=remote_attempts,
             ocr_attempts=ocr_attempts,
@@ -412,15 +399,11 @@ def preview_operation(session, settings, project_id, revision_id, selection):
         if layout
         else None,
         items=items,
-        profiles=[
-            {
-                "family": family,
-                "key": profile.key,
-                "provider": profile.provider,
-                "model": profile.model,
-                "enabled": external,
-            }
-            for family, profile in zip(selection.families, profiles, strict=True)
-        ],
+        profile={
+            "key": profile.key,
+            "provider": profile.provider,
+            "model": profile.model,
+            "enabled": external,
+        },
         errors=errors,
     )

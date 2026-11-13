@@ -11,7 +11,6 @@ import { apiErrorOf } from "@/lib/api";
 import {
   familyLabel,
   getHistory,
-  getRawTables,
   getRunDetail,
   getRunSources,
   runHistoryAction,
@@ -19,14 +18,12 @@ import {
   type DocumentScope,
   type HistoryFamily,
   type HistoryRun,
-  type RawTable,
   type RunPair,
   type RunStatus,
 } from "@/lib/extraction";
 import { formatDateShort } from "@/lib/projects";
 import { isRunning, jobInterval } from "@/lib/query-hooks";
 import { keys } from "@/lib/query-keys";
-import { cn } from "@/lib/utils";
 
 const chipTone = {
   PENDING: "yellow",
@@ -53,9 +50,7 @@ export function ExtractionRunHistory({
 }) {
   return (
     <div className="space-y-3.5">
-      <p className="m-0 text-workspace-overline font-bold tracking-wide text-muted uppercase">Separate extraction runs</p>
-      <PanelMessage>Engineering, Tables and source enrichment each have their own history. Choose a run to see its source version, attempts and coverage.</PanelMessage>
-      {(["engineering", "tables", "enrichment"] as const).map((family) => (
+      {(["engineering", "enrichment"] as const).map((family) => (
         <HistorySection
           key={family}
           scope={scope}
@@ -183,8 +178,6 @@ function RunHistoryDetail({
 
   const data = detail.data;
   const usage = data?.execution;
-  const hasEffective = !!data?.coverage?.completed_required_units;
-  const showTableOutput = family === "tables" && hasEffective;
   const cancelled = action === "cancel";
   const boundSources = sources.data?.items ?? [];
   return (
@@ -217,7 +210,7 @@ function RunHistoryDetail({
             <summary className="cursor-pointer font-semibold text-accent">Attempts and source bindings</summary>
             <div className="mt-2 max-h-64 space-y-2 overflow-auto break-words">
               {data.attempts.map((attempt) => (
-                <p key={attempt.id} className="m-0">{readableKey(attempt.unit_key)} · {readableKey(attempt.status)}{attempt.error_code ? ` · ${readableKey(attempt.error_code)}` : ""}</p>
+                <p key={attempt.id} className="m-0">{readableKey(attempt.unit_key)} · {readableKey(attempt.status)}{attempt.stage_outcome === "NO_ELIGIBLE_ATTRIBUTES" ? " · No eligible attributes" : ""}{attempt.error_code ? ` · ${readableKey(attempt.error_code)}` : ""}</p>
               ))}
               {sources.error && <PanelMessage error retry={() => void sources.refetch()}>Exact source bindings could not load.</PanelMessage>}
               {boundSources.map((item) => (
@@ -245,7 +238,7 @@ function RunHistoryDetail({
             </div>
           </details>
           <div className="flex flex-wrap gap-1.5">
-            {family !== "enrichment" && (hasEffective || run.status === "COMPLETED") && (
+            {family !== "enrichment" && data.can_browse_candidates && (
               <button type="button" className={docButtonClass("tiny")} onClick={() => {
                 const chosen = { ...pair, [family]: runId };
                 update({
@@ -268,7 +261,6 @@ function RunHistoryDetail({
             )}
           </div>
           {actionError && <PanelMessage error>{actionError}</PanelMessage>}
-          {showTableOutput && <RawTableOutput scope={scope} run={run} />}
         </>
       )}
       {action && (
@@ -285,65 +277,6 @@ function RunHistoryDetail({
           onCancel={() => { if (!busy) setAction(null); }}
         />
       )}
-    </div>
-  );
-}
-
-function RawTableOutput({ scope, run }: { scope: DocumentScope; run: HistoryRun }) {
-  const [open, setOpen] = useState(false);
-  const [offset, setOffset] = useState(0);
-  const tables = useQuery({
-    queryKey: [...keys.extractionDocument(scope.projectId, scope.revisionId, scope.documentId), "raw-tables", run.id, offset],
-    queryFn: ({ signal }) => getRawTables(scope, run.id, offset, signal),
-    enabled: open,
-    retry: 1,
-  });
-  return (
-    <details className="border-t border-border pt-2 text-workspace-caption" onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary className="cursor-pointer font-semibold text-accent">Inspect raw table output (technical)</summary>
-      {open && (
-        <div className="mt-2 space-y-2">
-          <p className="m-0 text-muted">These are reconstructed source cells. Printed text and relationships require independent verification.</p>
-          {tables.isPending && <p role="status" className="m-0 text-muted">Loading raw table output…</p>}
-          {tables.error && <PanelMessage error retry={() => void tables.refetch()}>{apiErrorOf(tables.error).detail}</PanelMessage>}
-          {tables.data?.total === 0 && <PanelMessage>No committed table structure for this run.</PanelMessage>}
-          {tables.data?.items.map((table) => <TableCells key={table.id} table={table} />)}
-          {tables.data && <EvidencePagination total={tables.data.total} size={1} start={offset} onChange={setOffset} />}
-        </div>
-      )}
-    </details>
-  );
-}
-
-type Layout = {
-  title: string | null;
-  metadata: { structure_basis?: string };
-  cells: { id: string; text: string; row: number; column: number; row_span: number; column_span: number; is_header: boolean }[];
-};
-
-function TableCells({ table }: { table: RawTable }) {
-  const layout = table.layout as Layout;
-  const [offset, setOffset] = useState(0);
-  const cells = layout.cells.slice(offset, offset + 20);
-  return (
-    <div className={cn(card, "space-y-2")}>
-      <p className="m-0 break-words font-semibold text-ink">{layout.title || readableKey(table.table_kind)}</p>
-      {layout.metadata.structure_basis && <p className="m-0 text-muted">Structure · {readableKey(layout.metadata.structure_basis)}</p>}
-      {layout.cells.length === 0 ? <p className="m-0 text-muted">No supported cells were recorded.</p> : (
-        <table className="w-full table-fixed border-collapse text-left">
-          <thead><tr className="border-b border-border text-muted"><th scope="col" className="w-[40%] py-1 pr-1">Source cell</th><th scope="col" className="py-1">Recognized text</th></tr></thead>
-          <tbody>{cells.map((cell) => (
-            <tr key={cell.id} className="border-b border-border last:border-0">
-              <th scope="row" className="py-1 pr-1 align-top font-medium text-muted">
-                {cell.is_header ? "Header · " : ""}R{cell.row + 1} C{cell.column + 1}
-                {(cell.row_span > 1 || cell.column_span > 1) && ` · ${cell.row_span}×${cell.column_span}`}
-              </th>
-              <td className="py-1 break-words whitespace-pre-wrap text-ink">{cell.text || "—"}</td>
-            </tr>
-          ))}</tbody>
-        </table>
-      )}
-      <EvidencePagination total={layout.cells.length} size={20} start={offset} onChange={setOffset} />
     </div>
   );
 }
