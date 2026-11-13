@@ -186,7 +186,7 @@ def prepare_page(
         producer = ProducerIdentity(
             kind="NATIVE_PDF",
             adapter="pymupdf-native",
-            adapter_version="native-pymupdf-v1",
+            adapter_version=profile.native["version"],
             engine="pymupdf",
             engine_version=profile.native["engine_version"],
             build_sha256=profile.native["build_sha256"],
@@ -281,6 +281,9 @@ def prepare_page(
             ocr_elapsed_ms=response.usage.elapsed_ms,
             raster_pixels=width * height,
         )
+    limitations = ("NO_LEGACY_NATIVE_ORIGIN_WITNESS", "PRINTED_TEXT_NOT_INDEPENDENTLY_VERIFIED")
+    if native and native.drawing_limitation:
+        limitations += (native.drawing_limitation,)
     manifest = PreparedPage(
         id=result_id,
         owner=owner,
@@ -298,7 +301,7 @@ def prepare_page(
         if native and native.raster_boxes
         else "SKIP_NATIVE_SUFFICIENT",
         ocr_reason=reason,
-        limitations=("NO_LEGACY_NATIVE_ORIGIN_WITNESS", "PRINTED_TEXT_NOT_INDEPENDENTLY_VERIFIED"),
+        limitations=limitations,
     )
     for descriptor in descriptors:
         load_positioned_text(

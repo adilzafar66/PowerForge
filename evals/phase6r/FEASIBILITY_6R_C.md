@@ -1,5 +1,7 @@
 # Phase 6R-C live feasibility checkpoint
 
+The [correction and rerun report](FEASIBILITY_6R_C_CORRECTION.md) records the follow-up.
+
 Run on 2026-11-13 with the approved page 1 of each of three real engineering PDFs. The pages contain engineering notes and prose, tabular ratings and schedules, and equipment drawings. The sample is separate from the held-out benchmark. The operator authorized up to six calls with retries disabled and a 2,000,000-token ceiling. Two calls were sent. Page hashes, source annotations, request projections, raw stage results, and audit records were kept outside the repository.
 
 The run used the normal revision-scoped preview, consent, source preparation, lease, provider and stage-result path with disposable PostgreSQL and in-memory object storage. The configured model was `gpt-6-luna`, contract `phase-6r-v1`, prompt bundle `phase-6r-stages-v1`, and profile hash `0debf07fbbe4b13ec12c731c6ea5560351d7493941005b714f5bb2dc7475722a`. The run used standard pricing with uncached long-context list rates as a conservative cost estimate. [OpenAI pricing](https://developers.openai.com/api/docs/pricing)

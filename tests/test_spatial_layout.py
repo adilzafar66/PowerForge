@@ -1,8 +1,63 @@
 """Independent source geometry/header gold and meaningful negative controls."""
 
 from pathlib import Path
+from uuid import uuid4
 
-from spatial_layout_support import derive, drawn_table, prepare_pdf
+import pymupdf
+import pytest
+
+from powerforge_document_processing.layout_derive import admit_layout, derive_layout
+from powerforge_document_processing.native_spatial import extract_native
+from powerforge_extraction.enrichment_prepare import sha
+from powerforge_provenance.spatial_base import POLICY
+from powerforge_provenance.spatial_sources import load_positioned_text
+from spatial_layout_support import derive, drawn_table, prepare_pdf, sources
+
+
+@pytest.mark.parametrize(
+    ("count", "reason"),
+    [
+        (65, "NATIVE_GRID_COMPONENT_LIMIT"),
+        (2049, "NATIVE_GRID_SEGMENT_LIMIT"),
+        (POLICY["max_native_primitives"] + 1, "NATIVE_DRAWING_PRIMITIVE_LIMIT"),
+    ],
+)
+def test_optional_drawing_structure_preserves_exact_readings(count, reason):
+    control = drawn_table(nearby=True)
+    with pymupdf.open(stream=control, filetype="pdf") as doc:
+        shape = doc[0].new_shape()
+        for index in range(count):
+            x, y = 4 + (index % 80) * 7, 215 + (index // 80) * 2
+            shape.draw_line((x, y), (x + 1, y))
+        shape.finish()
+        shape.commit()
+        payload = doc.tobytes()
+    baseline = extract_native(control, 1)
+    native = extract_native(payload, 1)
+    assert native.readings == baseline.readings
+    assert native == extract_native(payload, 1)
+    output = prepare_pdf(payload)
+    manifest = output.manifest
+    assert manifest.original.sha256 == sha(payload)
+    assert (reason in manifest.limitations) == (native.drawing_limitation is not None)
+    geometry, text = sources(output)
+    positioned, source_text = load_positioned_text(
+        manifest, "native", geometry["native"], text["native"]
+    )
+    assert len(positioned.native_primitives) == len(native.primitives)
+    assert [token.raw_text for token in positioned.tokens] == [r.text for r in baseline.readings]
+    assert all(source_text[t.span.start : t.span.end] == t.raw_text for t in positioned.tokens)
+    identity = (uuid4(), uuid4(), uuid4())
+    layout = derive_layout(manifest, geometry, text, *identity)
+    assert len(layout.readings) == len(positioned.tokens)
+    assert all(reading.region is not None for reading in layout.readings)
+    assert not layout.tables
+    (diagnostic,) = layout.unresolved
+    assert (diagnostic.reason, diagnostic.region, diagnostic.support) == (reason, None, ())
+    assert all(edge.basis == "SAME_BASELINE" for edge in layout.order)
+    assert admit_layout(manifest, geometry, text, layout).identity_hash == layout.identity_hash
+    with pytest.raises(ValueError, match="does not reproduce"):
+        admit_layout(manifest, geometry, text, layout.model_copy(update={"unresolved": ()}))
 
 
 def test_accepted_positioned_pdf_has_new_justified_cells_and_header_ownership():

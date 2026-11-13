@@ -15,12 +15,19 @@ from powerforge_provenance.layout_observations import (
     LAYOUT_POLICY,
     LayoutCell,
     LayoutTable,
+    StructuralLimit,
     UnresolvedLayout,
 )
 from powerforge_provenance.spatial_geometry import NormalizedRegion
 from powerforge_provenance.spatial_layout import SourceSupport
 
 D = Decimal
+
+
+class TableLayoutLimit(ValueError):
+    def __init__(self, reason: StructuralLimit):
+        super().__init__(reason)
+        self.reason = reason
 
 
 @dataclass(frozen=True)
@@ -63,7 +70,7 @@ def native_segments(bodies, width, page_height, eps):
     result = list({(s.axis, s.coordinate, s.start, s.end): s for s in reversed(result)}.values())
     result.reverse()
     if len(result) > LAYOUT_POLICY["max_segments"]:
-        raise ValueError("Native grid segment bound exceeded")
+        raise TableLayoutLimit("NATIVE_GRID_SEGMENT_LIMIT")
     return result
 
 
@@ -96,7 +103,7 @@ def connected(segments, eps):
     for i, segment in enumerate(segments):
         groups.setdefault(root(i), []).append(segment)
     if len(groups) > 64:
-        raise ValueError("Native grid component bound exceeded")
+        raise TableLayoutLimit("NATIVE_GRID_COMPONENT_LIMIT")
     return list(groups.values())
 
 
@@ -184,6 +191,8 @@ def with_headers(cells, readings):
             and b.column + b.column_span <= a.column + a.column_span
             for a, b in zip(path, path[1:], strict=False)
         )
+        if unique and len(path) > 8:
+            raise TableLayoutLimit("TABLE_SUPPORT_LIMIT")
         result.append(
             cell.model_copy(update={"headers": tuple(h.ref for h in path) if unique else ()})
         )
@@ -199,7 +208,7 @@ def grid_component(segments, readings, width, page_height, eps, ref):
     )
     supports = tuple(dict.fromkeys(s.support for s in segments))
     if len(supports) > 512:
-        raise ValueError("Table boundary support bound exceeded")
+        raise TableLayoutLimit("TABLE_SUPPORT_LIMIT")
     if len(xs) < 2 or len(ys) < 2:
         return None, None, None
     box = (xs[0], ys[0], xs[-1], ys[-1])
@@ -214,7 +223,7 @@ def grid_component(segments, readings, width, page_height, eps, ref):
         or nc > LAYOUT_POLICY["max_columns"]
         or nr * nc > LAYOUT_POLICY["max_cells"]
     ):
-        raise ValueError("Native grid partition bound exceeded")
+        raise TableLayoutLimit("TABLE_PARTITION_LIMIT")
     if nr < 2 or nc < 2:
         return reject("OPEN_OR_IRREGULAR_GRID")
     for axis, coord, start, end in [
@@ -282,6 +291,8 @@ def grid_component(segments, readings, width, page_height, eps, ref):
         assignments[matches[0]].append(reading)
     cells = []
     for i, (r, c, rs, cs, cell_box, support) in enumerate(slots):
+        if len(assignments[i]) > 512:
+            raise TableLayoutLimit("TABLE_SUPPORT_LIMIT")
         bands = row_bands(assignments[i])
         if bands is None:
             return reject("AMBIGUOUS_ASSIGNMENT")
@@ -431,7 +442,12 @@ def borderless_tables(readings, excluded, width, page_height, start_index):
         region = normalized(box, width, page_height)
         support = tuple(q.model.preferred for row, _ in group for cell in row for q in cell)
         if len(support) > 512:
-            raise ValueError("Borderless table support bound exceeded")
+            raise TableLayoutLimit("TABLE_SUPPORT_LIMIT")
+        if (
+            len(group) > LAYOUT_POLICY["max_rows"]
+            or len(group) * ncols > LAYOUT_POLICY["max_cells"]
+        ):
+            raise TableLayoutLimit("TABLE_PARTITION_LIMIT")
 
         def reject(reason, region=region, support=support):
             unresolved.append(UnresolvedLayout(region=region, reason=reason, support=support))

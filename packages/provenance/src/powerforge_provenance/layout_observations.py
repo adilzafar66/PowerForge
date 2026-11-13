@@ -4,7 +4,7 @@ import hashlib
 import json
 from importlib.resources import files
 from types import MappingProxyType
-from typing import Literal
+from typing import Literal, get_args
 from uuid import UUID
 
 from pydantic import Field, field_validator, model_validator
@@ -29,6 +29,15 @@ del _policy
 Basis = Literal[
     "NATIVE_GEOMETRY_SUPPORTED", "OCR_GEOMETRY_SUPPORTED", "MIXED_GEOMETRY_SUPPORTED", "UNRESOLVED"
 ]
+StructuralLimit = Literal[
+    "NATIVE_DRAWING_PRIMITIVE_LIMIT",
+    "NATIVE_GRID_SEGMENT_LIMIT",
+    "NATIVE_GRID_COMPONENT_LIMIT",
+    "TABLE_SUPPORT_LIMIT",
+    "TABLE_PARTITION_LIMIT",
+    "TABLE_LAYOUT_LIMIT",
+]
+STRUCTURAL_LIMITS = frozenset(get_args(StructuralLimit))
 
 
 class LayoutReading(SpatialContract):
@@ -144,15 +153,24 @@ class LayoutTable(SpatialContract):
 
 class UnresolvedLayout(SpatialContract):
     region: NormalizedRegion | None
-    reason: Literal[
-        "OPEN_OR_IRREGULAR_GRID",
-        "AMBIGUOUS_ASSIGNMENT",
-        "OVERLAPPING_TABLES",
-        "UNSUPPORTED_HEADER",
-        "COMPETING_PARTITIONS",
-        "UNSUPPORTED_ALIGNMENT",
-    ]
+    reason: (
+        StructuralLimit
+        | Literal[
+            "OPEN_OR_IRREGULAR_GRID",
+            "AMBIGUOUS_ASSIGNMENT",
+            "OVERLAPPING_TABLES",
+            "UNSUPPORTED_HEADER",
+            "COMPETING_PARTITIONS",
+            "UNSUPPORTED_ALIGNMENT",
+        ]
+    )
     support: tuple[SourceSupport, ...] = Field(max_length=512)
+
+    @model_validator(mode="after")
+    def page_scope_for_limits(self):
+        if self.reason in STRUCTURAL_LIMITS and (self.region is not None or self.support):
+            raise ValueError("Page-wide structure limits cannot assert region or geometry support")
+        return self
 
 
 class SpatialLayout(SpatialContract):
@@ -195,6 +213,10 @@ class SpatialLayout(SpatialContract):
             or sum(len(t.cells) for t in self.tables) > LAYOUT_POLICY["max_cells"]
         ):
             raise ValueError("Duplicate table or aggregate cell overflow")
+        if any(r.reason in STRUCTURAL_LIMITS for r in self.unresolved) and (
+            self.tables or any(edge.basis != "SAME_BASELINE" for edge in self.order)
+        ):
+            raise ValueError("Unresolved page structure cannot carry table claims")
         all_owned = {r for table in self.tables for cell in table.cells for r in cell.readings}
         used = set()
         for table in self.tables:

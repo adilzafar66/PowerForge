@@ -5,7 +5,11 @@ import re
 from decimal import ROUND_HALF_EVEN, Decimal, localcontext
 from importlib.resources import files
 
-from powerforge_document_processing.layout_grid import borderless_tables, ruled_tables
+from powerforge_document_processing.layout_grid import (
+    TableLayoutLimit,
+    borderless_tables,
+    ruled_tables,
+)
 from powerforge_document_processing.layout_readings import (
     align_readings,
     height,
@@ -13,6 +17,7 @@ from powerforge_document_processing.layout_readings import (
     same_baseline,
     selected_readings,
 )
+from powerforge_document_processing.native_spatial import NATIVE_PRIMITIVE_LIMIT
 from powerforge_provenance.layout_observations import (
     LAYOUT_POLICY,
     ReadingOrder,
@@ -29,6 +34,7 @@ def layout_rules_identity():
     return identity_hash(
         {
             "contracts": layout_contract_identity(),
+            "structure_policy": "bounded-optional-tables-v2",
             "sources": {
                 name: hashlib.sha256(root.joinpath(name).read_bytes()).hexdigest()
                 for name in ("layout_readings.py", "layout_grid.py", "layout_derive.py")
@@ -49,10 +55,7 @@ def preparation_reference(prepared):
     )
 
 
-def _derive(prepared, geometry, text, result_id, run_id, unit_id):
-    raw, bodies = selected_readings(prepared, geometry, text)
-    readings, overlaps = align_readings(raw, prepared.page_frame.width, prepared.page_frame.height)
-    width, page_height = prepared.page_frame.width, prepared.page_frame.height
+def derive_tables(readings, bodies, width, page_height):
     tables, unresolved, excluded = ruled_tables(readings, bodies, width, page_height)
     borderless, rejected = borderless_tables(readings, excluded, width, page_height, len(tables))
     tables.extend(borderless)
@@ -68,19 +71,39 @@ def _derive(prepared, geometry, text, result_id, run_id, unit_id):
                 bad.update((i, j))
     for i in sorted(bad):
         table = tables[i]
+        support = tuple(dict.fromkeys(s for c in table.cells for s in c.boundary_support))
+        if len(support) > 512:
+            raise TableLayoutLimit("TABLE_SUPPORT_LIMIT")
         unresolved.append(
             UnresolvedLayout(
                 region=table.region,
                 reason="OVERLAPPING_TABLES",
-                support=tuple(dict.fromkeys(s for c in table.cells for s in c.boundary_support)),
+                support=support,
             )
         )
     tables = [t for i, t in enumerate(tables) if i not in bad]
     if (
         len(tables) > LAYOUT_POLICY["max_tables"]
         or sum(len(t.cells) for t in tables) > LAYOUT_POLICY["max_cells"]
+        or len(unresolved) > 64
     ):
-        raise ValueError("Aggregate table/cell layout bound exceeded")
+        raise TableLayoutLimit("TABLE_LAYOUT_LIMIT")
+    return tables, unresolved
+
+
+def _derive(prepared, geometry, text, result_id, run_id, unit_id):
+    raw, bodies = selected_readings(prepared, geometry, text)
+    readings, overlaps = align_readings(raw, prepared.page_frame.width, prepared.page_frame.height)
+    width, page_height = prepared.page_frame.width, prepared.page_frame.height
+    try:
+        if NATIVE_PRIMITIVE_LIMIT in prepared.limitations:
+            raise TableLayoutLimit(NATIVE_PRIMITIVE_LIMIT)
+        tables, unresolved = derive_tables(readings, bodies, width, page_height)
+    except TableLayoutLimit as limit:
+        # Keep the whole reading projection. Never reinterpret a failed ruled
+        # grid as a borderless table or publish a partial table set.
+        tables = []
+        unresolved = [UnresolvedLayout(region=None, reason=limit.reason, support=())]
     lookup = {r.model.ref: r for r in readings}
     edges = set()
 
@@ -99,6 +122,7 @@ def _derive(prepared, geometry, text, result_id, run_id, unit_id):
                 height(a.box), height(b.box)
             ) * Decimal("1.5"):
                 order(a.model.ref, b.model.ref, "SAME_BASELINE")
+    baseline_edges = edges.copy()
     # Only explicit table partitions establish order across source engine lines.
     for table in tables:
         for cell in table.cells:
@@ -175,6 +199,14 @@ def _derive(prepared, geometry, text, result_id, run_id, unit_id):
             if targets == [table.ref]:
                 captions.extend(r.model.ref for r in sorted(line, key=lambda r: r.box[0]))
         updated.append(table.model_copy(update={"captions": tuple(captions)}))
+    if updated and (
+        any(len(table.captions) > 64 for table in updated)
+        or len(edges) > LAYOUT_POLICY["max_edges"]
+    ):
+        # Table enrichment is optional; baseline reading order remains independently supported.
+        updated = []
+        edges = baseline_edges
+        unresolved = [UnresolvedLayout(region=None, reason="TABLE_LAYOUT_LIMIT", support=())]
     return SpatialLayout(
         id=result_id,
         owner=prepared.owner,

@@ -11,6 +11,8 @@ import pymupdf
 
 from powerforge_provenance.spatial_base import POLICY
 
+NATIVE_PRIMITIVE_LIMIT = "NATIVE_DRAWING_PRIMITIVE_LIMIT"
+
 
 @dataclass(frozen=True)
 class NativeReading:
@@ -33,11 +35,12 @@ class NativePage:
     raster_boxes: tuple[tuple[str, str, str, str], ...]
     replacement_characters: int
     characters: int
+    drawing_limitation: str | None = None
 
 
 def native_identity():
     return dict(
-        version="native-pymupdf-v1",
+        version="native-pymupdf-v2",
         engine_version=pymupdf.VersionBind,
         build_sha256=hashlib.sha256(
             Path(import_module("pymupdf._mupdf").__file__).read_bytes()
@@ -112,22 +115,7 @@ def extract_native(data: bytes, page_number: int) -> NativePage:
                 if line_index > POLICY["max_lines"]:
                     raise ValueError("Native line bound exceeded")
         # Drawings are candidates only. Curves, fills and unsupported paths make no primitives.
-        primitives = []
-        for drawing in page.get_drawings():
-            for item in drawing["items"]:
-                if item[0] == "l":
-                    points = [item[1], item[2]]
-                elif item[0] == "re":
-                    r = item[1]
-                    points = [r.tl, r.tr, r.br, r.bl]
-                else:
-                    continue
-                if all(
-                    0 <= p.x <= source_width and 0 <= p.y <= source_height for p in points
-                ) and len(set((p.x, p.y) for p in points)) == len(points):
-                    primitives.append(tuple((exact(p.x), exact(p.y)) for p in points))
-                    if len(primitives) > POLICY["max_native_primitives"]:
-                        raise ValueError("Native primitive bound exceeded")
+        primitives, drawing_limitation = drawing_primitives(page, source_width, source_height)
         images = page.get_image_info()
         if len(images) > 2048:
             raise ValueError("Native embedded image bound exceeded")
@@ -139,11 +127,33 @@ def extract_native(data: bytes, page_number: int) -> NativePage:
             exact(source_height),
             rotation,
             tuple(readings),
-            tuple(primitives),
+            primitives,
             raster_boxes,
             replacements,
             characters,
+            drawing_limitation,
         )
+
+
+def drawing_primitives(page, source_width, source_height):
+    primitives = []
+    for drawing in page.get_drawings():
+        for item in drawing["items"]:
+            if item[0] == "l":
+                points = [item[1], item[2]]
+            elif item[0] == "re":
+                r = item[1]
+                points = [r.tl, r.tr, r.br, r.bl]
+            else:
+                continue
+            if all(0 <= p.x <= source_width and 0 <= p.y <= source_height for p in points) and len(
+                set((p.x, p.y) for p in points)
+            ) == len(points):
+                if len(primitives) == POLICY["max_native_primitives"]:
+                    # A prefix could create apparently closed grids or omit conflicting paths.
+                    return (), NATIVE_PRIMITIVE_LIMIT
+                primitives.append(tuple((exact(p.x), exact(p.y)) for p in points))
+    return tuple(primitives), None
 
 
 def rasterize_pdf(data: bytes, page_number: int) -> tuple[bytes, int, int]:

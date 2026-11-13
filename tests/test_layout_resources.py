@@ -24,7 +24,7 @@ FIXTURES = Path(__file__).resolve().parent / "fixtures/enrichment"
 
 
 def test_layout_resources_are_pinned_separately_from_accepted_preparation():
-    pinned = json.loads((FIXTURES / "layout_v1_identity.json").read_text())
+    pinned = json.loads((FIXTURES / "layout_v2_identity.json").read_text())
     assert layout_contract_identity() == pinned["contracts"]
     assert layout_rules_identity() == pinned["algorithm_sha256"]
     assert layout_execution_identity() == pinned["execution_sha256"]
@@ -50,6 +50,9 @@ def test_fixed_local_layout_plan_round_trips_without_changing_the_preparation_co
         )
     with pytest.raises(ValueError, match="resources unavailable"):
         require_layout(profile.model_copy(update={"algorithm_sha256": "0" * 64}))
+    prior = json.loads((FIXTURES / "layout_v1_identity.json").read_text())
+    with pytest.raises(ValueError, match="resources unavailable"):
+        require_layout(profile.model_copy(update={"algorithm_sha256": prior["algorithm_sha256"]}))
 
 
 def test_layout_algorithms_import_without_extraction_api_or_registry():

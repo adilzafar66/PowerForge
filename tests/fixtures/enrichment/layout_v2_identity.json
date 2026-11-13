@@ -1,0 +1,11 @@
+{
+  "contracts": {
+    "version": "source-spatial-layout-v1",
+    "rules_hash": "930d38a9aea3d3333a1b34d30d8c523de7f98c01499caff3db0894ead88b0edf",
+    "policy_sha256": "2de023fa9c5150b2bb9758775e45a7fe0aa6e10245cb1a274197a350d71d39a2",
+    "schema_sha256": "27d79c8804ff8b79104991a4595e316b6fc1a5b1b0adb79019fbea8f1172a6f8"
+  },
+  "algorithm_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+  "execution_sha256": "fda9a3cc8cd7a98743727e6bd7e38e58fd896006d0bd61c7583e6b262a8b3844",
+  "profile_schema": "ac4dfeae4aba468c9ddf577627b29a4c746bc2f8e05de8b884a2d646c68849ca"
+}

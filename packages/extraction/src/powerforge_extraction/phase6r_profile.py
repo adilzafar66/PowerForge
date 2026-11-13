@@ -22,10 +22,10 @@ KEY = "phase-6r"
 PROFILE_VERSION = "phase-6r-profile-v1"
 STAGES = ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION")
 RESPONSES = dict(zip(STAGES, (RecognitionResponse, AttributeResponse), strict=True))
-PROMPT_VERSION = "phase-6r-stages-v1"
+PROMPT_VERSION = "phase-6r-stages-v2"
 PROMPTS = {
     stage: files("powerforge_extraction")
-    .joinpath(f"prompts/phase6r_{stage.lower()}_v1.txt")
+    .joinpath(f"prompts/phase6r_{stage.lower()}_{'v2' if stage == STAGES[0] else 'v1'}.txt")
     .read_text(encoding="utf-8")
     for stage in STAGES
 }
