@@ -5,6 +5,7 @@ export type DecimalString = string;
 export type AIStage = "EQUIPMENT_RECOGNITION" | "ATTRIBUTE_EXTRACTION";
 export type Status = "PENDING" | "RUNNING" | "COMPLETED" | "PARTIALLY_COMPLETED" | "FAILED" | "CANCELLED";
 export type MappingStatus = "MAPPED" | "UNMAPPED" | "INVALID";
+export type ValueSourceSupport = "TEXT_MATCH" | "TEXT_MISMATCH" | "UNVERIFIED";
 export type Association = "ASSERTED" | "UNCERTAIN" | "UNASSIGNED";
 export type TagState = "PRESENT" | "ABSENT" | "UNREADABLE" | "AMBIGUOUS";
 export type Qualification = "INSTALLED" | "PROPOSED" | "FUTURE" | "SPARE" | "REFERENCE" | "LEGEND_ONLY" | "UNKNOWN";
@@ -187,6 +188,7 @@ export interface AttributeCandidate extends CandidateBase {
   raw_label: string | null;
   raw_value: string;
   raw_unit: string | null;
+  value_source_support: ValueSourceSupport;
   qualifiers: string[];
   value_form: "SINGLE" | "RANGE" | "MULTIPLE" | "QUALIFIED";
   proposed_attribute_key: string | null;
@@ -251,6 +253,7 @@ interface EvidenceBase {
   page_id: Id;
   page_image_id: Id;
   page_image: SignedEvidenceArtifact;
+  candidate_value_source_support: ValueSourceSupport | null;
 }
 
 export type Evidence =

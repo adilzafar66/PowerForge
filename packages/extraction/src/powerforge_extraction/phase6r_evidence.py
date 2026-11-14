@@ -13,6 +13,12 @@ from powerforge_provenance.spatial_geometry import region_for_points
 MAX_QUOTE_SCOPE_BYTES = 2 * 1024 * 1024
 MAX_QUOTE_SEARCH_BYTES = 64 * 1024 * 1024
 MAX_FRAGMENT_REGIONS = 32
+UNRELIABLE_TRANSCRIPTION = {
+    "AMBIGUOUS_OVERLAP",
+    "NATIVE_PREFERRED_UNALIGNED",
+    "NATIVE_REPLACEMENT",
+    "TRANSCRIPTION_CONFLICT",
+}
 
 
 def unresolved(role, code):
@@ -64,6 +70,13 @@ class EvidenceLocalizer:
             alias: [token.span.end for token in tokens] for alias, tokens in self.ordered.items()
         }
         self.text = {alias: value.decode("utf-8") for alias, value in source.text.items()}
+        self.aliases = {body.text_artifact.id: alias for alias, body in self.bodies.items()}
+        self.uncertain_tokens = {
+            (member.representation_ref, member.ref)
+            for reading in self.readings.values()
+            if UNRELIABLE_TRANSCRIPTION.intersection(reading.issues)
+            for member in reading.members
+        }
         self.scope = sum(len(value) for value in source.text.values())
         self.remaining = MAX_QUOTE_SEARCH_BYTES
         self.quote_cache = {}
@@ -73,6 +86,28 @@ class EvidenceLocalizer:
         if not citations:
             return [unresolved(default_role, "NO_CITATION")]
         return [self._locate(citation) for citation in citations]
+
+    def value_text(self, fragment):
+        """Use complete source tokens with no known transcription uncertainty."""
+        if fragment["localization"] != "RESOLVED":
+            return None
+        quote = fragment["quote"]
+        start = fragment["start"] + len(quote) - len(quote.lstrip())
+        end = fragment["start"] + len(quote.rstrip())
+        if start >= end:
+            return None
+        alias = self.aliases[fragment["text_artifact_id"]]
+        first = bisect_right(self.ends[alias], start)
+        tokens = self.ordered[alias]
+        if first == len(tokens) or tokens[first].span.start != start:
+            return None
+        for index in range(first, len(tokens)):
+            token = tokens[index]
+            if token.span.end > end or (alias, token.ref) in self.uncertain_tokens:
+                return None
+            if token.span.end == end:
+                return quote.strip()
+        return None
 
     def _locate(self, citation):
         if isinstance(citation, ReadingCitation):

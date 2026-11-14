@@ -76,6 +76,7 @@ def _candidate(row, evidence_ids):
         raw_label=row.raw_label,
         raw_value=row.raw_value,
         raw_unit=row.raw_unit,
+        value_source_support=row.value_source_support or "UNVERIFIED",
         qualifiers=row.qualifiers,
         value_form=row.value_form,
         proposed_attribute_key=row.proposed_attribute_key,
@@ -362,8 +363,9 @@ def evidence(reader, evidence_id, storage, expires):
     session = reader.session
     scope = reader._runs().subquery()
     statement = (
-        select(Fragment, Binding)
+        select(Fragment, Binding, Candidate.kind, Candidate.value_source_support)
         .join(scope, scope.c.id == Fragment.run_id)
+        .join(Candidate, Candidate.id == Fragment.candidate_id)
         .join(
             Binding,
             (Binding.run_id == Fragment.run_id)
@@ -374,7 +376,7 @@ def evidence(reader, evidence_id, storage, expires):
     match = session.execute(statement).one_or_none()
     if match is None:
         raise RevisionDocumentNotFound("Evidence not found")
-    row, binding = match
+    row, binding, kind, value_source_support = match
     snapshot = _snapshot(session, binding)
     if snapshot.image.id != row.page_image_id:
         raise StorageDownloadFailed("Pinned evidence source unavailable")
@@ -395,6 +397,9 @@ def evidence(reader, evidence_id, storage, expires):
         page_id=row.document_page_id,
         page_image_id=row.page_image_id,
         page_image=page_image,
+        candidate_value_source_support=(value_source_support or "UNVERIFIED")
+        if kind == "ATTRIBUTE"
+        else None,
     )
     if row.localization == "RESOLVED":
         source = next(

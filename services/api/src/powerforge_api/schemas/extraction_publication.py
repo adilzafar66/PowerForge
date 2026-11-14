@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from powerforge_extraction.phase6r_contracts import Association, Qualification, Role, TagState
+from powerforge_extraction.phase6r_publication import ValueSourceSupport
 from powerforge_provenance.locations import Region
 
 MappingStatus = Literal["MAPPED", "UNMAPPED", "INVALID"]
@@ -61,6 +62,7 @@ class AttributeCandidate(CandidateBase):
     raw_label: str | None
     raw_value: str
     raw_unit: str | None
+    value_source_support: ValueSourceSupport
     qualifiers: list[str]
     value_form: Literal["SINGLE", "RANGE", "MULTIPLE", "QUALIFIED"]
     proposed_attribute_key: str | None
@@ -127,6 +129,7 @@ class EvidenceBase(BaseModel):
     page_id: UUID
     page_image_id: UUID
     page_image: SignedArtifact
+    candidate_value_source_support: ValueSourceSupport | None
 
 
 class ResolvedEvidence(EvidenceBase):

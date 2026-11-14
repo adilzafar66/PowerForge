@@ -41,6 +41,7 @@ class Candidate(PublicationRecord):
     raw_label: Mapped[str | None]
     raw_value: Mapped[str | None]
     raw_unit: Mapped[str | None]
+    value_source_support: Mapped[str | None]
     qualifiers: Mapped[list | None] = mapped_column(JSONB(none_as_null=True))
     value_form: Mapped[str | None]
     proposed_attribute_key: Mapped[str | None]

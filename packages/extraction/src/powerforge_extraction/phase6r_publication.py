@@ -4,6 +4,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal, DecimalException
+from typing import Literal
 
 from powerforge_engineering_model.errors import EngineeringModelError
 from powerforge_engineering_model.registry import normalize_attribute_value
@@ -18,6 +19,7 @@ from powerforge_extraction.phase6r_evidence import EvidenceLocalizer
 VERSION = "phase-6r-publication-v1"
 SCALAR = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
 BOOLEAN = {"true": True, "yes": True, "false": False, "no": False}
+ValueSourceSupport = Literal["TEXT_MATCH", "TEXT_MISMATCH", "UNVERIFIED"]
 
 
 @dataclass
@@ -119,6 +121,38 @@ def _value(item, definition, evidence):
     )
 
 
+def _value_source_support(item, evidence, localizer) -> ValueSourceSupport:
+    if item.value_form != "SINGLE" or item.qualifiers:
+        return "UNVERIFIED"
+    texts = set()
+    incomplete = False
+    for fragment in evidence:
+        if fragment["role"] != "VALUE":
+            continue
+        text = localizer.value_text(fragment)
+        if text is None:
+            if fragment["localization"] == "RESOLVED":
+                return "UNVERIFIED"
+            incomplete = True
+        else:
+            texts.add(text)
+    raw = item.raw_value.strip()
+    # An unresolved supplemental citation does not undo an exact reading citation.
+    if texts == {raw}:
+        return "TEXT_MATCH"
+    # Compare only a unanimous, complete alternate scalar. Ignore alternate
+    # numeric spellings of the same magnitude without calling them text matches.
+    if len(texts) == 1 and not incomplete:
+        (text,) = texts
+        if all(0 < len(value) <= 128 and SCALAR.fullmatch(value) for value in (raw, text)):
+            try:
+                if Decimal(raw) != Decimal(text):
+                    return "TEXT_MISMATCH"
+            except DecimalException:
+                pass
+    return "UNVERIFIED"
+
+
 def build_publication(wire, result, source):
     if isinstance(result, NoEligibleAttributes):
         return []
@@ -185,6 +219,7 @@ def build_publication(wire, result, source):
             "raw_label": item.raw_label,
             "raw_value": item.raw_value,
             "raw_unit": item.raw_unit,
+            "value_source_support": _value_source_support(item, evidence, localizer),
             "qualifiers": list(item.qualifiers),
             "value_form": item.value_form,
             "proposed_attribute_key": key,

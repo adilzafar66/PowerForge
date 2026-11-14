@@ -1243,7 +1243,15 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                 }
                 response.update(
                     upstream_hash=wire["upstream_hash"],
-                    attributes=[attribute],
+                    attributes=[
+                        attribute,
+                        dict(
+                            attribute,
+                            local_ref="mismatched-rating",
+                            raw_value="601",
+                            evidence=attribute["evidence"][:2],
+                        ),
+                    ],
                     raw_unmapped=[
                         dict(raw, local_ref="owned-raw", raw_label="Noise_100%", raw_value="50"),
                         dict(
@@ -1326,10 +1334,21 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
         ]
         == first_member["items"]
     )
-    (rating,) = browse(equipment_id=group, kind="ATTRIBUTE", mapping_status="MAPPED")["items"]
+    ratings = browse(equipment_id=group, kind="ATTRIBUTE", mapping_status="MAPPED")["items"]
+    rating, mismatch = sorted(ratings, key=lambda candidate: candidate["raw_value"])
     assert rating["association"] == "UNCERTAIN" and rating["raw_unit"] is None
     assert rating["raw_value"] == "600"
     assert rating["normalized"] == {"type": "NUMBER", "value": "0.6", "unit": "kV"}
+    assert rating["value_source_support"] == "TEXT_MATCH"
+    assert mismatch["value_source_support"] == "TEXT_MISMATCH"
+    assert mismatch["raw_value"] == "601"
+    assert mismatch["association"] == "UNCERTAIN"
+    assert mismatch["normalized"] == {"type": "NUMBER", "value": "0.601", "unit": "kV"}
+    mismatch_fragment = client.get(f"{path}/evidence/{mismatch['evidence_ids'][1]}")
+    assert mismatch_fragment.status_code == 200, mismatch_fragment.text
+    assert mismatch_fragment.json()["quote"] == "600"
+    assert mismatch_fragment.json()["localization"] == "RESOLVED"
+    assert mismatch_fragment.json()["candidate_value_source_support"] == "TEXT_MISMATCH"
     assert browse(view="members", group_id=group, candidate_id=rating["id"])["items"] == [rating]
     assert (
         client.get(
@@ -1344,6 +1363,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
     )
     (unassigned,) = browse(view="members", group_id="unassigned")["items"]
     assert unassigned["equipment_id"] is None and unassigned["association"] == "UNASSIGNED"
+    assert unassigned["value_source_support"] == "TEXT_MATCH"
     assert not browse(view="groups", equipment_type="LV_BREAKER")["items"]
 
     pages = client.get(f"{path}/runs/{run_id}/sources").json()["items"]
@@ -1355,6 +1375,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
         assert "storage_key" not in reply.text
         stored.append(reply.json())
     assert [f["localization"] for f in stored] == ["RESOLVED", "RESOLVED", "UNRESOLVED"]
+    assert {f["candidate_value_source_support"] for f in stored} == {"TEXT_MATCH"}
     assert stored[0]["role"] == "HEADER" and stored[1]["role"] == "VALUE"
     assert stored[0]["regions"] != stored[1]["regions"]
     assert stored[2]["reason_code"] == "AMBIGUOUS_QUOTE" and "regions" not in stored[2]

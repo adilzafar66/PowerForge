@@ -278,13 +278,82 @@ def test_published_units_and_qualifiers(stage_inputs, pinned_source):
     first, missing, qualified, multiple, malformed, wrong_key, exact, disputed, conflicting = rows
     assert first["value_number"] == Decimal("0.6") and first["raw_unit"] is None
     assert first["normalized_unit"] == "kV" and first["association"] == "UNCERTAIN"
+    assert first["value_source_support"] == "TEXT_MATCH"
+    assert conflicting["mapping_status"] == "MAPPED" and conflicting["raw_value"] == "601"
+    assert conflicting["value_number"] == Decimal("0.601")
+    assert conflicting["value_source_support"] == "TEXT_MISMATCH"
     assert missing["reason_code"] == disputed["reason_code"] == "UNIT_MISSING_OR_AMBIGUOUS"
+    assert disputed["value_source_support"] == "TEXT_MATCH"
     assert qualified["qualifiers"] == ["continuous"] and qualified["raw_value"] == "600–690"
     assert qualified["reason_code"] == multiple["reason_code"] == "UNREPRESENTABLE_VALUE_FORM"
+    assert qualified["value_source_support"] == multiple["value_source_support"] == "UNVERIFIED"
     assert malformed["reason_code"] == "INVALID_VALUE"
     assert wrong_key["reason_code"] == "UNKNOWN_ATTRIBUTE_KEY"
     assert exact["value_number"] == Decimal("0.6001234567890123456789012345")
     assert first["conflict"] and exact["conflict"] and conflicting["conflict"]
+
+
+def test_value_support_uses_cited_occurrences(stage_inputs, pinned_source):
+    from powerforge_extraction.phase6r_contracts import QuoteCitation, VisualCitation
+
+    first = cite(pinned_source, "600")
+    second = cite(pinned_source, "600", occurrence=1)
+    repeated = QuoteCitation(kind="QUOTE", role="VALUE", quote="600")
+    visual = VisualCitation(
+        kind="VISUAL",
+        role="VALUE",
+        region={"x": 0, "y": 0, "width": "0.25", "height": "0.25"},
+        reported_text="600",
+    )
+    cases = (
+        ("600", (), "UNVERIFIED"),
+        ("600", (visual,), "UNVERIFIED"),
+        ("600", (repeated,), "UNVERIFIED"),
+        ("600", (first, repeated), "TEXT_MATCH"),
+        (" 600 ", (first, second), "TEXT_MATCH"),
+        ("601", (first, second), "TEXT_MISMATCH"),
+        ("601", (first, visual), "UNVERIFIED"),
+        ("600", (first, cite(pinned_source, "999")), "UNVERIFIED"),
+        ("601", (first, cite(pinned_source, "999")), "UNVERIFIED"),
+        ("600.0", (first,), "UNVERIFIED"),
+        ("601 V", (first,), "UNVERIFIED"),
+        ("60", (cite(pinned_source, "600", quote="60"),), "UNVERIFIED"),
+        ("60", (QuoteCitation(kind="QUOTE", role="VALUE", quote="99"),), "UNVERIFIED"),
+        ("999", (QuoteCitation(kind="QUOTE", role="VALUE", quote="999"),), "TEXT_MATCH"),
+        ("600", (cite(pinned_source, "600", role="HEADER"),), "UNVERIFIED"),
+    )
+    rows = stage_inputs(
+        *(
+            assertion(f"v{index}", raw_value=raw, evidence=evidence)
+            for index, (raw, evidence, _) in enumerate(cases)
+        )
+    )
+    assert [row["value_source_support"] for row in rows] == [case[2] for case in cases]
+    assert [row["raw_value"] for row in rows] == [case[0] for case in cases]
+
+
+def test_value_support_defers_to_transcription_conflicts(stage_inputs, pinned_source):
+    from powerforge_extraction.phase6r_contracts import QuoteCitation
+
+    reading = cite(pinned_source, "999")
+    pinned_source.layout = pinned_source.layout.model_copy(
+        update={
+            "readings": tuple(
+                item.model_copy(update={"issues": ("TRANSCRIPTION_CONFLICT",)})
+                if item.ref == reading.reading_ref
+                else item
+                for item in pinned_source.layout.readings
+            ),
+        }
+    )
+    quote = QuoteCitation(kind="QUOTE", role="VALUE", quote="999")
+    cases = ((reading,), (quote,), (reading, quote))
+    for index, evidence in enumerate(cases):
+        rows = stage_inputs(
+            assertion(f"match{index}", raw_value="999", evidence=evidence),
+            assertion(f"differ{index}", raw_value="998", evidence=evidence),
+        )
+        assert [row["value_source_support"] for row in rows] == ["UNVERIFIED", "UNVERIFIED"]
 
 
 def test_units_match_label_or_value_without_guessing_unsupported_spellings():
