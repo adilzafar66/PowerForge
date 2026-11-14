@@ -419,3 +419,23 @@ def test_validation_diagnostics_bound_and_redact_nested_errors(recognition_reque
     assert any(issue.error_type == "enum" for issue in issues)
     assert any(issue.error_type == "extra_forbidden" for issue in issues)
     assert all(private not in issue.model_dump_json() for issue in issues)
+
+
+def test_visual_coordinates_keep_exact_wire_validation(attribute_request, attribute_envelope):
+    from pydantic import ValidationError
+
+    from powerforge_extraction.response_diagnostics import validation_issues
+
+    citation = {
+        "kind": "VISUAL",
+        "role": "VALUE",
+        "reported_text": None,
+        "region": {"x": 0, "y": "0.125", "width": "0.3", "height": "0.04"},
+    }
+    attribute_envelope["attributes"][0]["evidence"] = [citation]
+    result = parse_response(attribute_request, json.dumps(attribute_envelope).encode())
+    assert str(result.attributes[0].evidence[0].region.y) == "0.125"
+    citation["region"]["y"] = 0.125
+    with pytest.raises(ValidationError) as raised:
+        parse_response(attribute_request, json.dumps(attribute_envelope).encode())
+    assert any(issue.path[-2:] == ("region", "y") for issue in validation_issues(raised.value))

@@ -22,6 +22,7 @@ from powerforge_shared.config import Settings
         ("refusal", "REFUSAL", "refusal"),
         ("invalid", "JSON", "json_invalid"),
         ("envelope", "ENVELOPE", "invalid_envelope"),
+        ("provider_schema", "ENVELOPE", "invalid_json_schema"),
         ("schema", "SCHEMA", "extra_forbidden"),
         ("pattern", "FIELD_CONSTRAINT", "string_pattern_mismatch"),
         ("cardinality", "FIELD_CONSTRAINT", "too_long"),
@@ -92,11 +93,17 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
         assert message["content"][1]["image_url"].startswith("data:image/png;base64,")
         fmt = wire["text"]["format"]
         assert fmt["strict"] and set(fmt["schema"]["required"]) == set(fmt["schema"]["properties"])
-        if stage == STAGES[0]:
-            assert fmt["schema"]["properties"]["equipment"]["maxItems"] == 128
-        else:
-            assert fmt["schema"]["properties"]["raw_unmapped"]["maxItems"] == 16
-        assert fmt["schema"]["properties"]["page_context_hash"]["pattern"] == "^[0-9a-f]{64}$"
+        schema_fields = fmt["schema"]["properties"]
+        collection = "equipment" if stage == STAGES[0] else "raw_unmapped"
+        assert "maxItems" not in schema_fields[collection]
+        assert "pattern" not in schema_fields["page_context_hash"]
+        if outcome == "provider_schema":
+            return httpx.Response(
+                400,
+                json={
+                    "error": {"code": "invalid_json_schema", "message": secret},
+                },
+            )
         return httpx.Response(
             200,
             json={
@@ -160,7 +167,10 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
             assert error.value.code == (
                 ErrorCode.REFUSAL if outcome == "refusal" else ErrorCode.INVALID
             )
-            assert error.value.usage.output_tokens == 45
+            if outcome == "provider_schema":
+                assert error.value.usage is None
+            else:
+                assert error.value.usage.output_tokens == 45
             issue = error.value.diagnostics[0]
             assert (issue.category, issue.error_type) == (category, error_type)
             if outcome == "schema":
@@ -175,3 +185,14 @@ def test_live_transport_requires_worker_credentials():
     with pytest.raises(ProviderFailure) as error:
         OpenAIPhase6RProvider(settings, phase6r_profile(settings))
     assert error.value.code == ErrorCode.AUTH
+
+
+@pytest.mark.parametrize("stage", STAGES)
+def test_provider_visual_region_schema_only_offers_exact_coordinate_types(stage):
+    from powerforge_extraction.phase6r_profile import structured_schema
+
+    schema = structured_schema(RESPONSES[stage].model_json_schema())
+    fields = schema["$defs"]["ReportedRegion"]["properties"]
+    assert set(fields) == {"x", "y", "width", "height"}
+    for field in fields.values():
+        assert field["anyOf"] == [{"type": "string"}, {"type": "integer"}]

@@ -3,7 +3,7 @@
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, WithJsonSchema
 
 from powerforge_ai.extraction import ResponseValidationFailure, ValidationIssue
 from powerforge_engineering_model.enums import EquipmentType
@@ -40,6 +40,12 @@ Hash = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 Raw = Annotated[str, StringConstraints(min_length=1, max_length=2048)]
 Short = Annotated[str, StringConstraints(min_length=1, max_length=256)]
 Quote = Annotated[str, StringConstraints(min_length=1, max_length=512)]
+# Pydantic's default Decimal schema advertises fractional JSON numbers. The
+# exact-decimal decoder accepts decimal strings and JSON integers on the wire.
+ReportedCoordinate = Annotated[
+    ExactDecimal,
+    WithJsonSchema({"anyOf": [{"type": "string"}, {"type": "integer"}]}, mode="validation"),
+]
 
 
 class Contract(BaseModel):
@@ -60,10 +66,10 @@ class QuoteCitation(Contract):
 
 
 class ReportedRegion(Contract):
-    x: ExactDecimal
-    y: ExactDecimal
-    width: ExactDecimal
-    height: ExactDecimal
+    x: ReportedCoordinate
+    y: ReportedCoordinate
+    width: ReportedCoordinate
+    height: ReportedCoordinate
 
 
 class VisualCitation(Contract):

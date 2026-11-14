@@ -59,6 +59,7 @@ ValidationType = Literal[
     "invalid_envelope",
     "invalid_usage",
     "http_rejection",
+    "invalid_json_schema",
     "json_invalid",
     "schema_invalid",
     "missing",

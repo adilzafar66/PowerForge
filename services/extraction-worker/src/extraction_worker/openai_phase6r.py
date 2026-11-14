@@ -103,7 +103,14 @@ class OpenAIPhase6RProvider:
             ) from None
         except openai.APIStatusError as exc:
             code = ErrorCode.UNAVAILABLE if exc.status_code >= 500 else ErrorCode.INVALID
-            diagnostics = (ValidationIssue(category="ENVELOPE", error_type="http_rejection"),)
+            diagnostics = (
+                ValidationIssue(
+                    category="ENVELOPE",
+                    error_type="invalid_json_schema"
+                    if exc.code == "invalid_json_schema"
+                    else "http_rejection",
+                ),
+            )
             raise ProviderFailure(
                 code,
                 diagnostics=diagnostics if code == ErrorCode.INVALID else (),

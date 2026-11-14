@@ -51,7 +51,7 @@ class Phase6RProfile(ExecutionProfile):
 
 
 def structured_schema(value: dict) -> dict:
-    """Project the portable shape. Local contracts still enforce every bound."""
+    """Project the live-tested shape. The configured model rejects the extended schema."""
     properties = {}
     for name, child in value.items():
         if name in {"properties", "$defs"}:
@@ -68,9 +68,6 @@ def structured_schema(value: dict) -> dict:
             "enum",
             "title",
             "description",
-            "pattern",
-            "minItems",
-            "maxItems",
         }:
             properties[name] = child
     if properties.get("type") == "object":
