@@ -56,7 +56,7 @@ import {
   type RevisionDocument,
 } from "@/lib/documents";
 import { extractionWizardHref } from "@/lib/extraction-operations";
-import { evidenceArtifactUrl, type EvidenceDetail } from "@/lib/extraction";
+import { evidenceArtifactUrl, type Region } from "@/lib/extraction";
 import { classificationCell } from "@/lib/document-presentation";
 import {
   getProject,
@@ -261,15 +261,19 @@ export function DocumentViewer({
   );
   const scope = { projectId, revisionId, documentId: row.id };
   const browser = useViewerEvidence(scope, params, mode === "evidence" && row.status === "INCLUDED");
-  const pinned = mode === "evidence" && !browser.history && browser.source.data?.page_number === requestedPage
-    ? browser.source.data
-    : null;
-  const pinnedUrl = evidenceArtifactUrl(pinned?.source_image_url ?? null);
-  const pinnedRequired = mode === "evidence" && !browser.history && (
-    browser.citation?.source_page_number === requestedPage || !!pinned
-  );
+  const pinnedRequired = mode === "evidence" && !browser.history && !!browser.candidateId
+    && (!browser.binding || browser.binding.page_number === requestedPage);
+  const pinned = pinnedRequired ? browser.pinned : null;
+  const pinnedUrl = evidenceArtifactUrl(pinned?.page_image.url ?? null);
   const [loadedPinnedUrl, setLoadedPinnedUrl] = useState<string | null>(null);
-  const pinnedRegion = useMemo(() => pinned ? evidenceRegionStyle(pinned) : null, [pinned]);
+  const pinnedRegions = useMemo(() => {
+    if (pinned?.localization === "VISUAL_REPORTED") return [evidenceRegionStyle(pinned.region)].filter(Boolean);
+    if (pinned?.localization !== "RESOLVED") return [];
+    return browser.fragments.flatMap(({ data }) =>
+      data?.localization === "RESOLVED" && data.page_image_id === pinned.page_image_id
+        ? data.regions.map(evidenceRegionStyle).filter(Boolean) : [],
+    );
+  }, [pinned, browser.fragments]);
 
   const processing = row.processing;
   const complete = processing?.status === "COMPLETED";
@@ -318,10 +322,9 @@ export function DocumentViewer({
   const [zoom, setZoom] = useState<Zoom>("page");
   const [canvas, setCanvas] = useState({ width: 0, height: 0 });
   const scrollRef = useRef<HTMLDivElement>(null);
-  const panelScrollRef = useRef<HTMLDivElement>(null);
   const baseSize = pageSize(page);
-  const size = pinnedUrl && pinned?.source_image_width_px && pinned.source_image_height_px
-    ? { width: baseSize.width, height: baseSize.width * pinned.source_image_height_px / pinned.source_image_width_px }
+  const size = pinnedUrl && pinned && pinned.page_image_width > 0 && pinned.page_image_height > 0
+    ? { width: baseSize.width, height: baseSize.width * pinned.page_image_height / pinned.page_image_width }
     : baseSize;
   const hasPageImage = !!(page || pinnedRequired);
   const fitPage = clamp(
@@ -349,7 +352,7 @@ export function DocumentViewer({
     updateEvidenceRoute({
       page: next.page ?? page?.page_number ?? requestedPage,
       mode: next.mode ?? mode,
-      ...(next.page && !browser.opened && params.get("pageScope") === "current" ? { groupOffset: null } : {}),
+      ...(next.page && !browser.opened && params.get("pageScope") === "current" ? { groupCursor: null, memberCursor: null } : {}),
     }, "replace");
   }
   function step(delta: number) {
@@ -471,7 +474,7 @@ export function DocumentViewer({
     .filter(Boolean)
     .join(" · ");
   const pageLabel = pinnedUrl && pinned
-    ? `Page ${pinned.page_number} · Pinned source`
+    ? `Page ${requestedPage} · Pinned source`
     : page
     ? [`Page ${page.page_number}`, pageType ? documentTypeLabel(pageType) : null, textSource(page)]
         .filter(Boolean)
@@ -703,18 +706,19 @@ export function DocumentViewer({
                     <PinnedPageImage
                       key={pinned.id}
                       url={pinnedUrl}
-                      pageNumber={pinned.page_number}
-                      region={pinnedRegion}
+                      pageNumber={requestedPage}
+                      regions={pinnedRegions}
+                      approximate={pinned.localization === "VISUAL_REPORTED"}
                       onLoad={() => setLoadedPinnedUrl(pinnedUrl)}
                       onFailure={() => setLoadedPinnedUrl(null)}
-                      refresh={() => void browser.source.refetch()}
+                      refresh={browser.refresh}
                     />
                   ) : pinnedRequired ? (
                     <div className="flex size-full flex-col items-center justify-center gap-2 bg-panel p-4 text-center text-workspace-caption text-muted">
-                      {browser.source.isFetching ? <p role="status">Loading pinned source page…</p> : (
+                      {browser.loading ? <p role="status">Loading pinned source page…</p> : (
                         <>
                           <p role="alert">The pinned source page is unavailable.</p>
-                          <button type="button" className={docButtonClass("tiny")} onClick={() => void browser.source.refetch()}>Retry source image</button>
+                          <button type="button" className={docButtonClass("tiny")} onClick={browser.refresh}>Retry source image</button>
                         </>
                       )}
                     </div>
@@ -764,7 +768,7 @@ export function DocumentViewer({
                 : "Source, classification, and processing"}
             </p>
           </div>
-          <div ref={panelScrollRef} className="min-h-0 flex-1 overflow-auto px-5 pt-[18px] pb-7">
+          <div className="min-h-0 flex-1 overflow-auto px-5 pt-[18px] pb-7">
             {mode === "evidence" ? (
               row.status === "REMOVED" ? (
                 <Hint>This document has been removed from the revision. Extraction evidence is unavailable.</Hint>
@@ -774,9 +778,8 @@ export function DocumentViewer({
                   params={params}
                   browser={browser}
                   update={updateEvidenceRoute}
-                  page={pinned?.page_number ?? page?.page_number ?? requestedPage}
-                  scrollRef={panelScrollRef}
-                  highlighted={!!(pinnedRegion && pinnedUrl && loadedPinnedUrl === pinnedUrl)}
+                  page={requestedPage}
+                  highlighted={!!(pinnedRegions.length && pinnedUrl && loadedPinnedUrl === pinnedUrl)}
                   canMutate={canMutate && !!browser.status && browser.status.ineligible_reason !== "READ_ONLY"}
                   onReextract={(run) => router.push(extractionWizardHref(scope, row.id, "reextract", {
                     pages: run.selected_pages, processingRunId: run.processing_run_id,
@@ -1347,9 +1350,7 @@ function DetailsPanel({
 }
 
 // Evidence regions are normalized to the upright frame of the signed analysis image.
-function evidenceRegionStyle(evidence: EvidenceDetail) {
-  const region = evidence.region;
-  if (!region || evidence.source_locator?.geometry_basis === "NONE") return null;
+function evidenceRegionStyle(region: Region) {
   const x = Number(region.x);
   const y = Number(region.y);
   const width = Number(region.width);
@@ -1365,11 +1366,12 @@ function evidenceRegionStyle(evidence: EvidenceDetail) {
 }
 
 function PinnedPageImage({
-  url, pageNumber, region, onLoad, onFailure, refresh,
+  url, pageNumber, regions, approximate, onLoad, onFailure, refresh,
 }: {
   url: string;
   pageNumber: number;
-  region: ReturnType<typeof evidenceRegionStyle>;
+  regions: ReturnType<typeof evidenceRegionStyle>[];
+  approximate: boolean;
   onLoad: () => void;
   onFailure: () => void;
   refresh: () => void;
@@ -1380,10 +1382,10 @@ function PinnedPageImage({
   const [retried, setRetried] = useState(false);
   const regionRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (region && loadedUrl === url) {
+    if (regions.length && loadedUrl === url) {
       regionRef.current?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
     }
-  }, [region, loadedUrl, url]);
+  }, [regions.length, loadedUrl, url]);
 
   function retry() {
     setFailedUrl(null);
@@ -1419,15 +1421,15 @@ function PinnedPageImage({
             }}
             className="pointer-events-none block size-full select-none"
           />
-          {region && loadedUrl === url && (
-            <div
-              ref={regionRef}
-              aria-label="Grounded source region"
+          {loadedUrl === url && regions.map((region, index) => region && (
+            <div key={index} ref={index === 0 ? regionRef : undefined}
+              aria-label={approximate ? "Approximate visual region" : "Grounded source region"}
               role="img"
-              className="pointer-events-none absolute rounded-[2px] border-2 border-amber-600 bg-amber-300/25 shadow-[0_0_0_4px_#fbbf2450]"
+              className={cn("pointer-events-none absolute rounded-[2px] border-2",
+                approximate ? "border-dashed border-sky-700 bg-sky-300/20" : "border-amber-600 bg-amber-300/25")}
               style={region}
             />
-          )}
+          ))}
         </>
       )}
     </div>

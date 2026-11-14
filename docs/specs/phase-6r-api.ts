@@ -253,6 +253,8 @@ interface EvidenceBase {
   page_id: Id;
   page_image_id: Id;
   page_image: SignedEvidenceArtifact;
+  page_image_width: number;
+  page_image_height: number;
   candidate_value_source_support: ValueSourceSupport | null;
 }
 

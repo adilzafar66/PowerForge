@@ -5,13 +5,13 @@ from uuid import UUID
 
 import pytest
 
+from celery_integration_support import live_worker, wait_for
 from enrichment_support import build_source, detail, start
 from enrichment_support import enrichment_ctx as enrichment_ctx
 from powerforge_extraction.models import ExtractionWorkUnit
 from powerforge_extraction.orchestration import ExtractionCoordinator
 from test_enrichment_celery import copy_source, local_environment
 from test_enrichment_native import scan_png
-from test_extraction_celery_integration import live_worker, wait_for
 from test_spatial_execution import run_unit, stage
 
 pytestmark = pytest.mark.integration

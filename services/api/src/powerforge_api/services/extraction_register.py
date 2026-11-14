@@ -22,7 +22,7 @@ from powerforge_extraction.controls import RunExecution
 from powerforge_extraction.enrichment_profiles import PURPOSE
 from powerforge_extraction.models import ExtractionRun
 from powerforge_extraction.operation_models import ExtractionOperation, OperationItem
-from powerforge_extraction.phase6r_records import Candidate
+from powerforge_extraction.publication_records import Candidate
 from powerforge_persistence import Project, ProjectRevision
 
 PROFILE_KEY = RunExecution.configuration["key"].as_string()

@@ -56,7 +56,7 @@ it("validates source and OCR pages, and starts only after consent", async () => 
   const user = userEvent.setup();
   const started = vi.fn();
   render(<StartExtractionWizard scope={scope} launch={{ documentIds: ["source"] }} onClose={vi.fn()} onStarted={started} />);
-  const modal = within(screen.getByRole("dialog", { name: "Start extraction" }));
+  const modal = within(screen.getByRole("dialog", { name: "AI Engineering Extraction" }));
   const pages = await modal.findByRole("textbox", { name: "Pages for schedule.pdf" });
   await user.clear(pages);
   await user.type(pages, "1, 1");
@@ -77,9 +77,9 @@ it("validates source and OCR pages, and starts only after consent", async () => 
   expect(modal.getByText("Unified extraction")).toBeVisible();
   expect(await modal.findByText("1 extraction run requested")).toBeVisible();
   expect(startExtractionOperation).not.toHaveBeenCalled();
-  expect(modal.getByRole("button", { name: "Start extraction" })).toBeDisabled();
+  expect(modal.getByRole("button", { name: "AI Engineering Extraction" })).toBeDisabled();
   await user.click(modal.getByRole("checkbox", { name: /I authorize.*OpenAI/ }));
-  await user.click(modal.getByRole("button", { name: "Start extraction" }));
+  await user.click(modal.getByRole("button", { name: "AI Engineering Extraction" }));
   expect(startExtractionOperation).toHaveBeenCalledWith(scope, {
     documents: [{ revision_document_id: "source", processing_run_id: "processing-version", pages: [1, 2], force_ocr_pages: [2] }],
     mode: "ensure",
@@ -96,7 +96,7 @@ it.each([
   }));
   const user = userEvent.setup();
   render(<StartExtractionWizard scope={scope} launch={{ documentIds: ["source"] }} onClose={vi.fn()} onStarted={vi.fn()} />);
-  const modal = within(screen.getByRole("dialog", { name: "Start extraction" }));
+  const modal = within(screen.getByRole("dialog", { name: "AI Engineering Extraction" }));
   await modal.findByRole("textbox", { name: "Pages for schedule.pdf" });
   await user.click(modal.getByRole("button", { name: "Continue to enrichment" }));
   expect(await modal.findByText("Will prepare automatically")).toBeVisible();
@@ -104,7 +104,7 @@ it.each([
   const advance = modal.getByRole("button", { name: "Continue to extraction" });
   expect(advance).toBeDisabled();
   await user.click(advance);
-  expect(modal.queryByRole("button", { name: "Start extraction" })).toBeNull();
+  expect(modal.queryByRole("button", { name: "AI Engineering Extraction" })).toBeNull();
   expect(startExtractionOperation).not.toHaveBeenCalled();
 });
 
@@ -121,14 +121,14 @@ it("clears consent when refreshing a stale review returns a blocked plan", async
   const user = userEvent.setup();
   const started = vi.fn();
   render(<StartExtractionWizard scope={scope} launch={{ documentIds: ["source"] }} onClose={vi.fn()} onStarted={started} />);
-  const modal = within(screen.getByRole("dialog", { name: "Start extraction" }));
+  const modal = within(screen.getByRole("dialog", { name: "AI Engineering Extraction" }));
   await modal.findByRole("textbox", { name: "Pages for schedule.pdf" });
   await user.click(modal.getByRole("button", { name: "Continue to enrichment" }));
   const advance = modal.getByRole("button", { name: "Continue to extraction" });
   await waitFor(() => expect(advance).toBeEnabled());
   await user.click(advance);
   const consent = modal.getByRole("checkbox", { name: /I authorize/ });
-  const start = modal.getByRole("button", { name: "Start extraction" });
+  const start = modal.getByRole("button", { name: "AI Engineering Extraction" });
   await user.click(consent);
   await user.click(start);
 

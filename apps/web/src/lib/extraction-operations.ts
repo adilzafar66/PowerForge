@@ -68,6 +68,7 @@ export type OperationChild = {
   error_code: string | null;
   attempts: number;
   retry_targets: RetryTarget[];
+  stage_progress?: { stage: AIStage; completed: number; failed: number; active: number; total: number }[];
   stage_outcomes: { page_id: string; stage: AIStage; outcome: "RESULT" | "NO_ELIGIBLE_ATTRIBUTES" }[];
   unknown_provider_outcome: boolean;
   can_retry: boolean;

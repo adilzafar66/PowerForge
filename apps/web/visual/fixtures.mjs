@@ -1,4 +1,4 @@
-import { extractionResponse, extractionStatus, operationsFixture } from "./phase6f.mjs";
+import { extractionResponse, extractionStatus, operationsFixture } from "./extraction-fixtures.mjs";
 
 /** Synthetic records only. Served to both Next SSR and the browser. */
 const stamp = "2026-01-12T12:00:00Z";

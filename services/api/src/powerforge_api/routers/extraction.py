@@ -36,8 +36,8 @@ from powerforge_document_processing.storage.base import ObjectStorage
 from powerforge_document_processing.storage.factory import get_object_storage
 from powerforge_extraction.enqueue import CeleryExtractionEnqueue, get_extraction_enqueue
 from powerforge_extraction.errors import ExtractionError
+from powerforge_extraction.extraction_profile import provider_available
 from powerforge_extraction.orchestration import ExtractionCoordinator
-from powerforge_extraction.phase6r_profile import provider_available
 from powerforge_shared.config import Settings, get_settings
 
 router = APIRouter(

@@ -5,13 +5,14 @@ from sqlalchemy import select
 from powerforge_document_processing.models import Document, RevisionDocument
 from powerforge_extraction.controls import RunExecution
 from powerforge_extraction.dependencies import latest_units, retryable_keys
+from powerforge_extraction.extraction_profile import provider_available
 from powerforge_extraction.models import ExtractionWorkUnit
 from powerforge_extraction.operation_models import UNKNOWN_PROVIDER_OUTCOME
 from powerforge_extraction.operation_plan import OperationPolicy, PlannedDocument
 from powerforge_extraction.operations import child_runs, included, items_for
 from powerforge_extraction.orchestration import ACTIVE
-from powerforge_extraction.phase6r_profile import provider_available
-from powerforge_extraction.phase6r_runtime import StageResult
+from powerforge_extraction.profiles import read_profile
+from powerforge_extraction.stage_execution import StageResult
 
 
 def describe_run(session, run, settings, can_write):
@@ -20,12 +21,32 @@ def describe_run(session, run, settings, can_write):
     ).all()
     control = session.get(RunExecution, run.id)
     enabled = provider_available(settings, run.provider)
-    keys = retryable_keys(units, control.configuration["max_attempts"]) if control else set()
+    try:
+        profile = read_profile(control.configuration) if control else None
+    except ValueError:
+        profile = None
+        enabled = False
+    keys = retryable_keys(units, profile.max_attempts) if profile else set()
+    latest = latest_units(units).values()
+    stages = []
+    for stage in ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"):
+        page_attempts = [unit for unit in latest if unit.stage == stage]
+        if page_attempts:
+            stages.append(
+                {
+                    "stage": stage,
+                    "completed": sum(unit.status == "COMPLETED" for unit in page_attempts),
+                    "failed": sum(unit.status == "FAILED" for unit in page_attempts),
+                    "active": sum(unit.status == "RUNNING" for unit in page_attempts),
+                    "total": len(page_attempts),
+                }
+            )
     return {
         "run_id": run.id,
         "status": run.status,
         "error_code": run.error_code,
         "attempts": len(units),
+        "stage_progress": stages,
         "retry_targets": [
             {
                 "page_id": unit.execution_metadata["source_page_id"],
@@ -64,6 +85,7 @@ def pending_step(status):
         "status": status,
         "error_code": None,
         "attempts": 0,
+        "stage_progress": [],
         "retry_targets": [],
         "stage_outcomes": [],
         "unknown_provider_outcome": False,

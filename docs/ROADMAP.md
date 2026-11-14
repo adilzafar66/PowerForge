@@ -4,7 +4,7 @@ This is the authoritative high-level roadmap for intended future scope. [PROJECT
 
 PowerForge keeps **Phase 0–13: fourteen primary numbered phases**. Phase 4.5 is an intentional intermediate document-workspace UX phase. Phase 6.5 defers spreadsheet ingestion until after 6G and before Phase 7. Phase 5 has slices 5A–5G. Completed phases keep their historical numbering; later phases may have internal slices and design gates without adding top-level numbers. Keep the existing Phase 0–13 numbering and use subphases/gates for newly understood work rather than adding or renumbering top-level phases.
 
-Phases 0–4 and 4.5 are complete. **Phase 5A through Phase 5G are implemented; Phase 5 is complete and re-frozen after the authoring refinement. Phase 6A delivery and validation are recorded in [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md); Phase 6B execution is documented in [PHASE6B_HANDOFF.md](PHASE6B_HANDOFF.md). Phase 6C M1–M6 definitions, interpretation, grounding/output conversion, dependent execution, opt-in production OpenAI integration and representative evaluation tooling are delivered; live-model quality remains unverified. Phase 6D M1–M4 table definitions, grounding, interpretation/publication, opt-in production execution and independent table evaluation are delivered for review; live table quality is unmeasured. Phase 6E M1–M5 source preparation, reusable layout, enhanced extraction and independent evaluation are implemented for review. Phase 6F M1–M5 Documents integration, evidence viewing, durable extraction and release verification are implemented for review. Phase 6G is pending. See the [6E handoff](PHASE6E_HANDOFF.md). See the [final 6D handoff](PHASE6D_HANDOFF.md). See the [final 6C handoff](PHASE6C_HANDOFF.md).** Later phases are planned. The accepted foundations are [ADR-007](../decisions/ADR-007-canonical-engineering-model-persistence.md), the [Phase 5 specification](specs/phase-5-engineering-model.md), and the [Phase 5G freeze handoff](PHASE5G_HANDOFF.md).
+Phases 0–5 are implemented. The unified extraction architecture and Documents review are described in [Extraction](EXTRACTION.md). Held-out evaluation and authorized cutover remain ahead.
 
 ## Phase map
 
@@ -78,25 +78,15 @@ The physical registry is not a complete coordination/arc-flash study-settings mo
 
 **Operating/study configurations:** plan for NORMAL, STANDBY, ULTIMATE, EMERGENCY, MAINTENANCE, or project-specific scenarios. These may vary source in/out-of-service state, switch/tie state, generator availability, bus configuration, and other operating-condition overrides. A dedicated design decision is required before study-tool execution/export can be considered complete. No final schema is established here.
 
-## Phase 6 — Evidence, candidates, and structured extraction
+## Phase 6 — AI engineering extraction
 
-The [approved Phase 6 specification](specs/phase-6-evidence-structured-extraction.md) and [ADR-008](../decisions/ADR-008-evidence-candidate-extraction-architecture.md) govern this phase. Document-scoped runs pin a completed processing run, exact artifacts and extractor/profile/registry/provider/model/prompt identity. Append-only work-unit attempts publish evidence, source-local groups, structure-preserving tables and independently queryable candidates atomically. Effective results select successful committed attempts; failed units do not erase successful siblings.
+The [approved design](specs/phase-6r-extraction-redesign.md) uses two AI stages on
+the same pinned source page and publishes immutable candidates for review.
+The [implementation plan](PHASE6R_IMPLEMENTATION_PLAN.md) tracks the milestone
+sequence, held-out evaluation and authorized cutover. Evaluate reading and raster
+capacity and dense-sheet legibility in the held-out work.
 
-Candidates preserve raw expressions, exact typed values, mapping diagnostics and many-to-many source citations. Tagless groups and isolated attributes are valid. Groups do not identify canonical physical equipment. No Phase 6 path writes canonical equipment, attributes, topology or verification states. `system_frequency` and `system_phase_count` remain manual-only revision metadata: extraction neither proposes nor sets them. Source frequency/phase statements may be retained as justified equipment-specific registry values or unmapped observations.
-
-Approved implementation sequence:
-
-- **6A — Persistence and read API:** eight logical entities, pure contracts, migration, atomic publication, revision-scoped read APIs and focused integrity tests. See [PHASE6A_HANDOFF.md](PHASE6A_HANDOFF.md) for validation status.
-- **6B — Orchestration and provider infrastructure:** scheduling, provider/prompt/profile execution, retries, leases/recovery, idempotency, cancellation and telemetry collection. Implemented with explicitly labeled infrastructure/test profiles; production extraction remains deferred. See [PHASE6B_HANDOFF.md](PHASE6B_HANDOFF.md).
-- **6C — Equipment and attribute extraction:** conservative registry mapping, normalization and raw/unmapped retention. M1–M6 definitions, interpretation, grounding/output conversion, dependent execution, opt-in production profiles/adapter and synthetic evaluation tooling implemented. Live-provider evaluation has not been authorized or run; production-model quality remains unverified. See [PHASE6C_PLAN.md](PHASE6C_PLAN.md) and the [final handoff](PHASE6C_HANDOFF.md).
-- **6D — Tables and schedules:** M1–M4 table definitions, grounding, registry interpretation/publication, opt-in production execution and independent table evaluation implemented for review; live table quality remains unmeasured. Separate table-only and ordinary engineering runs are the approved design. See [PHASE6D_PLAN.md](PHASE6D_PLAN.md) and the [final handoff](PHASE6D_HANDOFF.md).
-- **6E — OCR and layout:** M1–M5 source contracts, native/OCR preparation, reusable spatial layout, enhanced extraction and an authored spatial evaluation implemented for review. See the [6E plan](PHASE6E_PLAN.md) and [handoff](PHASE6E_HANDOFF.md).
-- **6F — Extraction/evidence UI and evaluation:** M1–M2 Documents status and selection, evidence browsing, run history, and source navigation are implemented for review. M3–M4 add the wizard, automatic preparation and layout, and durable single and bulk operation recovery. M5 covers compatibility, migration, visual review and operator readiness. See the [Phase 6F release handoff](PHASE6F_HANDOFF.md).
-- **6G — Hardening and freeze:** full acceptance, regression, migration, cost/performance and accuracy checks. Unimplemented.
-
-**Phase 6.5 — Spreadsheet ingestion** is deferred until after 6G and before 7. XLSX/XLS/XLSM/CSV ingestion is not part of 6D.
-
-The entire Phase 6 is not complete. Protection/study-domain extraction still requires separately approved target-domain design. See [EXTRACTION.md](EXTRACTION.md) and [PROVENANCE.md](PROVENANCE.md).
+Spreadsheet ingestion follows extraction acceptance and precedes entity resolution.
 
 ## Phase 7 — Entity resolution
 

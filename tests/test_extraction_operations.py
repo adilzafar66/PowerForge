@@ -47,7 +47,7 @@ def operation_context(ctx):
         enrichment_enabled=True,
         enrichment_ocr_configuration=configuration,
         extraction_external_enabled=True,
-        extraction_phase6r_fake=True,
+        extraction_use_fake_provider=True,
         extraction_operation_max_concurrent_documents=1,
         extraction_backoff_seconds=0,
         extraction_recovery_interval_seconds=1,
@@ -172,6 +172,51 @@ def admitted_page(ctx, source):
     return operation_id, run_id, units
 
 
+def test_publication_profile_change_stops_old_run_and_preserves_published_rows(
+    operation_context, monkeypatch
+):
+    from powerforge_extraction import publication
+    from powerforge_extraction.controls import RunExecution
+    from powerforge_extraction.errors import ExtractionConflict
+    from powerforge_extraction.publication_records import Candidate
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
+
+    ctx = operation_context
+    with monkeypatch.context() as previous:
+        previous.setattr(publication, "VERSION", "phase-6r-publication-v1")
+        _, run_id, units = admitted_page(ctx, new_source(ctx, "publication-pin.pdf"))
+        assert execute_unit(
+            units["EQUIPMENT_RECOGNITION"],
+            ctx["factory"],
+            ctx["storage"],
+            ctx["settings"],
+            lambda _: FakeExtractionProvider("success"),
+        )
+    with ctx["factory"].begin() as session:
+        recognition = units["EQUIPMENT_RECOGNITION"]
+        attribute = units["ATTRIBUTE_EXTRACTION"]
+        assert session.get(RunExecution, run_id).configuration["manifest"][
+            "publication_version"
+        ] == ("phase-6r-publication-v1")
+        result_hash = session.get(StageResult, recognition).result_hash
+        candidate = session.scalar(
+            select(Candidate.id).where(Candidate.work_unit_id == recognition)
+        )
+        assert candidate is not None
+        coordinator = ExtractionCoordinator(session, ctx["settings"])
+        assert coordinator.claim(attribute) is None
+        assert (
+            session.get(ExtractionWorkUnit, attribute).error_code
+            == "EXTRACTION_PROFILE_UNAVAILABLE"
+        )
+        assert session.get(ExtractionRun, run_id).status == "PARTIALLY_COMPLETED"
+        assert session.get(StageResult, attribute) is None
+        assert session.get(StageResult, recognition).result_hash == result_hash
+        assert session.get(Candidate, candidate).work_unit_id == recognition
+        with pytest.raises(ExtractionConflict, match="Pinned extraction resources"):
+            coordinator.retry(run_id)
+
+
 def test_preview_expiry_and_revalidation_preserve_idempotent_replay(operation_context):
     from powerforge_extraction.operation_models import OperationPreview
 
@@ -199,7 +244,7 @@ def test_preview_expiry_and_revalidation_preserve_idempotent_replay(operation_co
 
 
 def test_run_history_and_operation_retry_share_the_document_slot_limit(operation_context):
-    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider
+    from powerforge_extraction.stage_execution import FakeExtractionProvider
 
     ctx = operation_context
     sources = [new_source(ctx, "one.pdf"), new_source(ctx, "two.pdf")]
@@ -225,7 +270,7 @@ def test_run_history_and_operation_retry_share_the_document_slot_limit(operation
         ctx["factory"],
         ctx["storage"],
         ctx["settings"],
-        lambda _: FakePhase6RProvider("invalid"),
+        lambda _: FakeExtractionProvider("invalid"),
     )
     advance(ctx, operation_id)
     items = detail_operation(ctx, operation_id)["items"]
@@ -400,7 +445,7 @@ def test_missing_object_on_one_selected_page_blocks_all_provider_runs(operation_
 @pytest.mark.parametrize("scenario", ["success", "empty"])
 def test_unified_operation_finishes_with_immutable_page_results(operation_context, scenario):
     from powerforge_extraction.controls import RunExecution
-    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
 
     ctx = operation_context
     ctx["settings"].extraction_fake_scenario = scenario
@@ -427,7 +472,7 @@ def test_unified_operation_finishes_with_immutable_page_results(operation_contex
 
     class FixtureProvider:
         def execute(self, request):
-            result = FakePhase6RProvider("success").execute(request)
+            result = FakeExtractionProvider("success").execute(request)
             if scenario == "empty" and request.stage == "EQUIPMENT_RECOGNITION":
                 (equipment,) = result.result.equipment
                 unknown = equipment.model_copy(update={"registry_type": None})
@@ -505,7 +550,7 @@ def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
     operation_context, cancel
 ):
     from powerforge_ai.extraction import ErrorCode, ProviderFailure
-    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
 
     ctx = operation_context
     source = new_source(ctx, "retry.pdf")
@@ -516,7 +561,7 @@ def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
     operation_id = reply.json()["id"]
     advance(ctx, operation_id)
     run_id = UUID(detail_operation(ctx, operation_id)["items"][0]["extraction"]["run_id"])
-    fake = FakePhase6RProvider("success")
+    fake = FakeExtractionProvider("success")
 
     def execute(unit_id, provider=fake):
         return execute_unit(
@@ -588,12 +633,12 @@ def test_disabled_test_profile_and_insufficient_budget_block_review(operation_co
     ctx = operation_context
     source = new_source(ctx, "limits.pdf")
     settings = ctx["settings"]
-    settings.extraction_phase6r_fake = False
+    settings.extraction_use_fake_provider = False
     settings.extraction_external_enabled = False
     disabled, _ = reviewed(ctx, [source])
     assert disabled["review_hash"] is None
     assert disabled["profile"]["enabled"] is False
-    settings.extraction_phase6r_fake = True
+    settings.extraction_use_fake_provider = True
     settings.extraction_max_calls = 1
     limited, _ = reviewed(ctx, [source])
     assert limited["review_hash"] is None
@@ -602,7 +647,11 @@ def test_disabled_test_profile_and_insufficient_budget_block_review(operation_co
 
 def test_expired_recognition_lease_is_fenced_and_reconciled(operation_context):
     from powerforge_extraction.errors import LeaseLost
-    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult, request_for
+    from powerforge_extraction.stage_execution import (
+        FakeExtractionProvider,
+        StageResult,
+        request_for,
+    )
 
     ctx = operation_context
     source = new_source(ctx, "expired-lease.pdf")
@@ -648,7 +697,7 @@ def test_expired_recognition_lease_is_fenced_and_reconciled(operation_context):
         assert retry.stage == "EQUIPMENT_RECOGNITION"
         retry_id = retry.id
 
-    response = FakePhase6RProvider("success").execute(request)
+    response = FakeExtractionProvider("success").execute(request)
     with pytest.raises(LeaseLost), ctx["factory"].begin() as session:
         ExtractionCoordinator(session, ctx["settings"]).complete_stage(
             recognition, claim.token, wire, response.result, response.usage
@@ -659,7 +708,7 @@ def test_expired_recognition_lease_is_fenced_and_reconciled(operation_context):
             ctx["factory"],
             ctx["storage"],
             ctx["settings"],
-            lambda _: FakePhase6RProvider("success"),
+            lambda _: FakeExtractionProvider("success"),
         )
     with ctx["factory"]() as session:
         assert session.get(StageResult, recognition) is None
@@ -712,8 +761,8 @@ def test_worker_task_dispatches_only_the_ready_stage(operation_context, monkeypa
 def test_worker_reverifies_pinned_layout_after_admission(operation_context, monkeypatch, failure):
     from powerforge_ai.extraction import ErrorCode
     from powerforge_extraction.controls import UnitExecution
-    from powerforge_extraction.enriched_sources import bound_snapshot
-    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+    from powerforge_extraction.pinned_sources import bound_snapshot
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
 
     ctx = operation_context
     _, run_id, units = admitted_page(ctx, new_source(ctx, "damaged-layout.pdf"))
@@ -772,7 +821,7 @@ def test_worker_reverifies_pinned_layout_after_admission(operation_context, monk
             ctx["factory"],
             storage,
             ctx["settings"],
-            lambda _: FakePhase6RProvider("success"),
+            lambda _: FakeExtractionProvider("success"),
         )
     with ctx["factory"]() as session:
         assert session.get(StageResult, units["ATTRIBUTE_EXTRACTION"]).upstream_work_unit_id == (
@@ -781,7 +830,7 @@ def test_worker_reverifies_pinned_layout_after_admission(operation_context, monk
 
 
 def test_concurrent_redelivery_cannot_start_another_call(operation_context):
-    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
 
     ctx = operation_context
     _, _, units = admitted_page(ctx, new_source(ctx, "duplicate.pdf"))
@@ -792,7 +841,7 @@ def test_concurrent_redelivery_cannot_start_another_call(operation_context):
         def execute(self, request):
             entered.set()
             assert release.wait(10)
-            return FakePhase6RProvider("success").execute(request)
+            return FakeExtractionProvider("success").execute(request)
 
     with ThreadPoolExecutor(max_workers=1) as pool:
         worker = pool.submit(
@@ -822,7 +871,7 @@ def test_concurrent_redelivery_cannot_start_another_call(operation_context):
 def test_retry_can_exhaust_budget_before_dependent_admission(operation_context):
     from powerforge_ai.extraction import ErrorCode
     from powerforge_extraction.controls import RunExecution, UnitExecution
-    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
 
     ctx = operation_context
     settings = ctx["settings"]
@@ -833,7 +882,7 @@ def test_retry_can_exhaust_budget_before_dependent_admission(operation_context):
         ctx["factory"],
         ctx["storage"],
         settings,
-        lambda _: FakePhase6RProvider("transient"),
+        lambda _: FakeExtractionProvider("transient"),
     )
     with ctx["factory"]() as session:
         successor = session.scalar(
@@ -848,7 +897,7 @@ def test_retry_can_exhaust_budget_before_dependent_admission(operation_context):
         ctx["factory"],
         ctx["storage"],
         settings,
-        lambda _: FakePhase6RProvider("success"),
+        lambda _: FakeExtractionProvider("success"),
     )
     attributes = units["ATTRIBUTE_EXTRACTION"]
     assert not execute_unit(
@@ -874,13 +923,13 @@ def test_unknown_provider_outcome_requires_acknowledgement_and_keeps_limits(
 ):
     from powerforge_extraction.controls import RunExecution, UnitExecution
     from powerforge_extraction.operation_models import UNKNOWN_PROVIDER_OUTCOME
-    from powerforge_extraction.phase6r_runtime import StageResult, request_for
+    from powerforge_extraction.stage_execution import StageResult, request_for
 
     ctx = operation_context
     settings = ctx["settings"]
     settings.extraction_max_calls = 2 if limit == "calls" else 6
     settings.extraction_max_attempts = 1 if limit == "attempts" else 3
-    settings.extraction_phase6r_fake = False
+    settings.extraction_use_fake_provider = False
     settings.extraction_external_enabled = True
     source = new_source(ctx, "unknown-outcome.pdf")
     operation_id, run_id, units = admitted_page(ctx, source)
@@ -944,7 +993,7 @@ def test_unknown_provider_outcome_requires_acknowledgement_and_keeps_limits(
 
 
 def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operation_context):
-    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider
+    from powerforge_extraction.stage_execution import FakeExtractionProvider
     from spatial_layout_support import drawn_table
 
     ctx = operation_context
@@ -969,7 +1018,7 @@ def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operat
             assert request.image_mime_type == "image/png"
             assert request.image.startswith(b"\x89PNG")
             calls.append(json.loads(request.text))
-            return FakePhase6RProvider("success").execute(request)
+            return FakeExtractionProvider("success").execute(request)
 
     calls = []
     for stage in ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"):
@@ -1000,13 +1049,13 @@ def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operat
 def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(operation_context):
     from types import SimpleNamespace
 
-    from extraction_worker.openai_phase6r import OpenAIPhase6RProvider
+    from extraction_worker.openai_extraction import OpenAIExtractionProvider
     from powerforge_extraction.models import ExtractionAICall
-    from powerforge_extraction.phase6r_runtime import StageResult
+    from powerforge_extraction.stage_execution import StageResult
     from spatial_layout_support import drawn_table
 
     ctx = operation_context
-    ctx["settings"].extraction_phase6r_fake = False
+    ctx["settings"].extraction_use_fake_provider = False
     ctx["settings"].extraction_external_enabled = True
     source = new_source(ctx, "mocked-live-schedule.pdf", drawn_table(nearby=True))
     _, run_id, units = admitted_page(ctx, source)
@@ -1076,7 +1125,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
             ctx["factory"],
             ctx["storage"],
             ctx["settings"],
-            lambda claim: OpenAIPhase6RProvider(
+            lambda claim: OpenAIExtractionProvider(
                 ctx["settings"], claim.profile, SimpleNamespace(responses=Responses())
             ),
         )
@@ -1109,12 +1158,12 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
 def test_invalid_response_audit_is_fenced_and_redacted(operation_context, caplog, malformed):
     from types import SimpleNamespace
 
-    from extraction_worker.openai_phase6r import OpenAIPhase6RProvider
+    from extraction_worker.openai_extraction import OpenAIExtractionProvider
     from powerforge_extraction.models import ExtractionAICall
-    from powerforge_extraction.phase6r_runtime import StageResult
+    from powerforge_extraction.stage_execution import StageResult
 
     ctx = operation_context
-    ctx["settings"].extraction_phase6r_fake = False
+    ctx["settings"].extraction_use_fake_provider = False
     private = "PRIVATE-PANEL-IDENTIFIER"
     source = new_source(ctx, "redaction.pdf")
     _, run_id, units = admitted_page(ctx, source)
@@ -1152,7 +1201,7 @@ def test_invalid_response_audit_is_fenced_and_redacted(operation_context, caplog
         ctx["factory"],
         ctx["storage"],
         ctx["settings"],
-        lambda claim: OpenAIPhase6RProvider(
+        lambda claim: OpenAIExtractionProvider(
             ctx["settings"],
             claim.profile,
             SimpleNamespace(responses=SimpleNamespace(create=create)),
@@ -1184,7 +1233,7 @@ def test_invalid_response_audit_is_fenced_and_redacted(operation_context, caplog
 
 def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
     from powerforge_ai.extraction import ExecutionUsage, ExtractionResponse
-    from powerforge_extraction.phase6r_records import Candidate, Fragment
+    from powerforge_extraction.publication_records import Candidate, Fragment
     from spatial_layout_support import drawn_table
 
     ctx = operation_context
@@ -1446,8 +1495,8 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
 @pytest.mark.parametrize("breakage", ["missing-candidate", "missing-fragment", "foreign-owner"])
 def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch, breakage):
     from powerforge_ai.extraction import ExecutionUsage, ExtractionResponse
-    from powerforge_extraction.phase6r_records import Candidate, Fragment
-    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+    from powerforge_extraction.publication_records import Candidate, Fragment
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
 
     ctx = operation_context
     with pymupdf.open(stream=native_pdf(), filetype="pdf") as page, pymupdf.open() as document:
@@ -1469,7 +1518,7 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
     class Provider:
         def execute(self, request):
             if request.stage == "EQUIPMENT_RECOGNITION":
-                return FakePhase6RProvider("success").execute(request)
+                return FakeExtractionProvider("success").execute(request)
             wire = json.loads(request.text)
             payload = {
                 key: wire[key] for key in ("version", "stage", "page_context_hash", "upstream_hash")
@@ -1509,9 +1558,9 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
     assert execute("EQUIPMENT_RECOGNITION", 1)
     assert execute("EQUIPMENT_RECOGNITION", 2)
     assert execute("ATTRIBUTE_EXTRACTION", 2)
-    from powerforge_extraction import phase6r_records
+    from powerforge_extraction import publication_records
 
-    real_publish = phase6r_records.publish
+    real_publish = publication_records.publish
 
     def broken_publish(session, stage, image_id, observations):
         from types import SimpleNamespace
@@ -1529,7 +1578,7 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
             )
         real_publish(session, stage, image_id, observations)
 
-    monkeypatch.setattr(phase6r_records, "publish", broken_publish)
+    monkeypatch.setattr(publication_records, "publish", broken_publish)
     assert execute("ATTRIBUTE_EXTRACTION", 1)
     attempt_id = units[("ATTRIBUTE_EXTRACTION", 1)]
     with ctx["factory"]() as session:

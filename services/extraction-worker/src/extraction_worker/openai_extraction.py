@@ -1,125 +1,34 @@
-"""One bounded Responses structured call. Retries belong to persisted work attempts."""
+"""OpenAI Responses transport for the two pinned extraction stages."""
 
 import base64
-import json
 from typing import Any
 
 import openai
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from powerforge_ai.extraction import (
     ErrorCode,
     ExecutionUsage,
     ExtractionRequest,
     ExtractionResponse,
-    ProbeResult,
     ProviderFailure,
+    ValidationIssue,
 )
-from powerforge_extraction.engineering_stages import get_engineering_stage
+from powerforge_extraction.extraction_profile import (
+    PROMPTS,
+    RESPONSES,
+    provider_available,
+    structured_schema,
+)
 from powerforge_extraction.identities import canonical_json
-from powerforge_extraction.production_profiles import (
-    ProductionProfile,
-    input_contract,
-    require_production_supported,
-)
-from powerforge_extraction.table_profiles import TableProfile
+from powerforge_extraction.response_diagnostics import validation_issues
+from powerforge_extraction.stage_contracts import MAX_RESPONSE_BYTES, VERSION
 from powerforge_shared.config import Settings
 
 
-def production_input(request: ExtractionRequest, profile: ProductionProfile) -> list[dict]:
-    require_production_supported(profile)
-    stage = get_engineering_stage(request.stage)
-    roles = tuple(
-        role
-        for role, present in (
-            ("native_text", request.text is not None),
-            ("analysis_image", request.image is not None),
-        )
-        if present
-    )
-    if (
-        request.response_model is not stage.response_model
-        or request.schema_version != stage.schema_version
-        or request.source_roles != roles
-        or not roles
-        or request.model != profile.model
-        or request.timeout_seconds != profile.timeout_seconds
-        or request.max_output_tokens != profile.max_output_tokens
-        or request.image_detail != profile.image_detail
-        or (request.image is not None and request.image_mime_type != "image/png")
-        or (profile.input_strategy == "NATIVE_TEXT_ONLY" and roles != ("native_text",))
-        or ((request.stage == "ATTRIBUTE_EXTRACTION") != (request.upstream_context is not None))
-    ):
-        raise ValueError("Request differs from its production profile")
-    text_bytes = len(request.text.encode()) if request.text is not None else 0
-    image_bytes = len(request.image) if request.image is not None else 0
-    if (
-        max(text_bytes, image_bytes) > profile.max_input_bytes
-        or text_bytes + image_bytes > profile.max_total_input_bytes
-        or len(request.text or "") > profile.max_text_chars
-        or len(request.instructions.encode()) > profile.max_instruction_bytes
-        or len((request.upstream_context or "").encode()) > profile.max_upstream_bytes
-    ):
-        raise ValueError("Request exceeds its production bounds")
-    contract = input_contract()
-    content = []
-    if request.text is not None:
-        content.append(
-            {
-                "type": "input_text",
-                "text": canonical_json(
-                    {
-                        "schema_version": contract["source_envelope_version"],
-                        "untrusted": True,
-                        "source_ref": contract["native_source_ref"],
-                        "text": request.text,
-                    }
-                ),
-            }
-        )
-    if request.image is not None:
-        content.extend(
-            [
-                {"type": "input_text", "text": contract["image_label"]},
-                {
-                    "type": "input_image",
-                    "detail": request.image_detail,
-                    "image_url": "data:image/png;base64,"
-                    + base64.b64encode(request.image).decode(),
-                },
-            ]
-        )
-    messages = [{"role": "user", "content": content}]
-    if request.upstream_context is not None:
-        messages.append(
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": canonical_json(
-                            {
-                                "schema_version": contract["upstream_envelope_version"],
-                                "untrusted": True,
-                                "observations": json.loads(request.upstream_context),
-                            }
-                        ),
-                    }
-                ],
-            }
-        )
-    return messages
-
-
 class OpenAIExtractionProvider:
-    def __init__(
-        self,
-        settings: Settings,
-        client: Any | None = None,
-        *,
-        profile: ProductionProfile | TableProfile | None = None,
-    ) -> None:
-        if not settings.extraction_external_enabled:
+    def __init__(self, settings: Settings, profile, client: Any | None = None):
+        if profile.provider != "openai" or not provider_available(settings, profile.provider):
             raise ProviderFailure(ErrorCode.DISABLED)
         if client is None and not settings.openai_api_key:
             raise ProviderFailure(ErrorCode.AUTH)
@@ -128,108 +37,166 @@ class OpenAIExtractionProvider:
             client
             if client is not None
             else openai.OpenAI(
-                api_key=settings.openai_api_key,
-                max_retries=0,
-                timeout=settings.extraction_timeout_seconds,
+                api_key=settings.openai_api_key, max_retries=0, timeout=profile.timeout_seconds
             )
         )
 
     def execute(self, request: ExtractionRequest) -> ExtractionResponse:
-        if self.profile is not None:
-            try:
-                from powerforge_extraction.enriched_profiles import is_enriched
-
-                if is_enriched(self.profile):
-                    from powerforge_extraction.enriched_input import enriched_production_input
-
-                    messages = enriched_production_input(request, self.profile)
-                elif isinstance(self.profile, TableProfile):
-                    from powerforge_extraction.table_input import table_production_input
-
-                    messages = table_production_input(request, self.profile)
-                else:
-                    messages = production_input(request, self.profile)
-            except (ValueError, KeyError):
-                raise ProviderFailure(ErrorCode.INPUT) from None
-        elif request.stage != "SOURCE_PROBE" or request.response_model is not ProbeResult:
+        model = RESPONSES.get(request.stage)
+        if (
+            model is None
+            or request.response_model is not model
+            or request.instructions != PROMPTS[request.stage]
+            or request.schema_version != VERSION
+            or request.model != self.profile.model
+            or request.timeout_seconds != self.profile.timeout_seconds
+            or request.max_output_tokens != self.profile.max_output_tokens
+            or not request.text
+            or not request.image
+            or request.image_mime_type != "image/png"
+            or request.image_detail != "high"
+        ):
             raise ProviderFailure(ErrorCode.INPUT)
-        else:
-            messages = self._probe_input(request)
-        options = {"reasoning": {"effort": self.profile.reasoning_effort}} if self.profile else {}
+        content = [
+            {"type": "input_text", "text": request.text},
+            {
+                "type": "input_image",
+                "detail": request.image_detail,
+                "image_url": "data:image/png;base64," + base64.b64encode(request.image).decode(),
+            },
+        ]
+        body = {
+            "model": request.model,
+            "instructions": request.instructions,
+            "input": [{"role": "user", "content": content}],
+            "text": {
+                "format": {
+                    "type": "json_schema",
+                    "name": request.stage.lower(),
+                    "strict": True,
+                    "schema": structured_schema(model.model_json_schema()),
+                }
+            },
+            "max_output_tokens": request.max_output_tokens,
+            "store": False,
+        }
+        if len(canonical_json(body).encode()) > self.profile.max_transport_bytes:
+            raise ProviderFailure(ErrorCode.INPUT)
         try:
-            response = self.client.responses.parse(
-                model=request.model,
-                instructions=request.instructions,
-                input=messages,
-                text_format=request.response_model,
-                max_output_tokens=request.max_output_tokens,
+            response = self.client.responses.create(
+                **body,
                 timeout=request.timeout_seconds,
-                store=False,
                 extra_headers={"X-Client-Request-Id": str(request.work_unit_id)},
-                **options,
             )
-        except Exception as exc:
-            if isinstance(exc, openai.RateLimitError):
-                code = ErrorCode.RATE_LIMIT
-            elif isinstance(exc, openai.APITimeoutError):
-                code = ErrorCode.TIMEOUT
-            elif isinstance(exc, openai.AuthenticationError | openai.PermissionDeniedError):
-                code = ErrorCode.AUTH
-            elif (
-                isinstance(exc, openai.APIConnectionError)
-                or isinstance(exc, openai.APIStatusError)
-                and exc.status_code >= 500
-            ):
-                code = ErrorCode.UNAVAILABLE
-            else:
-                code = ErrorCode.INVALID
-            raise ProviderFailure(code) from None
-        raw = getattr(response, "usage", None)
+        except openai.RateLimitError:
+            raise ProviderFailure(ErrorCode.RATE_LIMIT) from None
+        except openai.APITimeoutError:
+            raise ProviderFailure(ErrorCode.TIMEOUT) from None
+        except (openai.AuthenticationError, openai.PermissionDeniedError):
+            raise ProviderFailure(ErrorCode.AUTH) from None
+        except openai.APIConnectionError:
+            raise ProviderFailure(ErrorCode.UNAVAILABLE) from None
+        except (openai.APIResponseValidationError, ValueError, TypeError):
+            raise ProviderFailure(
+                ErrorCode.INVALID,
+                diagnostics=(ValidationIssue(category="ENVELOPE", error_type="invalid_envelope"),),
+            ) from None
+        except openai.APIStatusError as exc:
+            code = ErrorCode.UNAVAILABLE if exc.status_code >= 500 else ErrorCode.INVALID
+            diagnostics = (
+                ValidationIssue(
+                    category="ENVELOPE",
+                    error_type="invalid_json_schema"
+                    if exc.code == "invalid_json_schema"
+                    else "http_rejection",
+                ),
+            )
+            raise ProviderFailure(
+                code,
+                diagnostics=diagnostics if code == ErrorCode.INVALID else (),
+            ) from None
+        raw_usage = getattr(response, "usage", None)
         try:
             usage = ExecutionUsage(
-                input_tokens=getattr(raw, "input_tokens", None),
+                input_tokens=getattr(raw_usage, "input_tokens", None),
+                output_tokens=getattr(raw_usage, "output_tokens", None),
                 cached_input_tokens=getattr(
-                    getattr(raw, "input_tokens_details", None), "cached_tokens", None
+                    getattr(raw_usage, "input_tokens_details", None), "cached_tokens", None
                 ),
-                output_tokens=getattr(raw, "output_tokens", None),
             )
         except ValidationError:
-            raise ProviderFailure(ErrorCode.INVALID) from None
-        refused = any(
-            getattr(c, "type", None) == "refusal"
-            for item in (getattr(response, "output", None) or [])
-            for c in (getattr(item, "content", None) or [])
-        )
-        if refused:
-            raise ProviderFailure(ErrorCode.REFUSAL, usage)
-        try:
-            if getattr(response, "status", None) != "completed" or response.output_parsed is None:
-                raise ValueError("Incomplete structured response")
-            parsed = response.output_parsed
-            result = request.response_model.model_validate(
-                parsed.model_dump() if isinstance(parsed, BaseModel) else parsed
-            )
-        except (ValidationError, ValueError, AttributeError):
-            raise ProviderFailure(ErrorCode.INVALID, usage) from None
-        return ExtractionResponse[request.response_model](result=result, usage=usage)
+            raise ProviderFailure(
+                ErrorCode.INVALID,
+                diagnostics=(
+                    ValidationIssue(
+                        category="ENVELOPE", error_type="invalid_usage", path=("usage",)
+                    ),
+                ),
+            ) from None
 
-    @staticmethod
-    def _probe_input(request: ExtractionRequest) -> list[dict]:
-        content = [
-            {
-                "type": "input_text",
-                "text": request.text
-                if request.text is not None
-                else "No native text; acknowledge image input only.",
-            }
-        ]
-        if request.image:
-            encoded = base64.b64encode(request.image).decode()
-            content.append(
-                {
-                    "type": "input_image",
-                    "detail": "low",
-                    "image_url": f"data:{request.image_mime_type};base64,{encoded}",
-                }
+        status = getattr(response, "status", None)
+        output = getattr(response, "output", None)
+        parts = []
+        envelope_error = ValidationIssue(
+            category="ENVELOPE", error_type="invalid_envelope", path=("output",)
+        )
+        if isinstance(output, list):
+            for item in output:
+                if getattr(item, "type", None) == "message":
+                    content = getattr(item, "content", None)
+                    if not isinstance(content, list):
+                        raise ProviderFailure(
+                            ErrorCode.INVALID, usage, diagnostics=(envelope_error,)
+                        )
+                    parts.extend(content)
+        if any(getattr(part, "type", None) == "refusal" for part in parts):
+            raise ProviderFailure(
+                ErrorCode.REFUSAL,
+                usage,
+                diagnostics=(
+                    ValidationIssue(category="REFUSAL", error_type="refusal", path=("output",)),
+                ),
             )
-        return [{"role": "user", "content": content}]
+        if status == "incomplete":
+            reason = getattr(getattr(response, "incomplete_details", None), "reason", None)
+            raise ProviderFailure(
+                ErrorCode.INVALID,
+                usage,
+                diagnostics=(
+                    ValidationIssue(
+                        category="INCOMPLETE",
+                        error_type=reason
+                        if reason in ("max_output_tokens", "content_filter")
+                        else "incomplete",
+                        path=("status",),
+                    ),
+                ),
+            )
+        if (
+            status != "completed"
+            or len(parts) != 1
+            or getattr(parts[0], "type", None) != "output_text"
+            or not isinstance(getattr(parts[0], "text", None), str)
+        ):
+            raise ProviderFailure(ErrorCode.INVALID, usage, diagnostics=(envelope_error,))
+        try:
+            raw = parts[0].text.encode()
+        except UnicodeError:
+            raise ProviderFailure(ErrorCode.INVALID, usage, diagnostics=(envelope_error,)) from None
+        if len(raw) > MAX_RESPONSE_BYTES:
+            raise ProviderFailure(
+                ErrorCode.INVALID,
+                usage,
+                diagnostics=(
+                    ValidationIssue(category="CAPACITY", error_type="response_byte_limit"),
+                ),
+            )
+        try:
+            result = model.model_validate_json(raw)
+        except ValidationError as exc:
+            raise ProviderFailure(
+                ErrorCode.INVALID,
+                usage,
+                diagnostics=validation_issues(exc),
+            ) from None
+        return ExtractionResponse[model](result=result, usage=usage)

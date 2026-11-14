@@ -70,9 +70,9 @@ def execute_unit(
     usage = None
     try:
         with heartbeats(factory, claim, settings):
-            from powerforge_extraction.phase6r_contracts import parse_response
-            from powerforge_extraction.phase6r_publication import build_publication
-            from powerforge_extraction.phase6r_runtime import request_for
+            from powerforge_extraction.publication import build_publication
+            from powerforge_extraction.stage_contracts import parse_response
+            from powerforge_extraction.stage_execution import request_for
 
             wire, request, source = request_for(factory, storage, claim)
             result = wire

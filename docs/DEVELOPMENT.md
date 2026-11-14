@@ -201,6 +201,12 @@ Point `--manifest` at your own labeled set under `evals/classification/private/`
 powerforge-eval-classification --manifest evals/classification/private/manifest.json --provider openai
 ```
 
+## AI engineering extraction
+
+For a local smoke flow, enable local source preparation and set
+`EXTRACTION_USE_FAKE_PROVIDER=true` for all extraction services. Follow the
+[Documents workflow and migration guidance](EXTRACTION.md).
+
 ## Tests
 
 ```bash

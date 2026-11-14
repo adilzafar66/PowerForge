@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 
 import * as Dialog from "@radix-ui/react-dialog";
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 
 export function ConfirmDialog({
@@ -10,6 +10,8 @@ export function ConfirmDialog({
   presentation = "default",
   message,
   confirmLabel,
+  confirmDisabled,
+  controls,
   danger,
   onConfirm,
   onCancel,
@@ -19,6 +21,8 @@ export function ConfirmDialog({
   presentation?: "default" | "workspace";
   message: string;
   confirmLabel: string;
+  confirmDisabled?: boolean;
+  controls?: ReactNode;
   danger?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -72,6 +76,7 @@ export function ConfirmDialog({
           >
             {message}
           </Dialog.Description>
+          {controls}
           <div className="flex justify-end gap-2">
             <Button
               presentation={
@@ -89,6 +94,7 @@ export function ConfirmDialog({
               }
               type="button"
               variant={danger ? "danger" : "primary"}
+              disabled={confirmDisabled}
               onClick={onConfirm}
             >
               {confirmLabel}

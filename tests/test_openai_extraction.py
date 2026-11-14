@@ -1,7 +1,6 @@
-"""No sockets: real adapter request shape, safe errors and structured validation."""
+"""Exercise the live adapter using the installed SDK and an in-process HTTP transport."""
 
-import socket
-from types import SimpleNamespace
+import json
 from uuid import uuid4
 
 import httpx
@@ -9,159 +8,191 @@ import openai
 import pytest
 
 from extraction_worker.openai_extraction import OpenAIExtractionProvider
-from powerforge_ai.extraction import ErrorCode, ExtractionRequest, ProbeResult, ProviderFailure
-from powerforge_extraction.profiles import PROMPT, SCHEMA_VERSION
+from powerforge_ai.extraction import ErrorCode, ExtractionRequest, ProviderFailure
+from powerforge_extraction.extraction_profile import PROMPTS, RESPONSES, STAGES, extraction_profile
 from powerforge_shared.config import Settings
 
 
-@pytest.fixture(autouse=True)
-def no_sockets(monkeypatch):
-    def blocked(*args, **kwargs):
-        raise AssertionError("No real provider calls in tests")
-
-    monkeypatch.setattr(socket, "create_connection", blocked)
-
-
-class Client:
-    def __init__(self, response):
-        self.responses = self
-        self.response, self.calls = response, []
-
-    def parse(self, **kwargs):
-        self.calls.append(kwargs)
-        if isinstance(self.response, Exception):
-            raise self.response
-        return self.response
-
-
-def request():
-    return ExtractionRequest(
-        work_unit_id=uuid4(),
-        unit_key="SOURCE_PROBE:page:000001",
-        attempt_number=1,
-        model="explicit-model",
-        instructions=PROMPT,
-        schema_version=SCHEMA_VERSION,
-        timeout_seconds=12,
-        max_output_tokens=128,
-        text="750 kVA",
-    )
-
-
-def response(**changes):
-    return SimpleNamespace(
-        **{
-            "status": "completed",
-            "output": [],
-            "output_parsed": {"acknowledged": True, "excerpt": "750 kVA"},
-            "usage": SimpleNamespace(
-                input_tokens=10,
-                output_tokens=5,
-                input_tokens_details=SimpleNamespace(cached_tokens=2),
-            ),
-            **changes,
-        }
-    )
-
-
-def enabled():
-    return Settings(_env_file=None, extraction_external_enabled=True, openai_api_key=None)
-
-
-def test_explicit_enablement_and_missing_credentials():
-    with pytest.raises(ProviderFailure) as exc:
-        OpenAIExtractionProvider(
-            Settings(_env_file=None, extraction_external_enabled=False), Client(response())
-        )
-    assert exc.value.code == ErrorCode.DISABLED
-    with pytest.raises(ProviderFailure) as exc:
-        OpenAIExtractionProvider(enabled())
-    assert exc.value.code == ErrorCode.AUTH
-
-
-def test_structured_request_bounds_model_no_tools_storage_and_usage():
-    client = Client(response())
-    result = OpenAIExtractionProvider(enabled(), client).execute(request())
-    assert result.result.excerpt == "750 kVA" and result.usage.cached_input_tokens == 2
-    call = client.calls[0]
-    assert call["text_format"] is ProbeResult and call["store"] is False
-    assert call["model"] == "explicit-model" and call["max_output_tokens"] == 128
-    assert call["timeout"] == 12 and "tools" not in call and "background" not in call
-    assert "sk-" not in str(call)
-
-
-def test_image_payload_is_bounded_private_bytes_not_storage_url():
-    client = Client(response(output_parsed={"acknowledged": True, "excerpt": None}))
-    req = request().model_copy(
-        update={"text": None, "image": b"png-fixture", "image_mime_type": "image/png"}
-    )
-    OpenAIExtractionProvider(enabled(), client).execute(req)
-    image = client.calls[0]["input"][0]["content"][1]
-    assert image["image_url"].startswith("data:image/png;base64,")
-    assert image["detail"] == "low"
-
-
+@pytest.mark.parametrize("stage", STAGES)
 @pytest.mark.parametrize(
-    "bad",
+    "outcome, category, error_type",
     [
-        {"status": "incomplete"},
-        {"output_parsed": None},
-        {"output_parsed": {"acknowledged": True, "excerpt": "x" * 257}},
-        {"output_parsed": {"acknowledged": False, "excerpt": None}},
-        {
-            "usage": SimpleNamespace(
-                input_tokens=1,
-                output_tokens=1,
-                input_tokens_details=SimpleNamespace(cached_tokens=2),
+        ("success", None, None),
+        ("incomplete", "INCOMPLETE", "max_output_tokens"),
+        ("refusal", "REFUSAL", "refusal"),
+        ("invalid", "JSON", "json_invalid"),
+        ("envelope", "ENVELOPE", "invalid_envelope"),
+        ("provider_schema", "ENVELOPE", "invalid_json_schema"),
+        ("schema", "SCHEMA", "extra_forbidden"),
+        ("pattern", "FIELD_CONSTRAINT", "string_pattern_mismatch"),
+        ("cardinality", "FIELD_CONSTRAINT", "too_long"),
+    ],
+)
+def test_responses_transport_is_bounded_and_retains_measured_usage(
+    stage, outcome, category, error_type
+):
+    settings = Settings(_env_file=None, extraction_external_enabled=True)
+    profile = extraction_profile(settings)
+    payload = {
+        "version": "phase-6r-v1",
+        "stage": stage,
+        "page_context_hash": "a" * 64,
+        **(
+            {"equipment": []}
+            if stage == STAGES[0]
+            else {
+                "upstream_hash": "b" * 64,
+                "attributes": [],
+                "raw_unmapped": [],
+            }
+        ),
+    }
+    secret = "CONFIDENTIAL SOURCE STRING"
+    if outcome == "schema":
+        payload[secret] = secret
+    if outcome == "pattern":
+        payload["page_context_hash"] = secret
+    if outcome == "cardinality":
+        field = "equipment" if stage == STAGES[0] else "raw_unmapped"
+        item = (
+            dict(
+                local_ref="ref",
+                source_description=secret,
+                registry_type=None,
+                tag_state="ABSENT",
+                tag=None,
+                qualification="UNKNOWN",
+                raw_qualification=None,
+                evidence=[],
             )
-        },
-    ],
-)
-def test_invalid_or_incomplete_payload_is_rejected(bad):
-    with pytest.raises(ProviderFailure) as exc:
-        OpenAIExtractionProvider(enabled(), Client(response(**bad))).execute(request())
-    assert exc.value.code == ErrorCode.INVALID
+            if stage == STAGES[0]
+            else dict(
+                local_ref="ref",
+                equipment_ref=None,
+                association="UNASSIGNED",
+                raw_label=secret,
+                raw_value=secret,
+                raw_unit=None,
+                qualifiers=[],
+                value_form="SINGLE",
+                evidence=[],
+            )
+        )
+        payload[field] = [item] * 129
+    seen = []
 
+    def respond(http_request):
+        wire = json.loads(http_request.content)
+        seen.append(wire)
+        assert http_request.url.path == "/v1/responses"
+        assert wire["store"] is False and "tools" not in wire
+        assert wire["instructions"] == PROMPTS[stage]
+        (message,) = wire["input"]
+        assert message["role"] == "user"
+        assert message["content"][0]["text"] == "Untrusted pinned source"
+        assert message["content"][1]["image_url"].startswith("data:image/png;base64,")
+        fmt = wire["text"]["format"]
+        assert fmt["strict"] and set(fmt["schema"]["required"]) == set(fmt["schema"]["properties"])
+        schema_fields = fmt["schema"]["properties"]
+        collection = "equipment" if stage == STAGES[0] else "raw_unmapped"
+        assert "maxItems" not in schema_fields[collection]
+        assert "pattern" not in schema_fields["page_context_hash"]
+        if outcome == "provider_schema":
+            return httpx.Response(
+                400,
+                json={
+                    "error": {"code": "invalid_json_schema", "message": secret},
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "id": "resp_mock",
+                "object": "response",
+                "created_at": 1,
+                "model": profile.model,
+                "status": "incomplete" if outcome == "incomplete" else "completed",
+                "incomplete_details": {"reason": "max_output_tokens"}
+                if outcome == "incomplete"
+                else None,
+                "output": []
+                if outcome == "envelope"
+                else [
+                    {
+                        "id": "msg_mock",
+                        "type": "message",
+                        "role": "assistant",
+                        "status": "completed",
+                        "content": [
+                            {"type": "refusal", "refusal": secret}
+                            if outcome == "refusal"
+                            else {
+                                "type": "output_text",
+                                "text": "{" if outcome == "invalid" else json.dumps(payload),
+                                "annotations": [],
+                            },
+                        ],
+                    }
+                ],
+                "usage": {"input_tokens": 200, "output_tokens": 45, "total_tokens": 245},
+            },
+        )
 
-def test_refusal_is_safe_and_unknown_usage_remains_unknown():
-    refused = response(output=[SimpleNamespace(content=[SimpleNamespace(type="refusal")])])
-    with pytest.raises(ProviderFailure) as exc:
-        OpenAIExtractionProvider(enabled(), Client(refused)).execute(request())
-    assert exc.value.code == ErrorCode.REFUSAL
-    result = OpenAIExtractionProvider(enabled(), Client(response(usage=None))).execute(request())
-    assert result.usage.input_tokens is None
-
-
-@pytest.mark.parametrize(
-    "status,error,code",
-    [
-        (429, openai.RateLimitError, ErrorCode.RATE_LIMIT),
-        (401, openai.AuthenticationError, ErrorCode.AUTH),
-        (503, openai.InternalServerError, ErrorCode.UNAVAILABLE),
-    ],
-)
-def test_provider_failures_are_classified_without_sdk_messages(status, error, code):
-    http_response = httpx.Response(
-        status, request=httpx.Request("POST", "https://api.openai.com/v1/responses")
+    request = ExtractionRequest(
+        work_unit_id=uuid4(),
+        unit_key=f"{stage}:page:000001",
+        attempt_number=1,
+        model=profile.model,
+        instructions=PROMPTS[stage],
+        schema_version=profile.schema_version,
+        timeout_seconds=profile.timeout_seconds,
+        max_output_tokens=profile.max_output_tokens,
+        text="Untrusted pinned source",
+        image=b"mock-png",
+        image_mime_type="image/png",
+        image_detail="high",
+        stage=stage,
+        response_model=RESPONSES[stage],
     )
-    sdk_error = error("SECRET DOCUMENT CONTENT", response=http_response, body=None)
-    client = Client(sdk_error)
-    with pytest.raises(ProviderFailure) as exc:
-        OpenAIExtractionProvider(enabled(), client).execute(request())
-    assert exc.value.code == code and "SECRET" not in str(exc.value)
-    assert len(client.calls) == 1  # Persistence owns bounded retry attempts.
+    with httpx.Client(transport=httpx.MockTransport(respond)) as http:
+        sdk = openai.OpenAI(api_key="test", max_retries=0, http_client=http)
+        provider = OpenAIExtractionProvider(settings, profile, sdk)
+        if outcome == "success":
+            response = provider.execute(request)
+            assert response.result.model_dump(mode="json") == payload
+            assert response.usage.output_tokens == 45
+        else:
+            with pytest.raises(ProviderFailure) as error:
+                provider.execute(request)
+            assert error.value.code == (
+                ErrorCode.REFUSAL if outcome == "refusal" else ErrorCode.INVALID
+            )
+            if outcome == "provider_schema":
+                assert error.value.usage is None
+            else:
+                assert error.value.usage.output_tokens == 45
+            issue = error.value.diagnostics[0]
+            assert (issue.category, issue.error_type) == (category, error_type)
+            if outcome == "schema":
+                assert issue.path == ("*",)
+            assert secret not in str(error.value)
+            assert all(secret not in issue.model_dump_json() for issue in error.value.diagnostics)
+        assert len(seen) == 1
 
 
-@pytest.mark.parametrize(
-    "error_type,code",
-    [
-        (openai.APITimeoutError, ErrorCode.TIMEOUT),
-        (openai.APIConnectionError, ErrorCode.UNAVAILABLE),
-    ],
-)
-def test_timeout_and_connection_errors_are_safe_and_not_retried_in_adapter(error_type, code):
-    sdk_error = error_type(request=httpx.Request("POST", "https://api.openai.com/v1/responses"))
-    client = Client(sdk_error)
-    with pytest.raises(ProviderFailure) as exc:
-        OpenAIExtractionProvider(enabled(), client).execute(request())
-    assert exc.value.code == code and len(client.calls) == 1
+def test_live_transport_requires_worker_credentials():
+    settings = Settings(_env_file=None, extraction_external_enabled=True)
+    with pytest.raises(ProviderFailure) as error:
+        OpenAIExtractionProvider(settings, extraction_profile(settings))
+    assert error.value.code == ErrorCode.AUTH
+
+
+@pytest.mark.parametrize("stage", STAGES)
+def test_provider_visual_region_schema_only_offers_exact_coordinate_types(stage):
+    from powerforge_extraction.extraction_profile import structured_schema
+
+    schema = structured_schema(RESPONSES[stage].model_json_schema())
+    fields = schema["$defs"]["ReportedRegion"]["properties"]
+    assert set(fields) == {"x", "y", "width", "height"}
+    for field in fields.values():
+        assert field["anyOf"] == [{"type": "string"}, {"type": "integer"}]

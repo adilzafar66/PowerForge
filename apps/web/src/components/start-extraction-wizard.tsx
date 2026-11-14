@@ -55,7 +55,7 @@ export function StartExtractionWizard({
   onStarted: (id: string, documentId: string) => void;
 }) {
   const instance = useId();
-  const title = launch.mode === "reextract" ? "Re-extract" : "Start extraction";
+  const title = launch.mode === "reextract" ? "Re-extract" : "AI Engineering Extraction";
   const [step, setStep] = useState(1);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [acceptedHash, setAcceptedHash] = useState<string | null>(null);
@@ -128,15 +128,16 @@ export function StartExtractionWizard({
   });
   const reviewed = reviewKey === selectionKey ? preview.data : undefined;
   const reviewExpiry = reviewed?.review_expires_at;
+  const refreshPreview = preview.refetch;
   useEffect(() => {
     if (!reviewExpiry) return;
     const timer = window.setTimeout(() => {
       // A submission already in progress may have succeeded under the original key.
       // Keep that key and let the server resolve the replay.
-      if (!submitting.current) void preview.refetch();
+      if (!submitting.current) void refreshPreview();
     }, Math.max(0, Date.parse(reviewExpiry) - Date.now()));
     return () => window.clearTimeout(timer);
-  }, [reviewExpiry, preview.refetch]);
+  }, [reviewExpiry, refreshPreview]);
   const hash = reviewed && reviewed.errors.length === 0 && reviewed.items.every((item) => !item.error)
     ? reviewed.review_hash : null;
   const reviewReady = hash !== null && !preview.isFetching && !preview.isError;

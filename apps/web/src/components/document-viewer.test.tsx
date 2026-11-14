@@ -383,7 +383,7 @@ describe("DocumentViewer", () => {
       name: "Extraction evidence",
     });
     expect(
-      await within(panel).findByText("No compatible results for the current source."),
+      await within(panel).findByText("No published candidates. Check run history for extraction progress."),
     ).toBeInTheDocument();
     expect(within(panel).queryByText(/confidence/i)).toBeNull();
     expect(
@@ -395,104 +395,87 @@ describe("DocumentViewer", () => {
   });
 
   it.each([
-    { label: "OCR", sourceKind: "OCR_TEXT", reading: "OCR", geometry: "OCR_ENGINE" },
-    { label: "Native PDF", sourceKind: "NATIVE_TEXT", reading: "NATIVE_PDF", geometry: "NATIVE_DOCUMENT" },
-    { label: "Page-only", sourceKind: "VISUAL_REGION", reading: "VISUAL_REPORTED", geometry: "NONE" },
-  ] as const)("locates $label on its pinned source and restores group search", async ({ label, sourceKind, reading, geometry }) => {
+    { localization: "RESOLVED", label: "Matches cited text", support: "TEXT_MATCH" },
+    { localization: "VISUAL_REPORTED", label: "Cited value differs", support: "TEXT_MISMATCH" },
+    { localization: "UNRESOLVED", label: "Not verified", support: "UNVERIFIED" },
+  ] as const)("shows $localization on the pinned source and $label", async ({ localization, label, support }) => {
     const user = userEvent.setup();
-    const engineering = "10000000-0000-4000-8000-000000000001";
-    const group = "30000000-0000-4000-8000-000000000003";
+    const runId = "10000000-0000-4000-8000-000000000001";
+    const groupId = "30000000-0000-4000-8000-000000000003";
     const candidateId = "40000000-0000-4000-8000-000000000004";
     const evidenceId = "50000000-0000-4000-8000-000000000005";
-    const run = {
-      id: engineering, status: "COMPLETED" as const, processing_run_id: "processing",
-      profile_key: "engineering-openai-enriched-v1", created_at: "2026-01-20T12:00:00Z",
-    };
+    const run = { id: runId, status: "COMPLETED" as const, processing_run_id: "processing", profile_key: "phase-6r", created_at: "2026-01-20T12:00:00Z" };
     const status: ExtractionStatus = {
       revision_document_id: "rd-a", processing_run_id: "processing", ineligible_reason: null,
-      extraction: { latest_attempt: run, effective_result: run },
-      enrichment: null,
-    };
-    const citation: Candidate["evidence"][number]["evidence"] = {
-      id: evidenceId, source_kind: sourceKind, source_snippet: geometry === "NONE" ? null : "5.750 %",
-      source_page_number: 2, grounding_precision: geometry === "NONE" ? "VISUAL_PAGE" : "TEXT_OFFSETS",
-      source_locator: { reading_basis: reading, geometry_basis: geometry },
+      extraction: { latest_attempt: run, effective_result: run }, enrichment: null,
     };
     const candidate: Candidate = {
-      id: candidateId, run_id: engineering, source_group_id: group,
-      source_group: { tag_text: "TX-009", label: null }, kind: "ATTRIBUTE_VALUE",
-      raw_text: "Impedance", raw_value: "5.750", raw_unit: "%",
-      mapping_status: "MAPPED", equipment_type_key: "TWO_WINDING_TRANSFORMER",
-      observed_tag: null, attribute_key: "percent_impedance", numeric_value: "5.75",
-      integer_value: null, text_value: null, boolean_value: null, unit: "%",
-      reason_code: null, explanation: null,
-      evidence: [{ role: "PRIMARY", evidence: citation }],
+      id: candidateId, page_id: "page-two", attempt_id: "attempt", kind: "ATTRIBUTE",
+      equipment_id: groupId, association: "UNCERTAIN", raw_unmapped: false,
+      raw_label: "Impedance", raw_value: "5.750", raw_unit: "%", qualifiers: [], value_form: "SINGLE",
+      mapping_status: "MAPPED", proposed_attribute_key: "percent_impedance", proposed_enum_value: null,
+      normalized: { type: "NUMBER", value: "5.75", unit: "%" }, conflict: false, reason_code: null,
+      value_source_support: support, evidence_ids: [evidenceId],
     };
+    const region = { x: "0.25", y: "0.3", width: "0.15", height: "0.02" };
     const detail: EvidenceDetail = {
-      ...citation, run_id: engineering, processing_run_id: "pinned-processing",
-      page_number: 2, region: geometry === "NONE" ? null : { x: "0.25", y: "0.3", width: "0.15", height: "0.02" },
-      text_start: geometry === "NONE" ? null : 0, text_end: geometry === "NONE" ? null : 7, source_image_url: "https://files.example/pinned-page.png",
-      source_image_width_px: 1200, source_image_height_px: 800, artifact_url_expires_seconds: 90,
+      id: evidenceId, candidate_id: candidateId, page_id: "page-two", page_image_id: "pinned-image",
+      role: "VALUE", candidate_value_source_support: support, page_image_width: 1200, page_image_height: 800,
+      page_image: { id: "pinned-image", url: "https://files.example/pinned-page.png", sha256: "digest", expires_seconds: 90 },
+      ...(localization === "RESOLVED"
+        ? { localization, modality: "NATIVE_PDF", quote: "5.750 %", source_issues: [], regions: [region, { ...region, x: "0.5" }] }
+        : localization === "VISUAL_REPORTED"
+          ? { localization, region, reported_text: "5.750" }
+          : { localization, reason_code: "NO_CITATION" }),
     };
+    const group = { group_id: groupId, kind: "EQUIPMENT" as const, label: "Transformer", tag: "TX-009", registry_type: null, page_numbers: [2], matching_candidate_count: 1 };
+    const paging = { total: 1, next_cursor: null, previous_cursor: null };
     vi.mocked(getExtractionStatuses).mockResolvedValue({ "rd-a": status });
-    vi.mocked(getGroups).mockResolvedValue({
-      items: [
-        { run_id: engineering, family: "engineering", source_group_id: group, label: null, tag_text: "TX-009", equipment_type_hint: null, page_numbers: [2], candidate_count: 1 },
-      ],
-      total: 1, limit: 25, offset: 0,
-    });
-    vi.mocked(getGroupCandidates).mockResolvedValue({ items: [candidate], total: 1, limit: 20, offset: 0 });
+    vi.mocked(getGroups).mockResolvedValue({ ...paging, items: [group] });
+    vi.mocked(getGroupCandidates).mockResolvedValue({ ...paging, items: [candidate], group });
+    vi.mocked(getRunSources).mockResolvedValue({ items: [{
+      page_id: "page-two", page_number: 2, page_image_id: "pinned-image", prepared_result_id: "prep",
+      spatial_result_id: "layout", layout_producer_run_id: "producer", prepared_manifest_hash: "hash", spatial_manifest_hash: "hash", page_context_hash: "page-hash",
+    }] });
     vi.mocked(getEvidence).mockResolvedValue(detail);
-    nav.search = "mode=evidence&groupSearch=TX-009";
+    nav.search = "mode=evidence&search=TX-009";
     const view = renderViewer();
     function followLastPush() {
       nav.search = nav.push.mock.lastCall?.[0].split("?")[1] ?? "";
       view.rerender(<DocumentViewer projectId={P} revision={revision} row={makeRow()} />);
     }
-
-    expect(await screen.findByRole("tab", { name: "Candidates" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
-    await user.click(await screen.findByRole("button", { name: /TX-009.*Engineering/ }));
-    expect(getGroups).toHaveBeenCalledWith(expect.anything(), { engineering, tables: null }, expect.objectContaining({ search: "TX-009" }), 0, expect.anything());
+    await user.click(await screen.findByRole("button", { name: /TX-009/ }));
+    expect(getGroups).toHaveBeenCalledWith(expect.anything(), runId, expect.objectContaining({ search: "TX-009" }), null, expect.anything());
     followLastPush();
-    await user.click(await screen.findByRole("button", { name: /Percent impedance/ }));
+    await user.click(await screen.findByRole("button", { name: /Impedance/ }));
     followLastPush();
-
     const image = await screen.findByRole("img", { name: "Pinned source page 2" });
-    expect(image).toHaveAttribute("src", detail.source_image_url);
+    expect(image).toHaveAttribute("src", detail.page_image.url);
     expect(screen.queryByRole("img", { name: "Grounded source region" })).toBeNull();
     fireEvent.load(image);
-    if (geometry === "NONE") {
-      expect(screen.queryByRole("img", { name: "Grounded source region" })).toBeNull();
-      expect(screen.getByText("Page-level citation. No grounded highlight is available.")).toBeVisible();
-    } else {
-      expect(await screen.findByText("Source highlighted on page")).toBeInTheDocument();
-      expect(screen.getByRole("img", { name: "Grounded source region" })).toHaveStyle({ left: "25%", top: "30%" });
-    }
-    expect(screen.getByText("Original reading").parentElement).toHaveTextContent("5.750 %");
-    expect(screen.getByText(label, { exact: true })).toBeInTheDocument();
-
+    expect(screen.getByText(label, { exact: true })).toBeVisible();
+    expect(screen.getByText("Uncertain", { exact: true })).toBeVisible();
+    expect(screen.queryAllByRole("img", { name: "Grounded source region" })).toHaveLength(localization === "RESOLVED" ? 2 : 0);
+    expect(screen.queryAllByRole("img", { name: "Approximate visual region" })).toHaveLength(localization === "VISUAL_REPORTED" ? 1 : 0);
     await user.click(screen.getByRole("button", { name: "Back to source groups" }));
     followLastPush();
     expect(await screen.findByRole("searchbox", { name: "Search source groups" })).toHaveValue("TX-009");
-    expect(screen.getByRole("button", { name: /TX-009.*Engineering/ })).toBeInTheDocument();
   });
 
-  it("keeps a historical run pair fixed even after current results arrive", async () => {
+  it("keeps a selected historical run fixed after current results arrive", async () => {
     const historical = "10000000-0000-4000-8000-000000000001";
     const latest = "20000000-0000-4000-8000-000000000002";
-    const run = { id: latest, status: "COMPLETED" as const, processing_run_id: "processing", profile_key: "engineering-openai-enriched-v1", created_at: "2026-01-20T12:00:00Z" };
+    const run = { id: latest, status: "COMPLETED" as const, processing_run_id: "processing", profile_key: "phase-6r", created_at: "2026-01-20T12:00:00Z" };
     vi.mocked(getExtractionStatuses).mockResolvedValue({ "rd-a": {
       revision_document_id: "rd-a", processing_run_id: "processing", ineligible_reason: null,
-      extraction: { latest_attempt: run, effective_result: run },
-      enrichment: null,
+      extraction: { latest_attempt: run, effective_result: run }, enrichment: null,
     } });
-    vi.mocked(getGroups).mockResolvedValue({ items: [], total: 0, limit: 25, offset: 0 });
-    nav.search = `mode=evidence&evidencePinned=1&engineeringRun=${historical}`;
+    vi.mocked(getGroups).mockResolvedValue({ items: [], total: 0, next_cursor: null, previous_cursor: null });
+    vi.mocked(getRunSources).mockResolvedValue({ items: [] });
+    nav.search = `mode=evidence&extractionRun=${historical}`;
     renderViewer();
-    expect(await screen.findByText("No source groups match the selected results and filters.")).toBeVisible();
-    expect(getGroups).toHaveBeenCalledTimes(1);
-    expect(getGroups).toHaveBeenCalledWith(expect.anything(), { engineering: historical, tables: null }, expect.anything(), 0, expect.anything());
+    expect(await screen.findByText("No candidates match these filters.")).toBeVisible();
+    expect(getGroups).toHaveBeenCalledWith(expect.anything(), historical, expect.anything(), null, expect.anything());
   });
 
   it("opens run details while candidate publication is unavailable", async () => {
@@ -500,28 +483,25 @@ describe("DocumentViewer", () => {
     const historical = "10000000-0000-4000-8000-000000000001";
     const run = {
       id: historical, status: "COMPLETED" as const, processing_run_id: "historic-processing",
-      profile_key: "engineering-openai-enriched-v1", created_at: "2026-01-19T10:00:00Z",
-      selected_pages: [1], pages_processed: 1, error_code: null,
+      profile_key: "phase-6r", created_at: "2026-01-19T10:00:00Z", model: "fake", profile_version: "v1",
+      profile_hash: "hash", selected_pages: [1], pages_processed: 1, error_code: null,
     };
     vi.mocked(getExtractionStatuses).mockResolvedValue({ "rd-a": {
       revision_document_id: "rd-a", processing_run_id: "current-processing", ineligible_reason: null,
-      extraction: { latest_attempt: run, effective_result: null },
-      enrichment: null,
+      extraction: { latest_attempt: run, effective_result: null }, enrichment: null,
     } });
-    vi.mocked(getHistory).mockImplementation(async (_scope, family) => ({
-      items: family === "engineering" ? [run] : [], total: family === "engineering" ? 1 : 0, limit: 10, offset: 0,
-    }));
+    vi.mocked(getHistory).mockResolvedValue({ items: [run], total: 1, next_cursor: null, previous_cursor: null });
     vi.mocked(getRunDetail).mockResolvedValue({
       run, attempts: [], coverage: { required_units: 1, completed_required_units: 1 },
-      can_browse_candidates: false,
+      can_browse_candidates: false, can_retry: false, can_cancel: false, execution: null,
     });
     vi.mocked(getRunSources).mockResolvedValue({ items: [] });
     nav.search = "mode=evidence&evidenceTab=history";
     const view = renderViewer();
-    await user.click(await screen.findByRole("button", { name: /Run 10000000/ }));
+    await user.click(await screen.findByRole("button", { name: /Pages 1/ }));
     nav.search = nav.push.mock.lastCall?.[0].split("?")[1] ?? "";
     view.rerender(<DocumentViewer projectId={P} revision={revision} row={makeRow()} />);
-    expect(await screen.findByText("Attempts and source bindings")).toBeVisible();
+    expect(await screen.findByRole("region", { name: "Selected extraction run" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Browse candidates" })).toBeNull();
   });
 

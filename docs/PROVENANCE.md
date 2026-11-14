@@ -35,25 +35,15 @@ Phase 2 defines, and implements, what evidence will point at. See [ADR-004](../d
 
 ## Evidence
 
-Evidence records belong to one producing work unit and retain the run/document/processing context, stable DocumentPage, optional exact PageArtifact, source kind, extraction method and concise verbatim snippet. Text offsets use the explicit `UNICODE_CODEPOINT` convention and require a pinned native-text artifact; arbitrary visual offsets are rejected. Publication counts codepoints from that exact UTF-8 storage object after verifying its stored size and SHA-256. It never uses `DocumentPage.native_text_char_count`, which later processing may change. Unavailable or unverifiable text rejects publication; there is no page-count fallback. A region is either null or a complete rectangle inside the normalized upright page. Uncertain geometry remains null.
+Each fragment belongs to a candidate, page, attempt and exact run binding. Resolved
+text cites an immutable native or OCR artifact using Unicode codepoint offsets.
+Precise highlights use source-derived coordinates. Visual regions reported by the
+model are approximate, and unresolved fragments retain page context.
 
-Optional table/cell locators reference schema-versioned table layouts. Candidates link to evidence many-to-many with PRIMARY, SUPPORTING or source-grounded CONTRADICTING roles. Group/table evidence references and candidate context are validated before publication. Composite FKs protect document/page/artifact/run ownership, and immutable output is committed atomically with successful work-unit completion.
-
-## Attribute-level linkage
-
-Provenance is not only “this equipment came from document X”. Each attribute can point at different evidence (SLD vs shop drawing vs nameplate).
-
-Phase 6 retains confidence at candidate/evidence granularity, with attribute-level links rather than only equipment-level provenance. Extraction run/provider/model/prompt versions, timestamps, and retry/version history must remain traceable across native-text, OCR, table, and vision inputs. Canonical nullable confidence does not replace this provenance.
-
-`system_frequency` and `system_phase_count` remain manual-only revision settings. Extraction must not produce revision-level proposals for them. Equipment-specific source statements may be mapped where justified or retained as unmapped observations. Later entity resolution, reconciliation and review determine relationships to canonical data.
-
-## Source hierarchy
-
-Source types (SLD, shop drawing, nameplate, schedule, photograph, specification) participate in configurable source-priority rules. Provenance records the source type so reconciliation can explain why a value was suggested.
-
-## Evidence access
-
-Phase 6A provides revision-document-scoped evidence detail with a source page locator, optional normalized region and a short-lived URL for the exact pinned artifact. INCLUDED document membership is required; inherited and read-only revisions may inspect the same immutable results without copies or canonical writes. Run/candidate/table lists select only successfully committed work-unit attempts. Unsupported candidates are explicitly flagged and excluded from the default sourced list. The browser extraction/evidence workspace remains deferred to 6F.
+Read access requires included revision-document membership. Evidence retrieval
+verifies source identity before signing the pinned image or text. Attribute-level
+citations preserve distinct source statements. Mapping, source text support and
+equipment association remain independently reviewable.
 
 ## Phase 0
 
@@ -82,96 +72,9 @@ Specified in `cursor/phase4_specs.txt` and [ADR-006](../decisions/ADR-006-ai-doc
 - **A failed classification is not the suggestion.** Its predictions may remain stored. They are not evidence and they cannot be accepted.
 
 
-## Phase 6B execution provenance
+## AI engineering extraction
 
-Execution adds immutable versioned profile snapshots and append-only call admission/attempt history without copying source identity. Each source-probe unit pins one exact native-text or analysis-image artifact. Workers verify artifact bytes/hash and enforce byte/pixel bounds before provider invocation. Structured source excerpts must be verbatim substrings of pinned native text; unknown geometry remains null. Fake/test observations carry explicit synthetic diagnostics and their run identifies FAKE_TEST execution. Real infrastructure probes do not manufacture engineering candidates.
-
-Database-fenced leases prevent stale, superseded or cancelled workers from publishing through the 6A boundary. A cancellation preserves previously committed evidence/candidates; a retry appends unsuccessful attempts rather than replacing successful outputs. Cancelled/completed runs remain immutable and require explicit new re-extraction. Call telemetry stores only safe technical identities/usage/errors and optional known-basis cost estimates. Missing usage, interrupted calls and possible crash-window charges remain unknown rather than fabricated zeroes. See [PHASE6B_HANDOFF.md](PHASE6B_HANDOFF.md).
-
-## Phase 6C M1 source-anchor contract
-
-Engineering observation schemas now distinguish native-text quote/context anchors from page-level image anchors. They contain source roles, not trusted database identifiers, offsets or coordinates; validation checks shape and declared references only. A visual anchor has no verified text quote. Raw visual transcriptions remain observations. Future grounding must resolve exact pinned artifacts, verify native excerpts/Unicode offsets and expose the approved page-level visual limitation before publication. M1 creates no new Evidence or candidates and makes no grounding/accuracy claim; see [PHASE6C_M1_HANDOFF.md](PHASE6C_M1_HANDOFF.md).
-
-M2 adds pure source-field consistency and semantic interpretation against **admitted local passages**. These checks do not prove that an arbitrary string was in an artifact or belonged to a particular equipment item. The M3 caller must establish passage ownership and association before interpretation, including the explicit limitation for admitted visual transcriptions. Rejected model fields must be excluded from candidate/evidence conversion; mapped interpretations remain AI candidates, not independently verified facts. No new Evidence publication is implemented by M2. See [PHASE6C_M2_HANDOFF.md](PHASE6C_M2_HANDOFF.md).
-
-## Phase 6C M3 grounding
-
-M3 implements that admission boundary. Source descriptors come from pinned run/unit artifact IDs, not current processing/page summary metadata. Artifact size/hash, native UTF-8 and image format/dimensions/pixel bounds are verified before conversion. Native quotations and adjacent context are matched literally, without Unicode normalization; unique occurrences produce server-calculated codepoint offsets. Repeated unresolved occurrences retain honest text/page grounding, and attributes do not inherit an arbitrary occurrence's equipment context. Complete-line evidence preserves qualifiers outside a model-selected fragment.
-
-Source-local association uses verified native blocks with no detected competing headers/mentions; repeated tags are not merged. Recognition context is reloaded only from completed same-run/page outputs and checked against the exact target artifacts. Page-level visual readings remain explicitly unverified transcriptions, with source image identity and null text offsets/geometry/snippet. A single visual item or an explicit unique tag may support a model-reported local association; multiple tagless visual items remain detached. Native and image readings cannot borrow one another's type context.
-
-Read API evidence summaries/details expose `grounding_precision`: TEXT_OFFSETS, TEXT_PAGE, VISUAL_REGION, VISUAL_PAGE or PAGE_ONLY. This describes source-location precision, not engineering verification or calibrated accuracy. Unsupported claims generate only bounded diagnostic counts, committed atomically with successful unit output. See [PHASE6C_M3_HANDOFF.md](PHASE6C_M3_HANDOFF.md).
-
-## Phase 6C M4 execution provenance
-
-Engineering page stages pin both selected modalities or require native text according to their v2 profile. Descriptor snapshots bind source loading to the original processing run/artifact IDs; every selected object is verified before use with no fallback. Attributes consume only the unique committed same-page recognition success, whose raw context remains separate untrusted request data. Retry reproduces the same source bytes, registry rendering and immutable upstream projection. M3 grounding/association checks and explicit visual limitations remain unchanged.
-
-Run prompt/schema identity covers the complete stage manifest; individual call rows record actual stage schema and rendered-instruction hash. Attribute correlation IDs additionally retain the upstream attempt and projection hash without retaining source dumps. Waiting/blocked units make no call and consume no admission. Calls interrupted after the provider boundary retain unknown usage rather than fabricated zeroes. Synthetic stage runs/candidates remain visibly FAKE_TEST. No new tables or canonical writes were introduced; M5 adds production SDK integration below; evaluation remains pending. See [PHASE6C_M4_HANDOFF.md](PHASE6C_M4_HANDOFF.md).
-
-## Phase 6C M5 provider provenance
-
-Production v3 profiles pin the unchanged stage/interpretation/grounding resources, a v2 runtime, the versioned OpenAI input contract and explicit model/effort/image detail/limits. Native source text and response-local recognition context are JSON-escaped, explicitly untrusted user inputs; image bytes are sent as private data URLs with a named page-level source role. Provider input includes no database/artifact/group IDs or storage keys. Stage schema/instruction and immutable upstream call identities retain M4 reproducibility across retries.
-
-One SDK call per admitted attempt uses SDK max_retries=0, no tools and store=false. Refusals, incomplete/malformed responses and SDK failures remain sanitized; unavailable usage, including SDK parsing/transport exceptions without exposed usage, stays unknown. Worker/beat tests use real durable storage/transport and an exclusively mocked OpenAI HTTP transport, so they prove provenance plumbing rather than model recognition quality. Explicit visual limits, conservative native grounding and canonical separation remain unchanged. See [PHASE6C_M5_HANDOFF.md](PHASE6C_M5_HANDOFF.md).
-
-## Phase 6C M6 evaluation provenance
-
-The synthetic corpus pins authored source bytes and independently declared claim meanings, exact typed values, statuses, occurrences and associations. Its canonical validated corpus hash includes source hashes; recorded responses additionally pin the producing manifest/interpretation/grounding resources. Reports retain those identities, the recording hash and a scorer-source hash. One-to-one source matching never uses proposed mappings/values. Failed stages keep reference denominators; page-level visual validity does not claim independent text verification. Committed results are `SCRIPTED_MOCK`; merely labeling a recording live gives `UNVERIFIED_RECORDING`, never measured model quality.
-
-The separately opt-in live entrypoint requires an explicitly approved corpus digest and exact Document bindings. Before committing any run it checks all selected original processing artifacts against approved role/hash/size/dimensions. It uses normal versioned profiles, two admissions per case, one attempt per stage, immutable committed recognition, existing execution fences and atomic publication. Reports score only committed successful outputs and preserve published rejection counts and failed-case denominators. The internal injected-provider runner always reports `UNVERIFIED_PIPELINE` and accepts no provenance label. Only the guarded production entrypoint, which selects the worker's production factory itself, designates `LIVE_OPENAI`; measured quality additionally requires a successful call. Injected-provider tests remain unverified; no live paid call or production accuracy claim is made. See the [corpus guide](../evals/extraction/README.md) and [final handoff](PHASE6C_HANDOFF.md).
-
-## Phase 6D M1 table contracts
-
-Table reconstruction observations preserve raw cells, sparse/blank/unreadable states, headers, spans, source-role anchors and uncertainty. Table interpretation observations reference existing table/cell/caption aliases; these are model-local names, not database or physical identities. Provider responses cannot assert offsets, geometry, normalized slots or verification metadata. Offline layout/reference consistency does not establish source occurrence or row ownership.
-
-M1 inspection emits only UNVERIFIED text and UNRESOLVED structure metadata. The server-only metadata vocabulary separates future native-text proof, native delimiter structure and visual-reported relationships; constructing a shape-valid object with evidence IDs is not verification. M2 must resolve actual pinned artifacts and committed ownership before admission/publication. Native token matches cannot independently verify a PDF grid, and visual reports retain page-level limits. No evidence is generated by M1. See [PHASE6D_M1_HANDOFF.md](PHASE6D_M1_HANDOFF.md).
-
-## Phase 6D M2 — Grounding, interpretation and publication
-
-M2 adds exact pinned table admission, independent literal-text/relationship reliability, conservative structured-cell registry interpretation, source-local groups and conversion into existing tables/evidence/relational candidates. Native structure requires a unique contiguous delimiter grid; otherwise an explicit visual reading retains page-level limits or the association remains unresolved. Committed reconstruction is revalidated for the exact run/page/artifacts before interpretation. Publisher checks now reject wrong-page/artifact/cell and unfinished upstream ownership, and existing evidence reads report actual table-cell precision and sign the historical artifact.
-
-M1/6C resources and profile/runtime identities, registry-v1, migrations and canonical models remain unchanged. M2 introduced no production table profile or worker execution; M3 integration and M4 representative table evaluation are recorded below. Table-only ownership still requires a separate 6C prose run, and latest summaries continue selecting across profiles. See [PHASE6D_M2_HANDOFF.md](PHASE6D_M2_HANDOFF.md) for actual checks, source rules and conservative coverage limits.
-
-## Phase 6D M3 — Table execution integration
-
-V4 table profiles pin the reviewed M2 source/meaning rules, table manifest/runtime/input envelope, model/options and bounds. Provider context contains local aliases and actual admitted reliability rather than database/artifact IDs or storage keys. Call correlation binds the committed reconstruction attempt and canonical context hash. Value evidence reuses the immutable producer cell; visual readings retain page-level limits. Empty interpretation records a skip marker after ordinary admission and fenced publication, with no AI call row or invented zero usage. Historical prose/probe resources and execution meanings are preserved.
-
-The table-only/prose separation and cross-profile latest-result behavior remain explicit. Real worker/SDK transport mocks verify plumbing and compatibility; M4 table evaluation is recorded below; live model accuracy remains unmeasured. See [PHASE6D_M3_HANDOFF.md](PHASE6D_M3_HANDOFF.md).
-
-## Phase 6D M4 — Independent table evaluation
-
-The separate offline `powerforge-eval-tables` command (`python -m powerforge_extraction.table_eval`) replays versioned reconstruction/interpretation recordings against independently authored source/table/cell/claim annotations. Source occurrences and cell coordinates select matches before proposed meanings, typed values, units or associations are scored. Reports retain missed/failed gold denominators, null empty rates, structural/header/orientation metrics, source-local association, citation/locator checks and UNMAPPED/INVALID retention. Native literal proof, visual reports and relationship reliability remain distinct. Caller-provided recording provenance cannot designate live quality. The frozen 6C evaluator and M1–M3 production resources are unchanged.
-
-The corpus has 27 synthetic cases, 27 gold tables, 146 cells and 73 claims, including a real processed-PDF native/hybrid pair. Native abstention loses recall against the visible source gold; visual relationships retain explicit page-level limits. All 100 new tests and new extraction-wheel checks pass. At the user's request, the already verified M3 full backend/integration/migration/API/dependency checks are carried forward, not repeated. No paid model call or live accuracy measurement is claimed. See the [table corpus guide](../evals/tables/README.md) and [final handoff](PHASE6D_HANDOFF.md) for actual scores, verification evidence and remaining limits.
-
-## Phase 6E M1 — Pure spatial source foundation
-
-Separate versioned modules in `packages/provenance` define immutable producer/artifact/page ownership, native/OCR positioned text, token/line/block and native-primitive support, exact source occurrences, conditional native-origin correspondence and pinned prepared/spatial bindings. Pure orthogonal transforms preserve crop, scale, mirrors, quarter turns and normalized upright geometry. Missing support stays null; a resolved support envelope does not establish table/equipment ownership. M1 support resolution remains UNRESOLVED structurally and does not independently verify printed characters. Unknown OCR text coverage remains UNKNOWN.
-
-`powerforge_ai.ocr.PositionedOCRProvider` is a typed protocol with raw image/word/box/settings identity, engine-scale confidence and local usage/failure contracts. The original generic OCR interface and all accepted 6C/6D contracts/resources stay unchanged. No engine/native adapter, production profile, API, schema migration or publisher support is enabled by M1. Existing evidence is not retrospectively upgraded. M2 must implement real processing and durable source artifacts; M3/M4 must establish actual structure and source-aware publication. Backend purpose guards on every endpoint and the future coherent 6F UI remain required.
-
-All 92 focused tests, provenance/AI wheel checks and new resource identities pass; accepted v1–v4 wires/resources and both full frozen 6C/6D reports reproduce unchanged. No infrastructure integration or paid provider call occurred. See [PHASE6E_M1_HANDOFF.md](PHASE6E_M1_HANDOFF.md) for actual bounds/verification and [PHASE6E_PLAN.md](PHASE6E_PLAN.md) for later review gates.
-
-
-## Phase 6E M2 — Durable native/OCR source preparation
-
-The new local source-preparation profile consumes an explicitly selected completed base run/pages and produces independent immutable native/OCR text and geometry. Actual PyMuPDF 1.28.2 and Tesseract 5 adapters preserve source-local occurrences, transforms, raw readings and recognition limits. Native-plus-raster text coverage stays UNKNOWN and requires explicit whole-page OCR selection; there is no guessed coverage percentage or blanket OCR. M2 establishes neither table relationships nor engineering meaning.
-
-Migration 0014 adds SOURCE_ENRICHMENT purpose, separate source result/artifact/binding records and purpose/lease/identity guards. Local planning/execution/publication reuse the existing durable coordinator with a dedicated CPU queue and admission pool. Source start/input discovery/history/detail/result/artifact/retry/cancel APIs enforce membership and purpose on direct IDs; ordinary extraction summaries/history ignore source jobs. Local run model/prompt/registry fields are inapplicable, and local jobs cannot publish ordinary extraction outputs or AI calls. Usage distinguishes admissions, recognition requests and confirmed engine invocations; unmeasured cost/child resources remain null.
-
-All 271 distinct targeted checks pass, including 51 new M2 cases, real OCR/PostgreSQL/Redis/MinIO/Celery/restart and accepted extraction lifecycle/migration checks. Retained v4 source data preserves old wire/resource hashes and both frozen evaluation reports. The worker image and package wheels reproduce accepted resources; no paid calls or UI changes occurred. Deployment, actual eligibility, measured limits and remaining M3–M5 scope: [PHASE6E_M2_HANDOFF.md](PHASE6E_M2_HANDOFF.md). M3 was subsequently authorized and is recorded below; the backend separation still permits the approved coherent future 6F guided workflow.
-
-
-## Phase 6E M3 — Reusable geometry-supported layout
-
-The explicit local `source-layout-v1` profile commits SOURCE_PREPARE then SPATIAL_LAYOUT on the existing coordinator/CPU queue. Compatible completed preparations are pinned before admission and reused through immutable direct receipts preserving their actual producer; layout retry never repeats recognition. Migration 0015 adds separate immutable layout results and reuse receipts with owned-source, stage, lease and completion guards. Source history/detail expose the original preparation, receipt and spatial result; new scoped spatial manifest/artifact reads remain separate from extraction endpoints.
-
-Versioned pure document-processing algorithms retain exact native/OCR occurrences, contextual overlap agreements/conflicts, partial reading order and unresolved geometry. Closed native borders support partitions/merged spans; a stricter repeated-alignment path supports simple borderless schedules. Header relationships require actual column coverage plus conservative explicit label cues. OCR geometry remains OCR-derived; serialized cell readings are not printed quotes, missing readings are not verified blanks, and layout supplies no engineering ownership or meaning.
-
-The original positioned 6D PDF gains four supported cells and two header paths over its unchanged delimiter-only baseline. Real OCR, retry and killed-worker recovery are exercised. Accepted M1/M2 and 6C/6D identities/reports remain unchanged. See the [M3 handoff](PHASE6E_M3_HANDOFF.md) for exact rules and limits.
-
-## Phase 6E M4–M5 — Published spatial evidence
-
-The v2 locator binds the committed preparation and spatial manifests, exact text and geometry artifacts, and a specific source occurrence. Text offsets index the cited representation in Unicode codepoints. Supported geometry uses the normalized upright page frame. The source endpoint exposes pinned result and producer identities. Scoped evidence reads can sign the text and source image separately. Page-level visual fallback has no offsets or supported region.
-
-The locator records reading basis, geometry basis and structure basis independently. Raw OCR confidence belongs to the engine's observation. An OCR-supported cell can have the right row and header while containing an incorrect recognized number. The offline scorer therefore records artifact evidence validity, printed-text agreement, layout relationships and typed value correctness separately. See the [final 6E handoff](PHASE6E_HANDOFF.md).
+Immutable source preparation, AI recognition and attribute extraction share page-scoped
+identities. Published observations retain the raw assertion, evidence fragments and
+independent mapping and association states. Review runs are separate from the canonical
+engineering model. See [Extraction](EXTRACTION.md) and the [approved decision](../decisions/ADR-009-phase-6r-unified-extraction.md).

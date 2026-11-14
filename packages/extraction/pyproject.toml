@@ -5,10 +5,6 @@ description = "Candidate extraction contracts. Must not mutate the verified engi
 requires-python = ">=3.12"
 dependencies = ["pydantic>=2.8", "powerforge-engineering-model", "powerforge-provenance", "powerforge-persistence", "powerforge-document-processing", "sqlalchemy>=2.0.35", "powerforge-ai", "powerforge-shared", "celery[redis]>=5.4"]
 
-[project.scripts]
-powerforge-eval-extraction = "powerforge_extraction.eval:main"
-powerforge-eval-tables = "powerforge_extraction.table_eval:main"
-
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
@@ -17,4 +13,4 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-powerforge_extraction = ["prompts/*.txt", "prompts/*.json", "runtime_resources/page_v1/*.txt", "runtime_resources/page_v2/*.txt", "runtime_resources/table_v1/*.txt", "runtime_resources/preparation_v1/*.txt", "runtime_resources/layout_v1/*.txt", "runtime_resources/publication_v1/*.txt", "runtime_resources/enriched_v1/*.txt"]
+powerforge_extraction = ["prompts/*.txt", "runtime_resources/preparation_v1/*.txt", "runtime_resources/layout_v1/*.txt"]

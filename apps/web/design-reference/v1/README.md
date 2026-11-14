@@ -75,6 +75,5 @@ The prior package included a **Document & Evidence Viewer** but did not have a d
 - UX-9.3 selected/unselected dropdown option hover styling stays the same.
 
 
-## Phase 6F final interactive review (v1.19.2)
 
-This package adds a self-contained Phase 6F reference to the GitHub `main` `design-reference/v1` baseline. Open the root `index.html` for the complete gallery; use **Documents** for the register, nonmodal document inspector and three-step Source → Enrichment → Extraction flow, and **Document & Evidence Viewer** for the two-tab Candidates / Run history display with the scalable group browser. Engineering text and tables/schedules run as separate profiles under a default Comprehensive extraction selection. Document-row three-dot menus are removed. See `PHASE6F_DESIGN_NOTES.md` and the consolidated `PHASE6F_RELEASE_NOTES.md`; no intermediate Phase 6F releases are bundled. All processing in the HTML is simulated.
+Use the extraction browser fixture in `apps/web/visual` to review the current wizard, operations and evidence states.

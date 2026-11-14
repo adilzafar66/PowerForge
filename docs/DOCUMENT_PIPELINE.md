@@ -202,9 +202,12 @@ Do not couple later OCR code to a single vendor. Do not add that code in Phase 3
 
 `document-worker` consumes `document_processing`. `extraction-worker` consumes `document_classification`. `validation-worker` stays on the default `celery` queue. None of them consume another worker's queue.
 
-## Phase 6 boundary
+## Extraction boundary
 
-Full Evidence/ExtractionCandidate persistence begins in Phase 6. Native text, OCR, vision, and table inputs cite stable Document/DocumentPage identity with normalized upright-page regions. Extraction runs retain provider/model/prompt versions, retries, and confidence at candidate/evidence granularity; see [EXTRACTION.md](EXTRACTION.md) and [PROVENANCE.md](PROVENANCE.md). Outputs remain candidates for later reconciliation/review and cannot silently overwrite canonical equipment values or revision-level `system_frequency`/`system_phase_count`.
+The extraction operation pins a successful analysis image, immutable native or OCR
+readings and a compatible local layout. Its two AI stages consume that same
+page context. Source preparation and layout remain available as separate local
+work. See [Extraction](EXTRACTION.md).
 
 ## Artifacts
 

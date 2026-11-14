@@ -5,8 +5,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-from powerforge_extraction.phase6r_contracts import Association, Qualification, Role, TagState
-from powerforge_extraction.phase6r_publication import ValueSourceSupport
+from powerforge_extraction.publication import ValueSourceSupport
+from powerforge_extraction.stage_contracts import Association, Qualification, Role, TagState
 from powerforge_provenance.locations import Region
 
 MappingStatus = Literal["MAPPED", "UNMAPPED", "INVALID"]
@@ -129,6 +129,8 @@ class EvidenceBase(BaseModel):
     page_id: UUID
     page_image_id: UUID
     page_image: SignedArtifact
+    page_image_width: int
+    page_image_height: int
     candidate_value_source_support: ValueSourceSupport | None
 
 

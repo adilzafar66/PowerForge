@@ -103,7 +103,7 @@ def test_source_digest_and_selection_fail_closed(tmp_path):
             load_cases(CORPUS, EVALS, selection)
 
 
-def test_actual_paired_sources_and_numeric_error_keep_independent_structure_and_text(tmp_path):
+def test_actual_sources_and_numeric_error_keep_independent_structure_and_text(tmp_path):
     artifacts = tmp_path / "artifacts"
     report = evaluate(
         CORPUS,
@@ -111,17 +111,9 @@ def test_actual_paired_sources_and_numeric_error_keep_independent_structure_and_
         selected=["positioned-6d", "scanned-schedule", "transformer-nameplate"],
         artifacts=artifacts,
     )
-    assert report["model_provenance"] == "DETERMINISTIC_SOURCE_MOCK"
     assert report["live_openai_quality_measured"] is False
     assert report["provider_tokens"] is report["provider_cost_usd"] is None
     assert all(not case["failures"] for case in report["cases"])
-    pair = report["legacy_comparisons"]["positioned-6d"]
-    assert pair["legacy_replays"]["pdf_native_unresolved"]["correct_mapped"] == 0
-    assert pair["enhanced"]["correct_claim_recall"]["numerator"] == 2
-    assert pair["enhanced_supported_partition"]["numerator"] == 1
-    assert report["legacy_comparisons"]["transformer-nameplate"]["legacy_profile_source"] == (
-        "VISUAL_PAGE"
-    )
     scanned = next(row for row in report["cases"] if row["id"] == "scanned-schedule")
     assert scanned["ocr_invocations_started"] == 1
     injected = report["controls"]["injected_numeric_error"]
@@ -131,14 +123,9 @@ def test_actual_paired_sources_and_numeric_error_keep_independent_structure_and_
         changed["preprocessing"]["supported_partition_recall"]
         == (scanned["preprocessing"]["supported_partition_recall"])
     )
-    good = scanned["mock_conversion"]["tables"]["metrics"]
-    altered = changed["mock_conversion"]["tables"]["metrics"]
-    assert altered["positioned_evidence"] == good["positioned_evidence"]
-    for name in ("primary_evidence_printed_agreement", "exact_typed_value_unit"):
-        assert altered[name]["numerator"] == good[name]["numerator"] - 1
-    assert any(
-        c["value"] == "0.6" and c["printed_text_independently_verified"] is False
-        for c in changed["mock_conversion"]["tables"]["claims"]
+    assert (
+        changed["preprocessing"]["ocr_wer"]["numerator"]
+        > scanned["preprocessing"]["ocr_wer"]["numerator"]
     )
     for name, record in scanned["source_artifacts"].items():
         payload = (artifacts / "scanned-schedule" / name).read_bytes()

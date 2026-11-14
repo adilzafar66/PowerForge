@@ -229,7 +229,9 @@ export function RevisionDocuments({
   const [pendingLeave, setPendingLeave] = useState<PendingLeave | null>(null);
   const seenParam = useRef(documentParam);
   const jobStates = useRef(new Map<string, string>());
+  const processingStates = useRef(new Map<string, string | undefined>());
   useEffect(() => {
+    let eligibilityChanged = false;
     for (const row of items ?? []) {
       const state = JSON.stringify([row.processing, row.classification]);
       const previous = jobStates.current.get(row.id);
@@ -238,6 +240,14 @@ export function RevisionDocuments({
           queryKey: keys.document(projectId, revisionId, row.id),
         });
       jobStates.current.set(row.id, state);
+      const processingStatus = row.processing?.status;
+      if (processingStates.current.has(row.id) && processingStates.current.get(row.id) !== processingStatus) {
+        eligibilityChanged = true;
+      }
+      processingStates.current.set(row.id, processingStatus);
+    }
+    if (eligibilityChanged) {
+      void client.invalidateQueries({ queryKey: [...keys.extraction(projectId, revisionId), "status"] });
     }
   }, [items, client, projectId, revisionId]);
 
@@ -752,7 +762,7 @@ export function RevisionDocuments({
                     <button
                       type="button" className={docButtonClass("primary")} disabled={scopePending}
                       onClick={() => setWizard({ documentIds: [...eligibleChecked], skipped: skippedRows })}
-                    >Start extraction</button>
+                    >AI Engineering Extraction</button>
                   )}
                 </div>
               </div>

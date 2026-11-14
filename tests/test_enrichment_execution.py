@@ -24,7 +24,7 @@ from powerforge_extraction.models import (
     ExtractionWorkUnit,
 )
 from powerforge_extraction.orchestration import ExtractionCoordinator
-from powerforge_extraction.phase6r_runtime import StageResult
+from powerforge_extraction.stage_execution import StageResult
 from powerforge_provenance.spatial_sources import PreparedPage, load_positioned_text
 from test_enrichment_native import scan_png
 

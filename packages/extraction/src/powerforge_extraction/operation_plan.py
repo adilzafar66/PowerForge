@@ -1,4 +1,4 @@
-"""Read-only planning for the fixed Phase 6F preparation and extraction workflow."""
+"""Read-only planning for reviewed preparation and extraction operations."""
 
 from dataclasses import dataclass
 from typing import Literal
@@ -15,16 +15,16 @@ from powerforge_document_processing.models import (
     PageArtifact,
     RevisionDocument,
 )
-from powerforge_extraction.enriched_sources import selected_snapshot
 from powerforge_extraction.enrichment_models import SourceEnrichmentPageResult
 from powerforge_extraction.enrichment_service import preparation_identity, source_snapshot
 from powerforge_extraction.errors import ExtractionError
+from powerforge_extraction.extraction_profile import extraction_profile, provider_available
 from powerforge_extraction.identities import identity_hash
 from powerforge_extraction.layout_models import SourceSpatialResult
 from powerforge_extraction.layout_profiles import layout_profile
 from powerforge_extraction.layout_sources import successful_prepared
 from powerforge_extraction.models import ExtractionRun, ExtractionWorkUnit
-from powerforge_extraction.phase6r_profile import phase6r_profile, provider_available
+from powerforge_extraction.pinned_sources import selected_snapshot
 
 Mode = Literal["ensure", "reextract"]
 MAX_DOCUMENTS = 50
@@ -316,7 +316,7 @@ def preview_operation(session, settings, project_id, revision_id, selection):
         )
 
     within_limits = not errors
-    profile = phase6r_profile(settings)
+    profile = extraction_profile(settings)
     external = provider_available(settings, profile.provider)
     if not external:
         errors.append("The selected extraction provider is disabled on this deployment.")

@@ -1,7 +1,6 @@
 """Source geometry uses normalized upright pages, never guessed pixel locations."""
 
 from decimal import Decimal
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -18,10 +17,3 @@ class Region(BaseModel):
         if self.x + self.width > 1 or self.y + self.height > 1:
             raise ValueError("Region must fit inside the upright page")
         return self
-
-
-class SourceLocation(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-    document_page_id: UUID
-    page_artifact_id: UUID | None = None
-    region: Region | None = None

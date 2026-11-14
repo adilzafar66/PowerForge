@@ -9,8 +9,8 @@ from powerforge_ai.extraction import ErrorCode, ExtractionProvider, ProviderFail
 from powerforge_document_processing.storage.factory import build_s3_storage
 from powerforge_extraction.enqueue import QUEUE, RECOVER_TASK, UNIT_TASK, CeleryExtractionEnqueue
 from powerforge_extraction.execution import execute_unit
+from powerforge_extraction.extraction_profile import provider_available
 from powerforge_extraction.orchestration import Claim, ExtractionCoordinator
-from powerforge_extraction.phase6r_profile import provider_available
 from powerforge_shared.config import get_settings
 
 
@@ -19,12 +19,12 @@ def provider_for(claim: Claim) -> ExtractionProvider:
     if not provider_available(settings, claim.profile.provider):
         raise ProviderFailure(ErrorCode.DISABLED)
     if claim.profile.provider == "fake":
-        from powerforge_extraction.phase6r_runtime import FakePhase6RProvider
+        from powerforge_extraction.stage_execution import FakeExtractionProvider
 
-        return FakePhase6RProvider(claim.profile.fake_scenario)
-    from extraction_worker.openai_phase6r import OpenAIPhase6RProvider
+        return FakeExtractionProvider(claim.profile.fake_scenario)
+    from extraction_worker.openai_extraction import OpenAIExtractionProvider
 
-    return OpenAIPhase6RProvider(settings, claim.profile)
+    return OpenAIExtractionProvider(settings, claim.profile)
 
 
 @celery_app.task(

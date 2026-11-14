@@ -279,14 +279,22 @@ function OperationItem({
             <div className="flex flex-wrap items-center justify-between gap-1.5">
               <span>{step === "layout" ? "Preparation and layout" : "Extraction"} · {statuses[child.status][0]}</span>
               <span className="flex gap-1.5">
-                {child.run_id && (
-                  <button type="button" className="font-semibold text-accent hover:underline" onClick={() => onNavigate(extractionHistoryHref(itemScope, step === "layout" ? "enrichment" : "engineering", child.run_id!))}>Run details</button>
+                {step === "extraction" && child.run_id && (
+                  <button type="button" className="font-semibold text-accent hover:underline" onClick={() => onNavigate(extractionHistoryHref(itemScope, child.run_id!))}>Run details</button>
                 )}
                 {child.can_retry && step === "layout" && (
                   <button type="button" className="font-semibold text-accent hover:underline" onClick={() => onAction({ kind: "retry", documentId: item.revision_document_id, step, child })}>Retry</button>
                 )}
               </span>
             </div>
+            {child.stage_progress?.map((progress) => (
+              <p key={progress.stage} className="m-0">
+                {progress.stage === "EQUIPMENT_RECOGNITION" ? "Equipment recognition" : "Attribute extraction"}
+                {" · "}{progress.completed}/{progress.total} pages completed
+                {progress.active > 0 && ` · ${progress.active} running`}
+                {progress.failed > 0 && ` · ${progress.failed} failed`}
+              </p>
+            ))}
             {step === "extraction" && child.can_retry && child.retry_targets.map((target) => (
               <button key={`${target.page_id}:${target.stage}`} type="button" className="mr-3 font-semibold text-accent hover:underline"
                 onClick={() => onAction({ kind: "retry", documentId: item.revision_document_id, step, child, target })}>

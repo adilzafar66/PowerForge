@@ -1,8 +1,6 @@
 from powerforge_ai.providers import DocumentClassificationResult, StructuredExtractionResult
 from powerforge_document_model import DocumentClassification
 from powerforge_engineering_model import EquipmentType, InformationState, VerificationState
-from powerforge_extraction import ExtractionMethod
-from powerforge_provenance import EvidenceRef
 from powerforge_topology import ConnectionDirection, ConnectionKind, ModelNodeKind
 from powerforge_validation import RuleRegistry
 
@@ -40,17 +38,10 @@ def test_document_classifications_include_unknown() -> None:
     assert DocumentClassification.UNKNOWN in DocumentClassification
 
 
-def test_extraction_and_topology_vocabularies() -> None:
-    assert ExtractionMethod.AI_VISION == "AI_VISION"
+def test_topology_vocabularies() -> None:
     assert set(ModelNodeKind) == {"EQUIPMENT_TERMINAL", "ELECTRICAL_NODE"}
     assert set(ConnectionKind) == {"ELECTRICAL", "GROUNDING", "OTHER"}
     assert set(ConnectionDirection) == {"UNDIRECTED", "NOMINAL_FROM_TO"}
-
-
-def test_evidence_ref_requires_document() -> None:
-    evidence = EvidenceRef(document_id="doc-1", page_number=4, confidence=0.96)
-    assert evidence.document_id == "doc-1"
-    assert evidence.page_number == 4
 
 
 def test_validation_registry_starts_empty() -> None:

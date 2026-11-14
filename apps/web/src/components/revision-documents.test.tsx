@@ -387,8 +387,27 @@ describe("RevisionDocuments rows", () => {
     await user.keyboard(" ");
     expect(checkbox).toBeChecked();
     expect(queryInspector()).toBeNull();
-    expect(screen.getByRole("button", { name: "Start extraction" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "AI Engineering Extraction" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Actions for a.pdf" })).toBeNull();
+  });
+
+  it("refreshes extraction eligibility when processing completes", async () => {
+    const pending = makeRow({ name: "new.pdf", processing: summary({ status: "RUNNING" }) });
+    const completed = { ...pending, processing: summary({ status: "COMPLETED" }) };
+    let ready = false;
+    list.mockImplementation(async () => [ready ? completed : pending]);
+    extractionStatus.mockImplementation(async (_project, _revision, ids) => Object.fromEntries(ids.map((id) => [
+      id, extractionFor(id, { ineligible_reason: ready ? null : "PROCESSING_REQUIRED" }),
+    ])));
+    const { queryClient } = renderWorkspace(true);
+    const checkbox = await screen.findByRole("checkbox", { name: "Select new.pdf for extraction" });
+    await waitFor(() => expect(checkbox).toBeDisabled());
+    await waitFor(() => expect(extractionStatus).toHaveBeenCalled());
+    ready = true;
+    await act(async () => {
+      await queryClient.invalidateQueries({ queryKey: keys.documents(P, R) });
+    });
+    await waitFor(() => expect(checkbox).toBeEnabled());
   });
 
   it("reports unified extraction status and selects a confirmed document type", async () => {
@@ -454,7 +473,7 @@ describe("RevisionDocuments rows", () => {
     const drawer = await openDrawer(user, "retained.pdf");
     await user.click(await within(drawer).findByRole("button", { name: "View run history" }));
     expect(nav.push).toHaveBeenLastCalledWith(
-      `/projects/${P}/revisions/${R}/documents/${row.id}?mode=evidence&evidenceTab=history&historyFamily=engineering&historyRun=completed-run`,
+      `/projects/${P}/revisions/${R}/documents/${row.id}?mode=evidence&evidenceTab=history&extractionRun=completed-run`,
     );
   });
 

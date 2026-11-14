@@ -32,15 +32,15 @@ from powerforge_extraction.enums import (
     ExtractionRunStatus,
     WorkUnitStatus,
 )
+from powerforge_extraction.extraction_profile import ExtractionProfile, manifest
 from powerforge_extraction.identities import identity_hash
 from powerforge_extraction.models import (
     ExtractionAICall,
     ExtractionRun,
     ExtractionWorkUnit,
 )
-from powerforge_extraction.phase6r_profile import Phase6RProfile, manifest
-from powerforge_extraction.phase6r_records import Candidate
-from powerforge_extraction.phase6r_runtime import StageResult
+from powerforge_extraction.publication_records import Candidate
+from powerforge_extraction.stage_execution import StageResult
 
 
 class ExtractionReadService:
@@ -160,7 +160,7 @@ class ExtractionReadService:
         coverage, rows = self.coverage(run)
         control = self.session.get(RunExecution, run.id)
         profile = (
-            Phase6RProfile.model_validate_json(json.dumps(control.configuration))
+            ExtractionProfile.model_validate_json(json.dumps(control.configuration))
             if control
             else None
         )

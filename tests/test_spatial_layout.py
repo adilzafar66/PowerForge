@@ -162,19 +162,9 @@ def test_attribute_rows_keep_cell_geometry_without_inventing_column_headers():
     assert all(not c.headers for c in layout.tables[0].cells)
 
 
-def test_delimiter_only_baseline_still_abstains_while_geometry_adds_header_membership():
+def test_source_geometry_preserves_gold_cell_and_header_membership():
     import json
 
-    from powerforge_extraction.table_grounding import _grid
-    from powerforge_extraction.table_observations import TableObservation
-
-    recording = json.loads(Path("evals/tables/v1/scripted.json").read_text())["cases"][
-        "pdf_native_unresolved"
-    ]["reconstruction"]["tables"][0]
-    table = TableObservation.model_validate(recording)
-    assert (
-        _grid(table, Path("evals/tables/v1/sources/pdf_native_unresolved.txt").read_text()) is None
-    )
     layout, projection = derive(
         prepare_pdf(Path("evals/tables/v1/sources/positioned_schedule.pdf").read_bytes())
     )

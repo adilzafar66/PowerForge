@@ -10,13 +10,10 @@ import { apiErrorOf } from "@/lib/api";
 import {
   extractionCell,
   extractionHistoryHref,
-  familyLabel,
   getExtractionStatuses,
   ineligibleLabel,
   runState,
   type DocumentScope,
-  type HistoryFamily,
-  type RegisterRun,
 } from "@/lib/extraction";
 import { formatDateShort } from "@/lib/projects";
 import { isRunning, jobInterval } from "@/lib/query-hooks";
@@ -52,12 +49,7 @@ export function DocumentExtractionPanel({
 }) {
   const status = useExtractionStatuses(scope.projectId, scope.revisionId, [scope.documentId]);
   const data = status.data?.[scope.documentId];
-  const runs: [HistoryFamily, RegisterRun | null | undefined][] = [
-    ["engineering", data?.extraction.latest_attempt],
-    ["enrichment", data?.enrichment],
-  ];
-  const recent = runs.flatMap(([family, run]) => run ? [{ family, run }] : [])
-    .sort((a, b) => b.run.created_at.localeCompare(a.run.created_at));
+  const run = data?.extraction.latest_attempt;
   return (
     <InspectorSection title="AI Extraction">
       <AsyncState pending={status.isPending} error={!data ? status.error : null} retry={status.refetch} />
@@ -69,12 +61,10 @@ export function DocumentExtractionPanel({
             </p>
           )}
           <CellStateView state={extractionCell(data)} />
-          <MiniGrid items={runs.map(([family, run]) => [
-            familyLabel[family],
-            run && family === "enrichment"
-              ? `${run.profile_key === "source-layout-v1" ? "Layout" : "Preparation"} · ${runState(run).label}`
-              : run ? runState(run).label : family === "enrichment" ? "No recorded preparation" : "Not extracted",
-          ])} />
+          <MiniGrid items={[
+            ["AI Engineering Extraction", runState(run).label],
+            ["Source preparation", data.enrichment ? runState(data.enrichment).label : "No recorded preparation"],
+          ]} />
           <p className="m-0 text-workspace-caption text-muted">
             {data.ineligible_reason ? ineligibleLabel[data.ineligible_reason] : "Source preparation is scheduled with extraction."}
           </p>
@@ -82,12 +72,12 @@ export function DocumentExtractionPanel({
             <div className="flex flex-wrap gap-2">
               {canMutate && !data.ineligible_reason && (
                 <button type="button" className={docButtonClass("primary")} onClick={onStart}>
-                  Start extraction
+                  AI Engineering Extraction
                 </button>
               )}
-              {(data.extraction.effective_result || recent.length > 0) && (
+              {(data.extraction.effective_result || run) && (
                 <button type="button" className={docButtonClass("tiny")} onClick={() => onNavigate(
-                  extractionHistoryHref(scope, data.extraction.effective_result ? "engineering" : undefined, data.extraction.effective_result?.id),
+                  extractionHistoryHref(scope, data.extraction.effective_result?.id ?? run?.id),
                 )}>View run history</button>
               )}
             </div>
@@ -95,23 +85,7 @@ export function DocumentExtractionPanel({
           {data.ineligible_reason !== "REMOVED" && (
             <ExtractionOperationPanel scope={scope} linkedId={operationId} onNavigate={onNavigate} />
           )}
-          {recent.length ? (
-            <div className="rounded-[var(--pf-radius-control)] border border-border bg-soft/60 p-3">
-              <h3 className="m-0 text-workspace-overline font-bold uppercase tracking-wide text-muted">Recent runs</h3>
-              <ul className="m-0 mt-2 list-none space-y-1.5 p-0 text-workspace-caption">
-                {recent.map(({ family, run }) => (
-                  <li key={run.id} className="flex justify-between gap-2">
-                    <button type="button" className="text-left text-accent hover:underline" onClick={() => onNavigate(extractionHistoryHref(scope, family, run.id))}>
-                      {familyLabel[family]} · {formatDateShort(run.created_at)}
-                    </button>
-                    <span className="font-semibold">{runState(run).label}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="m-0 text-workspace-caption text-muted">No run history for this document.</p>
-          )}
+          {run && <p className="text-workspace-caption text-muted">Latest run · {formatDateShort(run.created_at)}</p>}
         </div>
       )}
     </InspectorSection>

@@ -6,6 +6,7 @@ from uuid import UUID
 import httpx
 import pytest
 
+from celery_integration_support import live_worker, wait_for
 from documents_support import client
 from enrichment_support import build_source, detail, start
 from enrichment_support import enrichment_ctx as enrichment_ctx
@@ -13,7 +14,6 @@ from powerforge_api.main import app
 from powerforge_document_processing.storage.factory import get_object_storage
 from powerforge_extraction.models import ExtractionWorkUnit
 from test_enrichment_native import scan_png
-from test_extraction_celery_integration import live_worker, wait_for
 
 pytestmark = pytest.mark.integration
 

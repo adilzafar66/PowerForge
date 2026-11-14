@@ -2,8 +2,6 @@ import { request } from "@/lib/api";
 import type { CellState } from "@/lib/document-presentation";
 import { documentViewerHref } from "@/lib/workspace-navigation";
 
-export type RunFamily = "engineering" | "tables";
-export type HistoryFamily = RunFamily | "enrichment";
 export type RunStatus = "PENDING" | "RUNNING" | "COMPLETED" | "PARTIALLY_COMPLETED" | "FAILED" | "CANCELLED";
 export type MappingStatus = "MAPPED" | "UNMAPPED" | "INVALID";
 export type RegisterRun = {
@@ -25,111 +23,109 @@ export type ExtractionStatus = {
   enrichment: RegisterRun | null;
   pending_operation?: { id: string; preparing: boolean } | null;
 };
-type Page<T> = { items: T[]; total: number; limit: number; offset: number };
+export type CursorPage<T> = { items: T[]; total: number; next_cursor: string | null; previous_cursor: string | null };
 export type EvidenceGroup = {
-  run_id: string;
-  family: RunFamily;
-  source_group_id: string | null;
-  label: string | null;
-  tag_text: string | null;
-  equipment_type_hint: string | null;
+  group_id: string;
+  kind: "EQUIPMENT" | "UNASSIGNED";
+  label: string;
+  tag: string | null;
+  registry_type: string | null;
   page_numbers: number[];
-  candidate_count: number;
+  matching_candidate_count: number;
 };
 export type Region = { x: string; y: string; width: string; height: string };
-type CitationEvidence = {
-  id: string;
-  source_kind: string;
-  source_snippet: string | null;
-  source_page_number: number | null;
-  grounding_precision: string;
-  source_locator: {
-    reading_basis: "NATIVE_PDF" | "OCR" | "VISUAL_REPORTED";
-    geometry_basis: "NATIVE_DOCUMENT" | "OCR_ENGINE" | "NONE";
-  } | null;
+export type ValueSourceSupport = "TEXT_MATCH" | "TEXT_MISMATCH" | "UNVERIFIED";
+export const valueSourceSupportLabel: Record<ValueSourceSupport, string> = {
+  TEXT_MATCH: "Matches cited text",
+  TEXT_MISMATCH: "Cited value differs",
+  UNVERIFIED: "Not verified",
 };
-export type EvidenceDetail = CitationEvidence & {
-  run_id: string;
-  processing_run_id: string;
-  page_number: number;
-  region: Region | null;
-  text_start: number | null;
-  text_end: number | null;
-  source_image_url: string | null;
-  source_image_width_px: number | null;
-  source_image_height_px: number | null;
-  artifact_url_expires_seconds: number | null;
-};
-export type Candidate = {
+export type EvidenceDetail = {
   id: string;
-  run_id: string;
-  source_group_id: string | null;
-  source_group: { label: string | null; tag_text: string | null } | null;
-  kind: "EQUIPMENT_MENTION" | "ATTRIBUTE_VALUE" | "UNMAPPED_OBSERVATION";
-  raw_text: string;
-  raw_value: string | null;
-  raw_unit: string | null;
+  candidate_id: string;
+  role: string;
+  page_id: string;
+  page_image_id: string;
+  page_image: { id: string; sha256: string; url: string; expires_seconds: number };
+  page_image_width: number;
+  page_image_height: number;
+  candidate_value_source_support: ValueSourceSupport | null;
+} & (
+  | { localization: "RESOLVED"; modality: "NATIVE_PDF" | "OCR"; quote: string; regions: Region[]; source_issues: string[] }
+  | { localization: "VISUAL_REPORTED"; region: Region; reported_text: string | null }
+  | { localization: "UNRESOLVED"; reason_code: string }
+);
+type CandidateBase = {
+  id: string;
+  page_id: string;
+  attempt_id: string;
   mapping_status: MappingStatus;
-  equipment_type_key: string | null;
-  observed_tag: string | null;
-  attribute_key: string | null;
-  numeric_value: string | null;
-  integer_value: string | null;
-  text_value: string | null;
-  boolean_value: boolean | null;
-  unit: string | null;
   reason_code: string | null;
-  explanation: string | null;
-  evidence: { role: "PRIMARY" | "SUPPORTING" | "CONTRADICTING"; evidence: CitationEvidence }[];
+  conflict: boolean;
+  evidence_ids: string[];
 };
+export type Candidate = CandidateBase & (
+  | {
+      kind: "EQUIPMENT"; source_description: string; registry_type: string | null;
+      tag: string | null; tag_state: string; qualification: string; raw_qualification: string | null;
+    }
+  | {
+      kind: "ATTRIBUTE"; equipment_id: string | null; association: "ASSERTED" | "UNCERTAIN" | "UNASSIGNED";
+      raw_unmapped: boolean; raw_label: string | null; raw_value: string; raw_unit: string | null;
+      qualifiers: string[]; value_form: string; proposed_attribute_key: string | null;
+      proposed_enum_value: string | null; value_source_support: ValueSourceSupport;
+      normalized: { type: string; value: string | boolean; unit: string | null } | null;
+    }
+);
 export type HistoryRun = Omit<RegisterRun, "profile_key"> & {
-  profile_key?: string | null;
   selected_pages: number[];
-  model?: string | null;
-  profile_version?: string;
+  model: string;
+  profile_version: string;
+  profile_hash: string;
   error_code: string | null;
   pages_processed: number;
-  input_artifact_ids?: string[];
+};
+export type RunAttempt = {
+  id: string; stage: string; status: RunStatus; page_numbers: number[]; attempt_number: number;
+  retryable: boolean; error_code: string | null; provider_calls: number; latency_ms: number | null;
+  stage_outcome: "RESULT" | "NO_ELIGIBLE_ATTRIBUTES" | null;
+  result_sha256: string | null;
+  usage: { input_tokens: number; output_tokens: number } | null;
+  estimated_cost: { amount: string; currency: string; pricing_version: string } | null;
+  validation_diagnostics: { category: string; error_type: string; path: (string | number)[] }[];
+  stage_diagnostics: { code: string; ref?: string; citation?: number; omitted?: number }[];
 };
 export type RunDetail = {
   run: HistoryRun;
-  attempts: { id: string; unit_key: string; status: string; retryable?: boolean; error_code: string | null; stage_outcome?: "RESULT" | "NO_ELIGIBLE_ATTRIBUTES" | null }[];
-  coverage?: { required_units: number; completed_required_units: number };
-  execution?: {
-    profile_key: string;
-    calls_admitted: number;
-    provider_calls_started: number;
-    unreported_provider_calls: number;
-    call_budget: number;
-    input_tokens: number | null;
-    output_tokens: number | null;
-    estimated_cost_usd: string | null;
-  } | null;
-  confirmed_ocr_invocations?: number;
-  results?: { id: string; page_number: number; producer_run_id: string; reused: boolean }[];
-  spatial_results?: { id: string; page_number: number; prepared_result_id: string }[];
-  can_retry?: boolean;
-  can_cancel?: boolean;
-  can_browse_candidates?: boolean;
+  attempts: RunAttempt[];
+  coverage: { required_units: number; completed_required_units: number };
+  execution: { calls_admitted: number; provider_calls_started: number; unreported_provider_calls: number; call_budget: number } | null;
+  can_retry: boolean;
+  can_cancel: boolean;
+  can_browse_candidates: boolean;
 };
-type SourceBinding = {
-  page_number: number;
-  prepared_result_id: string;
-  spatial_result_id: string;
-  preparation_producer_run_id: string;
+export type SourceBinding = {
+  page_id: string; page_number: number; page_image_id: string;
+  prepared_result_id: string; spatial_result_id: string;
+  prepared_manifest_hash: string; spatial_manifest_hash: string;
   layout_producer_run_id: string;
+  page_context_hash: string | null;
+};
+export type SourceLayout = {
+  manifest: {
+    tables: { ref: string; method: string; structure_basis: string; header_basis: string;
+      rows: number; columns: number;
+      cells: { ref: string; row: number; column: number; row_span: number;
+        column_span: number; readings: string[]; state: string }[] }[];
+    unresolved: { ref: string; reason: string }[];
+  };
 };
 export type EvidenceFilters = {
-  search?: string;
-  page?: number;
-  equipment_hint?: string;
-  mapping_status?: MappingStatus;
+  search?: string; page_id?: string; equipment_type?: string;
+  mapping_status?: MappingStatus; kind?: Candidate["kind"];
 };
-export type RunPair = Record<RunFamily, string | null>;
 export type DocumentScope = { projectId: string; revisionId: string; documentId: string };
 
-export const families = ["engineering", "tables"] as const;
-export const familyLabel = { engineering: "Engineering extraction", tables: "Tables", enrichment: "Source enrichment" };
 export const ineligibleLabel = {
   REMOVED: "Removed from this revision",
   READ_ONLY: "Revision is read-only",
@@ -179,9 +175,8 @@ function revisionPath(projectId: string, revisionId: string) {
   return `/api/projects/${encodeURIComponent(projectId)}/revisions/${encodeURIComponent(revisionId)}`;
 }
 
-function documentPath(scope: DocumentScope, family: HistoryFamily = "engineering") {
-  const feature = family === "enrichment" ? "source-enrichment" : "extraction";
-  return `${revisionPath(scope.projectId, scope.revisionId)}/documents/${encodeURIComponent(scope.documentId)}/${feature}`;
+function documentPath(scope: DocumentScope) {
+  return `${revisionPath(scope.projectId, scope.revisionId)}/documents/${encodeURIComponent(scope.documentId)}/extraction`;
 }
 
 function queryString(parameters: Record<string, string | number | boolean | null | undefined>) {
@@ -206,56 +201,57 @@ export async function getExtractionStatuses(projectId: string, revisionId: strin
   return Object.fromEntries(items.map((item) => [item.revision_document_id, item]));
 }
 
-export function getGroups(scope: DocumentScope, pair: RunPair, filters: EvidenceFilters, offset: number, signal?: AbortSignal) {
-  const query = queryString({ engineering_run_id: pair.engineering, tables_run_id: pair.tables, ...filters, limit: 25, offset });
-  return request<Page<EvidenceGroup>>(`${documentPath(scope)}/groups${query}`, { signal });
+function runPath(scope: DocumentScope, runId: string) {
+  return `${documentPath(scope)}/runs/${encodeURIComponent(runId)}`;
+}
+
+export function getGroups(scope: DocumentScope, runId: string, filters: EvidenceFilters, cursor: string | null, signal?: AbortSignal) {
+  return request<CursorPage<EvidenceGroup>>(
+    `${runPath(scope, runId)}/candidates${queryString({ view: "groups", ...filters, cursor })}`, { signal },
+  );
 }
 
 export function getGroupCandidates(
-  scope: DocumentScope,
-  runId: string,
-  family: RunFamily,
-  groupId: string | null,
-  filters: EvidenceFilters,
-  offset: number,
-  signal?: AbortSignal,
-  candidateId?: string,
+  scope: DocumentScope, runId: string, groupId: string, filters: EvidenceFilters,
+  cursor: string | null, signal?: AbortSignal, candidateId?: string,
 ) {
-  const query = queryString({ family, source_group_id: groupId, ungrouped: groupId === null, ...filters, candidate_id: candidateId, limit: candidateId ? 1 : 20, offset });
-  return request<Page<Candidate>>(`${documentPath(scope)}/runs/${runId}/candidates${query}`, { signal });
+  return request<CursorPage<Candidate> & { group: EvidenceGroup }>(
+    `${runPath(scope, runId)}/candidates${queryString({ view: "members", group_id: groupId, ...filters, cursor, candidate_id: candidateId })}`,
+    { signal },
+  );
 }
 
 export function getEvidence(scope: DocumentScope, id: string, signal?: AbortSignal) {
-  return request<EvidenceDetail>(`${documentPath(scope)}/evidence/${id}?include_source_image=true`, { signal });
+  return request<EvidenceDetail>(`${documentPath(scope)}/evidence/${encodeURIComponent(id)}`, { signal });
 }
 
-export function getHistory(scope: DocumentScope, family: HistoryFamily, offset: number, signal?: AbortSignal) {
-  const query = queryString({ limit: 10, offset });
-  return request<Page<HistoryRun>>(`${documentPath(scope, family)}/runs${query}`, { signal });
+export function getHistory(scope: DocumentScope, cursor: string | null, signal?: AbortSignal) {
+  return request<CursorPage<HistoryRun>>(`${documentPath(scope)}/runs${queryString({ limit: 10, cursor })}`, { signal });
 }
 
-export function getRunDetail(scope: DocumentScope, family: HistoryFamily, runId: string, signal?: AbortSignal) {
-  const query = family === "enrichment" ? "?viewer=true" : "";
-  return request<RunDetail>(`${documentPath(scope, family)}/runs/${runId}${query}`, { signal });
+export function getRunDetail(scope: DocumentScope, runId: string, signal?: AbortSignal) {
+  return request<RunDetail>(runPath(scope, runId), { signal });
 }
 
-export function runHistoryAction(scope: DocumentScope, family: HistoryFamily, runId: string, action: "retry" | "cancel") {
-  const query = family === "enrichment" ? "?viewer=true" : "";
-  return request<RunDetail>(`${documentPath(scope, family)}/runs/${runId}/${action}${query}`, {
+export function runHistoryAction(scope: DocumentScope, runId: string, action: "retry" | "cancel", acknowledgeUnknownOutcome = false) {
+  return request<RunDetail>(`${runPath(scope, runId)}/${action}`, {
     method: "POST",
-    body: action === "retry" && family !== "enrichment"
-      ? JSON.stringify({ acknowledge_unknown_outcome: true })
-      : undefined,
+    body: action === "retry" ? JSON.stringify({ acknowledge_unknown_outcome: acknowledgeUnknownOutcome }) : undefined,
   });
 }
 
 export function getRunSources(scope: DocumentScope, runId: string, signal?: AbortSignal) {
-  return request<{ items: SourceBinding[] }>(`${documentPath(scope)}/runs/${runId}/sources`, { signal });
+  return request<{ items: SourceBinding[] }>(`${runPath(scope, runId)}/sources`, { signal });
 }
 
-export function extractionHistoryHref(scope: DocumentScope, family?: HistoryFamily, runId?: string) {
+export function getSourceLayout(scope: DocumentScope, binding: SourceBinding, signal?: AbortSignal) {
+  const root = `${revisionPath(scope.projectId, scope.revisionId)}/documents/${encodeURIComponent(scope.documentId)}/source-enrichment`;
+  return request<SourceLayout>(`${root}/runs/${encodeURIComponent(binding.layout_producer_run_id)}/spatial-results/${encodeURIComponent(binding.spatial_result_id)}`, { signal });
+}
+
+export function extractionHistoryHref(scope: DocumentScope, runId?: string) {
   const href = documentViewerHref(scope.projectId, scope.revisionId, scope.documentId, { mode: "evidence" });
-  return `${href}&evidenceTab=history${family ? `&historyFamily=${family}` : ""}${runId ? `&historyRun=${encodeURIComponent(runId)}` : ""}`;
+  return `${href}&evidenceTab=history${runId ? `&extractionRun=${encodeURIComponent(runId)}` : ""}`;
 }
 
 export function evidenceArtifactUrl(value: string | null) {

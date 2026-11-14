@@ -26,12 +26,12 @@ from powerforge_api.schemas.extraction_publication import (
 from powerforge_api.services.extraction_cursor import decode_cursor, encode_cursor
 from powerforge_document_processing.models import DocumentPage
 from powerforge_document_processing.storage import StorageError
-from powerforge_extraction.enriched_sources import selected_snapshot
 from powerforge_extraction.enrichment_execution import read_exact
 from powerforge_extraction.enrichment_models import RunSourceEnrichmentBinding as Binding
 from powerforge_extraction.identities import identity_hash
-from powerforge_extraction.phase6r_records import Candidate, Fragment
-from powerforge_extraction.phase6r_runtime import StageResult
+from powerforge_extraction.pinned_sources import selected_snapshot
+from powerforge_extraction.publication_records import Candidate, Fragment
+from powerforge_extraction.stage_execution import StageResult
 
 UNASSIGNED_KEY = UUID(int=0)
 
@@ -397,6 +397,8 @@ def evidence(reader, evidence_id, storage, expires):
         page_id=row.document_page_id,
         page_image_id=row.page_image_id,
         page_image=page_image,
+        page_image_width=snapshot.image.width_px,
+        page_image_height=snapshot.image.height_px,
         candidate_value_source_support=(value_source_support or "UNVERIFIED")
         if kind == "ATTRIBUTE"
         else None,

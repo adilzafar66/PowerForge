@@ -400,6 +400,15 @@ The [6R-C feasibility checkpoint](../evals/phase6r/FEASIBILITY_6R_C.md) is ready
 
 **Acceptance:** the complete Documents workflow works on a fresh install; no old families, extracted-table endpoint, historical compatibility tab or hidden profile remains; exact and approximate highlights are visibly distinct; source tables remain viewable as source layout. Unrelated workspaces retain their behavior and appearance. Full Python/frontend quality checks pass after deletion.
 
+**6R-E verification handoff**
+
+- The publication profile pins `phase-6r-publication-v2`. The transition regression exercises a stored v1 run with committed recognition, blocks claim and retry, and verifies that the published recognition remains available.
+- Documents uses one consent-bound operation start path, one browsable run, cursor-paginated observations, and exact pinned evidence. History shows both AI stages, usage and versioned cost when available. Local source layouts remain inspectable at the pinned producer. The browser smoke exposed stale extraction eligibility after processing finished, which now triggers a status refresh.
+- The legacy profile and prompt implementations, table extraction routes and packages, and family-specific browser state are retired. The current package uses architecture-neutral names. Set `EXTRACTION_USE_FAKE_PROVIDER`, `EXTRACTION_MAX_OUTPUT_TOKENS`, and `EXTRACTION_MAX_REQUEST_BYTES` in local configuration where needed. Wire, audit, prompt and Alembic version identifiers retain their identity purposes.
+- A clean PostgreSQL stack passed the backend suite with local OCR, Redis and MinIO. The browser smoke against a disposable migrated database exercised upload, processing, consent, automatic preparation, partial failure and retry, pinned evidence and deep link, re-extraction, and cancellation. It used an injected fake provider and local storage. Desktop and narrow synthetic Chrome captures exercised the wizard, operation panel, exact and approximate highlights, and history navigation by keyboard.
+- Browser behavior assertions passed. The repeat screenshot comparison reported 2 changed pixels in desktop extraction history and 44 in narrow extraction history. The evidence screenshots matched.
+- Held-out evaluation and the authorized deployment reset are 6R-F work.
+
 ### 6R-F — Comparative evaluation, production hardening, and cutover
 
 **Dependencies:** E's complete replacement and no-legacy audit; reviewed representative live results, corpus sizes and evaluation procedures, with final numerical gates frozen before held-out evaluation; authorized held-out source scope/model budget for live runs; separate exact-target authorization for destructive deployment.

@@ -18,13 +18,16 @@ export function PanelMessage({ children, error, retry }: { children: ReactNode; 
   );
 }
 
-export function EvidencePagination({ total, size, start, onChange }: { total: number; size: number; start: number; onChange: (start: number) => void }) {
-  if (total <= size && start === 0) return null;
+export function EvidencePagination({ page, onChange }: {
+  page: { total: number; previous_cursor: string | null; next_cursor: string | null };
+  onChange: (cursor: string) => void;
+}) {
+  if (!page.previous_cursor && !page.next_cursor) return null;
   return (
     <nav aria-label="Result pages" className="flex flex-wrap items-center justify-between gap-1.5 text-workspace-caption text-muted">
-      <button type="button" className={docButtonClass("tiny")} disabled={!start} onClick={() => onChange(Math.max(0, start - size))}>Previous</button>
-      <span>{Math.min(total, start + 1)}–{Math.min(total, start + size)} of {total}</span>
-      <button type="button" className={docButtonClass("tiny")} disabled={start + size >= total} onClick={() => onChange(start + size)}>Next</button>
+      <button type="button" className={docButtonClass("tiny")} disabled={!page.previous_cursor} onClick={() => onChange(page.previous_cursor!)}>Previous</button>
+      <span>{page.total} results</span>
+      <button type="button" className={docButtonClass("tiny")} disabled={!page.next_cursor} onClick={() => onChange(page.next_cursor!)}>Next</button>
     </nav>
   );
 }

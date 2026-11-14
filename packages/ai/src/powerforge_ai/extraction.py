@@ -1,11 +1,10 @@
 """Provider-neutral bounded extraction execution contracts; no vendor SDK types."""
 
 from enum import StrEnum
-from typing import Generic, Literal, Protocol
+from typing import Literal, Protocol
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from typing_extensions import TypeVar
 
 
 class ErrorCode(StrEnum):
@@ -175,12 +174,6 @@ class ProviderFailure(Exception):
         }
 
 
-class ProbeResult(BaseModel):
-    model_config = ConfigDict(extra="forbid", strict=True)
-    acknowledged: Literal[True]
-    excerpt: str | None = Field(max_length=256)
-
-
 class ExtractionRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     work_unit_id: UUID
@@ -195,17 +188,12 @@ class ExtractionRequest(BaseModel):
     image: bytes | None = None
     image_mime_type: str | None = None
     # Selected by trusted execution code; never supplied by a model or import path.
-    response_model: type[BaseModel] = Field(default=ProbeResult, exclude=True)
-    stage: str = "SOURCE_PROBE"
-    source_roles: tuple[str, ...] = ()
-    upstream_context: str | None = None
+    response_model: type[BaseModel] = Field(exclude=True)
+    stage: Literal["EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"]
     image_detail: Literal["low", "high", "auto"] = "low"
 
 
-Result = TypeVar("Result", bound=BaseModel, default=ProbeResult)
-
-
-class ExtractionResponse(BaseModel, Generic[Result]):
+class ExtractionResponse[Result: BaseModel](BaseModel):
     model_config = ConfigDict(extra="forbid")
     result: Result
     usage: ExecutionUsage

@@ -21,13 +21,11 @@ The workspace suite covers desktop/mobile project and revision screens, creation
 The Phase 6F evidence fixture captures the Documents register and inspector, the 52-group Candidates browser, an OCR source highlight, and Run history with the raw table diagnostic at 1440, 1024, 768, and 390 px. Desktop and mobile checks also cover pagination, filter and search retention, independent historical run selection, a native candidate deep link, and a page-only citation without a rectangle. The fixture uses synthetic observations modeled on source policies exercised by the offline spatial evaluator.
 
 ```sh
-VISUAL_PHASE6F=1 VISUAL_ARTIFACTS=.visual-artifacts/phase6f npm run visual:capture
 ```
 
 The operations fixture captures all three wizard steps, Targeted extraction, operation progress, and the Run history re-extraction entry. Its fixture server accepts the workflow's source discovery, preview, and consent requests during this check.
 
 ```sh
-VISUAL_PHASE6F_OPERATIONS=1 VISUAL_ARTIFACTS=.visual-artifacts/phase6f-m3-m4 npm run visual:capture
 ```
 
 Both suites include `reference-*.png` viewport screenshots at the dimensions of the supplied design previews. Compare those screenshots visually with the corresponding prototype views. The separate `visual:compare` command checks changes against a baseline captured from the React routes.
@@ -40,3 +38,10 @@ Useful environment variables:
 - `VISUAL_QUICK=1`: 12 desktop workspace captures for iteration. This is **not** the full acceptance run.
 
 Run comparisons serially for each application checkout: Next development and production builds share `.next`. A nonzero exit means a screenshot/geometry difference, page error, unsupported fixture request, or interaction failure; inspect `result.json` and the diff images rather than updating baselines to accept the result. Exact pixel checks intentionally report even minor rendering variation.
+
+## Extraction review
+
+Set `VISUAL_EXTRACTION=1` for the evidence and history suite, or
+`VISUAL_EXTRACTION_OPERATIONS=1` for the consent wizard and operation suite. Use
+a separate `VISUAL_ARTIFACTS` directory for each mode. They exercise the current
+unified API shapes through synthetic fixtures at desktop and narrow widths.

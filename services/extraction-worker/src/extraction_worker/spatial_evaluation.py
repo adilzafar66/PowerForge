@@ -1,4 +1,4 @@
-"""Offline paired spatial evaluation using the production parser, OCR and converters."""
+"""Offline evaluation of native readings, OCR, and source layout."""
 
 import argparse
 import json
@@ -6,7 +6,6 @@ import platform
 import resource
 from collections import defaultdict
 from contextlib import contextmanager
-from dataclasses import replace
 from importlib.resources import files
 from io import BytesIO
 from pathlib import Path
@@ -18,11 +17,9 @@ from uuid import uuid4
 from PIL import __version__ as pillow_version
 
 from extraction_worker.spatial_evaluation_gold import VERSION, load_cases, read_source
-from extraction_worker.spatial_evaluation_legacy import prose_pair
 from extraction_worker.spatial_evaluation_scoring import (
     aggregate,
     raw_readings,
-    score_claims,
     score_layout,
 )
 from extraction_worker.tesseract import TesseractProvider
@@ -31,19 +28,13 @@ from powerforge_document_model.profile import DEFAULT_PROFILE
 from powerforge_document_processing.layout_derive import derive_layout, layout_rules_identity
 from powerforge_document_processing.rendering import RenderingFailed, open_rendered_pages
 from powerforge_document_processing.storage import InMemoryObjectStorage
-from powerforge_extraction.enriched_fake import FakeEnrichedProvider
-from powerforge_extraction.enriched_observations import RESPONSES, SCHEMAS
-from powerforge_extraction.enriched_output import convert_attributes, convert_equipment
-from powerforge_extraction.enriched_profiles import ENGINEERING_TEST, TABLES_TEST, enriched_profile
-from powerforge_extraction.enriched_runtime import projection
-from powerforge_extraction.enriched_sources import BoundSnapshot, load_bound
-from powerforge_extraction.enriched_tables import interpret, reconstruct
 from powerforge_extraction.enrichment_prepare import prepare_page, sha
 from powerforge_extraction.enrichment_profiles import preparation_profile
+from powerforge_extraction.extraction_profile import extraction_profile
 from powerforge_extraction.identities import canonical_json, identity_hash
 from powerforge_extraction.layout_profiles import layout_execution_identity
 from powerforge_extraction.layout_sources import PreparedSnapshot
-from powerforge_extraction.table_eval import evaluate as evaluate_tables
+from powerforge_extraction.pinned_sources import BoundSnapshot, load_bound
 from powerforge_provenance.spatial_sources import OriginalDocument, PageArtifactRef, PageOwner
 from powerforge_shared.config import Settings
 
@@ -177,80 +168,7 @@ def derive(snapshot, output, base, storage):
     return BoundSnapshot(snapshot, layout, key, len(payload), sha(payload), base, "analysis.png")
 
 
-def with_stage(sources, stage):
-    return replace(
-        sources,
-        stage=stage,
-        unit_id=uuid4(),
-        unit_key=f"{stage}:page:{sources.prepared.owner.page_number:06d}",
-    )
-
-
-def script(sources, profile, stats, storage, upstream=None):
-    request = SimpleNamespace(
-        text=projection(sources, profile),
-        stage=sources.stage,
-        schema_version=SCHEMAS[sources.stage],
-        response_model=RESPONSES[sources.stage],
-        upstream_context=canonical_json(upstream) if upstream is not None else None,
-    )
-    stats.update(
-        source_projection_bytes=len(request.text.encode()),
-        upstream_bytes=len((request.upstream_context or "").encode()),
-    )
-    # The deterministic provider sees observed source readings and admitted cells.
-    response = FakeEnrichedProvider().execute(request).result
-    storage.retain(sources.stage.lower() + "-observation.json", response.model_dump_json().encode())
-    return response
-
-
-def replay(sources, family, profile, stages, failures, storage):
-    outputs = []
-    stage = profile.stages[0]
-    try:
-        with measure(stages, stage) as stats:
-            first = with_stage(sources, stage)
-            observation = script(first, profile, stats, storage)
-            if family == "prose":
-                recognition = convert_equipment(observation, first)
-                outputs.append(recognition)
-                upstream = {
-                    "equipment": [
-                        {"local_ref": c.diagnostics["source_local_ref"]}
-                        for c in recognition.candidates
-                    ]
-                }
-            else:
-                reconstructed, context = reconstruct(observation, first)
-                outputs.append(reconstructed)
-                if not context.tables:
-                    return outputs
-                upstream = {
-                    "tables": [
-                        {
-                            "table_ref": t.observation.local_ref,
-                            "observation": t.observation.model_dump(mode="json"),
-                            "structure_basis": t.basis,
-                        }
-                        for t in context.tables
-                    ]
-                }
-        stage = profile.stages[1]
-        with measure(stages, stage) as stats:
-            later = with_stage(first, stage)
-            observation = script(later, profile, stats, storage, upstream)
-            converted = (
-                convert_attributes(observation, later, recognition)
-                if family == "prose"
-                else interpret(observation, later, context)
-            )
-            outputs.append(converted)
-    except ValueError:
-        failures.append({"stage": stage, "code": "INVALID_SCRIPTED_RESPONSE"})
-    return outputs
-
-
-def run_case(case, file, data, prep_profile, provider_factory, profiles, artifact_root):
+def run_case(case, file, data, prep_profile, provider_factory, profile, artifact_root):
     stages, failures = {}, []
     if artifact_root:
         artifact_root.mkdir()
@@ -279,7 +197,7 @@ def run_case(case, file, data, prep_profile, provider_factory, profiles, artifac
         stage = "source_replay"
         with measure(stages, stage):
             sample = SimpleNamespace(run_id=uuid4(), id=uuid4(), unit_key="eval", stage="eval")
-            sources = load_bound(snapshot, storage, sample, profiles["tables"])
+            sources = load_bound(snapshot, storage, sample, profile)
     except (OCRFailure, RenderingFailed, OSError, ValueError) as exc:
         failures.append({"stage": stage, "code": str(getattr(exc, "code", type(exc).__name__))})
 
@@ -320,46 +238,9 @@ def run_case(case, file, data, prep_profile, provider_factory, profiles, artifac
         "preprocessing": {**raw, **structural},
         "table_details": tables,
         "unresolved_reasons": [item.reason for item in layout.unresolved] if layout else [],
-        "mock_conversion": {},
         "failures": failures,
     }
-    for family, profile in profiles.items():
-        outputs = replay(sources, family, profile, stages, failures, storage) if sources else []
-        metrics, details = score_claims(case, outputs, sources, supports, family)
-        result["mock_conversion"][family] = {"metrics": metrics, "claims": details}
-        if outputs:
-            storage.retain(
-                f"{family}-converted.json",
-                canonical_json([o.model_dump(mode="json") for o in outputs]).encode(),
-            )
-    result["processing_bytes"]["replay_artifact_bytes"] = (
-        sum(a["size_bytes"] for a in storage.artifacts.values())
-        - result["processing_bytes"]["stored"]
-    )
     return result, page
-
-
-def table_pair(root, case, result):
-    base = root / "tables/v1"
-    # Replay the original gold and recordings. The paired fixture's digest is also
-    # checked independently by both corpus loaders.
-    frozen = evaluate_tables(
-        base / "corpus.json", base / "scripted.json", ["pdf_native_unresolved", "pdf_hybrid"]
-    )
-    manifest = json.loads((base / "corpus.json").read_text())
-    for row in manifest["cases"]:
-        if row["id"] in {"pdf_native_unresolved", "pdf_hybrid"} and (
-            row["source_document"]["sha256"] != case.sha256 or case.page != 1
-        ):
-            raise ValueError("6D pair no longer uses the exact same source page")
-    return {
-        "source_sha256": case.sha256,
-        "page": case.page,
-        "legacy_replays": {row["case_id"]: row["counts"] for row in frozen["cases"]},
-        "enhanced": result["mock_conversion"]["tables"]["metrics"],
-        "enhanced_supported_partition": result["preprocessing"]["supported_partition_recall"],
-        "policy": "Common printed claim meanings; legacy v1 and spatial v1 evidence scores differ.",
-    }
 
 
 def strata(results):
@@ -422,11 +303,8 @@ def evaluate(corpus, root, *, selected=None, artifacts=None, binary=None, data_d
         _env_file=None, enrichment_enabled=True, enrichment_ocr_configuration=json.dumps(config)
     )
     prep = preparation_profile(settings)
-    profiles = {
-        "prose": enriched_profile(ENGINEERING_TEST, settings),
-        "tables": enriched_profile(TABLES_TEST, settings),
-    }
-    results, comparisons, controls = [], {}, {}
+    profile = extraction_profile(settings)
+    results, controls = [], {}
     if artifacts:
         artifacts.mkdir(parents=True, exist_ok=False)
     for case, file in cases:
@@ -437,14 +315,10 @@ def evaluate(corpus, root, *, selected=None, artifacts=None, binary=None, data_d
             data,
             prep,
             lambda: provider,
-            profiles,
+            profile,
             artifacts / case.id if artifacts else None,
         )
         results.append(result)
-        if case.baseline == "table-pdf":
-            comparisons[case.id] = table_pair(root, case, result)
-        elif case.baseline:
-            comparisons[case.id] = prose_pair(case, page, result)
         if case.id == "scanned-schedule":
             control = NumericErrorControl(provider)
             changed, _ = run_case(
@@ -453,7 +327,7 @@ def evaluate(corpus, root, *, selected=None, artifacts=None, binary=None, data_d
                 data,
                 prep,
                 lambda control=control: control,
-                profiles,
+                profile,
                 artifacts / "injected-numeric-error" if artifacts else None,
             )
             controls["injected_numeric_error"] = {
@@ -490,7 +364,6 @@ def evaluate(corpus, root, *, selected=None, artifacts=None, binary=None, data_d
         "corpus_sha256": corpus_sha,
         "source_provenance": "SYNTHETIC_AUTHORED",
         "ocr_provenance": "ACTUAL_LOCAL_TESSERACT",
-        "model_provenance": "DETERMINISTIC_SOURCE_MOCK",
         "live_openai_quality_measured": False,
         "real_document_coverage_measured": False,
         "provider_tokens": None,
@@ -510,7 +383,6 @@ def evaluate(corpus, root, *, selected=None, artifacts=None, binary=None, data_d
                     for name in (
                         "spatial_evaluation.py",
                         "spatial_evaluation_gold.py",
-                        "spatial_evaluation_legacy.py",
                         "spatial_evaluation_scoring.py",
                     )
                 }
@@ -521,22 +393,12 @@ def evaluate(corpus, root, *, selected=None, artifacts=None, binary=None, data_d
             "layout_algorithm": layout_rules_identity(),
             "layout_execution": layout_execution_identity(),
             "processing_profile": DEFAULT_PROFILE.profile_hash,
-            "mock_profiles": {key: p.identity_hash for key, p in profiles.items()},
         },
         "bounds": {
             "processing": DEFAULT_PROFILE.material_fields(),
-            "model_source_projection_bytes": 131072,
-            "model_total_input_bytes": {
-                key: p.max_total_input_bytes for key, p in profiles.items()
-            },
         },
         "preprocessing": metrics,
         "table_strata": groups,
-        "mock_conversion": {
-            family: aggregate(r["mock_conversion"][family]["metrics"] for r in results)
-            for family in profiles
-        },
-        "legacy_comparisons": comparisons,
         "controls": controls,
         "cases": results,
     }

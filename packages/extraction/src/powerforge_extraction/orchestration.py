@@ -34,7 +34,6 @@ from powerforge_extraction.errors import (
     ExtractionNotFound,
     LeaseLost,
 )
-from powerforge_extraction.grounding import PageSpec
 from powerforge_extraction.models import ExtractionRun, ExtractionWorkUnit
 from powerforge_extraction.persistence import ExtractionPersistence
 from powerforge_extraction.profiles import (
@@ -79,8 +78,6 @@ class Claim:
     mime_type: str
     size_bytes: int
     sha256: str
-    page_spec: PageSpec | None = None
-    upstream_unit_id: UUID | None = None
 
 
 def dependency_ready():
@@ -146,12 +143,12 @@ class ExtractionCoordinator:
         mode: str = "ensure",
         enrichment_bindings=None,
     ) -> ExtractionRun:
-        from powerforge_extraction.enriched_planning import start_phase6r
-        from powerforge_extraction.phase6r_profile import KEY
+        from powerforge_extraction.extraction_profile import KEY
+        from powerforge_extraction.run_planning import plan_extraction_run
 
         if profile_key != KEY:
             raise ExtractionError("Unknown extraction profile")
-        return start_phase6r(
+        return plan_extraction_run(
             self, document_id, revision_document_id, pages, mode, enrichment_bindings
         )
 
@@ -233,7 +230,6 @@ class ExtractionCoordinator:
         if run.execution_purpose != purpose:
             return None
         control = self._execution(run.id)
-        profile = read_profile(control.configuration)
         unit = self.session.get(ExtractionWorkUnit, unit_id, populate_existing=True)
         delivery = self.session.get(UnitExecution, unit_id, populate_existing=True)
         now = self.now()
@@ -244,6 +240,11 @@ class ExtractionCoordinator:
             or delivery is None
             or delivery.available_at > now
         ):
+            return None
+        try:
+            profile = read_profile(control.configuration)
+        except ValueError:
+            self._fail_incompatible_profile(run)
             return None
         if (profile.provider == "local") != (purpose == "SOURCE_ENRICHMENT"):
             return None
@@ -265,16 +266,16 @@ class ExtractionCoordinator:
             if unit.stage == "SPATIAL_LAYOUT" and prerequisite_unit(self.session, unit) is None:
                 self.aggregate(run)
                 return None
-        from powerforge_extraction.phase6r_profile import Phase6RProfile, provider_available
-        from powerforge_extraction.phase6r_runtime import prerequisite_result, validate_plan
+        from powerforge_extraction.extraction_profile import ExtractionProfile, provider_available
+        from powerforge_extraction.stage_execution import prerequisite_result, validate_plan
 
         no_call = False
-        if isinstance(profile, Phase6RProfile):
+        if isinstance(profile, ExtractionProfile):
             try:
                 validate_plan(self.session, unit, profile)
                 if unit.stage == "ATTRIBUTE_EXTRACTION":
-                    from powerforge_extraction.phase6r_contracts import attribute_catalog
-                    from powerforge_extraction.phase6r_runtime import recognition_result
+                    from powerforge_extraction.stage_contracts import attribute_catalog
+                    from powerforge_extraction.stage_execution import recognition_result
 
                     parent = prerequisite_result(self.session, unit)
                     if parent is None:
@@ -405,7 +406,7 @@ class ExtractionCoordinator:
         if delivery.provider_started_at is not None:
             raise LeaseLost("This attempt already crossed the provider-call boundary")
         profile = read_profile(self._execution(run.id).configuration)
-        from powerforge_extraction.phase6r_profile import provider_available
+        from powerforge_extraction.extraction_profile import provider_available
 
         if profile.provider == "local":
             raise ValueError("Local source jobs cannot start an AI call")
@@ -416,7 +417,7 @@ class ExtractionCoordinator:
 
             if not live_admission_authorized(self.session, run, profile):
                 raise ProviderFailure(ErrorCode.DISABLED)
-        from powerforge_extraction.phase6r_profile import PROMPTS, RESPONSES
+        from powerforge_extraction.extraction_profile import PROMPTS, RESPONSES
 
         if request is None or (
             request.work_unit_id != unit.id
@@ -425,7 +426,7 @@ class ExtractionCoordinator:
             or request.response_model is not RESPONSES[unit.stage]
             or request.schema_version != profile.schema_version
         ):
-            raise ValueError("Request differs from its pinned Phase 6R stage")
+            raise ValueError("Request differs from its pinned extraction stage")
         delivery.provider_started_at = self.now()
         self.session.flush()
 
@@ -484,8 +485,8 @@ class ExtractionCoordinator:
         )
 
     def complete_stage(self, unit_id, token, wire, result, usage, publication=None):
-        from powerforge_extraction.phase6r_contracts import NoEligibleAttributes
-        from powerforge_extraction.phase6r_runtime import store_result, validate_plan
+        from powerforge_extraction.stage_contracts import NoEligibleAttributes
+        from powerforge_extraction.stage_execution import store_result, validate_plan
 
         run, unit, delivery = self._authorized(unit_id, token)
         if isinstance(result, NoEligibleAttributes) != (delivery.provider_started_at is None):
@@ -604,8 +605,13 @@ class ExtractionCoordinator:
                 "Completed/cancelled history is immutable; request explicit re-extraction"
             )
         control = self._execution(run.id)
-        profile = read_profile(control.configuration)
-        from powerforge_extraction.phase6r_profile import provider_available
+        try:
+            profile = read_profile(control.configuration)
+        except ValueError:
+            raise ExtractionConflict(
+                "Pinned extraction resources are unavailable; review a new extraction"
+            ) from None
+        from powerforge_extraction.extraction_profile import provider_available
 
         if not provider_available(self.settings, profile.provider):
             raise ExtractionDisabled("Extraction provider is disabled")
@@ -685,6 +691,17 @@ class ExtractionCoordinator:
         self.aggregate(run)
         return run
 
+    def _fail_incompatible_profile(self, run):
+        for unit in self._units(run.id):
+            if unit.status in UNIT_ACTIVE:
+                unit.status, unit.finished_at, unit.error_code = (
+                    US.FAILED,
+                    self.now(),
+                    "EXTRACTION_PROFILE_UNAVAILABLE",
+                )
+        self.session.flush()
+        self.aggregate(run)
+
     def reconcile(self, limit: int = 100) -> int:
         now = self.now()
         # Healthy active runs must not consume the bounded recovery window. Once an
@@ -727,7 +744,11 @@ class ExtractionCoordinator:
         )
         recovered = 0
         for run in runs:
-            profile = read_profile(self._execution(run.id).configuration)
+            try:
+                profile = read_profile(self._execution(run.id).configuration)
+            except ValueError:
+                self._fail_incompatible_profile(run)
+                continue
             for unit in self._units(run.id):
                 if unit.status == US.RUNNING and unit.lease_expires_at <= self.now():
                     self._settle_failure(run, unit, profile, ErrorCode.INTERRUPTED.value)

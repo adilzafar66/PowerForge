@@ -1,4 +1,4 @@
-"""Advance reviewed Phase 6F intents using the existing per-document coordinators."""
+"""Advance reviewed revision operations through preparation and extraction."""
 
 import logging
 import secrets
@@ -20,6 +20,7 @@ from powerforge_extraction.enrichment_execution import read_exact
 from powerforge_extraction.enrichment_profiles import PURPOSE
 from powerforge_extraction.enrichment_service import preparation_identity, source_snapshot
 from powerforge_extraction.errors import ExtractionConflict, ExtractionError, ExtractionNotFound
+from powerforge_extraction.extraction_profile import extraction_profile, provider_available
 from powerforge_extraction.identities import identity_hash
 from powerforge_extraction.layout_models import SourceSpatialResult
 from powerforge_extraction.layout_profiles import layout_profile
@@ -38,7 +39,6 @@ from powerforge_extraction.operation_plan import (
     preview_operation,
 )
 from powerforge_extraction.orchestration import ACTIVE, ExtractionCoordinator
-from powerforge_extraction.phase6r_profile import phase6r_profile, provider_available
 from powerforge_persistence import Project, ProjectRevision
 
 logger = logging.getLogger(__name__)
@@ -272,7 +272,7 @@ def verify_plan_sources(session, planned, layout):
 
 
 def advance_item(session, settings, item, policy, verification):
-    profile = phase6r_profile(settings)
+    profile = extraction_profile(settings)
     if not settings.enrichment_enabled or not provider_available(settings, profile.provider):
         item.blocked_reason = "PROCESSING_DISABLED"
         return
@@ -383,7 +383,7 @@ class Verification:
 def verify_ready_document(factory, settings, storage, operation_id):
     """Check one ready document per scan without holding scheduling or publication locks."""
     if not settings.enrichment_enabled or not provider_available(
-        settings, phase6r_profile(settings).provider
+        settings, extraction_profile(settings).provider
     ):
         return None
     try:

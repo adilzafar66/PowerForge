@@ -22,7 +22,7 @@ RECORD = json.loads(
 )
 
 
-def test_retained_preparation_identity_and_v4_archive_are_pinned():
+def test_retained_preparation_identity_is_pinned():
     from powerforge_provenance.spatial_base import POLICY
 
     # Reconstruct the historical policy over the frozen preparation source inputs.
@@ -39,10 +39,6 @@ def test_retained_preparation_identity_and_v4_archive_are_pinned():
     assert POLICY["max_native_primitives"] == 5096
     assert identity_hash(archived_sources | {"policy": dict(POLICY)}) == preparation_rules()
     assert identity_hash(PreparationProfile.model_json_schema()) == RECORD["profile_schema"]
-    archive = ROOT / "packages/extraction/src/powerforge_extraction/runtime_resources/table_v1"
-    assert set(RECORD["retained_v4_inputs"]) == {p.name for p in archive.glob("*.txt")}
-    for name, digest in RECORD["retained_v4_inputs"].items():
-        assert hashlib.sha256((archive / name).read_bytes()).hexdigest() == digest
 
 
 def test_pinned_local_wire_has_no_model_prompt_or_registry_and_round_trips():
