@@ -64,12 +64,31 @@ class UnitResponse(ReadModel):
     output_counts: dict[str, int]
     validation_diagnostics: list[ValidationIssue] = Field(default_factory=list)
     stage_diagnostics: list[dict] = Field(default_factory=list)
+    result_sha256: str | None = None
+    provider_calls: int = 0
+    usage: "AttemptUsage | None" = None
+    latency_ms: int | None = None
+    estimated_cost: "AttemptCost | None" = None
     stage_outcome: Literal["RESULT", "NO_ELIGIBLE_ATTRIBUTES"] | None = None
     lease_expires_at: datetime | None = None
     heartbeat_at: datetime | None = None
     retryable: bool = False
     stale: bool = False
     effective: bool
+
+
+class AttemptUsage(BaseModel):
+    input_tokens: int
+    output_tokens: int
+
+
+class AttemptCost(BaseModel):
+    currency: Literal["USD"] = "USD"
+    amount: Decimal
+    pricing_version: str
+
+
+UnitResponse.model_rebuild()
 
 
 class Coverage(BaseModel):
@@ -100,8 +119,11 @@ class PageInfo(BaseModel):
     offset: int
 
 
-class RunList(PageInfo):
+class RunList(BaseModel):
     items: list[RunResponse]
+    total: int
+    next_cursor: str | None
+    previous_cursor: str | None
 
 
 class ExecutionSummary(BaseModel):

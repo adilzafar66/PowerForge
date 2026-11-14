@@ -470,7 +470,8 @@ def test_unified_operation_finishes_with_immutable_page_results(operation_contex
                 assert unknown["registry_type"] is None
         tables = set(inspect(session.connection()).get_table_names())
         assert "extraction_stage_results" in tables
-        assert not {"extraction_candidates", "extracted_tables"} & tables
+        assert "extracted_tables" not in tables
+        assert {"extraction_candidates", "extraction_evidence"} <= tables
         with pytest.raises(DBAPIError, match="Stage results are immutable"), session.begin_nested():
             session.execute(
                 text("UPDATE extraction_stage_results SET outcome=outcome WHERE work_unit_id=:id"),
@@ -481,6 +482,11 @@ def test_unified_operation_finishes_with_immutable_page_results(operation_contex
         f"{root}/documents/{source['revision_document_id']}/extraction/runs/{run_id}"
     )
     assert reply.status_code == 200, reply.text
+    assert reply.json()["can_browse_candidates"]
+    for attempt in reply.json()["attempts"]:
+        assert attempt["result_sha256"]
+        assert attempt["provider_calls"] == int(attempt["stage_outcome"] == "RESULT")
+        assert attempt["estimated_cost"] is None
     assert {attempt["stage_outcome"] for attempt in reply.json()["attempts"]} == (
         {"RESULT", "NO_ELIGIBLE_ATTRIBUTES"} if scenario == "empty" else {"RESULT"}
     )
@@ -491,7 +497,7 @@ def test_unified_operation_finishes_with_immutable_page_results(operation_contex
     assert register.status_code == 200, register.text
     (status,) = register.json()["items"]
     assert status["extraction"]["latest_attempt"]["id"] == str(run_id)
-    assert status["extraction"]["effective_result"] is None
+    assert status["extraction"]["effective_result"]["id"] == str(run_id)
 
 
 @pytest.mark.parametrize("cancel", [False, True])
@@ -527,6 +533,13 @@ def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
     recognition = units["EQUIPMENT_RECOGNITION"]
     attributes = units["ATTRIBUTE_EXTRACTION"]
     assert execute(recognition)
+    document_root = ctx["operation_base"].removesuffix("/extraction")
+    browser = (
+        f"{document_root}/documents/{source['revision_document_id']}"
+        f"/extraction/runs/{run_id}/candidates"
+    )
+    groups_before = client.get(browser, params={"view": "groups"}).json()
+    assert groups_before["total"] == 1
     root = ctx["operation_base"] + f"/operations/{operation_id}"
 
     class AttributeProvider:
@@ -544,6 +557,7 @@ def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
         run = session.get(ExtractionRun, run_id)
         assert run.status == ("CANCELLED" if cancel else "PARTIALLY_COMPLETED")
         assert run.pages_processed == 0
+    assert client.get(browser, params={"view": "groups"}).json() == groups_before
     if cancel:
         return
     (target,) = detail_operation(ctx, operation_id)["items"][0]["extraction"]["retry_targets"]
@@ -563,6 +577,7 @@ def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
         assert retry.stage == "ATTRIBUTE_EXTRACTION"
         retry_id = retry.id
     assert execute(retry_id)
+    assert client.get(browser, params={"view": "groups"}).json() == groups_before
     with ctx["factory"]() as session:
         result = session.get(StageResult, retry_id)
         assert (result.upstream_work_unit_id, result.upstream_hash) == (recognition, digest)
@@ -611,7 +626,7 @@ def test_expired_recognition_lease_is_fenced_and_reconciled(operation_context):
         assert coordinator.claim(attributes) is None
         claim = coordinator.claim(recognition)
         assert claim is not None
-    wire, request = request_for(ctx["factory"], ctx["storage"], claim)
+    wire, request, _ = request_for(ctx["factory"], ctx["storage"], claim)
     with ctx["factory"].begin() as session:
         ExtractionCoordinator(session, ctx["settings"]).mark_provider_started(
             recognition, claim.token, request
@@ -889,7 +904,7 @@ def test_unknown_provider_outcome_requires_acknowledgement_and_keeps_limits(
     with ctx["factory"].begin() as session:
         claim = ExtractionCoordinator(session, settings).claim(recognition)
         assert claim is not None
-    _, request = request_for(ctx["factory"], ctx["storage"], claim)
+    _, request, _ = request_for(ctx["factory"], ctx["storage"], claim)
     with ctx["factory"].begin() as session:
         coordinator = ExtractionCoordinator(session, settings)
         coordinator.mark_provider_started(recognition, claim.token, request)
@@ -1071,7 +1086,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         recognition = session.get(StageResult, units["EQUIPMENT_RECOGNITION"])
         attribute = session.get(StageResult, units["ATTRIBUTE_EXTRACTION"])
         assert calls[1]["upstream"] == recognition.payload
-        assert recognition.diagnostics[0]["code"] == "UNKNOWN_READING_REFERENCE"
+        assert recognition.diagnostics[0]["code"] == "UNKNOWN_READING"
         assert attribute.diagnostics[0]["code"] == "INVALID_OWNER_REFERENCE"
         assert attribute.payload["raw_unmapped"][0]["equipment_ref"] == "foreign-owner"
         audit = session.scalars(
@@ -1080,6 +1095,14 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         assert len(audit) == 2
         assert all(call.input_tokens == 100 and call.output_tokens == 30 for call in audit)
         assert all(call.estimated_cost_usd is None for call in audit)
+    base = ctx["operation_base"].removesuffix("/extraction")
+    run_url = f"{base}/documents/{source['revision_document_id']}/extraction/runs/{run_id}"
+    attempts = client.get(run_url).json()["attempts"]
+    assert all(
+        attempt["usage"] == {"input_tokens": 100, "output_tokens": 30} for attempt in attempts
+    )
+    assert all(attempt["latency_ms"] is not None for attempt in attempts)
+    assert all(attempt["estimated_cost"] is None for attempt in attempts)
 
 
 @pytest.mark.parametrize("malformed", ["schema", "tag"])
@@ -1157,3 +1180,346 @@ def test_invalid_response_audit_is_fenced_and_redacted(operation_context, caplog
     attempt = next(row for row in detail.json()["attempts"] if row["id"] == str(recognition))
     assert attempt["validation_diagnostics"] == [diagnostic]
     assert private not in detail.text and private not in caplog.text
+
+
+def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
+    from powerforge_ai.extraction import ExecutionUsage, ExtractionResponse
+    from powerforge_extraction.phase6r_records import Candidate, Fragment
+    from spatial_layout_support import drawn_table
+
+    ctx = operation_context
+    source = new_source(ctx, "publication.pdf", drawn_table(nearby=True))
+    _, run_id, units = admitted_page(ctx, source)
+    root = ctx["operation_base"].removesuffix("/extraction")
+    path = f"{root}/documents/{source['revision_document_id']}/extraction"
+    candidate_url = f"{path}/runs/{run_id}/candidates"
+
+    class SourceProvider:
+        def execute(self, request):
+            wire = json.loads(request.text)
+            readings = wire["page"]["readings"]
+            label = next(item["reading_ref"] for item in readings if item["text"] == "TX-1")
+            header = next(item["reading_ref"] for item in readings if item["text"] == "(V)")
+            value = next(item["reading_ref"] for item in readings if item["text"] == "600")
+            response = {key: wire[key] for key in ("version", "stage", "page_context_hash")}
+            if wire["stage"] == "EQUIPMENT_RECOGNITION":
+                response["equipment"] = [
+                    dict(
+                        local_ref=f"e{index}",
+                        source_description="Straße transformer",
+                        registry_type="TWO_WINDING_TRANSFORMER",
+                        tag_state="PRESENT",
+                        tag="TX-1",
+                        qualification="INSTALLED",
+                        raw_qualification=None,
+                        evidence=[
+                            dict(kind="READING", role="TAG", reading_ref=label, quote="TX-1")
+                        ],
+                    )
+                    for index in range(2)
+                ]
+            else:
+                attribute = dict(
+                    local_ref="rating",
+                    attribute_key="secondary_voltage",
+                    proposed_enum_value=None,
+                    equipment_ref="e0",
+                    association="UNCERTAIN",
+                    raw_label="Secondary",
+                    raw_value="600",
+                    raw_unit=None,
+                    qualifiers=[],
+                    value_form="SINGLE",
+                    evidence=[
+                        dict(kind="READING", role="HEADER", reading_ref=header, quote=None),
+                        dict(kind="READING", role="VALUE", reading_ref=value, quote=None),
+                        dict(kind="QUOTE", role="VALUE", quote="600"),
+                    ],
+                )
+                raw = {
+                    k: v
+                    for k, v in attribute.items()
+                    if k not in {"attribute_key", "proposed_enum_value"}
+                }
+                response.update(
+                    upstream_hash=wire["upstream_hash"],
+                    attributes=[attribute],
+                    raw_unmapped=[
+                        dict(raw, local_ref="owned-raw", raw_label="Noise_100%", raw_value="50"),
+                        dict(
+                            raw, local_ref="unowned-raw", equipment_ref="foreign", raw_label="Other"
+                        ),
+                    ],
+                )
+            return ExtractionResponse[request.response_model](
+                result=request.response_model.model_validate_json(json.dumps(response)),
+                usage=ExecutionUsage(),
+            )
+
+    def browse(**params):
+        response = client.get(candidate_url, params=params)
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    def run(stage):
+        assert execute_unit(
+            units[stage],
+            ctx["factory"],
+            ctx["storage"],
+            ctx["settings"],
+            lambda _: SourceProvider(),
+        )
+
+    run("EQUIPMENT_RECOGNITION")
+    first_groups = browse(view="groups")
+    assert first_groups["total"] == 2
+    assert len({g["group_id"] for g in first_groups["items"]}) == 2
+    assert {g["tag"] for g in first_groups["items"]} == {"TX-1"}
+    run("ATTRIBUTE_EXTRACTION")
+
+    all_groups = browse(view="groups")
+    assert all_groups["total"] == 3
+    assert [g["group_id"] for g in all_groups["items"]] == [
+        *(g["group_id"] for g in first_groups["items"]),
+        "unassigned",
+    ]
+    first_page = browse(view="groups", limit=2)
+    last_page = browse(view="groups", limit=2, cursor=first_page["next_cursor"])
+    assert [group["group_id"] for group in last_page["items"]] == ["unassigned"]
+    assert browse(view="groups", limit=2, cursor=last_page["previous_cursor"]) == first_page
+    assert (
+        client.get(
+            candidate_url,
+            params={
+                "view": "groups",
+                "search": "different",
+                "cursor": first_page["next_cursor"],
+            },
+        ).status_code
+        == 404
+    )
+    assert browse(view="groups", search="  STRASSE ", kind="ATTRIBUTE")["total"] == 1
+    assert browse(view="groups", search="%")["total"] == 1
+    (match,) = browse(view="groups", search="noise_100%", mapping_status="UNMAPPED")["items"]
+    group = match["group_id"]
+    assert match["matching_candidate_count"] == 1
+    members = browse(view="members", group_id=group, search="Noise_100%")
+    assert members["group"] == match
+    assert members["items"][0]["kind"] == "ATTRIBUTE"
+    assert members["items"][0]["equipment_id"] == group and members["items"][0]["raw_unmapped"]
+    assert (
+        browse(view="members", group_id=group, search="missing")["group"][
+            "matching_candidate_count"
+        ]
+        == 0
+    )
+    assert browse(view="members", group_id=group, page_id=str(uuid4()))["items"] == []
+
+    first_member = browse(view="members", group_id=group, limit=1)
+    second_member = browse(
+        view="members", group_id=group, limit=1, cursor=first_member["next_cursor"]
+    )
+    assert second_member["items"][0]["id"] != first_member["items"][0]["id"]
+    assert (
+        browse(view="members", group_id=group, limit=1, cursor=second_member["previous_cursor"])[
+            "items"
+        ]
+        == first_member["items"]
+    )
+    (rating,) = browse(equipment_id=group, kind="ATTRIBUTE", mapping_status="MAPPED")["items"]
+    assert rating["association"] == "UNCERTAIN" and rating["raw_unit"] is None
+    assert rating["raw_value"] == "600"
+    assert rating["normalized"] == {"type": "NUMBER", "value": "0.6", "unit": "kV"}
+    assert browse(view="members", group_id=group, candidate_id=rating["id"])["items"] == [rating]
+    assert (
+        client.get(
+            candidate_url,
+            params={
+                "view": "members",
+                "group_id": "unassigned",
+                "candidate_id": rating["id"],
+            },
+        ).status_code
+        == 404
+    )
+    (unassigned,) = browse(view="members", group_id="unassigned")["items"]
+    assert unassigned["equipment_id"] is None and unassigned["association"] == "UNASSIGNED"
+    assert not browse(view="groups", equipment_type="LV_BREAKER")["items"]
+
+    pages = client.get(f"{path}/runs/{run_id}/sources").json()["items"]
+    assert pages[0]["page_id"] == rating["page_id"] and pages[0]["page_context_hash"]
+    stored = []
+    for evidence_id in rating["evidence_ids"]:
+        reply = client.get(f"{path}/evidence/{evidence_id}")
+        assert reply.status_code == 200, reply.text
+        assert "storage_key" not in reply.text
+        stored.append(reply.json())
+    assert [f["localization"] for f in stored] == ["RESOLVED", "RESOLVED", "UNRESOLVED"]
+    assert stored[0]["role"] == "HEADER" and stored[1]["role"] == "VALUE"
+    assert stored[0]["regions"] != stored[1]["regions"]
+    assert stored[2]["reason_code"] == "AMBIGUOUS_QUOTE" and "regions" not in stored[2]
+    assert stored[1]["quote"] == "600" and stored[1]["text_artifact"]["url"]
+    assert stored[1]["page_image_id"] == pages[0]["page_image_id"]
+    foreign = new_source(ctx, "foreign.pdf")
+    foreign_path = f"{root}/documents/{foreign['revision_document_id']}/extraction"
+    assert client.get(f"{foreign_path}/evidence/{rating['evidence_ids'][0]}").status_code == 404
+    assert client.get(f"{foreign_path}/runs/{run_id}/candidates").status_code == 404
+    assert (
+        client.get(
+            candidate_url,
+            params={
+                "view": "members",
+                "group_id": str(uuid4()),
+            },
+        ).status_code
+        == 404
+    )
+    assert client.get(candidate_url, params={"cursor": "%%%"}).status_code == 404
+    _, new_body = reviewed(ctx, [source], mode="reextract")
+    newer_operation = start_operation(ctx, new_body)
+    assert newer_operation.status_code == 202, newer_operation.text
+    newer_operation_id = newer_operation.json()["id"]
+    advance(ctx, newer_operation_id)
+    newer_run = detail_operation(ctx, newer_operation_id)["items"][0]["extraction"]["run_id"]
+    history = client.get(path + "/runs", params={"limit": 1}).json()
+    assert history["items"][0]["id"] == newer_run and history["total"] == 2
+    older = client.get(path + "/runs", params={"limit": 1, "cursor": history["next_cursor"]}).json()
+    assert older["items"][0]["id"] == str(run_id)
+    assert (
+        client.get(path + "/runs", params={"limit": 1, "cursor": older["previous_cursor"]}).json()
+        == history
+    )
+    assert (
+        client.get(foreign_path + "/runs", params={"cursor": history["next_cursor"]}).status_code
+        == 404
+    )
+    assert (
+        client.get(
+            f"{path}/runs/{newer_run}/candidates",
+            params={
+                "view": "groups",
+                "cursor": first_page["next_cursor"],
+            },
+        ).status_code
+        == 404
+    )
+    with ctx["factory"]() as session:
+        artifact = session.get(PageArtifact, UUID(stored[1]["page_image_id"]))
+        key = artifact.storage_key
+    ctx["storage"].delete(key)
+    unavailable = client.get(f"{path}/evidence/{rating['evidence_ids'][1]}")
+    assert unavailable.status_code == 502 and key not in unavailable.text
+
+    with ctx["factory"]() as session:
+        canonical_count = session.scalar(
+            text("SELECT count(*) FROM equipment WHERE project_id=:id"), {"id": ctx["project_id"]}
+        )
+        assert canonical_count == 0
+        row = session.get(Candidate, UUID(unassigned["id"]))
+        assert row.claimed_owner_ref == "foreign" and row.equipment_id is None
+        with pytest.raises(DBAPIError, match="Published evidence is immutable"):
+            session.delete(session.get(Fragment, UUID(rating["evidence_ids"][0])))
+            session.flush()
+
+
+@pytest.mark.parametrize("breakage", ["missing-candidate", "missing-fragment", "foreign-owner"])
+def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch, breakage):
+    from powerforge_ai.extraction import ExecutionUsage, ExtractionResponse
+    from powerforge_extraction.phase6r_records import Candidate, Fragment
+    from powerforge_extraction.phase6r_runtime import FakePhase6RProvider, StageResult
+
+    ctx = operation_context
+    with pymupdf.open(stream=native_pdf(), filetype="pdf") as page, pymupdf.open() as document:
+        document.insert_pdf(page)
+        document.insert_pdf(page)
+        source = new_source(ctx, "atomic.pdf", document.tobytes())
+    source["pages"] = [1, 2]
+    preparation(ctx, source)
+    _, body = reviewed(ctx, [source])
+    operation_id = start_operation(ctx, body).json()["id"]
+    advance(ctx, operation_id)
+    run_id = UUID(detail_operation(ctx, operation_id)["items"][0]["extraction"]["run_id"])
+    with ctx["factory"]() as session:
+        rows = session.scalars(
+            select(ExtractionWorkUnit).where(ExtractionWorkUnit.run_id == run_id)
+        ).all()
+        units = {(row.stage, row.page_numbers[0]): row.id for row in rows}
+
+    class Provider:
+        def execute(self, request):
+            if request.stage == "EQUIPMENT_RECOGNITION":
+                return FakePhase6RProvider("success").execute(request)
+            wire = json.loads(request.text)
+            payload = {
+                key: wire[key] for key in ("version", "stage", "page_context_hash", "upstream_hash")
+            }
+            payload.update(
+                raw_unmapped=[],
+                attributes=[
+                    dict(
+                        local_ref="a1",
+                        attribute_key="primary_connection",
+                        proposed_enum_value="WYE",
+                        equipment_ref="equipment-1",
+                        association="ASSERTED",
+                        raw_label="Connection",
+                        raw_value="Star",
+                        raw_unit=None,
+                        qualifiers=[],
+                        value_form="SINGLE",
+                        evidence=[],
+                    )
+                ],
+            )
+            return ExtractionResponse[request.response_model](
+                result=request.response_model.model_validate_json(json.dumps(payload)),
+                usage=ExecutionUsage(),
+            )
+
+    def execute(stage, page):
+        return execute_unit(
+            units[(stage, page)],
+            ctx["factory"],
+            ctx["storage"],
+            ctx["settings"],
+            lambda _: Provider(),
+        )
+
+    assert execute("EQUIPMENT_RECOGNITION", 1)
+    assert execute("EQUIPMENT_RECOGNITION", 2)
+    assert execute("ATTRIBUTE_EXTRACTION", 2)
+    from powerforge_extraction import phase6r_records
+
+    real_publish = phase6r_records.publish
+
+    def broken_publish(session, stage, image_id, observations):
+        from types import SimpleNamespace
+
+        if breakage == "missing-candidate":
+            return
+        if breakage == "missing-fragment":
+            observations[0].evidence = []
+        if breakage == "foreign-owner":
+            stage = SimpleNamespace(
+                work_unit_id=stage.work_unit_id,
+                run_id=stage.run_id,
+                document_page_id=stage.document_page_id,
+                upstream_work_unit_id=units[("EQUIPMENT_RECOGNITION", 2)],
+            )
+        real_publish(session, stage, image_id, observations)
+
+    monkeypatch.setattr(phase6r_records, "publish", broken_publish)
+    assert execute("ATTRIBUTE_EXTRACTION", 1)
+    attempt_id = units[("ATTRIBUTE_EXTRACTION", 1)]
+    with ctx["factory"]() as session:
+        assert session.get(StageResult, attempt_id) is None
+        assert (
+            session.scalar(select(Candidate.id).where(Candidate.work_unit_id == attempt_id)) is None
+        )
+        assert (
+            session.scalar(select(Fragment.id).where(Fragment.work_unit_id == attempt_id)) is None
+        )
+        assert session.get(ExtractionWorkUnit, attempt_id).status == "FAILED"
+        assert session.get(ExtractionRun, run_id).status == "PARTIALLY_COMPLETED"
+        assert session.get(ExtractionRun, run_id).pages_processed == 1
+        assert session.get(StageResult, units[("EQUIPMENT_RECOGNITION", 1)]) is not None

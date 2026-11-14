@@ -19,9 +19,21 @@ from powerforge_api.schemas.extraction import (
     RunDetail,
     RunList,
 )
+from powerforge_api.schemas.extraction_publication import (
+    BrowserPage,
+    CandidateItem,
+    CandidateQuery,
+    EvidenceItem,
+    Group,
+    MembersPage,
+    RunSources,
+)
+from powerforge_api.services import extraction_publication
 from powerforge_api.services.extraction_register import register_status, revision_read_only
 from powerforge_api.services.extraction_service import ExtractionReadService
 from powerforge_api.services.revision_writes import lock_writable_revision
+from powerforge_document_processing.storage.base import ObjectStorage
+from powerforge_document_processing.storage.factory import get_object_storage
 from powerforge_extraction.enqueue import CeleryExtractionEnqueue, get_extraction_enqueue
 from powerforge_extraction.errors import ExtractionError
 from powerforge_extraction.orchestration import ExtractionCoordinator
@@ -76,8 +88,11 @@ def summary(reader: Service) -> ExtractionSummary:
 
 
 @router.get("/runs", response_model=RunList)
-def history(reader: Service, limit: Limit = 50, offset: Offset = 0) -> RunList:
-    return reader.history(limit, offset)
+def history(
+    reader: Service, limit: Limit = 50, cursor: Annotated[str | None, Query(max_length=512)] = None
+) -> RunList:
+    with model_api_errors():
+        return reader.history(limit, cursor)
 
 
 @router.get("/runs/{run_id}", response_model=RunDetail)
@@ -130,45 +145,37 @@ SettingsDep = Annotated[Settings, Depends(get_settings)]
 EnqueueDep = Annotated[CeleryExtractionEnqueue, Depends(get_extraction_enqueue)]
 
 
-@router.get("/runs/{run_id}/sources")
-def bound_sources(reader: Service, run_id: UUID):
-    with model_api_errors():
-        reader._run(run_id)
-        from sqlalchemy import select
-
-        from powerforge_extraction.enriched_sources import selected_snapshot
-        from powerforge_extraction.enrichment_models import RunSourceEnrichmentBinding
-
-        bindings = reader.session.scalars(
-            select(RunSourceEnrichmentBinding).where(
-                RunSourceEnrichmentBinding.run_id == run_id,
-                RunSourceEnrichmentBinding.spatial_result_id.is_not(None),
-            )
-        )
-        items = []
-        for binding in bindings:
-            source = selected_snapshot(
-                reader.session, binding.prepared_result_id, binding.spatial_result_id
-            )
-            items.append(
-                dict(
-                    page_number=source.layout.owner.page_number,
-                    prepared_result_id=binding.prepared_result_id,
-                    spatial_result_id=binding.spatial_result_id,
-                    prepared_manifest_hash=binding.manifest_hash,
-                    spatial_manifest_hash=binding.spatial_manifest_hash,
-                    preparation_producer_run_id=source.prepared.manifest.producer_run_id,
-                    layout_producer_run_id=source.layout.producer_run_id,
-                    text_coverage=source.prepared.manifest.text_coverage,
-                    printed_text_independently_verified=False,
-                )
-            )
-        return dict(items=sorted(items, key=lambda x: x["page_number"]))
-
-
 def lock_viewer_action(reader: ExtractionReadService, project_id: UUID):
     lock_writable_revision(reader.session, project_id, reader.revision_id)
     return type(reader)(reader.session, project_id, reader.revision_id, reader.revision_document_id)
+
+
+@router.get("/runs/{run_id}/sources", response_model=RunSources)
+def run_sources(reader: Service, run_id: UUID):
+    with model_api_errors():
+        return extraction_publication.sources(reader, run_id)
+
+
+@router.get(
+    "/runs/{run_id}/candidates",
+    response_model=MembersPage | BrowserPage[Group] | BrowserPage[CandidateItem],
+)
+def run_candidates(reader: Service, run_id: UUID, query: Annotated[CandidateQuery, Query()]):
+    with model_api_errors():
+        return extraction_publication.candidates(reader, run_id, query)
+
+
+@router.get("/evidence/{evidence_id}", response_model=EvidenceItem)
+def get_evidence(
+    reader: Service,
+    evidence_id: UUID,
+    settings: SettingsDep,
+    storage: Annotated[ObjectStorage, Depends(get_object_storage)],
+):
+    with model_api_errors():
+        return extraction_publication.evidence(
+            reader, evidence_id, storage, settings.s3_signed_url_expires_seconds
+        )
 
 
 @router.post("/runs/{run_id}/retry", response_model=RunDetail, status_code=202)

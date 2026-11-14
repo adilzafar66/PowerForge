@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
 from uuid import UUID, uuid4
 
 from sqlalchemy import exists, func, or_, select, text
@@ -22,8 +22,7 @@ from powerforge_document_processing.models import (
     DocumentPage,
     PageArtifact,
 )
-from powerforge_document_processing.storage.base import ObjectStorage
-from powerforge_extraction.contracts import AICallInput, WorkUnitInput, WorkUnitOutput
+from powerforge_extraction.contracts import AICallInput, WorkUnitInput
 from powerforge_extraction.controls import RunExecution, UnitExecution
 from powerforge_extraction.dependencies import latest_units, retryable_keys, unit_key
 from powerforge_extraction.enums import ExtractionRunStatus as RS
@@ -43,9 +42,6 @@ from powerforge_extraction.profiles import (
     read_profile,
 )
 from powerforge_shared.config import Settings
-
-if TYPE_CHECKING:
-    from powerforge_extraction.enriched_publication import VerifiedEnrichedPublication
 
 logger = logging.getLogger(__name__)
 ACTIVE = (RS.PENDING, RS.RUNNING)
@@ -487,27 +483,9 @@ class ExtractionCoordinator:
             ),
         )
 
-    def complete(
-        self,
-        unit_id: UUID,
-        token: UUID,
-        output: WorkUnitOutput,
-        usage: ExecutionUsage,
-        storage: ObjectStorage,
-        *,
-        verification: VerifiedEnrichedPublication | None = None,
-    ) -> None:
-        run, unit, _ = self._authorized(unit_id, token)
-        profile = read_profile(self._execution(run.id).configuration)
-        self._telemetry(unit, profile, self.now(), "SUCCEEDED", None, usage)
-        ExtractionPersistence(self.session, storage).publish(
-            unit.id, output, verification=verification
-        )
-        self.aggregate(run)
-
-    def complete_stage(self, unit_id, token, wire, result, usage):
+    def complete_stage(self, unit_id, token, wire, result, usage, publication=None):
         from powerforge_extraction.phase6r_contracts import NoEligibleAttributes
-        from powerforge_extraction.phase6r_runtime import store_result
+        from powerforge_extraction.phase6r_runtime import store_result, validate_plan
 
         run, unit, delivery = self._authorized(unit_id, token)
         if isinstance(result, NoEligibleAttributes) != (delivery.provider_started_at is None):
@@ -515,7 +493,10 @@ class ExtractionCoordinator:
         if run.execution_purpose != "EXTRACTION":
             raise ValueError("AI stage results require an extraction run")
         profile = read_profile(self._execution(run.id).configuration)
-        store_result(self.session, unit, wire, result)
+        if publication is None:
+            raise ValueError("Stage completion requires verified publication")
+        snapshot = validate_plan(self.session, unit, profile)
+        unit.output_counts = store_result(self.session, unit, snapshot, wire, result, publication)
         self._telemetry(unit, profile, self.now(), "SUCCEEDED", None, usage)
         unit.status, unit.finished_at = US.COMPLETED, self.now()
         self.session.flush()

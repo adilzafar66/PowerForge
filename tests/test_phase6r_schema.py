@@ -1,4 +1,4 @@
-"""Catalog checks for the clean 6R-B Alembic installation."""
+"""Catalog checks for the clean 6R-D Alembic installation."""
 
 import pytest
 from sqlalchemy import inspect, text
@@ -8,10 +8,10 @@ from powerforge_api.db import get_engine
 pytestmark = pytest.mark.integration
 
 
-def test_phase6r_b_schema_exposes_only_unified_extraction(require_db):
+def test_phase6r_d_schema_exposes_only_unified_extraction(require_db):
     with get_engine().connect() as conn:
         assert conn.execute(text("SELECT version_num FROM alembic_version")).scalars().all() == [
-            "6r_0013d_validation"
+            "6r_0014_publication"
         ]
         catalog = inspect(conn)
         assert {
@@ -21,6 +21,8 @@ def test_phase6r_b_schema_exposes_only_unified_extraction(require_db):
             "extraction_run_execution",
             "extraction_unit_execution",
             "extraction_stage_results",
+            "extraction_candidates",
+            "extraction_evidence",
             "run_source_enrichment_bindings",
             "source_enrichment_page_results",
             "source_enrichment_artifacts",
@@ -33,8 +35,6 @@ def test_phase6r_b_schema_exposes_only_unified_extraction(require_db):
         } <= set(catalog.get_table_names())
         assert not {
             "extracted_tables",
-            "extraction_candidates",
-            "extraction_evidence",
             "candidate_evidence",
             "extraction_source_groups",
         } & set(catalog.get_table_names())
@@ -90,3 +90,20 @@ def test_phase6r_b_schema_exposes_only_unified_extraction(require_db):
         assert ("extraction_stage_results", "extraction_stage_guard") in triggers
         assert ("extraction_stage_results", "extraction_fence_guard") in triggers
         assert triggers["extraction_stage_results", "extraction_stage_terminal_guard"]
+
+        assert triggers["extraction_stage_results", "extraction_publication_complete"]
+        for table in ("extraction_candidates", "extraction_evidence"):
+            assert (table, "extraction_fence_guard") in triggers
+        owner_fk = next(
+            key
+            for key in catalog.get_foreign_keys("extraction_candidates")
+            if "equipment_id" in key["constrained_columns"]
+        )
+        assert owner_fk["constrained_columns"] == [
+            "equipment_id",
+            "run_id",
+            "document_page_id",
+            "equipment_work_unit_id",
+            "owner_kind",
+        ]
+        assert owner_fk["referred_table"] == "extraction_candidates"

@@ -1,12 +1,16 @@
 """Read-only, revision-membership-scoped extraction queries."""
 
+import json
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, exists, func, or_, select, tuple_
 from sqlalchemy.orm import Session
 
 from powerforge_api.exceptions import RevisionDocumentNotFound
 from powerforge_api.schemas.extraction import (
+    AttemptCost,
+    AttemptUsage,
     Coverage,
     ExecutionSummary,
     ExtractionSummary,
@@ -15,6 +19,7 @@ from powerforge_api.schemas.extraction import (
     RunResponse,
     UnitResponse,
 )
+from powerforge_api.services.extraction_cursor import decode_cursor, encode_cursor
 from powerforge_document_model import RevisionDocumentStatus
 from powerforge_document_processing.models import (
     Document,
@@ -27,13 +32,15 @@ from powerforge_extraction.enums import (
     ExtractionRunStatus,
     WorkUnitStatus,
 )
+from powerforge_extraction.identities import identity_hash
 from powerforge_extraction.models import (
     ExtractionAICall,
     ExtractionRun,
     ExtractionWorkUnit,
 )
+from powerforge_extraction.phase6r_profile import Phase6RProfile, manifest
+from powerforge_extraction.phase6r_records import Candidate
 from powerforge_extraction.phase6r_runtime import StageResult
-from powerforge_extraction.profiles import read_profile
 
 
 class ExtractionReadService:
@@ -41,6 +48,7 @@ class ExtractionReadService:
         self, session: Session, project_id: UUID, revision_id: UUID, revision_document_id: UUID
     ) -> None:
         self.session = session
+        self.project_id = project_id
         self.revision_document_id = revision_document_id
         self.revision_id = revision_id
         self.document_id = session.scalar(
@@ -90,19 +98,39 @@ class ExtractionReadService:
             current_run=RunResponse.model_validate(current) if current else None,
         )
 
-    def history(self, limit: int, offset: int) -> RunList:
+    def history(self, limit: int, cursor: str | None) -> RunList:
         stmt = self._runs()
         total = self.session.scalar(select(func.count()).select_from(stmt.subquery()))
-        rows = self.session.scalars(
-            stmt.order_by(ExtractionRun.created_at.desc(), ExtractionRun.id.desc())
-            .limit(limit)
-            .offset(offset)
+        scope = identity_hash(
+            ["history", str(self.project_id), str(self.revision_id), str(self.revision_document_id)]
         )
+        anchor = decode_cursor(cursor, scope, (datetime.fromisoformat, UUID)) if cursor else None
+        keys = (ExtractionRun.created_at, ExtractionRun.id)
+        backwards = bool(anchor and anchor[0] == "previous")
+        if anchor:
+            comparison = (
+                tuple_(*keys) > tuple_(*anchor[1])
+                if backwards
+                else (tuple_(*keys) < tuple_(*anchor[1]))
+            )
+            stmt = stmt.where(comparison)
+        ordering = keys if backwards else tuple(key.desc() for key in keys)
+        batch = list(self.session.scalars(stmt.order_by(*ordering).limit(limit + 1)))
+        extra = len(batch) > limit
+        rows = batch[:limit]
+        if backwards:
+            rows.reverse()
+        next_cursor = previous_cursor = None
+        if rows:
+            if backwards or extra:
+                next_cursor = encode_cursor(scope, "next", (rows[-1].created_at, rows[-1].id))
+            if (backwards and extra) or (anchor and not backwards):
+                previous_cursor = encode_cursor(scope, "previous", (rows[0].created_at, rows[0].id))
         return RunList(
             items=[RunResponse.model_validate(r) for r in rows],
             total=total,
-            limit=limit,
-            offset=offset,
+            next_cursor=next_cursor,
+            previous_cursor=previous_cursor,
         )
 
     def coverage(self, run: ExtractionRun) -> tuple[Coverage, list[ExtractionWorkUnit]]:
@@ -131,27 +159,33 @@ class ExtractionReadService:
         run = self._run(run_id)
         coverage, rows = self.coverage(run)
         control = self.session.get(RunExecution, run.id)
-        profile = read_profile(control.configuration) if control else None
-        eligible = retryable_keys(rows, profile.max_attempts) if profile else set()
-        now = self.session.scalar(select(func.clock_timestamp()))
-        calls = (
-            list(
-                self.session.scalars(
-                    select(ExtractionAICall).where(ExtractionAICall.run_id == run.id)
-                )
-            )
+        profile = (
+            Phase6RProfile.model_validate_json(json.dumps(control.configuration))
             if control
-            else []
+            else None
         )
-        execution = None
-        if control:
-            started = self.session.scalar(
-                select(func.count())
-                .select_from(UnitExecution)
-                .where(
+        eligible = (
+            retryable_keys(rows, profile.max_attempts)
+            if profile and profile.manifest == manifest()
+            else set()
+        )
+        now = self.session.scalar(select(func.clock_timestamp()))
+        calls = {
+            call.work_unit_id: call
+            for call in self.session.scalars(
+                select(ExtractionAICall).where(ExtractionAICall.run_id == run.id)
+            )
+        }
+        started_ids = set(
+            self.session.scalars(
+                select(UnitExecution.work_unit_id).where(
                     UnitExecution.run_id == run.id, UnitExecution.provider_started_at.is_not(None)
                 )
             )
+        )
+        execution = None
+        if control:
+            started = len(started_ids)
             all_reported = len(calls) == started
             execution = ExecutionSummary(
                 profile_key=profile.key,
@@ -163,26 +197,36 @@ class ExtractionReadService:
                 provider_calls_started=started,
                 unreported_provider_calls=max(0, started - len(calls)),
                 unreported_admissions=control.calls_admitted - len(calls),
-                input_tokens=sum(c.input_tokens for c in calls)
-                if all_reported and calls and all(c.input_tokens is not None for c in calls)
+                input_tokens=sum(c.input_tokens for c in calls.values())
+                if all_reported
+                and calls
+                and all(c.input_tokens is not None for c in calls.values())
                 else None,
-                output_tokens=sum(c.output_tokens for c in calls)
-                if all_reported and calls and all(c.output_tokens is not None for c in calls)
+                output_tokens=sum(c.output_tokens for c in calls.values())
+                if all_reported
+                and calls
+                and all(c.output_tokens is not None for c in calls.values())
                 else None,
-                estimated_cost_usd=sum(c.estimated_cost_usd for c in calls)
-                if all_reported and calls and all(c.estimated_cost_usd is not None for c in calls)
+                estimated_cost_usd=sum(c.estimated_cost_usd for c in calls.values())
+                if all_reported
+                and calls
+                and all(c.estimated_cost_usd is not None for c in calls.values())
                 else None,
             )
         results = {
             row.work_unit_id: row
             for row in self.session.scalars(select(StageResult).where(StageResult.run_id == run.id))
         }
-        diagnostics = {call.work_unit_id: call.validation_diagnostics for call in calls}
         computed = {
             "effective",
             "retryable",
             "stale",
             "stage_outcome",
+            "result_sha256",
+            "provider_calls",
+            "usage",
+            "latency_ms",
+            "estimated_cost",
             "stage_diagnostics",
             "validation_diagnostics",
         }
@@ -190,13 +234,17 @@ class ExtractionReadService:
             run=RunResponse.model_validate(run),
             coverage=coverage,
             execution=execution,
+            can_browse_candidates=self.session.scalar(
+                select(exists().where(Candidate.run_id == run_id))
+            ),
             attempts=[
                 UnitResponse.model_validate(
                     {
                         **{
                             k: getattr(r, k) for k in UnitResponse.model_fields if k not in computed
                         },
-                        "validation_diagnostics": diagnostics.get(r.id, []),
+                        **_attempt_telemetry(calls.get(r.id), r.id in started_ids),
+                        "result_sha256": results[r.id].result_hash if r.id in results else None,
                         "effective": r.status == WorkUnitStatus.COMPLETED,
                         "stage_outcome": results[r.id].outcome if r.id in results else None,
                         "stage_diagnostics": results[r.id].diagnostics if r.id in results else [],
@@ -222,3 +270,19 @@ class ExtractionReadService:
                 for r in rows
             ],
         )
+
+
+def _attempt_telemetry(call, started):
+    usage = None
+    cost = None
+    if call and call.input_tokens is not None and call.output_tokens is not None:
+        usage = AttemptUsage(input_tokens=call.input_tokens, output_tokens=call.output_tokens)
+        if call.estimated_cost_usd is not None and call.pricing_basis:
+            cost = AttemptCost(amount=call.estimated_cost_usd, pricing_version=call.pricing_basis)
+    return {
+        "provider_calls": int(started),
+        "usage": usage,
+        "estimated_cost": cost,
+        "latency_ms": call.duration_ms if call else None,
+        "validation_diagnostics": call.validation_diagnostics if call else [],
+    }

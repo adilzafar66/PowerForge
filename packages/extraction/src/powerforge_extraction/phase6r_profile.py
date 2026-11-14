@@ -84,6 +84,7 @@ def manifest():
         EquipmentObservation,
         RecognitionResponse,
     )
+    from powerforge_extraction.phase6r_publication import VERSION as PUBLICATION_VERSION
 
     catalog = equipment_catalog()
     sample = RecognitionResponse(
@@ -107,6 +108,7 @@ def manifest():
     return {
         "version": VERSION,
         "registry_version": REGISTRY.registry_version,
+        "publication_version": PUBLICATION_VERSION,
         "descriptions": DESCRIPTION_VERSION,
         "catalog_hash": identity_hash(
             [

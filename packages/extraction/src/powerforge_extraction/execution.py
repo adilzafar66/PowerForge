@@ -71,9 +71,10 @@ def execute_unit(
     try:
         with heartbeats(factory, claim, settings):
             from powerforge_extraction.phase6r_contracts import parse_response
-            from powerforge_extraction.phase6r_runtime import request_for as stage_request
+            from powerforge_extraction.phase6r_publication import build_publication
+            from powerforge_extraction.phase6r_runtime import request_for
 
-            wire, request = stage_request(factory, storage, claim)
+            wire, request, source = request_for(factory, storage, claim)
             result = wire
             if request is not None:
                 provider = provider_factory(claim)
@@ -106,9 +107,10 @@ def execute_unit(
                         usage,
                         diagnostics=validation_issues(exc),
                     ) from None
+            publication = build_publication(wire, result, source)
             with factory.begin() as session:
                 ExtractionCoordinator(session, settings).complete_stage(
-                    claim.unit_id, claim.token, wire, result, usage
+                    claim.unit_id, claim.token, wire, result, usage, publication
                 )
     except LeaseLost:
         return False

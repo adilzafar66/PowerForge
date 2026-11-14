@@ -115,6 +115,27 @@ export interface PageBinding {
   page_context_hash: Sha256;
 }
 
+export interface PinnedRunSource {
+  document_id: Id;
+  page_id: Id;
+  page_number: number;
+  page_image_id: Id;
+  processing_run_id: Id;
+  prepared_result_id: Id;
+  spatial_result_id: Id;
+  prepared_manifest_hash: Sha256;
+  spatial_manifest_hash: Sha256;
+  preparation_producer_run_id: Id;
+  layout_producer_run_id: Id;
+  text_coverage: "UNKNOWN";
+  printed_text_independently_verified: false;
+  page_context_hash: Sha256 | null;
+}
+
+export interface RunSources {
+  items: PinnedRunSource[];
+}
+
 export interface RunDetail extends RunSummary {
   document_id: Id;
   registry_version: string;
@@ -216,12 +237,20 @@ export interface Region {
   height: DecimalString;
 }
 
+export interface SignedEvidenceArtifact {
+  id: Id;
+  sha256: Sha256;
+  url: string;
+  expires_seconds: number;
+}
+
 interface EvidenceBase {
   id: Id;
   candidate_id: Id;
   role: EvidenceRole;
   page_id: Id;
   page_image_id: Id;
+  page_image: SignedEvidenceArtifact;
 }
 
 export type Evidence =
@@ -229,10 +258,12 @@ export type Evidence =
       localization: "RESOLVED";
       modality: "NATIVE_PDF" | "OCR";
       text_artifact_id: Id;
+      text_artifact: SignedEvidenceArtifact;
       start: number;
       end: number;
       quote: string;
       regions: Region[];
+      source_issues: string[];
     })
   | (EvidenceBase & {
       localization: "VISUAL_REPORTED";

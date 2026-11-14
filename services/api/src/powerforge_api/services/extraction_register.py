@@ -22,6 +22,7 @@ from powerforge_extraction.controls import RunExecution
 from powerforge_extraction.enrichment_profiles import PURPOSE
 from powerforge_extraction.models import ExtractionRun
 from powerforge_extraction.operation_models import ExtractionOperation, OperationItem
+from powerforge_extraction.phase6r_records import Candidate
 from powerforge_persistence import Project, ProjectRevision
 
 PROFILE_KEY = RunExecution.configuration["key"].as_string()
@@ -167,5 +168,29 @@ def register_status(
             status.enrichment = value
         else:
             status.extraction.latest_attempt = value
+
+    published = (
+        select(
+            run.id,
+            run.document_id,
+            run.status,
+            run.processing_run_id,
+            run.created_at,
+            PROFILE_KEY.label("profile_key"),
+            func.row_number().over(partition_by=run.document_id, order_by=order).label("rank"),
+        )
+        .join(RunExecution, RunExecution.run_id == run.id)
+        .where(
+            run.document_id.in_(included),
+            run.execution_purpose == "EXTRACTION",
+            or_(run.context_revision_id.is_(None), run.context_revision_id == revision_id),
+            exists().where(Candidate.run_id == run.id),
+        )
+        .subquery()
+    )
+    for row in session.execute(select(published).where(published.c.rank == 1)):
+        status_by_id[
+            included[row.document_id]
+        ].extraction.effective_result = RegisterRun.model_validate(row)
 
     return [status_by_id[id_] for id_ in dict.fromkeys(ids) if id_ in status_by_id]

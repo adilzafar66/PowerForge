@@ -16,14 +16,11 @@ from powerforge_extraction.models import ExtractionWorkUnit
 from powerforge_extraction.phase6r_contracts import (
     VERSION,
     AttributeRequest,
-    AttributeResponse,
     NoEligibleAttributes,
     PinnedPageContext,
-    ReadingCitation,
     ReadingText,
     RecognitionRequest,
     RecognitionResponse,
-    VisualCitation,
     attribute_catalog,
     contract_hash,
     equipment_catalog,
@@ -178,7 +175,7 @@ def request_for(factory, storage, claim):
                 upstream_hash=parent.result_hash,
                 provider_calls=0,
             )
-            return skip, None
+            return skip, None, source
         wire = AttributeRequest(
             **common,
             upstream=upstream,
@@ -215,83 +212,27 @@ def request_for(factory, storage, claim):
     encoded_size = len(canonical_json(envelope).encode()) + 4 * ((len(source.image) + 2) // 3)
     if encoded_size > profile.max_transport_bytes:
         raise ValueError("Phase 6R encoded input exceeds its transport budget")
-    return wire, request
+    return wire, request, source
 
 
-def stage_diagnostics(wire, result):
-    """Keep invalid proposals and citations inspectable without establishing links."""
-    diagnostics = []
-    if isinstance(result, NoEligibleAttributes):
-        return diagnostics
-    readings = {reading.reading_ref: reading for reading in wire.page.readings}
-    if isinstance(result, AttributeResponse):
-        owners = {item.local_ref: item for item in wire.upstream.equipment}
-        definitions = {(item.equipment_type, item.key): item for item in wire.attribute_catalog}
-        from powerforge_extraction.phase6r_contracts import RegistryAssertion
+def store_result(session, unit, snapshot, wire, result, observations):
+    from powerforge_extraction.phase6r_publication import publication_diagnostics
+    from powerforge_extraction.phase6r_records import publish
 
-        for item in (*result.attributes, *result.raw_unmapped):
-            owner = owners.get(item.equipment_ref)
-            if (
-                item.association == "UNASSIGNED"
-                and item.equipment_ref is not None
-                or item.association != "UNASSIGNED"
-                and owner is None
-                or owner is not None
-                and owner.qualification == "LEGEND_ONLY"
-            ):
-                diagnostics.append({"ref": item.local_ref, "code": "INVALID_OWNER_REFERENCE"})
-            if isinstance(item, RegistryAssertion):
-                definition = (
-                    definitions.get((owner.registry_type, item.attribute_key)) if owner else None
-                )
-                if definition is None and owner is not None:
-                    diagnostics.append({"ref": item.local_ref, "code": "UNSUPPORTED_ATTRIBUTE_KEY"})
-                elif (
-                    definition is not None
-                    and item.proposed_enum_value is not None
-                    and (
-                        definition.value_type != "ENUM"
-                        or item.proposed_enum_value not in definition.allowed_values
-                    )
-                ):
-                    diagnostics.append({"ref": item.local_ref, "code": "INVALID_ENUM_PROPOSAL"})
-        observations = (*result.attributes, *result.raw_unmapped)
-    else:
-        observations = result.equipment
-    for item in observations:
-        for index, citation in enumerate(item.evidence):
-            code = None
-            if isinstance(citation, ReadingCitation):
-                reading = readings.get(citation.reading_ref)
-                if reading is None:
-                    code = "UNKNOWN_READING_REFERENCE"
-                elif citation.quote is not None and not any(
-                    citation.quote in value for value in (reading.text, *reading.alternate_texts)
-                ):
-                    code = "READING_QUOTE_MISMATCH"
-            elif isinstance(citation, VisualCitation):
-                box = citation.region
-                if (
-                    box.x < 0
-                    or box.y < 0
-                    or box.width <= 0
-                    or box.height <= 0
-                    or box.x + box.width > 1
-                    or box.y + box.height > 1
-                ):
-                    code = "INVALID_VISUAL_BOUNDS"
-            if code:
-                diagnostics.append({"ref": item.local_ref, "citation": index, "code": code})
-    if len(diagnostics) > 128:
-        return [*diagnostics[:127], {"code": "DIAGNOSTIC_LIMIT", "omitted": len(diagnostics) - 127}]
-    return diagnostics
-
-
-def store_result(session, unit, wire, result):
     parent = prerequisite_result(session, unit)
     skip = isinstance(result, NoEligibleAttributes)
     if result.stage != unit.stage or result.page_context_hash != wire.page_context_hash:
         raise ValueError("Result differs from the pinned request")
+    if not skip and (
+        wire.page.owner != snapshot.layout.owner
+        or wire.page.layout_sha256 != snapshot.layout.identity_hash
+        or wire.page.preparation_sha256 != snapshot.prepared.manifest.identity_hash
+        or wire.page.source_sha256 != snapshot.prepared.manifest.original.sha256
+        or wire.page.page_image_id != snapshot.image.id
+        or wire.page.image_sha256 != snapshot.image.sha256
+        or contract_hash(wire.page) != wire.page_context_hash
+    ):
+        raise ValueError("Publication differs from the authorized page snapshot")
     if unit.stage == STAGES[1] and (
         parent is None
         or parent.result_hash != result.upstream_hash
@@ -299,23 +240,25 @@ def store_result(session, unit, wire, result):
         or skip != (not attribute_catalog(recognition_result(parent)))
     ):
         raise ValueError("Result differs from its committed recognition prerequisite")
-    session.add(
-        StageResult(
-            work_unit_id=unit.id,
-            run_id=unit.run_id,
-            document_page_id=UUID(unit.execution_metadata["source_page_id"]),
-            stage=unit.stage,
-            outcome="NO_ELIGIBLE_ATTRIBUTES" if skip else "RESULT",
-            page_context_hash=result.page_context_hash,
-            upstream_work_unit_id=parent.work_unit_id if parent else None,
-            upstream_hash=parent.result_hash if parent else None,
-            request_hash=contract_hash(wire),
-            result_hash=contract_hash(result),
-            payload=result.model_dump(mode="json"),
-            diagnostics=stage_diagnostics(wire, result),
-        )
+    stage = StageResult(
+        work_unit_id=unit.id,
+        run_id=unit.run_id,
+        document_page_id=UUID(unit.execution_metadata["source_page_id"]),
+        stage=unit.stage,
+        outcome="NO_ELIGIBLE_ATTRIBUTES" if skip else "RESULT",
+        page_context_hash=result.page_context_hash,
+        upstream_work_unit_id=parent.work_unit_id if parent else None,
+        upstream_hash=parent.result_hash if parent else None,
+        request_hash=contract_hash(wire),
+        result_hash=contract_hash(result),
+        payload=result.model_dump(mode="json"),
+        diagnostics=publication_diagnostics(observations),
     )
+    session.add(stage)
     session.flush()
+    if not skip:
+        publish(session, stage, wire.page.page_image_id, observations)
+    return {"candidates": len(observations), "evidence": sum(len(o.evidence) for o in observations)}
 
 
 class FakePhase6RProvider:
