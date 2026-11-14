@@ -7,6 +7,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from powerforge_ai.extraction import ValidationIssue
 from powerforge_extraction.enums import (
     ExtractionRunStatus,
     WorkUnitStatus,
@@ -61,6 +62,7 @@ class UnitResponse(ReadModel):
     finished_at: datetime | None
     error_code: str | None
     output_counts: dict[str, int]
+    validation_diagnostics: list[ValidationIssue] = Field(default_factory=list)
     stage_diagnostics: list[dict] = Field(default_factory=list)
     stage_outcome: Literal["RESULT", "NO_ELIGIBLE_ATTRIBUTES"] | None = None
     lease_expires_at: datetime | None = None

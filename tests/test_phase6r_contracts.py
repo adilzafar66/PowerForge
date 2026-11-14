@@ -211,8 +211,18 @@ def test_bad_envelopes_fail_closed(recognition_request, violation):
         payload = payload[:-1]
     elif violation == "capacity":
         payload = b" " * (MAX_RESPONSE_BYTES + 1)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as error:
         parse_response(request, payload)
+    if violation != "truncated":
+        assert (
+            error.value.issue.error_type
+            == {
+                "duplicate": "duplicate_reference",
+                "page": "page_identity_mismatch",
+                "tag": "invalid_tag_state",
+                "capacity": "response_byte_limit",
+            }[violation]
+        )
 
 
 def test_legend_only_and_unmapped_equipment_leave_no_eligible_catalog(recognition_request):
@@ -368,3 +378,44 @@ def test_gold_schedule_references_pinned_native_source():
             start, end = evidence["span"]
             assert 0 <= start < end <= len(text)
             assert text[start:end] == evidence["source_text"]
+
+
+def test_attribute_response_reports_upstream_identity_mismatch(
+    attribute_request, attribute_envelope
+):
+    attribute_envelope["upstream_hash"] = "f" * 64
+    with pytest.raises(ValueError, match="Foreign recognition prerequisite") as error:
+        parse_response(attribute_request, json.dumps(attribute_envelope).encode())
+    assert error.value.issue.path == ("upstream_hash",)
+    assert error.value.issue.error_type == "upstream_identity_mismatch"
+
+
+def test_validation_diagnostics_bound_and_redact_nested_errors(recognition_request):
+    from pydantic import ValidationError
+
+    from powerforge_extraction.response_diagnostics import validation_issues
+
+    private = "PRIVATE-PANEL-IDENTIFIER"
+    payload = recognition_envelope(recognition_request)
+    payload["equipment"][0].update(
+        source_description=private * 256,
+        registry_type=private,
+        evidence=[
+            {
+                "kind": "READING",
+                "role": "TAG",
+                "reading_ref": private,
+                "quote": None,
+                private: private,
+            }
+        ],
+    )
+    payload.update({f"{private}-{index}": private for index in range(20)})
+    with pytest.raises(ValidationError) as error:
+        parse_response(recognition_request, json.dumps(payload).encode())
+    issues = validation_issues(error.value)
+    assert 0 < len(issues) <= 8
+    assert any(issue.error_type == "string_too_long" for issue in issues)
+    assert any(issue.error_type == "enum" for issue in issues)
+    assert any(issue.error_type == "extra_forbidden" for issue in issues)
+    assert all(private not in issue.model_dump_json() for issue in issues)

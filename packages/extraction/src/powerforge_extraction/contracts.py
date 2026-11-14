@@ -19,6 +19,7 @@ from pydantic import (
     model_validator,
 )
 
+from powerforge_ai.extraction import MAX_VALIDATION_ISSUES, ValidationIssue
 from powerforge_engineering_model.enums import AttributeValueType
 from powerforge_engineering_model.registry import (
     get_attribute_definition,
@@ -290,6 +291,9 @@ class AICallInput(Contract):
     request_correlation_id: Identity | None = None
     outcome: AICallOutcome
     error_code: Identity | None = None
+    validation_diagnostics: tuple[ValidationIssue, ...] = Field(
+        default=(), max_length=MAX_VALIDATION_ISSUES
+    )
     started_at: datetime
     finished_at: datetime
     duration_ms: int = Field(ge=0)

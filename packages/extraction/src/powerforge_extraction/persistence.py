@@ -126,7 +126,10 @@ class ExtractionPersistence:
         if unit is None or unit.status != WorkUnitStatus.RUNNING:
             raise ValueError("AI telemetry requires a running attempt")
         row = ExtractionAICall(
-            **call.model_dump(),
+            **call.model_dump(exclude={"validation_diagnostics"}),
+            validation_diagnostics=[
+                issue.model_dump(mode="json") for issue in call.validation_diagnostics
+            ],
             run_id=unit.run_id,
             document_id=unit.document_id,
             processing_run_id=unit.processing_run_id,

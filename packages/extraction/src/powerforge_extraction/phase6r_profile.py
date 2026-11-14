@@ -62,7 +62,16 @@ def structured_schema(value: dict) -> dict:
             properties[name] = [structured_schema(item) for item in child]
         elif name == "const":
             properties["enum"] = [child]
-        elif name in {"type", "$ref", "enum", "title", "description"}:
+        elif name in {
+            "type",
+            "$ref",
+            "enum",
+            "title",
+            "description",
+            "pattern",
+            "minItems",
+            "maxItems",
+        }:
             properties[name] = child
     if properties.get("type") == "object":
         properties["required"] = list(properties.get("properties", ()))

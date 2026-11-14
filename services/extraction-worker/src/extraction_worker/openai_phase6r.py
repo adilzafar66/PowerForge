@@ -12,6 +12,7 @@ from powerforge_ai.extraction import (
     ExtractionRequest,
     ExtractionResponse,
     ProviderFailure,
+    ValidationIssue,
 )
 from powerforge_extraction.identities import canonical_json
 from powerforge_extraction.phase6r_contracts import MAX_RESPONSE_BYTES, VERSION
@@ -21,6 +22,7 @@ from powerforge_extraction.phase6r_profile import (
     provider_available,
     structured_schema,
 )
+from powerforge_extraction.response_diagnostics import validation_issues
 from powerforge_shared.config import Settings
 
 
@@ -94,9 +96,18 @@ class OpenAIPhase6RProvider:
             raise ProviderFailure(ErrorCode.AUTH) from None
         except openai.APIConnectionError:
             raise ProviderFailure(ErrorCode.UNAVAILABLE) from None
+        except (openai.APIResponseValidationError, ValueError, TypeError):
+            raise ProviderFailure(
+                ErrorCode.INVALID,
+                diagnostics=(ValidationIssue(category="ENVELOPE", error_type="invalid_envelope"),),
+            ) from None
         except openai.APIStatusError as exc:
             code = ErrorCode.UNAVAILABLE if exc.status_code >= 500 else ErrorCode.INVALID
-            raise ProviderFailure(code) from None
+            diagnostics = (ValidationIssue(category="ENVELOPE", error_type="http_rejection"),)
+            raise ProviderFailure(
+                code,
+                diagnostics=diagnostics if code == ErrorCode.INVALID else (),
+            ) from None
         raw_usage = getattr(response, "usage", None)
         try:
             usage = ExecutionUsage(
@@ -107,23 +118,78 @@ class OpenAIPhase6RProvider:
                 ),
             )
         except ValidationError:
-            raise ProviderFailure(ErrorCode.INVALID) from None
+            raise ProviderFailure(
+                ErrorCode.INVALID,
+                diagnostics=(
+                    ValidationIssue(
+                        category="ENVELOPE", error_type="invalid_usage", path=("usage",)
+                    ),
+                ),
+            ) from None
 
-        parts = [
-            part
-            for item in (response.output or [])
-            if item.type == "message"
-            for part in (item.content or [])
-        ]
-        if any(part.type == "refusal" for part in parts):
-            raise ProviderFailure(ErrorCode.REFUSAL, usage)
-        if response.status != "completed" or len(parts) != 1 or parts[0].type != "output_text":
-            raise ProviderFailure(ErrorCode.INVALID, usage)
-        raw = parts[0].text.encode()
+        status = getattr(response, "status", None)
+        output = getattr(response, "output", None)
+        parts = []
+        envelope_error = ValidationIssue(
+            category="ENVELOPE", error_type="invalid_envelope", path=("output",)
+        )
+        if isinstance(output, list):
+            for item in output:
+                if getattr(item, "type", None) == "message":
+                    content = getattr(item, "content", None)
+                    if not isinstance(content, list):
+                        raise ProviderFailure(
+                            ErrorCode.INVALID, usage, diagnostics=(envelope_error,)
+                        )
+                    parts.extend(content)
+        if any(getattr(part, "type", None) == "refusal" for part in parts):
+            raise ProviderFailure(
+                ErrorCode.REFUSAL,
+                usage,
+                diagnostics=(
+                    ValidationIssue(category="REFUSAL", error_type="refusal", path=("output",)),
+                ),
+            )
+        if status == "incomplete":
+            reason = getattr(getattr(response, "incomplete_details", None), "reason", None)
+            raise ProviderFailure(
+                ErrorCode.INVALID,
+                usage,
+                diagnostics=(
+                    ValidationIssue(
+                        category="INCOMPLETE",
+                        error_type=reason
+                        if reason in ("max_output_tokens", "content_filter")
+                        else "incomplete",
+                        path=("status",),
+                    ),
+                ),
+            )
+        if (
+            status != "completed"
+            or len(parts) != 1
+            or getattr(parts[0], "type", None) != "output_text"
+            or not isinstance(getattr(parts[0], "text", None), str)
+        ):
+            raise ProviderFailure(ErrorCode.INVALID, usage, diagnostics=(envelope_error,))
+        try:
+            raw = parts[0].text.encode()
+        except UnicodeError:
+            raise ProviderFailure(ErrorCode.INVALID, usage, diagnostics=(envelope_error,)) from None
         if len(raw) > MAX_RESPONSE_BYTES:
-            raise ProviderFailure(ErrorCode.INVALID, usage)
+            raise ProviderFailure(
+                ErrorCode.INVALID,
+                usage,
+                diagnostics=(
+                    ValidationIssue(category="CAPACITY", error_type="response_byte_limit"),
+                ),
+            )
         try:
             result = model.model_validate_json(raw)
-        except ValidationError:
-            raise ProviderFailure(ErrorCode.INVALID, usage) from None
+        except ValidationError as exc:
+            raise ProviderFailure(
+                ErrorCode.INVALID,
+                usage,
+                diagnostics=validation_issues(exc),
+            ) from None
         return ExtractionResponse[model](result=result, usage=usage)

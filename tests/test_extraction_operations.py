@@ -1080,3 +1080,80 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         assert len(audit) == 2
         assert all(call.input_tokens == 100 and call.output_tokens == 30 for call in audit)
         assert all(call.estimated_cost_usd is None for call in audit)
+
+
+@pytest.mark.parametrize("malformed", ["schema", "tag"])
+def test_invalid_response_audit_is_fenced_and_redacted(operation_context, caplog, malformed):
+    from types import SimpleNamespace
+
+    from extraction_worker.openai_phase6r import OpenAIPhase6RProvider
+    from powerforge_extraction.models import ExtractionAICall
+    from powerforge_extraction.phase6r_runtime import StageResult
+
+    ctx = operation_context
+    ctx["settings"].extraction_phase6r_fake = False
+    private = "PRIVATE-PANEL-IDENTIFIER"
+    source = new_source(ctx, "redaction.pdf")
+    _, run_id, units = admitted_page(ctx, source)
+    recognition = units["EQUIPMENT_RECOGNITION"]
+
+    def create(**kwargs):
+        wire = json.loads(kwargs["input"][0]["content"][0]["text"])
+        payload = {key: wire[key] for key in ("version", "stage", "page_context_hash")}
+        item = dict(
+            local_ref="valid-ref",
+            source_description=private,
+            registry_type=None,
+            tag_state="ABSENT",
+            tag=private,
+            qualification="UNKNOWN",
+            raw_qualification=None,
+            evidence=[],
+        )
+        if malformed == "schema":
+            item[private] = private
+        payload["equipment"] = [item]
+        return SimpleNamespace(
+            status="completed",
+            usage=SimpleNamespace(input_tokens=85, output_tokens=30),
+            output=[
+                SimpleNamespace(
+                    type="message",
+                    content=[SimpleNamespace(type="output_text", text=json.dumps(payload))],
+                )
+            ],
+        )
+
+    assert execute_unit(
+        recognition,
+        ctx["factory"],
+        ctx["storage"],
+        ctx["settings"],
+        lambda claim: OpenAIPhase6RProvider(
+            ctx["settings"],
+            claim.profile,
+            SimpleNamespace(responses=SimpleNamespace(create=create)),
+        ),
+    )
+    diagnostic = {
+        "category": "SCHEMA" if malformed == "schema" else "CROSS_FIELD",
+        "error_type": "extra_forbidden" if malformed == "schema" else "invalid_tag_state",
+        "path": ["equipment", 0, "*" if malformed == "schema" else "tag"],
+    }
+    with ctx["factory"]() as session:
+        call = session.scalar(select(ExtractionAICall).where(ExtractionAICall.run_id == run_id))
+        assert call.error_code == "INVALID_PROVIDER_RESPONSE"
+        assert call.output_tokens == 30
+        assert call.validation_diagnostics == [diagnostic]
+        assert session.get(StageResult, recognition) is None
+        assert session.get(ExtractionWorkUnit, units["ATTRIBUTE_EXTRACTION"]).error_code == (
+            "PREREQUISITE_FAILED"
+        )
+    base = ctx["operation_base"].removesuffix("/extraction")
+    detail = client.get(
+        f"{base}/documents/{source['revision_document_id']}/extraction/runs/{run_id}"
+    )
+    assert detail.status_code == 200
+    attempt = next(row for row in detail.json()["attempts"] if row["id"] == str(recognition))
+    assert attempt["validation_diagnostics"] == [diagnostic]
+    assert private not in detail.text and private not in caplog.text

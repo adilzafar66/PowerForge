@@ -177,7 +177,15 @@ class ExtractionReadService:
             row.work_unit_id: row
             for row in self.session.scalars(select(StageResult).where(StageResult.run_id == run.id))
         }
-        computed = {"effective", "retryable", "stale", "stage_outcome", "stage_diagnostics"}
+        diagnostics = {call.work_unit_id: call.validation_diagnostics for call in calls}
+        computed = {
+            "effective",
+            "retryable",
+            "stale",
+            "stage_outcome",
+            "stage_diagnostics",
+            "validation_diagnostics",
+        }
         return RunDetail(
             run=RunResponse.model_validate(run),
             coverage=coverage,
@@ -188,6 +196,7 @@ class ExtractionReadService:
                         **{
                             k: getattr(r, k) for k in UnitResponse.model_fields if k not in computed
                         },
+                        "validation_diagnostics": diagnostics.get(r.id, []),
                         "effective": r.status == WorkUnitStatus.COMPLETED,
                         "stage_outcome": results[r.id].outcome if r.id in results else None,
                         "stage_diagnostics": results[r.id].diagnostics if r.id in results else [],

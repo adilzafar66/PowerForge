@@ -14,6 +14,8 @@ from powerforge_ai.extraction import (
     ExecutionUsage,
     ExtractionProvider,
     ProviderFailure,
+    ResponseValidationFailure,
+    ValidationIssue,
 )
 from powerforge_document_processing.storage.base import (
     ObjectStorage,
@@ -22,6 +24,7 @@ from powerforge_document_processing.storage.base import (
 )
 from powerforge_extraction.errors import LeaseLost
 from powerforge_extraction.orchestration import Claim, ExtractionCoordinator
+from powerforge_extraction.response_diagnostics import validation_issues
 from powerforge_shared.config import Settings
 
 logger = logging.getLogger(__name__)
@@ -84,11 +87,25 @@ def execute_unit(
                     usage.output_tokens is not None
                     and usage.output_tokens > request.max_output_tokens
                 ):
-                    raise ProviderFailure(ErrorCode.INVALID, usage)
+                    raise ProviderFailure(
+                        ErrorCode.INVALID,
+                        usage,
+                        diagnostics=(
+                            ValidationIssue(category="CAPACITY", error_type="output_token_limit"),
+                        ),
+                    )
                 try:
                     result = parse_response(wire, response.result.model_dump_json().encode())
-                except ValueError:
-                    raise ProviderFailure(ErrorCode.INVALID, usage) from None
+                except ResponseValidationFailure as exc:
+                    raise ProviderFailure(
+                        ErrorCode.INVALID, usage, diagnostics=(exc.issue,)
+                    ) from None
+                except ValidationError as exc:
+                    raise ProviderFailure(
+                        ErrorCode.INVALID,
+                        usage,
+                        diagnostics=validation_issues(exc),
+                    ) from None
             with factory.begin() as session:
                 ExtractionCoordinator(session, settings).complete_stage(
                     claim.unit_id, claim.token, wire, result, usage
@@ -96,8 +113,9 @@ def execute_unit(
     except LeaseLost:
         return False
     except Exception as exc:
+        diagnostics = ()
         if isinstance(exc, ProviderFailure):
-            code, usage = exc.code, exc.usage
+            code, usage, diagnostics = exc.code, exc.usage, exc.diagnostics
         elif isinstance(exc, ValidationError):
             code = ErrorCode.INVALID
         elif isinstance(exc, TransientStorageError):
@@ -115,7 +133,7 @@ def execute_unit(
         try:
             with factory.begin() as session:
                 ExtractionCoordinator(session, settings).fail(
-                    claim.unit_id, claim.token, code, usage
+                    claim.unit_id, claim.token, code, usage, diagnostics=diagnostics
                 )
         except LeaseLost:
             return False

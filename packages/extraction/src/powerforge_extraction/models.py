@@ -554,6 +554,7 @@ class ExtractionAICall(OutputRecord, Base):
     finished_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     duration_ms: Mapped[int] = mapped_column(Integer, nullable=False)
     input_tokens: Mapped[int | None] = mapped_column(Integer)
+    validation_diagnostics: Mapped[list[dict]] = mapped_column(JSONB, server_default="[]")
     cached_input_tokens: Mapped[int | None] = mapped_column(Integer)
     output_tokens: Mapped[int | None] = mapped_column(Integer)
     estimated_cost_usd: Mapped[Decimal | None] = mapped_column(Numeric)

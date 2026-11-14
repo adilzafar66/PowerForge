@@ -351,6 +351,12 @@ Order: **6R-A → 6R-B → 6R-C → 6R-D → 6R-E → 6R-F** under the approved 
 
 The [6R-C feasibility checkpoint](../evals/phase6r/FEASIBILITY_6R_C.md) is ready for review.
 
+**Response validation handoff**
+
+- Malformed responses leave an audit entry on the failed attempt with at most eight allowlisted categories, error types and field paths. The revision-scoped run detail exposes them. Messages, source values, unknown keys and failed response bodies are excluded. Failure codes and retry behavior retain their existing meanings.
+- The pinned OpenAI schema now carries field patterns and array cardinality alongside its existing strict shape and enum constraints. Literal string length, aggregate byte/token limits, registry semantics, tag consistency, reference uniqueness and all page/upstream identity comparisons remain locally enforced. The stricter provider schema is tested offline. Check compatibility with the configured model in the next authorized run. [OpenAI Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs)
+- The earlier Delta attribute and REX recognition errors cannot be classified retrospectively from their audit entries. A future authorized rerun should capture these diagnostics from the same source pages. Carry the 4,096-reading limit, 20-megapixel raster limit, configured PNG byte limit and dense-sheet image legibility risk into 6R-F capacity evaluation. Any region-based extraction proposal requires separate review.
+
 ### 6R-D — Thin validation, normalization, and publication
 
 **Dependencies:** C model outputs and completed/reviewed live OpenAI feasibility report covering prose, schedules and diagrams; B immutable source/stage binding; A schema/status/unit policies. Do not begin D before the C feasibility checkpoint is complete.

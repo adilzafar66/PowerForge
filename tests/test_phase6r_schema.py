@@ -11,7 +11,7 @@ pytestmark = pytest.mark.integration
 def test_phase6r_b_schema_exposes_only_unified_extraction(require_db):
     with get_engine().connect() as conn:
         assert conn.execute(text("SELECT version_num FROM alembic_version")).scalars().all() == [
-            "6r_0013c_admission"
+            "6r_0013d_validation"
         ]
         catalog = inspect(conn)
         assert {

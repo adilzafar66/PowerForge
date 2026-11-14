@@ -11,7 +11,13 @@ from uuid import UUID, uuid4
 from sqlalchemy import exists, func, or_, select, text
 from sqlalchemy.orm import Session, aliased
 
-from powerforge_ai.extraction import ErrorCode, ExecutionUsage, ExtractionRequest, ProviderFailure
+from powerforge_ai.extraction import (
+    ErrorCode,
+    ExecutionUsage,
+    ExtractionRequest,
+    ProviderFailure,
+    ValidationIssue,
+)
 from powerforge_document_processing.models import (
     DocumentPage,
     PageArtifact,
@@ -435,6 +441,7 @@ class ExtractionCoordinator:
         outcome: str,
         error: str | None,
         usage: ExecutionUsage | None,
+        diagnostics: tuple[ValidationIssue, ...] = (),
     ) -> None:
         if profile.provider == "local":
             return
@@ -468,6 +475,7 @@ class ExtractionCoordinator:
                 request_correlation_id=correlation,
                 outcome=outcome,
                 error_code=error,
+                validation_diagnostics=diagnostics,
                 started_at=started,
                 finished_at=now,
                 duration_ms=max(0, int((now - started).total_seconds() * 1000)),
@@ -548,11 +556,17 @@ class ExtractionCoordinator:
         return new
 
     def fail(
-        self, unit_id: UUID, token: UUID, code: ErrorCode, usage: ExecutionUsage | None = None
+        self,
+        unit_id: UUID,
+        token: UUID,
+        code: ErrorCode,
+        usage: ExecutionUsage | None = None,
+        *,
+        diagnostics: tuple[ValidationIssue, ...] = (),
     ) -> None:
         run, unit, _ = self._authorized(unit_id, token)
         profile = read_profile(self._execution(run.id).configuration)
-        self._telemetry(unit, profile, self.now(), "FAILED", code.value, usage)
+        self._telemetry(unit, profile, self.now(), "FAILED", code.value, usage, diagnostics)
         self._settle_failure(run, unit, profile, code.value)
 
     def _settle_failure(

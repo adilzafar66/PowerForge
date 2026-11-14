@@ -14,8 +14,22 @@ from powerforge_shared.config import Settings
 
 
 @pytest.mark.parametrize("stage", STAGES)
-@pytest.mark.parametrize("outcome", ["success", "incomplete", "refusal", "invalid"])
-def test_responses_transport_is_bounded_and_retains_measured_usage(stage, outcome):
+@pytest.mark.parametrize(
+    "outcome, category, error_type",
+    [
+        ("success", None, None),
+        ("incomplete", "INCOMPLETE", "max_output_tokens"),
+        ("refusal", "REFUSAL", "refusal"),
+        ("invalid", "JSON", "json_invalid"),
+        ("envelope", "ENVELOPE", "invalid_envelope"),
+        ("schema", "SCHEMA", "extra_forbidden"),
+        ("pattern", "FIELD_CONSTRAINT", "string_pattern_mismatch"),
+        ("cardinality", "FIELD_CONSTRAINT", "too_long"),
+    ],
+)
+def test_responses_transport_is_bounded_and_retains_measured_usage(
+    stage, outcome, category, error_type
+):
     settings = Settings(_env_file=None, extraction_external_enabled=True)
     profile = phase6r_profile(settings)
     payload = {
@@ -32,6 +46,38 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(stage, outcom
             }
         ),
     }
+    secret = "CONFIDENTIAL SOURCE STRING"
+    if outcome == "schema":
+        payload[secret] = secret
+    if outcome == "pattern":
+        payload["page_context_hash"] = secret
+    if outcome == "cardinality":
+        field = "equipment" if stage == STAGES[0] else "raw_unmapped"
+        item = (
+            dict(
+                local_ref="ref",
+                source_description=secret,
+                registry_type=None,
+                tag_state="ABSENT",
+                tag=None,
+                qualification="UNKNOWN",
+                raw_qualification=None,
+                evidence=[],
+            )
+            if stage == STAGES[0]
+            else dict(
+                local_ref="ref",
+                equipment_ref=None,
+                association="UNASSIGNED",
+                raw_label=secret,
+                raw_value=secret,
+                raw_unit=None,
+                qualifiers=[],
+                value_form="SINGLE",
+                evidence=[],
+            )
+        )
+        payload[field] = [item] * 129
     seen = []
 
     def respond(http_request):
@@ -46,6 +92,11 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(stage, outcom
         assert message["content"][1]["image_url"].startswith("data:image/png;base64,")
         fmt = wire["text"]["format"]
         assert fmt["strict"] and set(fmt["schema"]["required"]) == set(fmt["schema"]["properties"])
+        if stage == STAGES[0]:
+            assert fmt["schema"]["properties"]["equipment"]["maxItems"] == 128
+        else:
+            assert fmt["schema"]["properties"]["raw_unmapped"]["maxItems"] == 16
+        assert fmt["schema"]["properties"]["page_context_hash"]["pattern"] == "^[0-9a-f]{64}$"
         return httpx.Response(
             200,
             json={
@@ -54,14 +105,19 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(stage, outcom
                 "created_at": 1,
                 "model": profile.model,
                 "status": "incomplete" if outcome == "incomplete" else "completed",
-                "output": [
+                "incomplete_details": {"reason": "max_output_tokens"}
+                if outcome == "incomplete"
+                else None,
+                "output": []
+                if outcome == "envelope"
+                else [
                     {
                         "id": "msg_mock",
                         "type": "message",
                         "role": "assistant",
                         "status": "completed",
                         "content": [
-                            {"type": "refusal", "refusal": "test"}
+                            {"type": "refusal", "refusal": secret}
                             if outcome == "refusal"
                             else {
                                 "type": "output_text",
@@ -105,6 +161,12 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(stage, outcom
                 ErrorCode.REFUSAL if outcome == "refusal" else ErrorCode.INVALID
             )
             assert error.value.usage.output_tokens == 45
+            issue = error.value.diagnostics[0]
+            assert (issue.category, issue.error_type) == (category, error_type)
+            if outcome == "schema":
+                assert issue.path == ("*",)
+            assert secret not in str(error.value)
+            assert all(secret not in issue.model_dump_json() for issue in error.value.diagnostics)
         assert len(seen) == 1
 
 

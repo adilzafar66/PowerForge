@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from powerforge_ai.extraction import ResponseValidationFailure, ValidationIssue
 from powerforge_engineering_model.enums import EquipmentType
 from powerforge_engineering_model.extraction_descriptions import (
     DESCRIPTION_VERSION,
@@ -270,21 +271,60 @@ def parse_response(
 ) -> RecognitionResponse | AttributeResponse:
     """Reject a malformed complete envelope. Worker checks provider finish status first."""
     if len(payload) > MAX_RESPONSE_BYTES:
-        raise ValueError("Response capacity exceeded")
+        raise ResponseValidationFailure(
+            ValidationIssue(category="CAPACITY", error_type="response_byte_limit"),
+            "Response capacity exceeded",
+        )
     if isinstance(request, RecognitionRequest):
         result = RecognitionResponse.model_validate_json(payload)
-        refs = [item.local_ref for item in result.equipment]
-        if any(
-            (item.tag_state == "PRESENT" and not (item.tag or "").strip())
-            or (item.tag_state in ("ABSENT", "UNREADABLE") and item.tag is not None)
-            for item in result.equipment
-        ):
-            raise ValueError("Inconsistent equipment tag state")
+        collections = (("equipment", result.equipment),)
+        for index, item in enumerate(result.equipment):
+            if (
+                item.tag_state == "PRESENT"
+                and not (item.tag or "").strip()
+                or item.tag_state in ("ABSENT", "UNREADABLE")
+                and item.tag is not None
+            ):
+                raise ResponseValidationFailure(
+                    ValidationIssue(
+                        category="CROSS_FIELD",
+                        error_type="invalid_tag_state",
+                        path=("equipment", index, "tag"),
+                    ),
+                    "Inconsistent equipment tag state",
+                )
     else:
         result = AttributeResponse.model_validate_json(payload)
-        refs = [item.local_ref for item in (*result.attributes, *result.raw_unmapped)]
+        collections = (("attributes", result.attributes), ("raw_unmapped", result.raw_unmapped))
         if result.upstream_hash != request.upstream_hash:
-            raise ValueError("Foreign recognition prerequisite")
-    if result.page_context_hash != request.page_context_hash or len(refs) != len(set(refs)):
-        raise ValueError("Foreign page context or duplicate observation reference")
+            raise ResponseValidationFailure(
+                ValidationIssue(
+                    category="CROSS_FIELD",
+                    error_type="upstream_identity_mismatch",
+                    path=("upstream_hash",),
+                ),
+                "Foreign recognition prerequisite",
+            )
+    if result.page_context_hash != request.page_context_hash:
+        raise ResponseValidationFailure(
+            ValidationIssue(
+                category="CROSS_FIELD",
+                error_type="page_identity_mismatch",
+                path=("page_context_hash",),
+            ),
+            "Foreign page context",
+        )
+    refs = set()
+    for collection, observations in collections:
+        for index, item in enumerate(observations):
+            if item.local_ref in refs:
+                raise ResponseValidationFailure(
+                    ValidationIssue(
+                        category="CROSS_FIELD",
+                        error_type="duplicate_reference",
+                        path=(collection, index, "local_ref"),
+                    ),
+                    "Found a duplicate observation reference",
+                )
+            refs.add(item.local_ref)
     return result

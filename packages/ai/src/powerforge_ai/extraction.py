@@ -41,11 +41,126 @@ class ExecutionUsage(BaseModel):
         return self
 
 
+ValidationCategory = Literal[
+    "INCOMPLETE",
+    "REFUSAL",
+    "ENVELOPE",
+    "JSON",
+    "SCHEMA",
+    "FIELD_CONSTRAINT",
+    "CROSS_FIELD",
+    "CAPACITY",
+]
+ValidationType = Literal[
+    "incomplete",
+    "max_output_tokens",
+    "content_filter",
+    "refusal",
+    "invalid_envelope",
+    "invalid_usage",
+    "http_rejection",
+    "json_invalid",
+    "schema_invalid",
+    "missing",
+    "extra_forbidden",
+    "model_type",
+    "tuple_type",
+    "string_type",
+    "int_type",
+    "decimal_type",
+    "string_pattern_mismatch",
+    "string_too_short",
+    "string_too_long",
+    "enum",
+    "literal_error",
+    "too_short",
+    "too_long",
+    "greater_than",
+    "greater_than_equal",
+    "less_than",
+    "less_than_equal",
+    "invalid_tag_state",
+    "duplicate_reference",
+    "page_identity_mismatch",
+    "upstream_identity_mismatch",
+    "response_byte_limit",
+    "output_token_limit",
+]
+ValidationField = Literal[
+    "version",
+    "stage",
+    "page_context_hash",
+    "upstream_hash",
+    "equipment",
+    "attributes",
+    "raw_unmapped",
+    "local_ref",
+    "source_description",
+    "registry_type",
+    "tag_state",
+    "tag",
+    "qualification",
+    "raw_qualification",
+    "evidence",
+    "kind",
+    "role",
+    "reading_ref",
+    "quote",
+    "region",
+    "reported_text",
+    "x",
+    "y",
+    "width",
+    "height",
+    "equipment_ref",
+    "association",
+    "raw_label",
+    "raw_value",
+    "raw_unit",
+    "qualifiers",
+    "value_form",
+    "attribute_key",
+    "proposed_enum_value",
+    "output",
+    "status",
+    "usage",
+    "*",
+]
+MAX_VALIDATION_ISSUES = 8
+
+
+class ValidationIssue(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    category: ValidationCategory
+    error_type: ValidationType
+    path: tuple[ValidationField | int, ...] = Field(default=(), max_length=8)
+
+    @model_validator(mode="after")
+    def bounded_indexes(self):
+        if any(isinstance(part, int) and not 0 <= part < 1024 for part in self.path):
+            raise ValueError("Invalid diagnostic path index")
+        return self
+
+
+class ResponseValidationFailure(ValueError):
+    def __init__(self, issue: ValidationIssue, message: str):
+        self.issue = issue
+        super().__init__(message)
+
+
 class ProviderFailure(Exception):
     """Only safe categories cross the integration boundary; never SDK messages."""
 
-    def __init__(self, code: ErrorCode, usage: ExecutionUsage | None = None) -> None:
+    def __init__(
+        self,
+        code: ErrorCode,
+        usage: ExecutionUsage | None = None,
+        *,
+        diagnostics: tuple[ValidationIssue, ...] = (),
+    ) -> None:
         self.code, self.usage = code, usage
+        self.diagnostics = diagnostics[:MAX_VALIDATION_ISSUES]
         super().__init__(code.value)
 
     @property
