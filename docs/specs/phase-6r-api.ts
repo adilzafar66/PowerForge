@@ -192,6 +192,7 @@ export interface AttributeCandidate extends CandidateBase {
   raw_value: string | null;
   raw_unit: string | null;
   proposed_value: string | null;
+  /** Registry unit proposed for the literal source unit or inferred value. */
   proposed_unit: string | null;
   inference_explanation: string | null;
   inference_basis: "DOCUMENT_CONTEXT" | "EQUIPMENT_CHARACTERISTICS" | "ENGINEERING_KNOWLEDGE" | null;

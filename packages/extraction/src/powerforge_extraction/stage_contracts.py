@@ -25,7 +25,7 @@ from powerforge_provenance.spatial_base import ExactDecimal
 from powerforge_provenance.spatial_sources import PageOwner
 
 VERSION = "phase-6r-v1"
-ATTRIBUTE_VERSION = "phase-6r-attributes-v3"
+ATTRIBUTE_VERSION = "phase-6r-attributes-v4"
 ATTRIBUTE_INPUT_VERSION = "compact-page-v1"
 MAX_REQUEST_BYTES = 2 * 1024 * 1024
 MAX_RESPONSE_BYTES = 512 * 1024
@@ -117,6 +117,7 @@ class RegistryAssertion(AttributeAssertion):
     origin: Literal["EXTRACTED"]
     attribute_key: Ref
     proposed_enum_value: Short | None
+    proposed_unit: Short | None
 
 
 class InferredAssertion(Contract):
@@ -148,7 +149,7 @@ class RecognitionResponse(Contract):
 
 
 class AttributeResponse(Contract):
-    version: Literal["phase-6r-attributes-v3"]
+    version: Literal["phase-6r-attributes-v4"]
     stage: Literal["ATTRIBUTE_EXTRACTION"]
     page_context_hash: Hash
     upstream_hash: Hash
@@ -207,7 +208,7 @@ class RecognitionRequest(Contract):
 
 
 class AttributeRequest(Contract):
-    version: Literal["phase-6r-attributes-v3"]
+    version: Literal["phase-6r-attributes-v4"]
     stage: Literal["ATTRIBUTE_EXTRACTION"]
     page_context_hash: Hash
     page: PinnedPageContext
@@ -219,7 +220,7 @@ class AttributeRequest(Contract):
 
 
 class NoEligibleAttributes(Contract):
-    version: Literal["phase-6r-attributes-v3"]
+    version: Literal["phase-6r-attributes-v4"]
     stage: Literal["ATTRIBUTE_EXTRACTION"]
     outcome: Literal["NO_ELIGIBLE_ATTRIBUTES"]
     page_context_hash: Hash

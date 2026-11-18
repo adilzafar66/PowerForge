@@ -30,15 +30,17 @@ def test_profile_round_trips_and_rejects_pinned_manifest_drift():
         "phase-6r-publication-v1",
         "phase-6r-publication-v2",
         "phase-6r-publication-v3",
+        "phase-6r-publication-v4",
     ],
 )
 def test_previous_publication_pin_cannot_be_loaded_for_execution(previous_version):
     profile = extraction_profile(Settings(_env_file=None, extraction_use_fake_provider=True))
-    assert profile.manifest["publication_version"] == "phase-6r-publication-v4"
-    assert profile.schema_version == profile.manifest["version"] == "phase-6r-wire-v3"
+    assert profile.manifest["publication_version"] == "phase-6r-publication-v5"
+    assert profile.manifest["unit_interpretation_version"] == "source-unit-interpretation-v1"
+    assert profile.schema_version == profile.manifest["version"] == "phase-6r-wire-v4"
     assert [stage["version"] for stage in profile.manifest["stages"]] == [
         "phase-6r-v1",
-        "phase-6r-attributes-v3",
+        "phase-6r-attributes-v4",
     ]
     previous = profile.model_copy(
         update={"manifest": {**profile.manifest, "publication_version": previous_version}}

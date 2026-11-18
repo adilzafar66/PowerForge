@@ -1244,7 +1244,13 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
     from spatial_layout_support import drawn_table
 
     ctx = operation_context
-    source = new_source(ctx, "publication.pdf", drawn_table(nearby=True))
+    source = new_source(
+        ctx,
+        "publication.pdf",
+        drawn_table(
+            rows=[("Equipment", "Secondary (KV)"), ("TX-1", "600"), ("TX-2", "600")], nearby=True
+        ),
+    )
     _, run_id, units = admitted_page(ctx, source)
     root = ctx["operation_base"].removesuffix("/extraction")
     path = f"{root}/documents/{source['revision_document_id']}/extraction"
@@ -1259,7 +1265,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                     dict(zip(readings["columns"], row, strict=True)) for row in readings["rows"]
                 ]
             label = next(item["reading_ref"] for item in readings if item["text"] == "TX-1")
-            header = next(item["reading_ref"] for item in readings if item["text"] == "(V)")
+            header = next(item["reading_ref"] for item in readings if item["text"] == "(KV)")
             value = next(item["reading_ref"] for item in readings if item["text"] == "600")
             response = {key: wire[key] for key in ("version", "stage", "page_context_hash")}
             if wire["stage"] == "EQUIPMENT_RECOGNITION":
@@ -1284,11 +1290,12 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                     local_ref="rating",
                     attribute_key="secondary_voltage",
                     proposed_enum_value=None,
+                    proposed_unit="kV",
                     equipment_ref="e0",
                     association="UNCERTAIN",
                     raw_label="Secondary",
                     raw_value="600",
-                    raw_unit=None,
+                    raw_unit="KV",
                     qualifiers=[],
                     value_form="SINGLE",
                     evidence=[
@@ -1302,7 +1309,8 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                     **{
                         k: v
                         for k, v in attribute.items()
-                        if k not in {"attribute_key", "proposed_enum_value", "origin"}
+                        if k
+                        not in {"attribute_key", "proposed_enum_value", "proposed_unit", "origin"}
                     },
                 }
                 inference = dict(
@@ -1476,14 +1484,15 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
     assert (
         context_unresolved["localization"] == "UNRESOLVED" and "regions" not in context_unresolved
     )
-    assert rating["association"] == "UNCERTAIN" and rating["raw_unit"] is None
+    assert rating["association"] == "UNCERTAIN"
+    assert rating["raw_unit"] == "KV" and rating["proposed_unit"] == "kV"
     assert rating["raw_value"] == "600"
-    assert rating["normalized"] == {"type": "NUMBER", "value": "0.6", "unit": "kV"}
+    assert rating["normalized"] == {"type": "NUMBER", "value": "600", "unit": "kV"}
     assert rating["value_source_support"] == "TEXT_MATCH"
     assert mismatch["value_source_support"] == "TEXT_MISMATCH"
     assert mismatch["raw_value"] == "601"
     assert mismatch["association"] == "UNCERTAIN"
-    assert mismatch["normalized"] == {"type": "NUMBER", "value": "0.601", "unit": "kV"}
+    assert mismatch["normalized"] == {"type": "NUMBER", "value": "601", "unit": "kV"}
     mismatch_fragment = client.get(f"{path}/evidence/{mismatch['evidence_ids'][1]}")
     assert mismatch_fragment.status_code == 200, mismatch_fragment.text
     assert mismatch_fragment.json()["quote"] == "600"
@@ -1622,6 +1631,7 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
                         local_ref="a1",
                         attribute_key="primary_connection",
                         proposed_enum_value="WYE",
+                        proposed_unit=None,
                         equipment_ref="equipment-1",
                         association="ASSERTED",
                         raw_label="Connection",

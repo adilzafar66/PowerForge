@@ -338,7 +338,9 @@ function CandidateCard({ candidate, expanded, browser, highlighted, onSelect, on
               <p>Inferred value. Supporting references provide context. Review the inference and equipment association.</p>
             </> : <>
               {attribute.raw_label && <p>Original PDF label <strong>{attribute.raw_label}</strong></p>}
-              <p className="break-words text-ink">Raw value <strong>{attribute.raw_value}{attribute.raw_unit && ` ${attribute.raw_unit}`}</strong></p>
+              <p className="break-words text-ink">Raw value <strong>{attribute.raw_value}</strong></p>
+              {attribute.raw_unit && <p>Source unit <strong>{attribute.raw_unit}</strong></p>}
+              {attribute.proposed_unit && <p>Proposed source unit <strong>{attribute.proposed_unit}</strong></p>}
               <p>{valueSourceSupportLabel[attribute.value_source_support]}</p>
               {attribute.value_form && attribute.value_form !== "SINGLE" && <p>Source form: {readableKey(attribute.value_form)}</p>}
               {!!attribute.qualifiers.length && <p className="break-words">Qualifiers: {attribute.qualifiers.join(", ")}</p>}

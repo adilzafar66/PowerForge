@@ -116,6 +116,7 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
             assert "at most 12 evidence citations per assertion" in wire["instructions"]
             union = schema_fields["attributes"]["items"]["anyOf"]
             assert len(union) == 2
+            assert "proposed_unit" in fmt["schema"]["$defs"]["RegistryAssertion"]["required"]
             assert fmt["schema"]["$defs"]["InferredAssertion"]["properties"]["origin"]["enum"] == [
                 "INFERRED"
             ]

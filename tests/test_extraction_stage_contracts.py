@@ -146,6 +146,7 @@ def attribute_envelope(attribute_request):
         "value_form": "SINGLE",
         "attribute_key": "primary_connection",
         "proposed_enum_value": "WYE",
+        "proposed_unit": None,
         "evidence": [
             {"kind": "READING", "role": "LABEL", "reading_ref": reading, "quote": None},
             {"kind": "QUOTE", "role": "VALUE", "quote": "Star"},
@@ -157,7 +158,7 @@ def attribute_envelope(attribute_request):
     raw = {
         key: value
         for key, value in example.items()
-        if key not in {"attribute_key", "proposed_enum_value", "origin"}
+        if key not in {"attribute_key", "proposed_enum_value", "proposed_unit", "origin"}
     }
     raw.update(
         display_label=None,

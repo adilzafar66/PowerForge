@@ -251,6 +251,7 @@ def assertion(ref, **fields):
             "evidence": (),
             "attribute_key": "secondary_voltage",
             "proposed_enum_value": None,
+            "proposed_unit": None,
             **fields,
         }
     )
@@ -260,25 +261,58 @@ def test_published_units_and_qualifiers(stage_inputs, pinned_source):
     header = (cite(pinned_source, "(V)", "HEADER"), cite(pinned_source, "600"))
     other_source = (cite(pinned_source, "TX-1", "HEADER"),)
     rows = stage_inputs(
-        assertion("a", evidence=header, association="UNCERTAIN"),
-        assertion("b", raw_unit="V", evidence=other_source),
+        assertion("a", raw_unit="V", proposed_unit="V", evidence=header, association="UNCERTAIN"),
+        assertion("b", raw_unit="V", proposed_unit="V", evidence=other_source),
         assertion(
             "c",
             raw_unit="V",
+            proposed_unit="V",
             evidence=header,
             value_form="RANGE",
             raw_value="600–690",
             qualifiers=("continuous",),
         ),
-        assertion("d", raw_unit="V", evidence=header, raw_value="600 / 347", value_form="MULTIPLE"),
-        assertion("e", raw_unit="V", evidence=header, raw_value="NaN"),
-        assertion("f", raw_unit="V", evidence=header, attribute_key="apparent_power_rating"),
-        assertion("g", raw_unit="V", evidence=header, raw_value="600.1234567890123456789012345"),
-        assertion("h", raw_unit="kV", evidence=header),
-        assertion("i", raw_unit="V", evidence=header, raw_value="601"),
+        assertion(
+            "d",
+            raw_unit="V",
+            proposed_unit="V",
+            evidence=header,
+            raw_value="600 / 347",
+            value_form="MULTIPLE",
+        ),
+        assertion("e", raw_unit="V", proposed_unit="V", evidence=header, raw_value="NaN"),
+        assertion(
+            "f",
+            raw_unit="V",
+            proposed_unit="V",
+            evidence=header,
+            attribute_key="apparent_power_rating",
+        ),
+        assertion(
+            "g",
+            raw_unit="V",
+            proposed_unit="V",
+            evidence=header,
+            raw_value="600.1234567890123456789012345",
+        ),
+        assertion("h", raw_unit="kV", proposed_unit="kV", evidence=header),
+        assertion("i", raw_unit="V", proposed_unit="V", evidence=header, raw_value="601"),
+        assertion("j", raw_unit="V", proposed_unit="kV", evidence=header),
     )
-    first, missing, qualified, multiple, malformed, wrong_key, exact, disputed, conflicting = rows
-    assert first["value_number"] == Decimal("0.6") and first["raw_unit"] is None
+    (
+        first,
+        missing,
+        qualified,
+        multiple,
+        malformed,
+        wrong_key,
+        exact,
+        disputed,
+        conflicting,
+        rejected,
+    ) = rows
+    assert first["value_number"] == Decimal("0.6")
+    assert first["raw_unit"] == first["proposed_unit"] == "V"
     assert first["normalized_unit"] == "kV" and first["association"] == "UNCERTAIN"
     assert first["value_source_support"] == "TEXT_MATCH"
     assert conflicting["mapping_status"] == "MAPPED" and conflicting["raw_value"] == "601"
@@ -291,6 +325,10 @@ def test_published_units_and_qualifiers(stage_inputs, pinned_source):
     assert qualified["value_source_support"] == multiple["value_source_support"] == "UNVERIFIED"
     assert malformed["reason_code"] == "INVALID_VALUE"
     assert wrong_key["reason_code"] == "UNKNOWN_ATTRIBUTE_KEY"
+    assert rejected["reason_code"] == "UNIT_INTERPRETATION_UNVERIFIED"
+    assert rejected["raw_unit"] == "V" and rejected["proposed_unit"] == "kV"
+    assert rejected["raw_value"] == "600" and rejected["value_source_support"] == "TEXT_MATCH"
+    assert "value_number" not in rejected
     assert exact["value_number"] == Decimal("0.6001234567890123456789012345")
     assert first["conflict"] and exact["conflict"] and conflicting["conflict"]
 
@@ -378,26 +416,32 @@ def test_units_match_label_or_value_without_guessing_unsupported_spellings():
     def resolved(role, quote):
         return {"localization": "RESOLVED", "role": role, "quote": quote}
 
-    def apply(unit, evidence, **fields):
-        return _value(assertion("a", raw_unit=unit, **fields), definition, evidence)
+    def apply(raw_unit, evidence, proposed_unit="V", **fields):
+        observation = assertion("a", raw_unit=raw_unit, proposed_unit=proposed_unit, **fields)
+        return _value(observation, definition, evidence)
 
     assert apply("V", [resolved("LABEL", "(V):")])[2]["value_number"] == Decimal("0.6")
-    assert apply(None, [resolved("LABEL", "(V):")])[1] == "UNIT_MISSING_OR_AMBIGUOUS"
-    assert apply(None, [resolved("VALUE", "600V")], raw_value="600 V")[2]["value_number"] == (
+    assert apply("V", [resolved("VALUE", "600V")], raw_value="600 V")[2]["value_number"] == (
         Decimal("0.6")
+    )
+    assert apply("Volts", [resolved("UNIT", "Volts")])[2]["value_number"] == Decimal("0.6")
+    assert apply("KV", [resolved("HEADER", "Voltage in KV")], "kV")[2]["value_number"] == (
+        Decimal("600")
     )
     for fragments in (
         [resolved("HEADER", "(V / kV)")],
         [dict(resolved("UNIT", "V"), source_issues=["TRANSCRIPTION_CONFLICT"])],
-        [resolved("HEADER", "(V)"), resolved("UNIT", "Volts")],
+        [resolved("HEADER", "(V)"), resolved("UNIT", "unreadable")],
+        [resolved("HEADER", "(V)"), resolved("VALUE", "600 (mV)")],
+        [resolved("HEADER", "(V)"), resolved("UNIT", "V/km")],
         [resolved("VALUE", "1600 V")],
         [resolved("VALUE", "1,600 V")],
         [{"localization": "VISUAL_REPORTED", "role": "UNIT", "reported_text": "V"}],
     ):
         assert apply("V", fragments)[1] == "UNIT_MISSING_OR_AMBIGUOUS"
-    assert apply("Volts", [resolved("UNIT", "Volts")])[1] == "INVALID_UNIT"
-    assert apply("A", [resolved("UNIT", "A")])[1] == "INVALID_UNIT"
-    assert apply("Ω", [resolved("UNIT", "Ω/km")])[1] == "UNIT_MISSING_OR_AMBIGUOUS"
+    assert apply(None, [resolved("HEADER", "V")])[1] == "UNIT_MISSING_OR_AMBIGUOUS"
+    assert apply("V", [resolved("HEADER", "V")], None)[1] == "UNIT_MISSING_OR_AMBIGUOUS"
+    assert apply("A", [resolved("UNIT", "A")], "A")[1] == "UNIT_INTERPRETATION_UNVERIFIED"
 
 
 def test_owner_and_enum_are_independent_of_evidence(stage_inputs):
@@ -608,52 +652,93 @@ def test_siemens_style_inline_models_and_reviewable_inference():
 
 
 @pytest.mark.parametrize(
-    "source_value,raw_value,reported_unit,expected",
+    "equipment,key,source_value,raw_unit,proposed_unit,normalized",
     [
-        ("SC=65KA", "65KA", "kA", "MAPPED"),
-        ("65 kA", "65", "kA", "MAPPED"),
-        ("65KA", "65KA", "KA", "MAPPED"),
-        ("65 KA", "65 KA", "KA", "MAPPED"),
-        ("65Ka", "65Ka", "kA", "UNMAPPED"),
-        ("65ka", "65ka", "kA", "UNMAPPED"),
-        ("65mA", "65mA", "kA", "UNMAPPED"),
-        ("65MA", "65MA", "kA", "UNMAPPED"),
-        ("65KA/m", "65", "kA", "UNMAPPED"),
-        ("65KA 65mA", "65", "kA", "UNMAPPED"),
+        ("BUS", "short_circuit_current_rating", "65KA", "KA", "kA", "65"),
+        ("BUS", "short_circuit_current_rating", "65kA 65KA", "KA", "kA", "65"),
+        ("BUS", "short_circuit_current_rating", "65kiloamps", "kiloamps", "kA", "65"),
+        ("BUS", "short_circuit_current_rating", "65A", "A", "A", "0.065"),
+        ("BUS", "nominal_voltage", "65KV", "KV", "kV", "65"),
+        ("BUS", "nominal_voltage", "65volts", "volts", "V", "0.065"),
+        ("BUS", "nominal_voltage", "65MV", "MV", "MV", "65000"),
+        ("BUS", "short_time_withstand_duration", "65msec", "msec", "ms", "0.065"),
+        ("TWO_WINDING_TRANSFORMER", "rated_apparent_power", "65KVA", "KVA", "kVA", "65"),
+        ("CAPACITOR", "rated_reactive_power", "65KVAR", "KVAR", "kvar", "65"),
+        ("CAPACITOR", "rated_capacitance", "65uF", "uF", "µF", "65"),
+        ("CAPACITOR", "rated_capacitance", "65μF", "μF", "µF", "65"),
+        ("CAPACITOR", "rated_capacitance", "65nF", "nF", "nF", "0.065"),
+        ("CAPACITOR", "rated_capacitance", "65mF", "mF", "mF", "65000"),
+        ("CAPACITOR", "discharge_resistance", "65Ω", "Ω", "Ω", "65"),
+        ("CABLE", "positive_sequence_resistance", "65Ω/m", "Ω/m", "Ω/m", "65000"),
+        ("REACTOR", "rated_inductance", "65uH", "uH", "µH", "0.065"),
+        ("REACTOR", "positive_sequence_impedance", "65kohms", "kohms", "kΩ", "65000"),
+        ("TWO_WINDING_TRANSFORMER", "temperature_rise", "65℃", "℃", "°C", "65"),
+        (
+            "TWO_WINDING_TRANSFORMER",
+            "positive_sequence_impedance",
+            "65percent",
+            "percent",
+            "%",
+            "65",
+        ),
+        ("BUS", "short_circuit_current_rating", "65mA", "mA", "kA", None),
+        ("BUS", "short_circuit_current_rating", "65MA", "MA", "kA", None),
+        ("BUS", "short_circuit_current_rating", "65KA/m", "KA", "kA", None),
+        ("BUS", "short_circuit_current_rating", "65KA 65mA", "KA", "kA", None),
+        ("BUS", "short_circuit_current_rating", "65kA", "KA", "kA", None),
+        ("BUS", "nominal_voltage", "65", None, "V", None),
+        ("BUS", "nominal_voltage", "65KV", "KV", "V", None),
+        ("BUS", "nominal_voltage", "65KV", "KV", "KV", None),
+        ("BUS", "nominal_voltage", "65kV·A", "kV", "kV", None),
+        ("BUS", "nominal_voltage", "65kV A", "kV", "kV", None),
+        ("BUS", "nominal_voltage", "65kV2", "kV", "kV", None),
+        ("BUS", "nominal_voltage", "65W", "W", "W", None),
+        ("BUS", "nominal_voltage", "65mV", "mV", "MV", None),
+        ("BUS", "nominal_voltage", "65MV", "MV", "kV", None),
+        ("BUS", "short_time_withstand_duration", "65mS", "mS", "ms", None),
+        ("CAPACITOR", "rated_capacitance", "65MF", "MF", "mF", None),
+        ("CAPACITOR", "rated_capacitance", "65μF", "μF", "mF", None),
+        ("REACTOR", "positive_sequence_impedance", "65MΩ", "MΩ", "mΩ", None),
+        ("REACTOR", "positive_sequence_impedance", "65ohms/km", "ohms", "Ω", None),
+        ("REACTOR", "positive_sequence_impedance", "65ohms per km", "ohms", "Ω", None),
     ],
 )
-def test_explicit_source_unit_notation_preserves_si_distinctions(
-    source_value, raw_value, reported_unit, expected
+def test_proposed_unit_verifies_spelling_and_scale_across_registry_families(
+    equipment, key, source_value, raw_unit, proposed_unit, normalized
 ):
+    from powerforge_engineering_model.registry import (
+        get_attribute_definition,
+        supported_input_units,
+    )
     from powerforge_extraction.publication import _value
     from powerforge_extraction.stage_contracts import AttributeDefinitionView
 
+    attribute = get_attribute_definition(equipment, key)
     definition = AttributeDefinitionView(
-        equipment_type=EquipmentType.BUS,
-        key="short_circuit_current_rating",
-        name="Short-Circuit Current Rating (kA)",
-        required=True,
-        value_type="NUMBER",
-        canonical_unit="kA",
-        supported_units=("A", "kA"),
+        equipment_type=EquipmentType(equipment),
+        key=key,
+        name=attribute.display_name,
+        required=attribute.required,
+        value_type=attribute.value_type.value,
+        canonical_unit=attribute.canonical_unit,
+        supported_units=supported_input_units(equipment, key),
         allowed_values=(),
         notes=None,
         extraction_guidance=None,
     )
     item = assertion(
-        "rating", attribute_key=definition.key, raw_value=raw_value, raw_unit=reported_unit
+        "rating", attribute_key=key, raw_value="65", raw_unit=raw_unit, proposed_unit=proposed_unit
     )
     evidence = [dict(role="VALUE", localization="RESOLVED", quote=source_value)]
-    status, _, normalized = _value(item, definition, evidence)
-    assert status == expected
-    assert item.raw_value == raw_value and item.raw_unit == reported_unit
-    if expected == "MAPPED":
-        assert normalized["value_number"] == Decimal("65")
-        assert normalized["normalized_unit"] == "kA"
-    assert (
-        _value(item, definition, [dict(evidence[0], source_issues=["TRANSCRIPTION_CONFLICT"])])[0]
-        == "UNMAPPED"
-    )
+    status, _, fields = _value(item, definition, evidence)
+    if normalized is None:
+        assert status == "UNMAPPED" and fields == {}
+    else:
+        assert status == "MAPPED"
+        assert fields["value_number"] == Decimal(normalized)
+        assert fields["normalized_unit"] == attribute.canonical_unit
+        uncertain = [dict(evidence[0], source_issues=["TRANSCRIPTION_CONFLICT"])]
+        assert _value(item, definition, uncertain)[0] == "UNMAPPED"
 
 
 def test_equipment_identifier_can_support_its_literal_attribute_value(stage_inputs, pinned_source):
@@ -833,6 +918,7 @@ def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
             attribute_key="short_circuit_current_rating",
             raw_value="65KA",
             raw_unit="KA",
+            proposed_unit="kA",
             evidence=(cite(source, "SC=65KA"),),
         ),
         assertion(

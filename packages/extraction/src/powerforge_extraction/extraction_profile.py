@@ -23,14 +23,14 @@ KEY = "phase-6r"
 PROFILE_VERSION = "phase-6r-profile-v1"
 STAGES = ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION")
 RESPONSES = dict(zip(STAGES, (RecognitionResponse, AttributeResponse), strict=True))
-PROMPT_VERSION = "phase-6r-stages-v6"
-SCHEMA_VERSION = "phase-6r-wire-v3"
+PROMPT_VERSION = "phase-6r-stages-v7"
+SCHEMA_VERSION = "phase-6r-wire-v4"
 PROMPTS = {
     stage: files("powerforge_extraction")
     .joinpath(f"prompts/{filename}")
     .read_text(encoding="utf-8")
     for stage, filename in zip(
-        STAGES, ("equipment_recognition_v3.txt", "attribute_extraction_v5.txt"), strict=True
+        STAGES, ("equipment_recognition_v3.txt", "attribute_extraction_v6.txt"), strict=True
     )
 }
 
@@ -43,7 +43,7 @@ class ExtractionProfile(ExecutionProfile):
     stage: Literal["EQUIPMENT_RECOGNITION"] = "EQUIPMENT_RECOGNITION"
     input_strategy: Literal["PINNED_PAGE"] = "PINNED_PAGE"
     stages: tuple[Literal["EQUIPMENT_RECOGNITION"], Literal["ATTRIBUTE_EXTRACTION"]] = STAGES
-    schema_version: Literal["phase-6r-wire-v3"] = SCHEMA_VERSION
+    schema_version: Literal["phase-6r-wire-v4"] = SCHEMA_VERSION
     manifest: dict
     source_rules: str
     max_transport_bytes: int = Field(gt=0)
@@ -91,6 +91,7 @@ def manifest():
         EquipmentObservation,
         RecognitionResponse,
     )
+    from powerforge_extraction.unit_notation import VERSION as UNIT_INTERPRETATION_VERSION
 
     catalog = equipment_catalog()
     sample = RecognitionResponse(
@@ -115,6 +116,7 @@ def manifest():
         "version": SCHEMA_VERSION,
         "registry_version": REGISTRY.registry_version,
         "publication_version": PUBLICATION_VERSION,
+        "unit_interpretation_version": UNIT_INTERPRETATION_VERSION,
         "consistency_version": CONSISTENCY_VERSION,
         "descriptions": DESCRIPTION_VERSION,
         "attribute_descriptions": ATTRIBUTE_DESCRIPTION_VERSION,

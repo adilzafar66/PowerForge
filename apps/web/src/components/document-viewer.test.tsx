@@ -414,8 +414,8 @@ describe("DocumentViewer", () => {
       id: candidateId, page_id: "page-two", attempt_id: "attempt", kind: "ATTRIBUTE",
       equipment_id: groupId, association: "UNCERTAIN", raw_unmapped: false,
       origin: "EXTRACTED", attribute_display_name: "Percent Impedance",
-      raw_label: "Z", raw_value: "5.750", raw_unit: "%", qualifiers: [], value_form: "SINGLE",
-      proposed_value: null, proposed_unit: null, inference_explanation: null, inference_basis: null,
+      raw_label: "Z", raw_value: "5.750", raw_unit: "pct", qualifiers: [], value_form: "SINGLE",
+      proposed_value: null, proposed_unit: "%", inference_explanation: null, inference_basis: null,
       source_expression: null, source_display_label: null, redundant_with_id: null,
       mapping_status: "MAPPED", proposed_attribute_key: "percent_impedance", proposed_enum_value: null,
       normalized: { type: "NUMBER", value: "5.75", unit: "%" }, conflict: false, reason_code: null,
@@ -471,6 +471,9 @@ describe("DocumentViewer", () => {
       return;
     }
     expect(await screen.findByText("Original PDF label")).toHaveTextContent("Original PDF label Z");
+    expect(screen.getByText("Raw value")).toHaveTextContent("Raw value 5.750");
+    expect(screen.getByText("Source unit")).toHaveTextContent("Source unit pct");
+    expect(screen.getByText("Proposed source unit")).toHaveTextContent("Proposed source unit %");
     const image = await screen.findByRole("img", { name: "Pinned source page 2" });
     expect(image).toHaveAttribute("src", detail.page_image.url);
     expect(screen.queryByRole("img", { name: "Grounded source region" })).toBeNull();

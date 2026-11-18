@@ -214,7 +214,7 @@ The registry key spellings in an actual response must use the existing authorita
 1. Evaluate every applicable required and optional attribute for each eligible observation. Consider text, schedules, annotations, images, nameplates, and inline identifiers even when their fields are unlabeled. Return sparse assertions only where the value is directly reported or sufficiently justified.
 2. Assign each proposed attribute to a Call 1 equipment `local_ref` when the source supports that ownership.
 3. Return the exact allowed registry attribute key; do **not** mint new registry keys.
-4. For **EXTRACTED** assertions, return raw source value/unit text, any actual source label, and source qualifiers without attempting canonical unit conversion.
+4. For **EXTRACTED** assertions, return the literal value and unit text, the actual source label when present, and source qualifiers. For a dimensional registry attribute, use `proposed_unit` to interpret unambiguous source notation as an exact member of that attribute’s `supported_units`. Preserve the source unit’s scale and the original number. Use a null proposal when the source spelling is absent, unsupported, contradicted or ambiguous.
 5. For extracted assertions, cite the value and relevant equipment designation, row/header/label context when available. A missing citation stays visible as unresolved.
 6. Preserve multiple distinct source assertions when values conflict; avoid silently choosing a winner.
 7. Retain direct assertions as unassigned if no owner can be supported. Inference requires an upstream occurrence reference. PowerForge never resolves ownership from an unknown reference.
@@ -233,7 +233,8 @@ Illustrative output:
       "attribute_key": "rated_apparent_power",
       "origin": "EXTRACTED",
       "raw_value": "750",
-      "raw_unit": "kVA",
+      "raw_unit": "KVA",
+      "proposed_unit": "kVA",
       "proposed_enum_value": null,
       "qualifier": null,
       "evidence_refs": ["reading-18", "reading-19", "region-3"]
@@ -332,7 +333,7 @@ These are **localization outcomes only**, not engineering-verification grades. A
 
 ### Approved value and failure policy
 
-- **Missing units:** never use the canonical normalizer's default unit as evidence of source units. Source-supported headers can establish units. Missing or ambiguous units for dimensional values retain raw information as `UNMAPPED` with a specific reason; unsupported units under an otherwise valid interpretation may be `INVALID`. Unitless registry attributes do not require fabricated units.
+- **Source unit interpretation:** the AI proposes a registry-supported interpretation of the literal unit in the cited value, header, label or unit reading. PowerForge verifies membership, literal source support and equivalent unit spelling and SI scale. Unsupported or ambiguous extracted interpretations remain `UNMAPPED` with the raw assertion retained. PowerForge performs conversion from the confirmed source scale using the original number. Unitless registry attributes leave the unit proposal null.
 - **Qualified values:** retain qualifiers, ranges and multiple ratings. Normalize only when the supported registry representation preserves the source assertion faithfully; otherwise retain raw information with an explicit unmapped reason. Never discard qualifiers or select arbitrary scalar values.
 - **Enums and booleans:** AI supplies the original source value and a separate exact permitted enum proposal. PowerForge validates enum membership and may perform simple lexical boolean conversions; it must not add an engineering synonym interpreter. Preserve the raw string even when validation fails.
 - **Stage failure:** malformed envelopes, duplicated identifiers, truncation and capacity overflow fail the stage; do not publish a partial stage as complete or treat it as empty success.

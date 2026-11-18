@@ -1,6 +1,5 @@
 """Preserve page-local observations and normalize only supported registry assertions."""
 
-import re
 from collections import defaultdict
 from dataclasses import dataclass
 from decimal import Decimal, DecimalException
@@ -8,7 +7,6 @@ from typing import Literal
 
 from powerforge_engineering_model.errors import EngineeringModelError
 from powerforge_engineering_model.registry import normalize_attribute_value
-from powerforge_engineering_model.units import UNITS
 from powerforge_extraction.evidence_localization import EvidenceLocalizer
 from powerforge_extraction.stage_contracts import (
     AttributeResponse,
@@ -16,12 +14,10 @@ from powerforge_extraction.stage_contracts import (
     NoEligibleAttributes,
     RegistryAssertion,
 )
+from powerforge_extraction.unit_notation import SCALAR, matches_proposal, source_supports_unit
 
-VERSION = "phase-6r-publication-v4"
-SCALAR = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
+VERSION = "phase-6r-publication-v5"
 BOOLEAN = {"true": True, "yes": True, "false": False, "no": False}
-# Electrical drawing convention only. Never case-fold units or SI prefixes.
-SOURCE_UNIT_NOTATIONS = {"KA": "kA"}
 ValueSourceSupport = Literal["TEXT_MATCH", "TEXT_MISMATCH", "UNVERIFIED"]
 
 
@@ -30,75 +26,6 @@ class Observation:
     fields: dict
     evidence: list[dict]
     issues: tuple[str, ...] = ()
-
-
-def _literal_unit(text, unit):
-    # A unit can follow a number directly. Avoid matching suffixes of longer
-    # spellings, per-length expressions, and case-sensitive SI prefixes.
-    return re.search(rf"(?<![^\W\d_]|[/_°º]){re.escape(unit)}(?![\w/])", text) is not None
-
-
-def _unit(item, evidence):
-    reported = item.raw_unit.strip() if item.raw_unit is not None else None
-    reported = SOURCE_UNIT_NOTATIONS.get(reported, reported)
-    raw = item.raw_value.strip()
-    units = set()
-    ambiguous = False
-    vocabulary = {unit: unit for unit in UNITS} | SOURCE_UNIT_NOTATIONS
-    if reported:
-        vocabulary[reported] = reported
-    for fragment in evidence:
-        if fragment["localization"] != "RESOLVED":
-            continue
-        quote = fragment["quote"]
-        role = fragment["role"]
-        matches = set()
-        if role in {"UNIT", "HEADER"} or (reported and role == "LABEL"):
-            matches = {
-                unit for spelling, unit in vocabulary.items() if _literal_unit(quote, spelling)
-            }
-            if role == "UNIT" and not matches:
-                # A separately cited unsupported expression can conflict with a supported unit.
-                matches.add(quote.strip())
-        if role == "VALUE":
-            numbers = set()
-            for spelling, unit in vocabulary.items():
-                # Require the literal raw number beside the unit. An unrelated
-                # number in the same source fragment cannot establish its unit.
-                number = raw[: -len(spelling)].strip() if raw.endswith(spelling) else raw
-                if not SCALAR.fullmatch(number):
-                    continue
-                numbers.add(number)
-                if re.search(
-                    rf"(?<![\w.,+/−-]){re.escape(number)}\s*{re.escape(spelling)}(?![\w/])",
-                    quote,
-                ):
-                    matches.add(unit)
-            if matches:
-                # Another spelling beside the same literal may change the unit
-                # or expose ambiguity. Retain unknown spellings as conflicts.
-                for number in numbers:
-                    for match in re.finditer(
-                        rf"(?<![\w.,+/−-]){re.escape(number)}\s*([A-Za-z][A-Za-z/°]{{0,31}})(?!\w)",
-                        quote,
-                    ):
-                        spelling = match[1]
-                        matches.add(vocabulary.get(spelling, spelling))
-        if matches and {"TRANSCRIPTION_CONFLICT", "AMBIGUOUS_OVERLAP"}.intersection(
-            fragment.get("source_issues", ())
-        ):
-            ambiguous = True
-        units.update(matches)
-    if ambiguous or len(units) != 1 or (reported is not None and reported not in units):
-        return None, raw
-    unit = units.pop()
-    for spelling, canonical in vocabulary.items():
-        if canonical == unit and raw.endswith(spelling):
-            number = raw[: -len(spelling)].strip()
-            if SCALAR.fullmatch(number):
-                raw = number
-                break
-    return unit, raw
 
 
 def _value(item, definition, evidence):
@@ -113,14 +40,22 @@ def _value(item, definition, evidence):
     else:
         text = item.raw_value
         raw = text.strip()
-        unit = None
+        raw_unit = item.raw_unit.strip() if item.raw_unit is not None else None
+        unit = item.proposed_unit
         enum = item.proposed_enum_value
-        if definition.canonical_unit is not None or item.raw_unit is not None:
-            unit, raw = _unit(item, evidence)
-            if unit is None:
-                return "UNMAPPED", "UNIT_MISSING_OR_AMBIGUOUS", {}
         if item.value_form != "SINGLE" or item.qualifiers:
             return "UNMAPPED", "UNREPRESENTABLE_VALUE_FORM", {}
+        if definition.canonical_unit is not None or raw_unit is not None or unit is not None:
+            if not raw_unit or unit is None:
+                return "UNMAPPED", "UNIT_MISSING_OR_AMBIGUOUS", {}
+            if not matches_proposal(raw_unit, unit, definition.supported_units):
+                return "UNMAPPED", "UNIT_INTERPRETATION_UNVERIFIED", {}
+            if raw.endswith(raw_unit):
+                number = raw[: -len(raw_unit)].strip()
+                if SCALAR.fullmatch(number):
+                    raw = number
+            if not source_supports_unit(raw, raw_unit, unit, evidence):
+                return "UNMAPPED", "UNIT_MISSING_OR_AMBIGUOUS", {}
     if unit is not None and unit not in definition.supported_units:
         return "INVALID", "INVALID_UNIT", {}
     try:
@@ -291,6 +226,7 @@ def build_publication(wire, result, source):
                 qualifiers=list(item.qualifiers),
                 value_form=item.value_form,
                 proposed_enum_value=item.proposed_enum_value if registry_assertion else None,
+                proposed_unit=item.proposed_unit if registry_assertion else None,
             )
         observations.append(Observation(fields, evidence, issues))
         if normalized:

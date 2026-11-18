@@ -68,9 +68,9 @@ here after implementation.
   is `equipment-descriptions-v2`. Assembly-level identifiers belong to the BUS
   observation when their source association is supported. Each tag requires its
   actual citation. Tags and occurrence display names remain separate fields.
-- Stage 2 uses `attribute_extraction_v5.txt` for the `compact-page-v1` input,
-  schema `phase-6r-attributes-v3`, prompt bundle `phase-6r-stages-v6`, and aggregate
-  wire identity `phase-6r-wire-v3`. The registry-owned
+- Stage 2 uses `attribute_extraction_v6.txt` for the `compact-page-v1` input,
+  schema `phase-6r-attributes-v4`, prompt bundle `phase-6r-stages-v7`, and aggregate
+  wire identity `phase-6r-wire-v4`. The registry-owned
   `attribute-descriptions-v1` guidance explains commonly confused meanings.
   Canonical registry keys, allowed values, units and requirements are unchanged.
   The prompt explicitly limits each assertion to 12 citations and prioritizes
@@ -80,10 +80,13 @@ here after implementation.
   add optional `display_label`. These values remain in the immutable result
   payload and are exposed through the candidate API. A display label is
   explicitly identified as presentation metadata in the viewer.
-- Publication is `phase-6r-publication-v4`. The only new source-unit alias is
-  KA to kA. Other casing retains its meaning, unknown spellings remain
-  unsupported, and conflicting spellings beside the same numeric literal
-  prevent normalization. The original raw value/unit are preserved.
+- Publication uses `phase-6r-publication-v5` and the pinned
+  `source-unit-interpretation-v1` policy. An extracted dimensional assertion
+  carries the literal unit and a separate AI proposal from the registry.
+  PowerForge verifies the notation against the proposal and its SI scale,
+  requires resolved literal evidence, and uses the existing decimal converter.
+  Unsupported spellings or contradictory evidence leave the assertion unmapped.
+  The original value, literal unit, and proposal remain available for review.
 - Complete resolved EQUIPMENT citations can establish literal support for
   model, catalog_number or trip_unit_model. Qualifiers, partial source tokens,
   ambiguous transcripts and inferred values retain their conservative support
@@ -105,8 +108,10 @@ here after implementation.
   Repeated assertions remain included in counts and can be selected directly.
 - `6r_0014c_quality` follows `6r_0014b_attribute_origin`. It replaces only
   the version-sensitive immutable origin guard to admit v3 assertions. It
-  introduces no columns and rewrites no records. Existing Alembic IDs stay
-  intact. Old execution profiles fail resource/schema admission after upgrade.
+  introduces no columns and rewrites no records. `6r_0014d_unit_proposals` admits
+  v4 and extends the candidate shape to store extracted unit proposals in the
+  existing column. Earlier results keep their stored values and remain readable.
+  Old execution profiles fail resource/schema admission after upgrade.
 
 Primary production changes are in `stage_contracts.py`, `stage_execution.py`,
 `extraction_profile.py`, `publication.py`, `assertion_consistency.py`,
@@ -123,8 +128,8 @@ and layout, with artifact checks. The original response has 27 extracted registr
 assertions, zero inferred assertions, and four meaningful raw source assertions.
 
 Before the correction, replay yielded 20 mapped and 11 unmapped candidates,
-10 TEXT_MATCH and 21 UNVERIFIED states, and no duplicate diagnostics. Replaying
-the same immutable assertions through the new publication rules yields 22 mapped
+10 TEXT_MATCH and 21 UNVERIFIED states, and no duplicate diagnostics. The earlier
+v4 publication replay of the same immutable assertions yielded 22 mapped
 and 9 unmapped candidates, 14 TEXT_MATCH and 17 UNVERIFIED states, and one likely
 redundant pair (a6 linked to a5). All 31 assertions remain present.
 
