@@ -1031,8 +1031,9 @@ def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operat
         )
     first, second = calls
     assert first["page_context_hash"] == second["page_context_hash"]
-    assert first["page"] == second["page"]
-    page = first["page"]
+    assert first["page"]["owner"] == second["page"]["owner"]
+    assert first["page"]["layout_sha256"] == second["page"]["layout_sha256"]
+    page = second["page"]
     table_refs = {
         ref
         for table in page["layout"]["tables"]
@@ -1040,7 +1041,8 @@ def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operat
         for ref in cell["readings"]
     }
     assert table_refs
-    readings = {reading["reading_ref"]: reading["text"] for reading in page["readings"]}
+    readings = {row[0]: row[1] for row in page["readings"]["rows"]}
+    assert readings == {item["reading_ref"]: item["text"] for item in first["page"]["readings"]}
     assert table_refs <= readings.keys()
     assert "600" in {readings[ref] for ref in table_refs}
     assert any("Unrelated" in text for ref, text in readings.items() if ref not in table_refs)
@@ -1050,6 +1052,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
     from types import SimpleNamespace
 
     from extraction_worker.openai_extraction import OpenAIExtractionProvider
+    from powerforge_extraction.identities import identity_hash
     from powerforge_extraction.models import ExtractionAICall
     from powerforge_extraction.stage_execution import StageResult
     from spatial_layout_support import drawn_table
@@ -1096,6 +1099,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                     attributes=[],
                     raw_unmapped=[
                         {
+                            "display_label": None,
                             "local_ref": "raw-1",
                             "equipment_ref": "foreign-owner",
                             "association": "ASSERTED",
@@ -1130,11 +1134,14 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
             ),
         )
     assert len(calls) == 2
-    assert calls[0]["page"] == calls[1]["page"]
+    assert calls[0]["page_context_hash"] == calls[1]["page_context_hash"]
+    assert calls[1]["input_version"] == "compact-page-v1"
     with ctx["factory"]() as session:
         recognition = session.get(StageResult, units["EQUIPMENT_RECOGNITION"])
         attribute = session.get(StageResult, units["ATTRIBUTE_EXTRACTION"])
         assert calls[1]["upstream"] == recognition.payload
+        assert recognition.request_hash == identity_hash(calls[0])
+        assert attribute.request_hash == identity_hash(calls[1])
         assert recognition.diagnostics[0]["code"] == "UNKNOWN_READING"
         assert attribute.diagnostics[0]["code"] == "INVALID_OWNER_REFERENCE"
         assert attribute.payload["raw_unmapped"][0]["equipment_ref"] == "foreign-owner"
@@ -1247,6 +1254,10 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
         def execute(self, request):
             wire = json.loads(request.text)
             readings = wire["page"]["readings"]
+            if wire["stage"] == "ATTRIBUTE_EXTRACTION":
+                readings = [
+                    dict(zip(readings["columns"], row, strict=True)) for row in readings["rows"]
+                ]
             label = next(item["reading_ref"] for item in readings if item["text"] == "TX-1")
             header = next(item["reading_ref"] for item in readings if item["text"] == "(V)")
             value = next(item["reading_ref"] for item in readings if item["text"] == "600")
@@ -1269,6 +1280,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                 ]
             else:
                 attribute = dict(
+                    origin="EXTRACTED",
                     local_ref="rating",
                     attribute_key="secondary_voltage",
                     proposed_enum_value=None,
@@ -1286,10 +1298,26 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                     ],
                 )
                 raw = {
-                    k: v
-                    for k, v in attribute.items()
-                    if k not in {"attribute_key", "proposed_enum_value"}
+                    "display_label": None,
+                    **{
+                        k: v
+                        for k, v in attribute.items()
+                        if k not in {"attribute_key", "proposed_enum_value", "origin"}
+                    },
                 }
+                inference = dict(
+                    origin="INFERRED",
+                    local_ref="inferred-rating",
+                    equipment_ref="e0",
+                    association="UNCERTAIN",
+                    attribute_key="secondary_voltage",
+                    proposed_value="0.7",
+                    proposed_unit="kV",
+                    inference_explanation="Test fixture for a competing voltage proposal.",
+                    inference_basis="ENGINEERING_KNOWLEDGE",
+                    source_expression="600",
+                    evidence=[],
+                )
                 response.update(
                     upstream_hash=wire["upstream_hash"],
                     attributes=[
@@ -1300,9 +1328,32 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                             raw_value="601",
                             evidence=attribute["evidence"][:2],
                         ),
+                        dict(
+                            attribute,
+                            local_ref="repeated-rating",
+                            qualifiers=["An adjacent annotation"],
+                            value_form="QUALIFIED",
+                        ),
+                        inference,
+                        dict(
+                            inference,
+                            local_ref="inferred-with-citations",
+                            evidence=[
+                                dict(
+                                    kind="READING", role="CONTEXT", reading_ref=header, quote=None
+                                ),
+                                dict(kind="READING", role="VALUE", reading_ref=value, quote=None),
+                            ],
+                        ),
                     ],
                     raw_unmapped=[
-                        dict(raw, local_ref="owned-raw", raw_label="Noise_100%", raw_value="50"),
+                        dict(
+                            raw,
+                            local_ref="owned-raw",
+                            raw_label="Noise_100%",
+                            raw_value="50",
+                            display_label="Noise Level (Unspecified)",
+                        ),
                         dict(
                             raw, local_ref="unowned-raw", equipment_ref="foreign", raw_label="Other"
                         ),
@@ -1364,6 +1415,8 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
     assert members["group"] == match
     assert members["items"][0]["kind"] == "ATTRIBUTE"
     assert members["items"][0]["equipment_id"] == group and members["items"][0]["raw_unmapped"]
+    assert members["items"][0]["source_display_label"] == "Noise Level (Unspecified)"
+    assert browse(view="groups", search="Noise Level (Unspecified)")["items"] == [match]
     assert (
         browse(view="members", group_id=group, search="missing")["group"][
             "matching_candidate_count"
@@ -1384,7 +1437,45 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
         == first_member["items"]
     )
     ratings = browse(equipment_id=group, kind="ATTRIBUTE", mapping_status="MAPPED")["items"]
-    rating, mismatch = sorted(ratings, key=lambda candidate: candidate["raw_value"])
+    rating, mismatch = sorted(
+        (item for item in ratings if item["origin"] == "EXTRACTED"),
+        key=lambda candidate: candidate["raw_value"],
+    )
+    inferred, contextual = sorted(
+        (item for item in ratings if item["origin"] == "INFERRED"),
+        key=lambda candidate: len(candidate["evidence_ids"]),
+    )
+    assert inferred["attribute_display_name"] == rating["attribute_display_name"]
+    assert inferred["attribute_display_name"] == "Secondary Voltage (kV)"
+    assert inferred["proposed_value"] == "0.7" and inferred["proposed_unit"] == "kV"
+    assert inferred["inference_basis"] == "ENGINEERING_KNOWLEDGE"
+    assert inferred["inference_explanation"]
+    assert inferred["source_expression"] == "600"
+    assert inferred["raw_label"] is None and inferred["raw_value"] is None
+    assert inferred["normalized"] == {"type": "NUMBER", "value": "0.7", "unit": "kV"}
+    assert inferred["value_source_support"] == "UNVERIFIED" and inferred["evidence_ids"] == []
+    assert inferred["conflict"] and rating["conflict"]
+    repeated = browse(equipment_id=group, search="600", mapping_status="UNMAPPED")["items"]
+    (repeat,) = [item for item in repeated if item["redundant_with_id"]]
+    assert repeat["redundant_with_id"] == rating["id"]
+    assert repeat["raw_value"] == "600" and repeat["qualifiers"] == ["An adjacent annotation"]
+    identity = browse(view="members", group_id=group, limit=1)["identification"]
+    assert identity["kind"] == "EQUIPMENT" and identity["tag"] == "TX-1"
+    assert identity["display_name"] == "TX-1"
+    summary = next(item for item in all_groups["items"] if item["group_id"] == group)
+    assert summary["matching_attribute_count"] == 6
+    assert summary["matching_identification_count"] == 1
+    context_resolved, context_unresolved = [
+        client.get(f"{path}/evidence/{evidence_id}").json()
+        for evidence_id in contextual["evidence_ids"]
+    ]
+    assert context_resolved["localization"] == "RESOLVED"
+    assert context_resolved["role"] == "CONTEXT"
+    assert context_resolved["candidate_value_source_support"] == "UNVERIFIED"
+    assert context_unresolved["reason_code"] == "INFERRED_VALUE_CITATION"
+    assert (
+        context_unresolved["localization"] == "UNRESOLVED" and "regions" not in context_unresolved
+    )
     assert rating["association"] == "UNCERTAIN" and rating["raw_unit"] is None
     assert rating["raw_value"] == "600"
     assert rating["normalized"] == {"type": "NUMBER", "value": "0.6", "unit": "kV"}
@@ -1527,6 +1618,7 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
                 raw_unmapped=[],
                 attributes=[
                     dict(
+                        origin="EXTRACTED",
                         local_ref="a1",
                         attribute_key="primary_connection",
                         proposed_enum_value="WYE",
@@ -1575,6 +1667,8 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
                 run_id=stage.run_id,
                 document_page_id=stage.document_page_id,
                 upstream_work_unit_id=units[("EQUIPMENT_RECOGNITION", 2)],
+                stage=stage.stage,
+                payload=stage.payload,
             )
         real_publish(session, stage, image_id, observations)
 
@@ -1593,3 +1687,64 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
         assert session.get(ExtractionRun, run_id).status == "PARTIALLY_COMPLETED"
         assert session.get(ExtractionRun, run_id).pages_processed == 1
         assert session.get(StageResult, units[("EQUIPMENT_RECOGNITION", 1)]) is not None
+
+
+def test_equipment_names_are_stable_across_pages_filters_and_pagination(operation_context):
+    from powerforge_engineering_model.registry import get_equipment_definition
+    from powerforge_extraction.stage_execution import FakeExtractionProvider
+
+    ctx = operation_context
+    with pymupdf.open(stream=native_pdf(), filetype="pdf") as page, pymupdf.open() as document:
+        document.insert_pdf(page)
+        document.insert_pdf(page)
+        source = new_source(ctx, "two-page-names.pdf", document.tobytes())
+    source["pages"] = [1, 2]
+    preparation(ctx, source)
+    _, body = reviewed(ctx, [source])
+    operation_id = start_operation(ctx, body).json()["id"]
+    advance(ctx, operation_id)
+    run_id = UUID(detail_operation(ctx, operation_id)["items"][0]["extraction"]["run_id"])
+    with ctx["factory"]() as session:
+        units = session.scalars(
+            select(ExtractionWorkUnit)
+            .where(
+                ExtractionWorkUnit.run_id == run_id,
+                ExtractionWorkUnit.stage == "EQUIPMENT_RECOGNITION",
+            )
+            .order_by(ExtractionWorkUnit.page_numbers)
+        ).all()
+    for unit in units:
+        assert execute_unit(
+            unit.id,
+            ctx["factory"],
+            ctx["storage"],
+            ctx["settings"],
+            lambda _: FakeExtractionProvider("success"),
+        )
+    path = ctx["operation_base"].removesuffix("/extraction")
+    url = f"{path}/documents/{source['revision_document_id']}/extraction/runs/{run_id}/candidates"
+
+    def browse(**params):
+        response = client.get(url, params={"view": "groups", **params})
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    before = browse()
+    display_type = get_equipment_definition("TWO_WINDING_TRANSFORMER").display_name
+    assert [item["label"] for item in before["items"]] == [f"{display_type} 1", f"{display_type} 2"]
+    assert all(item["matching_attribute_count"] == 0 for item in before["items"])
+    assert all(item["matching_identification_count"] == 1 for item in before["items"])
+    first = browse(limit=1)
+    second = browse(limit=1, cursor=first["next_cursor"])
+    assert second["items"] == [before["items"][1]]
+    assert browse(search=f"{display_type} 2")["items"] == second["items"]
+    assert (
+        browse(page_id=str(units[1].execution_metadata["source_page_id"]))["items"]
+        == second["items"]
+    )
+    assert browse(search="Synthetic equipment", mapping_status="MAPPED")["items"] == before["items"]
+    group_id = second["items"][0]["group_id"]
+    members = client.get(url, params={"view": "members", "group_id": group_id, "kind": "ATTRIBUTE"})
+    assert members.status_code == 200
+    assert members.json()["items"] == []
+    assert members.json()["identification"]["display_name"] == f"{display_type} 2"

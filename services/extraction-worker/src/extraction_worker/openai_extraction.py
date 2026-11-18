@@ -22,7 +22,7 @@ from powerforge_extraction.extraction_profile import (
 )
 from powerforge_extraction.identities import canonical_json
 from powerforge_extraction.response_diagnostics import validation_issues
-from powerforge_extraction.stage_contracts import MAX_RESPONSE_BYTES, VERSION
+from powerforge_extraction.stage_contracts import MAX_RESPONSE_BYTES, stage_schema_version
 from powerforge_shared.config import Settings
 
 
@@ -47,7 +47,7 @@ class OpenAIExtractionProvider:
             model is None
             or request.response_model is not model
             or request.instructions != PROMPTS[request.stage]
-            or request.schema_version != VERSION
+            or request.schema_version != stage_schema_version(request.stage)
             or request.model != self.profile.model
             or request.timeout_seconds != self.profile.timeout_seconds
             or request.max_output_tokens != self.profile.max_output_tokens

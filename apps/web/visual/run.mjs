@@ -293,7 +293,7 @@ try {
         await shot(`extraction-operation-${width}`);
       } else {
         await go(r + "/documents/doc?mode=evidence");
-        const candidate = page.getByRole("button", { name: /Rated apparent power/ });
+        const candidate = page.getByRole("button", { name: /Rated Apparent Power/ });
         await page.getByRole("button", { name: /TX-001/ }).click();
         await candidate.click();
         await page.getByText("Matches cited text", { exact: true }).waitFor();

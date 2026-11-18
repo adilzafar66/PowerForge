@@ -158,6 +158,7 @@ function CandidateBrowser({ scope, params, browser, update, page, highlighted }:
   const selected = browser.candidate;
   const items = members?.items ?? [];
   const candidates = selected && !items.some((item) => item.id === selected.id) ? [selected, ...items] : items;
+  const identification = members?.identification;
   const filter = (patch: Patch) => update({ ...patch, groupCursor: null, memberCursor: null }, "replace");
 
   function pick(candidate: Candidate) {
@@ -212,26 +213,57 @@ function CandidateBrowser({ scope, params, browser, update, page, highlighted }:
       {currentOnly && !mayList && runId && browser.sources.isSuccess && <PanelMessage>This page is outside the selected run.</PanelMessage>}
       {mayList && query.isPending && <p role="status" className="text-workspace-caption text-muted">Loading candidates…</p>}
       {query.error && <PanelMessage error retry={() => void query.refetch()}>{apiErrorOf(query.error).detail}</PanelMessage>}
-      {members && <h3 className="break-words text-workspace-label font-bold text-ink">{members.group.tag ?? members.group.label}</h3>}
+      {members && <h3 className="break-words text-workspace-label font-bold text-ink">{members.group.label}</h3>}
       {query.data && !candidates.length && !groups?.items.length && <PanelMessage>No candidates match these filters.</PanelMessage>}
       {groups?.items.map((group) => (
         <button key={group.group_id} type="button" className={cn(card, "flex w-full items-center justify-between gap-2 p-3 text-left hover:bg-soft focus-visible:ring-2 focus-visible:ring-ring")}
           onClick={() => update({ extractionRun: runId, equipmentGroup: group.group_id, returnPage: page, candidate: null, fragment: null, memberCursor: null })}>
           <span className="min-w-0">
-            <strong className="block break-words text-workspace-label text-ink">{group.tag ?? group.label}</strong>
+            <strong className="block break-words text-workspace-label text-ink">{group.label}</strong>
             <span className="block text-workspace-caption text-muted">
-              {group.registry_type && `${readableKey(group.registry_type)} · `}Page {group.page_numbers.join(", ")} · {group.matching_candidate_count} candidates
+              Page {group.page_numbers.join(", ")} · {group.matching_attribute_count} attributes
             </span>
+            {group.source_description && <span className="block truncate text-workspace-caption text-muted" title={group.source_description}>{group.source_description}</span>}
           </span>
           <ChevronRight aria-hidden className="size-4 shrink-0 text-muted" />
         </button>
       ))}
       {browser.selection.error && <PanelMessage error retry={() => void browser.selection.refetch()}>The selected candidate is unavailable.</PanelMessage>}
-      {candidates.map((candidate) => (
-        <CandidateCard key={candidate.id} candidate={candidate} expanded={candidate.id === browser.candidateId}
-          browser={browser} highlighted={highlighted} onSelect={() => pick(candidate)}
+      {identification && <section aria-label="Equipment identification" className="space-y-2">
+        <h3 className="text-workspace-label font-bold text-ink">Equipment identification</h3>
+        <CandidateCard candidate={identification} expanded={identification.id === browser.candidateId}
+          browser={browser} highlighted={highlighted} onSelect={() => pick(identification)}
+          onRelated={(id) => update({ candidate: id, fragment: null })}
           onLocate={(id) => update({ fragment: id, page: browser.binding?.page_number ?? page })} />
-      ))}
+      </section>}
+      {[false, true].map((unsupported) => {
+        const items = candidates.filter((candidate) => candidate.kind === "ATTRIBUTE"
+          && candidate.raw_unmapped === unsupported && !candidate.redundant_with_id);
+        if (!items.length) return null;
+        return (
+          <section key={String(unsupported)} aria-label={unsupported ? "Unmapped source attributes" : "Registry attributes"} className="space-y-2">
+            <h3 className="text-workspace-label font-bold text-ink">{unsupported ? "Unmapped source attributes" : "Registry attributes"}</h3>
+            {items.map((candidate) => (
+              <CandidateCard key={candidate.id} candidate={candidate} expanded={candidate.id === browser.candidateId}
+                browser={browser} highlighted={highlighted} onSelect={() => pick(candidate)}
+                onRelated={(id) => update({ candidate: id, fragment: null })}
+                onLocate={(id) => update({ fragment: id, page: browser.binding?.page_number ?? page })} />
+            ))}
+          </section>
+        );
+      })}
+      {candidates.some((candidate) => candidate.kind === "ATTRIBUTE" && candidate.redundant_with_id) && (
+        <details className="space-y-2" open={selected?.kind === "ATTRIBUTE" && !!selected.redundant_with_id}>
+          <summary className="cursor-pointer text-workspace-caption text-muted">Possible repeated assertions</summary>
+          <p className="text-workspace-caption text-muted">Original assertions are retained in the attribute count and history. Review differing qualifiers and source context.</p>
+          {candidates.filter((candidate) => candidate.kind === "ATTRIBUTE" && candidate.redundant_with_id).map((candidate) => (
+            <CandidateCard key={candidate.id} candidate={candidate} expanded={candidate.id === browser.candidateId}
+              browser={browser} highlighted={highlighted} onSelect={() => pick(candidate)}
+              onRelated={(id) => update({ candidate: id, fragment: null })}
+              onLocate={(id) => update({ fragment: id, page: browser.binding?.page_number ?? page })} />
+          ))}
+        </details>
+      )}
       {(groups || members) && <EvidencePagination page={(groups ?? members)!} onChange={(next) => update(
         opened ? { extractionRun: runId, memberCursor: next } : { extractionRun: runId, groupCursor: next },
       )} />}
@@ -266,19 +298,28 @@ function GroupSearch({ value, onCommit }: { value: string; onCommit: (value: str
 
 const mappingTones = { MAPPED: "green", UNMAPPED: "yellow", INVALID: "red" } as const satisfies Record<MappingStatus, string>;
 
-function CandidateCard({ candidate, expanded, browser, highlighted, onSelect, onLocate }: {
+function CandidateCard({ candidate, expanded, browser, highlighted, onSelect, onLocate, onRelated }: {
   candidate: Candidate; expanded: boolean; browser: Browser; highlighted: boolean;
-  onSelect: () => void; onLocate: (id: string) => void;
+  onSelect: () => void; onLocate: (id: string) => void; onRelated: (id: string) => void;
 }) {
   const attribute = candidate.kind === "ATTRIBUTE" ? candidate : null;
+  const inferred = attribute?.origin === "INFERRED";
   const title = candidate.kind === "EQUIPMENT"
-    ? candidate.tag ?? candidate.source_description
-    : candidate.raw_label ?? (candidate.proposed_attribute_key ? readableKey(candidate.proposed_attribute_key) : "Source attribute");
+    ? candidate.display_name
+    : candidate.attribute_display_name ?? (candidate.raw_unmapped ? candidate.source_display_label ?? "Unmapped source attribute" : candidate.proposed_attribute_key) ?? "Source attribute";
+  const displayedValue = attribute?.normalized?.value ?? (inferred ? attribute?.proposed_value : attribute?.raw_value);
+  const displayedUnit = attribute?.normalized ? attribute.normalized.unit : inferred ? attribute?.proposed_unit : attribute?.raw_unit;
   return (
     <article className={card}>
       <button type="button" aria-expanded={expanded} onClick={onSelect}
         className="flex w-full items-start justify-between gap-2 p-3 text-left text-workspace-label text-ink hover:bg-soft">
-        <strong className="min-w-0 break-words">{title}</strong>
+        <span className="min-w-0 break-words">
+          <strong className="block">{title}</strong>
+          {attribute && <span className="block text-workspace-caption text-muted">
+            {displayedValue != null && `${String(displayedValue)}${displayedUnit ? ` ${displayedUnit}` : ""} · `}
+            {inferred ? "Inferred" : "Extracted"}
+          </span>}
+        </span>
         <StatusChip tone={mappingTones[candidate.mapping_status]}>{readableKey(candidate.mapping_status)}</StatusChip>
       </button>
       {expanded && (
@@ -289,20 +330,32 @@ function CandidateCard({ candidate, expanded, browser, highlighted, onSelect, on
             <p>Tag {readableKey(candidate.tag_state).toLowerCase()}{candidate.raw_qualification && ` · ${candidate.raw_qualification}`}</p>
           </>}
           {attribute && <>
-            <p className="break-words text-ink">Raw value <strong>{attribute.raw_value}{attribute.raw_unit && ` ${attribute.raw_unit}`}</strong></p>
-            <p>{valueSourceSupportLabel[attribute.value_source_support]}</p>
+            {inferred ? <>
+              <p className="break-words text-ink">Proposed value <strong>{attribute.proposed_value}{attribute.proposed_unit && ` ${attribute.proposed_unit}`}</strong></p>
+              <p className="break-words">Inference explanation <strong>{attribute.inference_explanation}</strong></p>
+              <p>Basis <strong>{attribute.inference_basis ? readableKey(attribute.inference_basis) : "Unspecified"}</strong></p>
+              {attribute.source_expression && <p>Original source expression <strong>{attribute.source_expression}</strong></p>}
+              <p>Inferred value. Supporting references provide context. Review the inference and equipment association.</p>
+            </> : <>
+              {attribute.raw_label && <p>Original PDF label <strong>{attribute.raw_label}</strong></p>}
+              <p className="break-words text-ink">Raw value <strong>{attribute.raw_value}{attribute.raw_unit && ` ${attribute.raw_unit}`}</strong></p>
+              <p>{valueSourceSupportLabel[attribute.value_source_support]}</p>
+              {attribute.value_form && attribute.value_form !== "SINGLE" && <p>Source form: {readableKey(attribute.value_form)}</p>}
+              {!!attribute.qualifiers.length && <p className="break-words">Qualifiers: {attribute.qualifiers.join(", ")}</p>}
+              <p>Review equipment association and interpretation separately from the cited text.</p>
+            </>}
             <p>Equipment association <strong>{readableKey(attribute.association)}</strong></p>
             {attribute.proposed_attribute_key && <p>Registry proposal: {readableKey(attribute.proposed_attribute_key)}</p>}
             {attribute.proposed_enum_value && <p>Proposed enum: {attribute.proposed_enum_value}</p>}
             {attribute.normalized && <p>Normalized: {String(attribute.normalized.value)}{attribute.normalized.unit && ` ${attribute.normalized.unit}`}</p>}
-            {attribute.value_form !== "SINGLE" && <p>Source form: {readableKey(attribute.value_form)}</p>}
-            {!!attribute.qualifiers.length && <p className="break-words">Qualifiers: {attribute.qualifiers.join(", ")}</p>}
             {attribute.raw_unmapped && <p>Unsupported source attribute</p>}
+            {attribute.raw_unmapped && attribute.source_display_label && <p>Title is a presentation label. The original PDF label is preserved above.</p>}
+            {attribute.redundant_with_id && <button type="button" className={docButtonClass("ghost", "tiny")}
+              onClick={() => onRelated(attribute.redundant_with_id!)}>View related assertion</button>}
           </>}
           {candidate.reason_code && <p>{readableKey(candidate.reason_code)}</p>}
           {candidate.conflict && <p className="text-warning">Conflicting candidate values</p>}
-          {attribute && <p>Review equipment association and interpretation separately from the cited text.</p>}
-          <ol className="m-0 list-none space-y-2 p-0" aria-label="Evidence fragments">
+          {!!candidate.evidence_ids.length && <ol className="m-0 list-none space-y-2 p-0" aria-label={inferred ? "Inference context references" : "Evidence fragments"}>
             {candidate.evidence_ids.map((id, index) => {
               const result = browser.fragments[index];
               return (
@@ -315,7 +368,7 @@ function CandidateCard({ candidate, expanded, browser, highlighted, onSelect, on
                 </li>
               );
             })}
-          </ol>
+          </ol>}
         </div>
       )}
     </article>

@@ -6,7 +6,14 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from powerforge_extraction.publication import ValueSourceSupport
-from powerforge_extraction.stage_contracts import Association, Qualification, Role, TagState
+from powerforge_extraction.stage_contracts import (
+    Association,
+    AttributeOrigin,
+    InferenceBasis,
+    Qualification,
+    Role,
+    TagState,
+)
 from powerforge_provenance.locations import Region
 
 MappingStatus = Literal["MAPPED", "UNMAPPED", "INVALID"]
@@ -41,6 +48,7 @@ class CandidateBase(BaseModel):
 class EquipmentCandidate(CandidateBase):
     kind: Literal["EQUIPMENT"] = "EQUIPMENT"
     source_description: str
+    display_name: str
     registry_type: str | None
     tag: str | None
     tag_state: TagState
@@ -59,12 +67,21 @@ class AttributeCandidate(CandidateBase):
     equipment_id: UUID | None
     association: Association
     raw_unmapped: bool
+    origin: AttributeOrigin
+    attribute_display_name: str | None
     raw_label: str | None
-    raw_value: str
+    raw_value: str | None
     raw_unit: str | None
+    proposed_value: str | None
+    proposed_unit: str | None
+    inference_explanation: str | None
+    inference_basis: InferenceBasis | None
+    source_expression: str | None
+    source_display_label: str | None
+    redundant_with_id: UUID | None
     value_source_support: ValueSourceSupport
     qualifiers: list[str]
-    value_form: Literal["SINGLE", "RANGE", "MULTIPLE", "QUALIFIED"]
+    value_form: Literal["SINGLE", "RANGE", "MULTIPLE", "QUALIFIED"] | None
     proposed_attribute_key: str | None
     proposed_enum_value: str | None
     normalized: NormalizedValue | None
@@ -81,6 +98,9 @@ class Group(BaseModel):
     registry_type: str | None
     page_numbers: list[int]
     matching_candidate_count: int
+    matching_attribute_count: int
+    matching_identification_count: int
+    source_description: str | None
 
 
 class BrowserPage[T](BaseModel):
@@ -92,6 +112,7 @@ class BrowserPage[T](BaseModel):
 
 class MembersPage(BrowserPage[CandidateItem]):
     group: Group
+    identification: EquipmentCandidate | None
 
 
 class PinnedRunPage(BaseModel):

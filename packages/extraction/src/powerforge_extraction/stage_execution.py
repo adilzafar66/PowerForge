@@ -10,12 +10,14 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from powerforge_ai.extraction import ExecutionUsage, ExtractionRequest, ExtractionResponse
 from powerforge_extraction.extraction_profile import PROMPTS, RESPONSES, STAGES
-from powerforge_extraction.identities import canonical_json
+from powerforge_extraction.identities import canonical_json, identity_hash
 from powerforge_extraction.models import ExtractionWorkUnit
 from powerforge_extraction.pinned_sources import bound_snapshot, load_bound
 from powerforge_extraction.run_planning import metadata
 from powerforge_extraction.stage_contracts import (
-    VERSION,
+    ATTRIBUTE_DESCRIPTION_VERSION,
+    ATTRIBUTE_INPUT_VERSION,
+    ATTRIBUTE_VERSION,
     AttributeRequest,
     NoEligibleAttributes,
     PinnedPageContext,
@@ -25,6 +27,7 @@ from powerforge_extraction.stage_contracts import (
     attribute_catalog,
     contract_hash,
     equipment_catalog,
+    stage_schema_version,
     validate_request,
 )
 from powerforge_persistence.base import Base
@@ -131,6 +134,67 @@ def project_page(source):
     )
 
 
+def provider_input(wire: RecognitionRequest | AttributeRequest | NoEligibleAttributes) -> dict:
+    """Serialize the provider view of a validated request."""
+    payload = wire.model_dump(mode="json")
+    if not isinstance(wire, AttributeRequest):
+        return payload
+
+    payload["input_version"] = ATTRIBUTE_INPUT_VERSION
+    page = payload["page"]
+    layout = page["layout"]
+    source_layout = wire.page.layout
+    # Keep the token links needed to interpret alternate readings, uncertainty
+    # and layout relationships that refer to tokens instead of reading IDs.
+    referenced = {member for pair in source_layout.overlaps for member in (pair.left, pair.right)}
+    referenced.update(member for item in source_layout.unresolved for member in item.support)
+    referenced.update(
+        member
+        for table in source_layout.tables
+        for cell in table.cells
+        for member in cell.boundary_support
+    )
+    coordinates = ("x", "y", "width", "height")
+    rows = []
+    reading_sources = {}
+    for reading, geometry, source_reading in zip(
+        page["readings"], layout.pop("readings"), source_layout.readings, strict=True
+    ):
+        ref = reading["reading_ref"]
+        region = geometry["region"] or {}
+        rows.append(
+            [
+                ref,
+                reading["text"],
+                reading["modality"],
+                reading["alternate_texts"],
+                geometry["issues"],
+                *(region.get(key) for key in coordinates),
+            ]
+        )
+        if (
+            len(source_reading.members) > 1
+            or source_reading.issues
+            or source_reading.preferred in referenced
+        ):
+            reading_sources[ref] = {
+                "members": geometry["members"],
+                "preferred": geometry["preferred"],
+            }
+    page["readings"] = {
+        "columns": ["reading_ref", "text", "modality", "alternate_texts", "issues", *coordinates],
+        "rows": rows,
+    }
+    if reading_sources:
+        layout["reading_sources"] = reading_sources
+    order_columns = ["before", "after", "basis"]
+    layout["order"] = {
+        "columns": order_columns,
+        "rows": [[edge[key] for key in order_columns] for edge in layout["order"]],
+    }
+    return payload
+
+
 def request_for(factory, storage, claim):
     profile = claim.profile
     with factory() as session:
@@ -149,7 +213,7 @@ def request_for(factory, storage, claim):
     if page.owner != owner:
         raise ValueError("Source page differs from the authorized binding")
     common = dict(
-        version=VERSION,
+        version=stage_schema_version(unit.stage),
         stage=unit.stage,
         page=page,
         page_context_hash=context_hash,
@@ -168,7 +232,7 @@ def request_for(factory, storage, claim):
         definitions = attribute_catalog(upstream)
         if not definitions:
             skip = NoEligibleAttributes(
-                version=VERSION,
+                version=ATTRIBUTE_VERSION,
                 stage=unit.stage,
                 outcome="NO_ELIGIBLE_ATTRIBUTES",
                 page_context_hash=context_hash,
@@ -179,18 +243,19 @@ def request_for(factory, storage, claim):
         wire = AttributeRequest(
             **common,
             upstream=upstream,
+            attribute_description_version=ATTRIBUTE_DESCRIPTION_VERSION,
             upstream_hash=parent.result_hash,
             attribute_catalog=definitions,
         )
     validate_request(wire, expected_owner=owner)
-    payload = canonical_json(wire.model_dump(mode="json"))
+    payload = canonical_json(provider_input(wire))
     request = ExtractionRequest(
         work_unit_id=claim.unit_id,
         unit_key=claim.unit_key,
         attempt_number=claim.attempt_number,
         model=profile.model,
         instructions=PROMPTS[unit.stage],
-        schema_version=VERSION,
+        schema_version=wire.version,
         timeout_seconds=profile.timeout_seconds,
         max_output_tokens=profile.max_output_tokens,
         text=payload,
@@ -216,12 +281,17 @@ def request_for(factory, storage, claim):
 
 
 def store_result(session, unit, snapshot, wire, result, observations):
+    from powerforge_extraction.assertion_consistency import redundant_assertions
     from powerforge_extraction.publication import publication_diagnostics
     from powerforge_extraction.publication_records import publish
 
     parent = prerequisite_result(session, unit)
     skip = isinstance(result, NoEligibleAttributes)
-    if result.stage != unit.stage or result.page_context_hash != wire.page_context_hash:
+    if (
+        result.stage != unit.stage
+        or result.version != wire.version
+        or result.page_context_hash != wire.page_context_hash
+    ):
         raise ValueError("Result differs from the pinned request")
     if not skip and (
         wire.page.owner != snapshot.layout.owner
@@ -249,10 +319,12 @@ def store_result(session, unit, snapshot, wire, result, observations):
         page_context_hash=result.page_context_hash,
         upstream_work_unit_id=parent.work_unit_id if parent else None,
         upstream_hash=parent.result_hash if parent else None,
-        request_hash=contract_hash(wire),
+        request_hash=identity_hash(provider_input(wire)),
         result_hash=contract_hash(result),
         payload=result.model_dump(mode="json"),
-        diagnostics=publication_diagnostics(observations),
+        diagnostics=publication_diagnostics(
+            observations, redundant_assertions(result.model_dump(mode="json"))
+        ),
     )
     session.add(stage)
     session.flush()
@@ -273,7 +345,7 @@ class FakeExtractionProvider:
         if self.scenario in {"invalid", "permanent"}:
             raise ProviderFailure(ErrorCode.INVALID)
         payload = {
-            "version": VERSION,
+            "version": request.schema_version,
             "stage": request.stage,
         }
         wire = json.loads(request.text)

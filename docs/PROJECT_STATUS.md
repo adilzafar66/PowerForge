@@ -10,6 +10,13 @@ UI-C visual fidelity rework follows the approved Projects/Revisions HTML layouts
 
 **Current engineering work:** Unified extraction and Documents review.
 
+The Phase 6R quality correction is implemented for review on the development
+branch, with versioned recognition/attribute guidance, inference provenance,
+source-unit notation, redundancy diagnostics and Documents presentation changes.
+Offline verification passed 1,408 backend and 358 frontend tests. The
+[quality-correction handoff](PHASE6R_QUALITY_CORRECTION.md) records the Siemens
+replay and the remaining authorized live-verification requirement.
+
 [ROADMAP.md](ROADMAP.md) is the canonical high-level plan for intended future scope; this file remains authoritative for implementation status.
 
 ## Phase 0 — Architecture and repository setup

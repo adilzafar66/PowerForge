@@ -32,6 +32,16 @@ diagnostics, and measured usage. Cost requires measured usage and versioned pric
 
 The candidate retains raw assertions, proposed keys and enum values, normalized
 values where supported, and independent mapping, association and evidence states.
+Stage 2 considers required and optional registry attributes for every eligible
+equipment occurrence. Extracted attributes retain literal transcription.
+Inferred attributes retain a separate value and unit proposal, explanation,
+optional basis and optional context citations. They never count as matches to
+cited value text. Both origins remain review candidates.
+The quality correction also preserves original expressions for derived proposals
+and separate presentation labels for raw source facts. Equipment identification
+has its own section. Group names follow source order and group summaries count
+attributes separately from identification. Likely repeated assertions remain
+accessible with their original qualifiers and evidence.
 “Matches cited text” describes the cited fragment. Correct row, equipment ownership
 and engineering interpretation require independent review.
 
@@ -45,6 +55,8 @@ Enable `ENRICHMENT_ENABLED` for local preparation. For development set
 `EXTRACTION_USE_FAKE_PROVIDER=true` on the API, extraction worker and scheduler.
 Live admission additionally requires `EXTRACTION_EXTERNAL_ENABLED=true`, the
 configured model, worker credentials, and consent for the selected sources.
+New runs pin the per-request OpenAI timeout from `EXTRACTION_TIMEOUT_SECONDS`,
+which defaults to 100 seconds.
 
 Use a disposable database and `alembic -c database/alembic.ini upgrade head`
 for development. The replacement chain is for clean installation. Follow the

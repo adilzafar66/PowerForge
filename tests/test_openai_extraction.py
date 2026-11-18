@@ -10,6 +10,7 @@ import pytest
 from extraction_worker.openai_extraction import OpenAIExtractionProvider
 from powerforge_ai.extraction import ErrorCode, ExtractionRequest, ProviderFailure
 from powerforge_extraction.extraction_profile import PROMPTS, RESPONSES, STAGES, extraction_profile
+from powerforge_extraction.stage_contracts import stage_schema_version
 from powerforge_shared.config import Settings
 
 
@@ -34,7 +35,7 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
     settings = Settings(_env_file=None, extraction_external_enabled=True)
     profile = extraction_profile(settings)
     payload = {
-        "version": "phase-6r-v1",
+        "version": stage_schema_version(stage),
         "stage": stage,
         "page_context_hash": "a" * 64,
         **(
@@ -48,6 +49,22 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
         ),
     }
     secret = "CONFIDENTIAL SOURCE STRING"
+    if outcome == "success" and stage == STAGES[1]:
+        payload["attributes"] = [
+            {
+                "origin": "INFERRED",
+                "local_ref": "a1",
+                "equipment_ref": "eq1",
+                "association": "ASSERTED",
+                "attribute_key": "trip_unit_type",
+                "proposed_value": "ELECTRONIC",
+                "proposed_unit": None,
+                "inference_explanation": "The specified unit identifies the trip technology.",
+                "inference_basis": "EQUIPMENT_CHARACTERISTICS",
+                "source_expression": None,
+                "evidence": [],
+            }
+        ]
     if outcome == "schema":
         payload[secret] = secret
     if outcome == "pattern":
@@ -70,6 +87,7 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
                 local_ref="ref",
                 equipment_ref=None,
                 association="UNASSIGNED",
+                display_label=None,
                 raw_label=secret,
                 raw_value=secret,
                 raw_unit=None,
@@ -94,6 +112,13 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
         fmt = wire["text"]["format"]
         assert fmt["strict"] and set(fmt["schema"]["required"]) == set(fmt["schema"]["properties"])
         schema_fields = fmt["schema"]["properties"]
+        if stage == STAGES[1]:
+            assert "at most 12 evidence citations per assertion" in wire["instructions"]
+            union = schema_fields["attributes"]["items"]["anyOf"]
+            assert len(union) == 2
+            assert fmt["schema"]["$defs"]["InferredAssertion"]["properties"]["origin"]["enum"] == [
+                "INFERRED"
+            ]
         collection = "equipment" if stage == STAGES[0] else "raw_unmapped"
         assert "maxItems" not in schema_fields[collection]
         assert "pattern" not in schema_fields["page_context_hash"]
@@ -144,7 +169,7 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
         attempt_number=1,
         model=profile.model,
         instructions=PROMPTS[stage],
-        schema_version=profile.schema_version,
+        schema_version=stage_schema_version(stage),
         timeout_seconds=profile.timeout_seconds,
         max_output_tokens=profile.max_output_tokens,
         text="Untrusted pinned source",

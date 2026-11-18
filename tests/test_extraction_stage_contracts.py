@@ -12,6 +12,9 @@ from powerforge_engineering_model.enums import EquipmentType
 from powerforge_engineering_model.extraction_descriptions import DESCRIPTION_VERSION
 from powerforge_engineering_model.registry_v1 import REGISTRY
 from powerforge_extraction.stage_contracts import (
+    ATTRIBUTE_DESCRIPTION_VERSION,
+    ATTRIBUTE_INPUT_VERSION,
+    ATTRIBUTE_VERSION,
     MAX_REQUEST_BYTES,
     MAX_RESPONSE_BYTES,
     VERSION,
@@ -24,6 +27,9 @@ from powerforge_extraction.stage_contracts import (
     parse_response,
     validate_request,
 )
+from powerforge_extraction.stage_execution import provider_input
+from powerforge_provenance.layout_observations import ReadingOverlap, SpatialLayout
+from powerforge_provenance.spatial_layout import SourceSupport
 from spatial_layout_support import derive, drawn_table, prepare_pdf, sources
 
 FIXTURE = Path("evals/tables/v1/sources/positioned_schedule.pdf")
@@ -112,7 +118,7 @@ def attribute_request(recognition_request):
     request = recognition_request
     upstream = parse_response(request, json.dumps(recognition_envelope(request)).encode())
     return AttributeRequest(
-        version=VERSION,
+        version=ATTRIBUTE_VERSION,
         stage="ATTRIBUTE_EXTRACTION",
         page_context_hash=request.page_context_hash,
         page=request.page,
@@ -120,6 +126,7 @@ def attribute_request(recognition_request):
         upstream_hash=contract_hash(upstream),
         upstream=upstream,
         attribute_catalog=attribute_catalog(upstream),
+        attribute_description_version=ATTRIBUTE_DESCRIPTION_VERSION,
     )
 
 
@@ -128,6 +135,7 @@ def attribute_envelope(attribute_request):
     request = attribute_request
     reading = request.page.readings[0].reading_ref
     example = {
+        "origin": "EXTRACTED",
         "local_ref": "a1",
         "equipment_ref": "equipment-0",
         "association": "ASSERTED",
@@ -149,9 +157,10 @@ def attribute_envelope(attribute_request):
     raw = {
         key: value
         for key, value in example.items()
-        if key not in {"attribute_key", "proposed_enum_value"}
+        if key not in {"attribute_key", "proposed_enum_value", "origin"}
     }
     raw.update(
+        display_label=None,
         local_ref="a3",
         equipment_ref=None,
         association="UNASSIGNED",
@@ -161,7 +170,7 @@ def attribute_envelope(attribute_request):
         value_form="RANGE",
     )
     return {
-        "version": VERSION,
+        "version": ATTRIBUTE_VERSION,
         "stage": request.stage,
         "page_context_hash": request.page_context_hash,
         "upstream_hash": request.upstream_hash,
@@ -184,6 +193,7 @@ def test_unified_projection_and_exact_prerequisite(
     }
     definition = next(d for d in attributes.attribute_catalog if d.key == "primary_connection")
     assert "WYE" in definition.allowed_values
+    assert {item.required for item in attributes.attribute_catalog} == {True, False}
     payload = attribute_envelope
     result = parse_response(attributes, json.dumps(payload).encode())
     assert [(a.raw_value, a.proposed_enum_value) for a in result.attributes] == [
@@ -194,6 +204,125 @@ def test_unified_projection_and_exact_prerequisite(
     payload["upstream_hash"] = "9" * 64
     with pytest.raises(ValueError, match="prerequisite"):
         parse_response(attributes, json.dumps(payload).encode())
+
+
+@pytest.mark.parametrize("recognition_request", [True], indirect=True)
+def test_compact_schedule_keeps_readings_coordinates_and_layout(attribute_request):
+    original = attribute_request.model_dump(mode="json")
+    compact = json.loads(json.dumps(provider_input(attribute_request)))
+    page = compact["page"]
+    full_page = original["page"]
+    assert compact["input_version"] == ATTRIBUTE_INPUT_VERSION
+    for key in original.keys() - {"page"}:
+        assert compact[key] == original[key]
+    for key in full_page.keys() - {"readings", "layout"}:
+        assert page[key] == full_page[key]
+
+    layout = page["layout"]
+    full_layout = full_page["layout"]
+    assert full_layout["tables"]
+    for key in full_layout.keys() - {"readings", "order"}:
+        assert layout[key] == full_layout[key]
+    assert "readings" not in layout
+    assert [
+        dict(zip(layout["order"]["columns"], row, strict=True)) for row in layout["order"]["rows"]
+    ] == full_layout["order"]
+
+    rows = page["readings"]
+    actual_readings = [dict(zip(rows["columns"], row, strict=True)) for row in rows["rows"]]
+    assert actual_readings == [
+        {**reading, **geometry["region"], "issues": geometry["issues"]}
+        for reading, geometry in zip(full_page["readings"], full_layout["readings"], strict=True)
+    ]
+    assert len(json.dumps(compact, separators=(",", ":"))) < len(
+        json.dumps(original, separators=(",", ":"))
+    )
+    assert attribute_request.model_dump(mode="json") == original
+
+
+def test_compact_input_preserves_alternate_and_overlapping_token_links(attribute_request):
+    page = attribute_request.page
+    first, second, *rest = page.layout.readings
+    alternate = SourceSupport(representation_ref="ocr", kind="TOKEN", ref="w0")
+    first = first.model_copy(
+        update={
+            "members": (alternate, first.preferred),
+            "issues": ("TRANSCRIPTION_CONFLICT",),
+        }
+    )
+    layout = page.layout.model_copy(
+        update={
+            "readings": (first, second.model_copy(update={"region": None}), *rest),
+            "overlaps": (ReadingOverlap(left=alternate, right=second.preferred, kind="AMBIGUOUS"),),
+        }
+    )
+    layout = SpatialLayout.model_validate_json(layout.model_dump_json())
+    page = page.model_copy(
+        update={
+            "layout": layout,
+            "layout_sha256": layout.identity_hash,
+            "readings": (
+                page.readings[0].model_copy(update={"alternate_texts": ("Conflicting OCR",)}),
+                *page.readings[1:],
+            ),
+        }
+    )
+    context_hash = contract_hash(page)
+    upstream = attribute_request.upstream.model_copy(update={"page_context_hash": context_hash})
+    request = attribute_request.model_copy(
+        update={
+            "page": page,
+            "page_context_hash": context_hash,
+            "upstream": upstream,
+            "upstream_hash": contract_hash(upstream),
+        }
+    )
+    validate_request(request, expected_owner=page.owner)
+    compact = provider_input(request)["page"]
+    layout_json = layout.model_dump(mode="json")
+    assert compact["layout"]["overlaps"] == layout_json["overlaps"]
+    token_links = compact["layout"]["reading_sources"]
+    for reading in (first, second):
+        assert token_links[reading.ref] == {
+            "members": [item.model_dump(mode="json") for item in reading.members],
+            "preferred": reading.preferred.model_dump(mode="json"),
+        }
+    columns = compact["readings"]["columns"]
+    first_row, second_row, *_ = compact["readings"]["rows"]
+    assert first_row[columns.index("alternate_texts")] == ["Conflicting OCR"]
+    assert first_row[columns.index("issues")] == ["TRANSCRIPTION_CONFLICT"]
+    assert second_row[-4:] == [None] * 4
+
+
+def test_inference_wire_has_no_transcription_and_allows_empty_evidence(
+    attribute_request, attribute_envelope
+):
+    inference = {
+        "local_ref": "proposal",
+        "origin": "INFERRED",
+        "equipment_ref": "equipment-0",
+        "association": "ASSERTED",
+        "attribute_key": "primary_connection",
+        "proposed_value": "WYE",
+        "proposed_unit": None,
+        "inference_explanation": "The connection symbol supports this proposal.",
+        "inference_basis": "DOCUMENT_CONTEXT",
+        "source_expression": None,
+        "evidence": [],
+    }
+    attribute_envelope["attributes"] = [inference]
+    result = parse_response(attribute_request, json.dumps(attribute_envelope).encode())
+    assert result.attributes[0].origin == "INFERRED"
+    assert "raw_value" not in result.attributes[0].model_dump()
+    for field, value in (
+        ("raw_label", "Invented source label"),
+        ("inference_explanation", " "),
+        ("equipment_ref", None),
+        ("association", "UNASSIGNED"),
+    ):
+        attribute_envelope["attributes"] = [{**inference, field: value}]
+        with pytest.raises(ValueError):
+            parse_response(attribute_request, json.dumps(attribute_envelope).encode())
 
 
 @pytest.mark.parametrize("violation", ["duplicate", "page", "tag", "truncated", "capacity"])
@@ -421,6 +550,33 @@ def test_validation_diagnostics_bound_and_redact_nested_errors(recognition_reque
     assert all(private not in issue.model_dump_json() for issue in issues)
 
 
+def test_attribute_evidence_limit_accepts_twelve_and_diagnoses_thirteen(
+    attribute_request, attribute_envelope
+):
+    from pydantic import ValidationError
+
+    from powerforge_extraction.response_diagnostics import validation_issues
+
+    evidence = [
+        {"kind": "READING", "role": role, "reading_ref": reading.reading_ref, "quote": None}
+        for role in ("VALUE", "CONTEXT")
+        for reading in attribute_request.page.readings[:6]
+    ]
+    assert len(evidence) == 12
+    attribute_envelope["attributes"][0]["evidence"] = evidence
+    result = parse_response(attribute_request, json.dumps(attribute_envelope).encode())
+    assert len(result.attributes[0].evidence) == 12
+    evidence.append({"kind": "QUOTE", "role": "CONTEXT", "quote": "Schedule notes"})
+    with pytest.raises(ValidationError) as error:
+        parse_response(attribute_request, json.dumps(attribute_envelope).encode())
+    assert any(
+        issue.category == "FIELD_CONSTRAINT"
+        and issue.error_type == "too_long"
+        and issue.path == ("attributes", 0, "*", "evidence")
+        for issue in validation_issues(error.value)
+    )
+
+
 def test_visual_coordinates_keep_exact_wire_validation(attribute_request, attribute_envelope):
     from pydantic import ValidationError
 
@@ -439,3 +595,48 @@ def test_visual_coordinates_keep_exact_wire_validation(attribute_request, attrib
     with pytest.raises(ValidationError) as raised:
         parse_response(attribute_request, json.dumps(attribute_envelope).encode())
     assert any(issue.path[-2:] == ("region", "y") for issue in validation_issues(raised.value))
+
+
+def test_assembly_tag_response_preserves_distinct_device_ownership(recognition_request):
+    envelope = recognition_envelope(recognition_request)
+    envelope["equipment"][0].update(
+        local_ref="assembly",
+        registry_type="BUS",
+        tag_state="PRESENT",
+        tag="DMR-MAIN",
+        evidence=[{"kind": "QUOTE", "role": "TAG", "quote": "TAG(S):[DMR-MAIN]"}],
+    )
+    envelope["equipment"][1].update(
+        local_ref="branch", registry_type="LV_BREAKER", tag_state="ABSENT", tag=None
+    )
+    result = parse_response(recognition_request, json.dumps(envelope).encode())
+    assert result.equipment[0].tag == "DMR-MAIN"
+    assert result.equipment[0].evidence[0].quote == "TAG(S):[DMR-MAIN]"
+    assert result.equipment[1].tag is None
+
+
+def test_registry_guidance_explains_distinct_ratings_and_retains_registry_keys(recognition_request):
+    from powerforge_engineering_model.extraction_descriptions import (
+        ATTRIBUTE_DESCRIPTION_VERSION,
+        ATTRIBUTE_DESCRIPTIONS,
+    )
+    from powerforge_engineering_model.registry import get_equipment_definition
+    from powerforge_extraction.extraction_profile import extraction_profile
+    from powerforge_shared.config import Settings
+
+    envelope = recognition_envelope(recognition_request)
+    envelope["equipment"][0]["registry_type"] = "BUS"
+    envelope["equipment"][1]["registry_type"] = "LV_BREAKER"
+    upstream = parse_response(recognition_request, json.dumps(envelope).encode())
+    catalog = attribute_catalog(upstream)
+    for equipment_type in ("BUS", "LV_BREAKER"):
+        supplied = {a.key: a for a in catalog if a.equipment_type == equipment_type}
+        registered = get_equipment_definition(equipment_type).attributes
+        assert supplied.keys() == {a.key for a in registered}
+        assert all(supplied[a.key].name == a.display_name for a in registered)
+        assert all(supplied[a.key].required == a.required for a in registered)
+    assert "Bus bracing" in ATTRIBUTE_DESCRIPTIONS["short_time_withstand_current"]
+    assert "inference" in ATTRIBUTE_DESCRIPTIONS["trip_unit_type"]
+    assert "UL and CSA" in ATTRIBUTE_DESCRIPTIONS["standard"]
+    profile = extraction_profile(Settings(_env_file=None))
+    assert profile.manifest["attribute_descriptions"] == ATTRIBUTE_DESCRIPTION_VERSION

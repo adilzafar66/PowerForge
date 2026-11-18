@@ -418,13 +418,14 @@ class ExtractionCoordinator:
             if not live_admission_authorized(self.session, run, profile):
                 raise ProviderFailure(ErrorCode.DISABLED)
         from powerforge_extraction.extraction_profile import PROMPTS, RESPONSES
+        from powerforge_extraction.stage_contracts import stage_schema_version
 
         if request is None or (
             request.work_unit_id != unit.id
             or request.stage != unit.stage
             or request.instructions != PROMPTS[unit.stage]
             or request.response_model is not RESPONSES[unit.stage]
-            or request.schema_version != profile.schema_version
+            or request.schema_version != stage_schema_version(unit.stage)
         ):
             raise ValueError("Request differs from its pinned extraction stage")
         delivery.provider_started_at = self.now()
@@ -445,8 +446,10 @@ class ExtractionCoordinator:
         started = self.session.get(UnitExecution, unit.id).provider_started_at
         if started is None:
             return
+        from powerforge_extraction.stage_contracts import stage_schema_version
+
         prompt_version, prompt_hash = profile.prompt_version, profile.prompt_hash
-        schema_version, correlation = profile.schema_version, str(unit.id)
+        schema_version, correlation = stage_schema_version(unit.stage), str(unit.id)
         # Missing usage stays unknown; admissions retain interrupted call uncertainty.
         cost = None
         if (

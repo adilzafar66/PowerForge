@@ -9,25 +9,29 @@ from powerforge_document_processing.layout_derive import layout_rules_identity
 from powerforge_extraction.identities import identity_hash
 from powerforge_extraction.profiles import ExecutionProfile
 from powerforge_extraction.stage_contracts import (
+    ATTRIBUTE_INPUT_VERSION,
     MAX_IMAGE_BYTES,
     MAX_IMAGE_PIXELS,
-    VERSION,
     AttributeResponse,
     RecognitionResponse,
     attribute_catalog,
     equipment_catalog,
+    stage_schema_version,
 )
 
 KEY = "phase-6r"
 PROFILE_VERSION = "phase-6r-profile-v1"
 STAGES = ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION")
 RESPONSES = dict(zip(STAGES, (RecognitionResponse, AttributeResponse), strict=True))
-PROMPT_VERSION = "phase-6r-stages-v2"
+PROMPT_VERSION = "phase-6r-stages-v6"
+SCHEMA_VERSION = "phase-6r-wire-v3"
 PROMPTS = {
     stage: files("powerforge_extraction")
-    .joinpath(f"prompts/{stage.lower()}_{'v2' if stage == STAGES[0] else 'v1'}.txt")
+    .joinpath(f"prompts/{filename}")
     .read_text(encoding="utf-8")
-    for stage in STAGES
+    for stage, filename in zip(
+        STAGES, ("equipment_recognition_v3.txt", "attribute_extraction_v5.txt"), strict=True
+    )
 }
 
 
@@ -39,7 +43,7 @@ class ExtractionProfile(ExecutionProfile):
     stage: Literal["EQUIPMENT_RECOGNITION"] = "EQUIPMENT_RECOGNITION"
     input_strategy: Literal["PINNED_PAGE"] = "PINNED_PAGE"
     stages: tuple[Literal["EQUIPMENT_RECOGNITION"], Literal["ATTRIBUTE_EXTRACTION"]] = STAGES
-    schema_version: Literal["phase-6r-v1"] = VERSION
+    schema_version: Literal["phase-6r-wire-v3"] = SCHEMA_VERSION
     manifest: dict
     source_rules: str
     max_transport_bytes: int = Field(gt=0)
@@ -79,8 +83,10 @@ def structured_schema(value: dict) -> dict:
 def manifest():
     # The registry projection is pinned for both stages, including attribute definitions.
     from powerforge_engineering_model.registry_v1 import REGISTRY
+    from powerforge_extraction.assertion_consistency import VERSION as CONSISTENCY_VERSION
     from powerforge_extraction.publication import VERSION as PUBLICATION_VERSION
     from powerforge_extraction.stage_contracts import (
+        ATTRIBUTE_DESCRIPTION_VERSION,
         DESCRIPTION_VERSION,
         EquipmentObservation,
         RecognitionResponse,
@@ -88,7 +94,7 @@ def manifest():
 
     catalog = equipment_catalog()
     sample = RecognitionResponse(
-        version=VERSION,
+        version=stage_schema_version(STAGES[0]),
         stage=STAGES[0],
         page_context_hash="0" * 64,
         equipment=tuple(
@@ -106,10 +112,13 @@ def manifest():
         ),
     )
     return {
-        "version": VERSION,
+        "version": SCHEMA_VERSION,
         "registry_version": REGISTRY.registry_version,
         "publication_version": PUBLICATION_VERSION,
+        "consistency_version": CONSISTENCY_VERSION,
         "descriptions": DESCRIPTION_VERSION,
+        "attribute_descriptions": ATTRIBUTE_DESCRIPTION_VERSION,
+        "attribute_input_version": ATTRIBUTE_INPUT_VERSION,
         "catalog_hash": identity_hash(
             [
                 [item.model_dump(mode="json") for item in catalog],
@@ -120,6 +129,7 @@ def manifest():
         "stages": [
             {
                 "stage": stage,
+                "version": stage_schema_version(stage),
                 "prompt_hash": identity_hash(PROMPTS[stage]),
                 "schema_hash": identity_hash(model.model_json_schema()),
                 "transport_schema_hash": identity_hash(

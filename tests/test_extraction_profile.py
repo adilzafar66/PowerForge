@@ -24,16 +24,38 @@ def test_profile_round_trips_and_rejects_pinned_manifest_drift():
     ).identity_hash != (profile.identity_hash)
 
 
-def test_previous_publication_pin_cannot_be_loaded_for_execution():
+@pytest.mark.parametrize(
+    "previous_version",
+    [
+        "phase-6r-publication-v1",
+        "phase-6r-publication-v2",
+        "phase-6r-publication-v3",
+    ],
+)
+def test_previous_publication_pin_cannot_be_loaded_for_execution(previous_version):
     profile = extraction_profile(Settings(_env_file=None, extraction_use_fake_provider=True))
-    assert profile.manifest["publication_version"] == "phase-6r-publication-v2"
+    assert profile.manifest["publication_version"] == "phase-6r-publication-v4"
+    assert profile.schema_version == profile.manifest["version"] == "phase-6r-wire-v3"
+    assert [stage["version"] for stage in profile.manifest["stages"]] == [
+        "phase-6r-v1",
+        "phase-6r-attributes-v3",
+    ]
     previous = profile.model_copy(
-        update={"manifest": {**profile.manifest, "publication_version": "phase-6r-publication-v1"}}
+        update={"manifest": {**profile.manifest, "publication_version": previous_version}}
     )
     assert previous.identity_hash != profile.identity_hash
     with pytest.raises(ValueError, match="Pinned extraction resources"):
         read_profile(previous.model_dump(mode="json"))
     assert read_profile(profile.model_dump(mode="json")) == profile
+
+
+def test_previous_attribute_input_pin_cannot_be_loaded_for_execution():
+    profile = extraction_profile(Settings(_env_file=None, extraction_use_fake_provider=True))
+    assert profile.manifest["attribute_input_version"] == "compact-page-v1"
+    stored = profile.model_dump(mode="json")
+    del stored["manifest"]["attribute_input_version"]
+    with pytest.raises(ValueError, match="Pinned extraction resources"):
+        read_profile(stored)
 
 
 @pytest.mark.parametrize("version", [f"execution-profile-v{i}" for i in range(1, 7)])

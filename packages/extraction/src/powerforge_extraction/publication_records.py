@@ -35,6 +35,11 @@ class Candidate(Base):
     association: Mapped[str | None]
     claimed_owner_ref: Mapped[str | None]
     raw_unmapped: Mapped[bool | None]
+    attribute_origin: Mapped[str | None]
+    proposed_value: Mapped[str | None]
+    proposed_unit: Mapped[str | None]
+    inference_explanation: Mapped[str | None]
+    inference_basis: Mapped[str | None]
     raw_label: Mapped[str | None]
     raw_value: Mapped[str | None]
     raw_unit: Mapped[str | None]
@@ -92,6 +97,11 @@ def publish(session, stage, page_image_id, observations):
         work_unit_id=stage.work_unit_id,
     )
     fragments = []
+    assertions = (
+        stage.payload.get("equipment", ())
+        if stage.stage == "EQUIPMENT_RECOGNITION"
+        else (*stage.payload.get("attributes", ()), *stage.payload.get("raw_unmapped", ()))
+    )
     for ordinal, observation in enumerate(observations):
         fields = dict(observation.fields)
         ref = fields.pop("owner_ref", None)
@@ -104,9 +114,16 @@ def publish(session, stage, page_image_id, observations):
                 "raw_label",
                 "raw_value",
                 "raw_unit",
+                "proposed_value",
+                "proposed_unit",
             )
             if fields.get(key) is not None
         ]
+        search_terms.extend(
+            assertions[ordinal][key].casefold()
+            for key in ("source_expression", "display_label")
+            if assertions[ordinal].get(key)
+        )
         candidate = Candidate(
             search_terms=search_terms,
             id=uuid4(),

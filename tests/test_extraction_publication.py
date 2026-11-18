@@ -190,6 +190,7 @@ def test_quote_and_reading_bounds_and_whitespace(pinned_source, monkeypatch):
 @pytest.fixture
 def stage_inputs(pinned_source):
     from powerforge_extraction.stage_contracts import (
+        ATTRIBUTE_VERSION,
         AttributeResponse,
         EquipmentObservation,
         RecognitionResponse,
@@ -223,7 +224,7 @@ def stage_inputs(pinned_source):
 
     def apply(*attributes, raw_unmapped=()):
         result = AttributeResponse(
-            version="phase-6r-v1",
+            version=ATTRIBUTE_VERSION,
             stage="ATTRIBUTE_EXTRACTION",
             page_context_hash="0" * 64,
             upstream_hash=contract_hash(upstream),
@@ -238,6 +239,7 @@ def stage_inputs(pinned_source):
 def assertion(ref, **fields):
     return RegistryAssertion(
         **{
+            "origin": "EXTRACTED",
             "local_ref": ref,
             "equipment_ref": "owner",
             "association": "ASSERTED",
@@ -364,11 +366,13 @@ def test_units_match_label_or_value_without_guessing_unsupported_spellings():
         equipment_type=EquipmentType.TWO_WINDING_TRANSFORMER,
         key="secondary_voltage",
         name="Secondary voltage",
+        required=False,
         value_type="NUMBER",
         canonical_unit="kV",
         supported_units=("V", "kV", "MV"),
         allowed_values=(),
         notes=None,
+        extraction_guidance=None,
     )
 
     def resolved(role, quote):
@@ -410,6 +414,7 @@ def test_owner_and_enum_are_independent_of_evidence(stage_inputs):
         assertion("g", **common, association="UNASSIGNED", proposed_enum_value="WYE"),
         raw_unmapped=(
             RawUnmappedAssertion(
+                display_label=None,
                 local_ref="h",
                 equipment_ref="owner",
                 association="ASSERTED",
@@ -472,3 +477,417 @@ def test_boolean_and_integer_lexical_policy():
     )
     for raw in (str(2**63), "1.2", "1e1000000"):
         assert _value(assertion("d", raw_value=raw), integer, [])[1] == "INVALID_VALUE"
+
+
+def test_siemens_style_inline_models_and_reviewable_inference():
+    from powerforge_extraction.stage_contracts import (
+        ATTRIBUTE_VERSION,
+        VERSION,
+        AttributeResponse,
+        EquipmentObservation,
+        InferredAssertion,
+        RecognitionResponse,
+        attribute_catalog,
+        contract_hash,
+    )
+
+    models = ("CMD6", "CJD6", "CND6", "WL")
+    source = fixture_source(
+        prepare_pdf(
+            drawn_table(
+                rows=[
+                    ("Device", "Description"),
+                    *[(model, "3 Pole") for model in models],
+                    ("Trip Unit", "ETU745"),
+                ]
+            )
+        )
+    )
+    upstream = RecognitionResponse(
+        version=VERSION,
+        stage="EQUIPMENT_RECOGNITION",
+        page_context_hash="0" * 64,
+        equipment=tuple(
+            EquipmentObservation(
+                local_ref=model,
+                source_description=model,
+                registry_type=EquipmentType.LV_BREAKER,
+                tag_state="ABSENT",
+                tag=None,
+                qualification="INSTALLED",
+                raw_qualification=None,
+                evidence=(),
+            )
+            for model in models
+        ),
+    )
+
+    def infer(ref, owner="WL", value="ELECTRONIC", evidence=()):
+        return InferredAssertion(
+            local_ref=ref,
+            origin="INFERRED",
+            equipment_ref=owner,
+            association="ASSERTED",
+            attribute_key="trip_unit_type",
+            proposed_value=value,
+            proposed_unit=None,
+            inference_explanation="The fixture uses ETU745 to propose an electronic trip.",
+            inference_basis="EQUIPMENT_CHARACTERISTICS",
+            source_expression=None,
+            evidence=evidence,
+        )
+
+    result = AttributeResponse(
+        version=ATTRIBUTE_VERSION,
+        stage="ATTRIBUTE_EXTRACTION",
+        page_context_hash=upstream.page_context_hash,
+        upstream_hash=contract_hash(upstream),
+        attributes=(
+            *(
+                assertion(
+                    f"{model}-model",
+                    attribute_key="model",
+                    equipment_ref=model,
+                    raw_label=None,
+                    raw_value=model,
+                    evidence=(cite(source, model),),
+                )
+                for model in models
+            ),
+            assertion(
+                "trip-model",
+                attribute_key="trip_unit_model",
+                equipment_ref="WL",
+                raw_label="Trip Unit",
+                raw_value="ETU745",
+                evidence=(cite(source, "ETU745"),),
+            ),
+            infer("proposal"),
+            infer("context", evidence=(cite(source, "ETU745", role="CONTEXT"),)),
+            infer("mislabelled-citation", evidence=(cite(source, "ETU745"),)),
+            infer("unsupported-enum", value="Solid state"),
+            infer("foreign-owner", owner="foreign"),
+        ),
+        raw_unmapped=(),
+    )
+    wire = SimpleNamespace(upstream=upstream, attribute_catalog=attribute_catalog(upstream))
+    observations = build_publication(wire, result, source)
+    *direct, inferred, contextual, mislabelled, invalid, foreign = observations
+    assert len(direct) == 5
+    assert all(d.fields["attribute_origin"] == "EXTRACTED" for d in direct)
+    assert all(d.fields["value_source_support"] == "TEXT_MATCH" for d in direct)
+    assert [d.fields["value_text"] for d in direct] == [*models, "ETU745"]
+    assert all(d.fields["raw_label"] is None for d in direct[:-1])
+    assert inferred.fields["attribute_origin"] == "INFERRED"
+    assert inferred.fields["value_text"] == "ELECTRONIC" and not inferred.evidence
+    assert (
+        "raw_value" not in inferred.fields
+        and inferred.fields["value_source_support"] == "UNVERIFIED"
+    )
+    assert contextual.evidence[0]["localization"] == "RESOLVED"
+    assert contextual.fields["value_source_support"] == "UNVERIFIED"
+    assert mislabelled.fields["mapping_status"] == "MAPPED"
+    assert mislabelled.fields["value_source_support"] == "UNVERIFIED"
+    assert mislabelled.evidence == [
+        {
+            "role": "VALUE",
+            "localization": "UNRESOLVED",
+            "reason_code": "INFERRED_VALUE_CITATION",
+        }
+    ]
+    assert invalid.fields["mapping_status"] == "INVALID"
+    assert invalid.fields["proposed_value"] == "Solid state"
+    assert foreign.fields["mapping_status"] == "UNMAPPED" and foreign.fields["owner_ref"] is None
+    assert foreign.issues == ("INVALID_OWNER_REFERENCE",)
+    # Branch trip-unit types are left absent in the fixture, with no default filled.
+    assert not any(
+        d.fields.get("proposed_attribute_key") == "trip_unit_type"
+        and d.fields["owner_ref"] in models[:3]
+        for d in observations
+    )
+
+
+@pytest.mark.parametrize(
+    "source_value,raw_value,reported_unit,expected",
+    [
+        ("SC=65KA", "65KA", "kA", "MAPPED"),
+        ("65 kA", "65", "kA", "MAPPED"),
+        ("65KA", "65KA", "KA", "MAPPED"),
+        ("65 KA", "65 KA", "KA", "MAPPED"),
+        ("65Ka", "65Ka", "kA", "UNMAPPED"),
+        ("65ka", "65ka", "kA", "UNMAPPED"),
+        ("65mA", "65mA", "kA", "UNMAPPED"),
+        ("65MA", "65MA", "kA", "UNMAPPED"),
+        ("65KA/m", "65", "kA", "UNMAPPED"),
+        ("65KA 65mA", "65", "kA", "UNMAPPED"),
+    ],
+)
+def test_explicit_source_unit_notation_preserves_si_distinctions(
+    source_value, raw_value, reported_unit, expected
+):
+    from powerforge_extraction.publication import _value
+    from powerforge_extraction.stage_contracts import AttributeDefinitionView
+
+    definition = AttributeDefinitionView(
+        equipment_type=EquipmentType.BUS,
+        key="short_circuit_current_rating",
+        name="Short-Circuit Current Rating (kA)",
+        required=True,
+        value_type="NUMBER",
+        canonical_unit="kA",
+        supported_units=("A", "kA"),
+        allowed_values=(),
+        notes=None,
+        extraction_guidance=None,
+    )
+    item = assertion(
+        "rating", attribute_key=definition.key, raw_value=raw_value, raw_unit=reported_unit
+    )
+    evidence = [dict(role="VALUE", localization="RESOLVED", quote=source_value)]
+    status, _, normalized = _value(item, definition, evidence)
+    assert status == expected
+    assert item.raw_value == raw_value and item.raw_unit == reported_unit
+    if expected == "MAPPED":
+        assert normalized["value_number"] == Decimal("65")
+        assert normalized["normalized_unit"] == "kA"
+    assert (
+        _value(item, definition, [dict(evidence[0], source_issues=["TRANSCRIPTION_CONFLICT"])])[0]
+        == "UNMAPPED"
+    )
+
+
+def test_equipment_identifier_can_support_its_literal_attribute_value(stage_inputs, pinned_source):
+    # A model can use the very same source token as the equipment description.
+    rows = stage_inputs(
+        assertion(
+            "identifier",
+            attribute_key="model",
+            raw_value="TX-1",
+            evidence=(cite(pinned_source, "TX-1", role="EQUIPMENT"),),
+        ),
+        assertion(
+            "manufacturer",
+            attribute_key="manufacturer",
+            raw_value="TX-1",
+            evidence=(cite(pinned_source, "TX-1", role="EQUIPMENT"),),
+        ),
+        assertion("uncited", attribute_key="model", raw_value="TX-1"),
+        assertion(
+            "wrong",
+            attribute_key="model",
+            raw_value="TX-2",
+            evidence=(cite(pinned_source, "TX-1", role="EQUIPMENT"),),
+        ),
+    )
+    assert [r["value_source_support"] for r in rows] == [
+        "TEXT_MATCH",
+        "UNVERIFIED",
+        "UNVERIFIED",
+        "UNVERIFIED",
+    ]
+
+
+def test_genuine_qualifiers_and_combined_values_stay_unmapped(stage_inputs):
+    from powerforge_extraction.publication import _value
+    from powerforge_extraction.stage_contracts import AttributeDefinitionView
+
+    definition = AttributeDefinitionView(
+        equipment_type=EquipmentType.BUS,
+        key="phase_count",
+        name="Phase Count",
+        required=False,
+        value_type="INTEGER",
+        canonical_unit=None,
+        supported_units=(),
+        allowed_values=(),
+        notes=None,
+        extraction_guidance=None,
+    )
+    assert (
+        _value(assertion("phases", attribute_key="phase_count", raw_value="3"), definition, [])[2][
+            "value_integer"
+        ]
+        == 3
+    )
+    assert (
+        _value(
+            assertion(
+                "qualified-phases", attribute_key="phase_count", raw_value="3", qualifiers=("3PH",)
+            ),
+            definition,
+            [],
+        )[1]
+        == "UNREPRESENTABLE_VALUE_FORM"
+    )
+    rows = stage_inputs(
+        assertion("model", attribute_key="model", raw_value="MODEL-X", qualifiers=("LSIG",)),
+        assertion("voltage", raw_value="347/600V", raw_unit="V", value_form="MULTIPLE"),
+    )
+    assert rows[0]["reason_code"] == "UNREPRESENTABLE_VALUE_FORM"
+    assert rows[1]["mapping_status"] == "UNMAPPED"
+    assert rows[1]["raw_value"] == "347/600V"
+
+
+def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
+    """Publication of a reviewed response fixture, without simulating AI reasoning."""
+    from powerforge_extraction.stage_contracts import (
+        ATTRIBUTE_VERSION,
+        VERSION,
+        AttributeResponse,
+        EquipmentObservation,
+        InferredAssertion,
+        RawUnmappedAssertion,
+        RecognitionResponse,
+        attribute_catalog,
+        contract_hash,
+    )
+
+    source = fixture_source(
+        prepare_pdf(
+            drawn_table(
+                rows=[
+                    ("Trip Unit", "ETU745"),
+                    ("Functions", "LSIG"),
+                    ("Short circuit", "SC=65KA"),
+                    ("Bus Bracing", "65KA"),
+                    ("Phase notation", "3PH"),
+                    ("Voltage", "347/600V"),
+                    ("Standard / Branch device", "UL489 600A"),
+                ]
+            )
+        )
+    )
+    upstream = RecognitionResponse(
+        version=VERSION,
+        stage="EQUIPMENT_RECOGNITION",
+        page_context_hash="0" * 64,
+        equipment=tuple(
+            EquipmentObservation(
+                local_ref=ref,
+                source_description="Synthetic assembly" if ref == "bus" else "Synthetic breaker",
+                registry_type=kind,
+                tag_state="PRESENT" if ref == "bus" else "ABSENT",
+                tag="BOARD-1" if ref == "bus" else None,
+                qualification="INSTALLED",
+                raw_qualification=None,
+                evidence=(),
+            )
+            for ref, kind in (("breaker", EquipmentType.LV_BREAKER), ("bus", EquipmentType.BUS))
+        ),
+    )
+    trip = assertion(
+        "model",
+        equipment_ref="breaker",
+        attribute_key="trip_unit_model",
+        raw_value="ETU745",
+        evidence=(cite(source, "ETU745"),),
+    )
+
+    def inferred(ref, owner, key, value, explanation, unit=None, expression=None):
+        return InferredAssertion(
+            origin="INFERRED",
+            local_ref=ref,
+            equipment_ref=owner,
+            association="ASSERTED",
+            attribute_key=key,
+            proposed_value=value,
+            proposed_unit=unit,
+            inference_explanation=explanation,
+            inference_basis="DOCUMENT_CONTEXT",
+            source_expression=expression,
+            evidence=(),
+        )
+
+    raw = tuple(
+        RawUnmappedAssertion(
+            local_ref=ref,
+            equipment_ref=owner,
+            association="ASSERTED",
+            raw_label=label,
+            display_label=display,
+            raw_value=value,
+            raw_unit=unit,
+            qualifiers=(),
+            value_form="SINGLE",
+            evidence=(cite(source, value),),
+        )
+        for ref, owner, label, display, value, unit in (
+            ("functions", "breaker", "Functions", "Protection Functions", "LSIG", None),
+            ("bracing", "bus", "Bus Bracing", "Bus Bracing", "65KA", "KA"),
+            ("standard", "breaker", "Standard", "Product Standard", "UL489", None),
+            ("current", "breaker", "Branch device", "Current Rating (Unspecified)", "600A", "A"),
+        )
+    )
+    attributes = (
+        trip,
+        inferred(
+            "technology",
+            "breaker",
+            "trip_unit_type",
+            "ELECTRONIC",
+            "The identified trip-unit model supports the technology proposal.",
+        ),
+        assertion(
+            "sccr",
+            equipment_ref="bus",
+            attribute_key="short_circuit_current_rating",
+            raw_value="65KA",
+            raw_unit="KA",
+            evidence=(cite(source, "SC=65KA"),),
+        ),
+        assertion(
+            "phases",
+            equipment_ref="bus",
+            attribute_key="phase_count",
+            raw_value="3",
+            evidence=(cite(source, "3PH"),),
+        ),
+        inferred(
+            "voltage",
+            "bus",
+            "nominal_voltage",
+            "600",
+            "The combined phase-neutral/line-line expression identifies the line-line voltage.",
+            "V",
+            "347/600V",
+        ),
+        inferred(
+            "manufacturer",
+            "breaker",
+            "manufacturer",
+            "Example Manufacturer",
+            "The synthetic product identification supports this manufacturer proposal.",
+        ),
+    )
+    response = AttributeResponse(
+        version=ATTRIBUTE_VERSION,
+        stage="ATTRIBUTE_EXTRACTION",
+        page_context_hash="0" * 64,
+        upstream_hash=contract_hash(upstream),
+        attributes=attributes,
+        raw_unmapped=raw,
+    )
+    wire = SimpleNamespace(upstream=upstream, attribute_catalog=attribute_catalog(upstream))
+    observations = build_publication(wire, response, source)
+    rows = {o.fields["local_ref"]: o.fields for o in observations}
+    assert rows["model"]["value_text"] == "ETU745"
+    assert rows["technology"]["value_text"] == "ELECTRONIC"
+    assert rows["technology"]["attribute_origin"] == "INFERRED"
+    assert rows["sccr"]["value_number"] == Decimal("65")
+    assert rows["sccr"]["raw_value"] == "65KA" and rows["sccr"]["raw_unit"] == "KA"
+    assert rows["phases"]["value_integer"] == 3 and not rows["phases"]["qualifiers"]
+    assert rows["voltage"]["value_number"] == Decimal("0.6")
+    assert attributes[4].source_expression == "347/600V"
+    assert rows["manufacturer"]["attribute_origin"] == "INFERRED"
+    assert all(
+        rows[ref]["value_source_support"] == "UNVERIFIED"
+        for ref in ("technology", "voltage", "manufacturer")
+    )
+    assert all(
+        rows[ref]["mapping_status"] == "UNMAPPED"
+        for ref in ("functions", "bracing", "standard", "current")
+    )
+    assert not any(
+        o.fields.get("proposed_attribute_key") == "short_time_withstand_current"
+        for o in observations
+    )

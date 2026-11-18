@@ -207,19 +207,19 @@ The registry key spellings in an actual response must use the existing authorita
 
 - The **same** selected-page enriched source context and image, within input limits.
 - The exact validated equipment observations from Call 1, including their local references, registry types, tags, and available source context.
-- **Only the allowed registry attribute definitions for the recognized equipment types** on that page, with descriptions, expected data types, applicable units/enums, and relevant qualification guidance.
+- **Only the allowed registry attribute definitions for the recognized equipment types** on that page, with required/optional flags, descriptions, expected data types, applicable units/enums, and relevant qualification guidance.
 
 ### Model responsibilities
 
-1. Locate supported registry attributes in source text, tables, images, or nameplates.
+1. Evaluate every applicable required and optional attribute for each eligible observation. Consider text, schedules, annotations, images, nameplates, and inline identifiers even when their fields are unlabeled. Return sparse assertions only where the value is directly reported or sufficiently justified.
 2. Assign each proposed attribute to a Call 1 equipment `local_ref` when the source supports that ownership.
 3. Return the exact allowed registry attribute key; do **not** mint new registry keys.
-4. Return **raw source value/unit text** and source qualifiers without attempting canonical unit conversion.
-5. Supply source citations with relevant equipment designation, row/header/label context when available—not merely a detached number.
+4. For **EXTRACTED** assertions, return raw source value/unit text, any actual source label, and source qualifiers without attempting canonical unit conversion.
+5. For extracted assertions, cite the value and relevant equipment designation, row/header/label context when available. A missing citation stays visible as unresolved.
 6. Preserve multiple distinct source assertions when values conflict; avoid silently choosing a winner.
-7. Allow `equipment_ref: null` and an explicit uncertainty indication if ownership cannot be supported. The observation may be retained as unmapped/unassigned rather than attributed to the wrong equipment.
-8. Do not invent absent fields or populate attributes from engineering expectations or registry defaults.
-9. For enum attributes, perform semantic interpretation in the AI stage and return **both the original source value string and the proposed exact permitted registry enum value**. PowerForge validates membership in the applicable attribute's allowed values; it does not independently interpret engineering synonyms. Simple lexical boolean conversions may be performed by PowerForge while retaining the original source string.
+7. Retain direct assertions as unassigned if no owner can be supported. Inference requires an upstream occurrence reference. PowerForge never resolves ownership from an unknown reference.
+8. For **INFERRED** assertions, supply the proposed value, an explicit unit for dimensional proposals, a concise explanation, and an optional basis. Reliable engineering or product characteristics may support a proposal. Omit it when multiple configurations remain plausible or the only basis is absent information. Supporting context citations are optional and cannot assert direct source-value support. Keep inferences as review candidates.
+9. For an extracted enum, return both the original source string and the proposed exact permitted value. For an inferred enum, return the exact enum in the proposed value. PowerForge checks applicable registry membership and may perform simple lexical boolean conversion. Engineering synonym interpretation and inference stay with the AI.
 10. Preserve ranges, multiple ratings and qualifiers. A cited source header may establish a unit, but neither the model nor PowerForge may assume a missing unit or discard a qualifier to select an arbitrary scalar.
 
 Illustrative output:
@@ -231,6 +231,7 @@ Illustrative output:
     {
       "equipment_ref": "eq-1",
       "attribute_key": "rated_apparent_power",
+      "origin": "EXTRACTED",
       "raw_value": "750",
       "raw_unit": "kVA",
       "proposed_enum_value": null,

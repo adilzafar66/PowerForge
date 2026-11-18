@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, WithJsonSc
 from powerforge_ai.extraction import ResponseValidationFailure, ValidationIssue
 from powerforge_engineering_model.enums import EquipmentType
 from powerforge_engineering_model.extraction_descriptions import (
+    ATTRIBUTE_DESCRIPTION_VERSION,
+    ATTRIBUTE_DESCRIPTIONS,
     DESCRIPTION_VERSION,
     EQUIPMENT_DESCRIPTIONS,
 )
@@ -23,6 +25,8 @@ from powerforge_provenance.spatial_base import ExactDecimal
 from powerforge_provenance.spatial_sources import PageOwner
 
 VERSION = "phase-6r-v1"
+ATTRIBUTE_VERSION = "phase-6r-attributes-v3"
+ATTRIBUTE_INPUT_VERSION = "compact-page-v1"
 MAX_REQUEST_BYTES = 2 * 1024 * 1024
 MAX_RESPONSE_BYTES = 512 * 1024
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
@@ -35,6 +39,8 @@ Qualification = Literal[
 ]
 Role = Literal["EQUIPMENT", "TAG", "LABEL", "HEADER", "VALUE", "UNIT", "QUALIFIER", "CONTEXT"]
 Association = Literal["ASSERTED", "UNCERTAIN", "UNASSIGNED"]
+AttributeOrigin = Literal["EXTRACTED", "INFERRED"]
+InferenceBasis = Literal["DOCUMENT_CONTEXT", "EQUIPMENT_CHARACTERISTICS", "ENGINEERING_KNOWLEDGE"]
 Ref = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]{1,96}$")]
 Hash = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 Raw = Annotated[str, StringConstraints(min_length=1, max_length=2048)]
@@ -108,12 +114,30 @@ class AttributeAssertion(Contract):
 
 
 class RegistryAssertion(AttributeAssertion):
+    origin: Literal["EXTRACTED"]
     attribute_key: Ref
     proposed_enum_value: Short | None
 
 
+class InferredAssertion(Contract):
+    origin: Literal["INFERRED"]
+    local_ref: Ref
+    equipment_ref: Ref
+    association: Literal["ASSERTED", "UNCERTAIN"]
+    attribute_key: Ref
+    proposed_value: Raw
+    proposed_unit: Short | None
+    inference_explanation: Annotated[
+        str, StringConstraints(min_length=1, max_length=512, strip_whitespace=True)
+    ]
+    inference_basis: InferenceBasis | None
+    source_expression: Raw | None
+    evidence: Citations
+
+
 class RawUnmappedAssertion(AttributeAssertion):
     raw_label: Short
+    display_label: Short | None
 
 
 class RecognitionResponse(Contract):
@@ -124,11 +148,11 @@ class RecognitionResponse(Contract):
 
 
 class AttributeResponse(Contract):
-    version: Literal["phase-6r-v1"]
+    version: Literal["phase-6r-attributes-v3"]
     stage: Literal["ATTRIBUTE_EXTRACTION"]
     page_context_hash: Hash
     upstream_hash: Hash
-    attributes: Annotated[tuple[RegistryAssertion, ...], Field(max_length=512)]
+    attributes: Annotated[tuple[RegistryAssertion | InferredAssertion, ...], Field(max_length=512)]
     raw_unmapped: Annotated[tuple[RawUnmappedAssertion, ...], Field(max_length=16)]
 
 
@@ -163,11 +187,13 @@ class AttributeDefinitionView(Contract):
     equipment_type: EquipmentType
     key: Ref
     name: Short
+    required: bool
     value_type: Literal["NUMBER", "INTEGER", "TEXT", "BOOLEAN", "ENUM"]
     canonical_unit: Short | None
     supported_units: tuple[Short, ...]
     allowed_values: tuple[Short, ...]
     notes: Raw | None
+    extraction_guidance: Raw | None
 
 
 class RecognitionRequest(Contract):
@@ -181,18 +207,19 @@ class RecognitionRequest(Contract):
 
 
 class AttributeRequest(Contract):
-    version: Literal["phase-6r-v1"]
+    version: Literal["phase-6r-attributes-v3"]
     stage: Literal["ATTRIBUTE_EXTRACTION"]
     page_context_hash: Hash
     page: PinnedPageContext
     registry_version: str
+    attribute_description_version: str
     upstream_hash: Hash
     upstream: RecognitionResponse
     attribute_catalog: tuple[AttributeDefinitionView, ...]
 
 
 class NoEligibleAttributes(Contract):
-    version: Literal["phase-6r-v1"]
+    version: Literal["phase-6r-attributes-v3"]
     stage: Literal["ATTRIBUTE_EXTRACTION"]
     outcome: Literal["NO_ELIGIBLE_ATTRIBUTES"]
     page_context_hash: Hash
@@ -220,15 +247,21 @@ def attribute_catalog(upstream: RecognitionResponse) -> tuple[AttributeDefinitio
             equipment_type=key,
             key=attribute.key,
             name=attribute.display_name,
+            required=attribute.required,
             value_type=attribute.value_type.value,
             canonical_unit=attribute.canonical_unit,
             supported_units=supported_input_units(key, attribute.key),
             allowed_values=attribute.allowed_values,
             notes=attribute.notes,
+            extraction_guidance=ATTRIBUTE_DESCRIPTIONS.get(attribute.key),
         )
         for key in sorted(types)
         for attribute in sorted(get_equipment_definition(key).attributes, key=lambda item: item.key)
     )
+
+
+def stage_schema_version(stage: Stage) -> str:
+    return VERSION if stage == "EQUIPMENT_RECOGNITION" else ATTRIBUTE_VERSION
 
 
 def contract_hash(value: Contract) -> str:
@@ -267,6 +300,7 @@ def validate_request(
         request.upstream.page_context_hash != request.page_context_hash
         or contract_hash(request.upstream) != request.upstream_hash
         or not request.attribute_catalog
+        or request.attribute_description_version != ATTRIBUTE_DESCRIPTION_VERSION
         or request.attribute_catalog != attribute_catalog(request.upstream)
     ):
         raise ValueError("Attribute prerequisite or catalog mismatch")

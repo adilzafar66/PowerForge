@@ -10,10 +10,11 @@ const run = {
 const enrichment = { ...run, id: id(4, 1), profile_key: "source-layout-v1" };
 const groups = Array.from({ length: 30 }, (_, index) => ({
   group_id: index === 3 ? "unassigned" : id(5, index + 1),
-  kind: index === 3 ? "UNASSIGNED" : "EQUIPMENT", label: index === 3 ? "Ungrouped observations" : "Transformer",
+  kind: index === 3 ? "UNASSIGNED" : "EQUIPMENT", label: index === 3 ? "Ungrouped observations" : `TX-${String(index + 1).padStart(3, "0")}`,
   tag: index === 3 ? null : `TX-${String(index + 1).padStart(3, "0")}`,
   registry_type: index === 3 ? null : "TWO_WINDING_TRANSFORMER",
-  page_numbers: [index === 3 ? 2 : 1], matching_candidate_count: 1,
+  page_numbers: [index === 3 ? 2 : 1], matching_candidate_count: index === 3 ? 1 : 2,
+  matching_attribute_count: 1, matching_identification_count: index === 3 ? 0 : 1, source_description: "Transformer",
 }));
 const numberOf = (group) => group.group_id === "unassigned" ? 4 : Number(group.group_id.slice(-12));
 const candidateFor = (group) => {
@@ -22,6 +23,9 @@ const candidateFor = (group) => {
     id: id(6, number), page_id: id(1, group.page_numbers[0] + 10), attempt_id: id(8, 1),
     kind: "ATTRIBUTE", equipment_id: number === 4 ? null : group.group_id,
     association: number === 4 ? "UNASSIGNED" : "UNCERTAIN", raw_unmapped: number === 4,
+    origin: "EXTRACTED", attribute_display_name: number === 4 ? null : "Rated Apparent Power (kVA)",
+    proposed_value: null, proposed_unit: null, inference_explanation: null, inference_basis: null,
+    source_expression: null, source_display_label: null, redundant_with_id: null,
     raw_label: "Rated apparent power", raw_value: "750", raw_unit: "kVA", qualifiers: [],
     value_form: "SINGLE", conflict: false, proposed_enum_value: null,
     proposed_attribute_key: number === 4 ? null : "rated_apparent_power",
@@ -91,7 +95,12 @@ export function extractionResponse(url, tail) {
     if (params.get("view") === "groups") return page(match, params, 25);
     const group = groups.find((item) => item.group_id === params.get("group_id"));
     if (!group) return { __status: 404, detail: "Group unavailable" };
-    return { ...page(match.includes(group) ? [candidateFor(group)] : [], params, 20), group };
+    return { ...page(match.includes(group) ? [candidateFor(group)] : [], params, 20), group, identification: group.kind === "UNASSIGNED" ? null : {
+      id: group.group_id, page_id: candidateFor(group).page_id, attempt_id: id(8, 0),
+      kind: "EQUIPMENT", display_name: group.label, source_description: "Synthetic transformer source description",
+      registry_type: group.registry_type, tag: group.tag, tag_state: "PRESENT", qualification: "INSTALLED",
+      raw_qualification: null, mapping_status: "MAPPED", reason_code: null, conflict: false, evidence_ids: [],
+    } };
   }
   return {
     run, attempts: ["EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"].map((stage, index) => ({

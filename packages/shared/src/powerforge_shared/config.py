@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     extraction_max_calls: int = Field(default=150, ge=1, le=10000)
     extraction_max_concurrent_per_run: int = Field(default=2, ge=1, le=32)
     extraction_max_concurrent_global: int = Field(default=4, ge=1, le=64)
-    extraction_timeout_seconds: int = Field(default=60, ge=1, le=300)
+    extraction_timeout_seconds: int = Field(default=100, ge=1, le=300)
     extraction_lease_seconds: int = Field(default=30, ge=3, le=600)
     extraction_backoff_seconds: int = Field(default=5, ge=0, le=300)
     extraction_redispatch_seconds: int = Field(default=30, ge=1, le=300)

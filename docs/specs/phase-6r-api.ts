@@ -168,6 +168,7 @@ export interface CandidateBase {
 export interface EquipmentCandidate extends CandidateBase {
   kind: "EQUIPMENT";
   source_description: string;
+  display_name: string;
   registry_type: string | null;
   tag: string | null;
   tag_state: TagState;
@@ -185,12 +186,21 @@ export interface AttributeCandidate extends CandidateBase {
   equipment_id: Id | null;
   association: Association;
   raw_unmapped: boolean;
+  origin: "EXTRACTED" | "INFERRED";
+  attribute_display_name: string | null;
   raw_label: string | null;
-  raw_value: string;
+  raw_value: string | null;
   raw_unit: string | null;
+  proposed_value: string | null;
+  proposed_unit: string | null;
+  inference_explanation: string | null;
+  inference_basis: "DOCUMENT_CONTEXT" | "EQUIPMENT_CHARACTERISTICS" | "ENGINEERING_KNOWLEDGE" | null;
+  source_expression: string | null;
+  source_display_label: string | null;
+  redundant_with_id: Id | null;
   value_source_support: ValueSourceSupport;
   qualifiers: string[];
-  value_form: "SINGLE" | "RANGE" | "MULTIPLE" | "QUALIFIED";
+  value_form: "SINGLE" | "RANGE" | "MULTIPLE" | "QUALIFIED" | null;
   proposed_attribute_key: string | null;
   proposed_enum_value: string | null;
   normalized: NormalizedValue | null;
@@ -219,6 +229,9 @@ export type CandidateQuery = CandidateFilters & CandidatePagination & (
 export type CandidateGroup = {
   page_numbers: number[];
   matching_candidate_count: number;
+  matching_attribute_count: number;
+  matching_identification_count: number;
+  source_description: string | null;
 } & (
   | { kind: "EQUIPMENT"; group_id: Id; label: string; tag: string | null; registry_type: string | null }
   | { kind: "UNASSIGNED"; group_id: "unassigned"; label: "Ungrouped observations"; tag: null; registry_type: null }
@@ -230,7 +243,10 @@ export interface CandidateBrowserPage<T> extends Page<T> {
 }
 
 export type CandidateGroupList = CandidateBrowserPage<CandidateGroup>;
-export type CandidateGroupMembers = CandidateBrowserPage<Candidate> & { group: CandidateGroup };
+export type CandidateGroupMembers = CandidateBrowserPage<Candidate> & {
+  group: CandidateGroup;
+  identification: EquipmentCandidate | null;
+};
 
 export interface Region {
   x: DecimalString;

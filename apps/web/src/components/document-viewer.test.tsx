@@ -395,10 +395,11 @@ describe("DocumentViewer", () => {
   });
 
   it.each([
-    { localization: "RESOLVED", label: "Matches cited text", support: "TEXT_MATCH" },
-    { localization: "VISUAL_REPORTED", label: "Cited value differs", support: "TEXT_MISMATCH" },
-    { localization: "UNRESOLVED", label: "Not verified", support: "UNVERIFIED" },
-  ] as const)("shows $localization on the pinned source and $label", async ({ localization, label, support }) => {
+    { localization: "RESOLVED", label: "Matches cited text", support: "TEXT_MATCH", inferred: false },
+    { localization: "VISUAL_REPORTED", label: "Cited value differs", support: "TEXT_MISMATCH", inferred: false },
+    { localization: "UNRESOLVED", label: "Not verified", support: "UNVERIFIED", inferred: false },
+    { localization: "UNRESOLVED", label: "Inferred without a direct citation", support: "UNVERIFIED", inferred: true },
+  ] as const)("shows $label with the appropriate source context", async ({ localization, label, support, inferred }) => {
     const user = userEvent.setup();
     const runId = "10000000-0000-4000-8000-000000000001";
     const groupId = "30000000-0000-4000-8000-000000000003";
@@ -412,10 +413,19 @@ describe("DocumentViewer", () => {
     const candidate: Candidate = {
       id: candidateId, page_id: "page-two", attempt_id: "attempt", kind: "ATTRIBUTE",
       equipment_id: groupId, association: "UNCERTAIN", raw_unmapped: false,
-      raw_label: "Impedance", raw_value: "5.750", raw_unit: "%", qualifiers: [], value_form: "SINGLE",
+      origin: "EXTRACTED", attribute_display_name: "Percent Impedance",
+      raw_label: "Z", raw_value: "5.750", raw_unit: "%", qualifiers: [], value_form: "SINGLE",
+      proposed_value: null, proposed_unit: null, inference_explanation: null, inference_basis: null,
+      source_expression: null, source_display_label: null, redundant_with_id: null,
       mapping_status: "MAPPED", proposed_attribute_key: "percent_impedance", proposed_enum_value: null,
       normalized: { type: "NUMBER", value: "5.75", unit: "%" }, conflict: false, reason_code: null,
-      value_source_support: support, evidence_ids: [evidenceId],
+      value_source_support: support, evidence_ids: inferred ? [] : [evidenceId],
+      ...(inferred ? {
+        origin: "INFERRED", raw_label: null, raw_value: null, raw_unit: null, value_form: null,
+        proposed_value: "5.75", proposed_unit: "%",
+        inference_explanation: "Example proposal from equipment context.",
+        inference_basis: "EQUIPMENT_CHARACTERISTICS",
+      } : {}),
     };
     const region = { x: "0.25", y: "0.3", width: "0.15", height: "0.02" };
     const detail: EvidenceDetail = {
@@ -428,11 +438,13 @@ describe("DocumentViewer", () => {
           ? { localization, region, reported_text: "5.750" }
           : { localization, reason_code: "NO_CITATION" }),
     };
-    const group = { group_id: groupId, kind: "EQUIPMENT" as const, label: "Transformer", tag: "TX-009", registry_type: null, page_numbers: [2], matching_candidate_count: 1 };
+    const group = { group_id: groupId, kind: "EQUIPMENT" as const, label: "TX-009", tag: "TX-009",
+      registry_type: null, page_numbers: [2], matching_candidate_count: 1,
+      matching_attribute_count: 1, matching_identification_count: 0, source_description: "Transformer" };
     const paging = { total: 1, next_cursor: null, previous_cursor: null };
     vi.mocked(getExtractionStatuses).mockResolvedValue({ "rd-a": status });
     vi.mocked(getGroups).mockResolvedValue({ ...paging, items: [group] });
-    vi.mocked(getGroupCandidates).mockResolvedValue({ ...paging, items: [candidate], group });
+    vi.mocked(getGroupCandidates).mockResolvedValue({ ...paging, items: [candidate], group, identification: null });
     vi.mocked(getRunSources).mockResolvedValue({ items: [{
       page_id: "page-two", page_number: 2, page_image_id: "pinned-image", prepared_result_id: "prep",
       spatial_result_id: "layout", layout_producer_run_id: "producer", prepared_manifest_hash: "hash", spatial_manifest_hash: "hash", page_context_hash: "page-hash",
@@ -447,8 +459,18 @@ describe("DocumentViewer", () => {
     await user.click(await screen.findByRole("button", { name: /TX-009/ }));
     expect(getGroups).toHaveBeenCalledWith(expect.anything(), runId, expect.objectContaining({ search: "TX-009" }), null, expect.anything());
     followLastPush();
-    await user.click(await screen.findByRole("button", { name: /Impedance/ }));
+    const valueLabel = inferred ? /Percent Impedance.*5.75 %.*Inferred/ : /Percent Impedance.*5.75 %.*Extracted/;
+    await user.click(await screen.findByRole("button", { name: valueLabel }));
     followLastPush();
+    if (inferred) {
+      expect(await screen.findByText("Example proposal from equipment context.")).toBeVisible();
+      expect(screen.getByText("Equipment characteristics")).toBeVisible();
+      expect(screen.queryByText("Original PDF label")).toBeNull();
+      expect(screen.queryByRole("list", { name: "Inference context references" })).toBeNull();
+      expect(getEvidence).not.toHaveBeenCalled();
+      return;
+    }
+    expect(await screen.findByText("Original PDF label")).toHaveTextContent("Original PDF label Z");
     const image = await screen.findByRole("img", { name: "Pinned source page 2" });
     expect(image).toHaveAttribute("src", detail.page_image.url);
     expect(screen.queryByRole("img", { name: "Grounded source region" })).toBeNull();
@@ -460,6 +482,70 @@ describe("DocumentViewer", () => {
     await user.click(screen.getByRole("button", { name: "Back to source groups" }));
     followLastPush();
     expect(await screen.findByRole("searchbox", { name: "Search source groups" })).toHaveValue("TX-009");
+  });
+
+  it("separates identification, registry values, unmapped facts and repeated assertions", async () => {
+    const user = userEvent.setup();
+    const runId = "10000000-0000-4000-8000-000000000001";
+    const groupId = "30000000-0000-4000-8000-000000000003";
+    const valueId = "40000000-0000-4000-8000-000000000004";
+    const duplicateId = "40000000-0000-4000-8000-000000000005";
+    const rawId = "40000000-0000-4000-8000-000000000006";
+    const run = { id: runId, status: "COMPLETED" as const, processing_run_id: "processing",
+      profile_key: "phase-6r", created_at: "2026-01-20T12:00:00Z" };
+    const common = { page_id: "page-two", attempt_id: "attempt", mapping_status: "MAPPED" as const,
+      conflict: false, reason_code: null, evidence_ids: [] };
+    const equipment: Extract<Candidate, { kind: "EQUIPMENT" }> = {
+      ...common, id: groupId, kind: "EQUIPMENT", display_name: "LV Breaker 1",
+      source_description: "A complete original device description", registry_type: "LV_BREAKER",
+      tag: null, tag_state: "ABSENT", qualification: "INSTALLED", raw_qualification: null,
+    };
+    const value: Extract<Candidate, { kind: "ATTRIBUTE" }> = {
+      ...common, id: valueId, kind: "ATTRIBUTE", equipment_id: groupId, association: "ASSERTED",
+      origin: "EXTRACTED", attribute_display_name: "Trip Unit Model", raw_unmapped: false,
+      raw_label: "Trip Unit", raw_value: "MODEL-X", raw_unit: null,
+      proposed_value: null, proposed_unit: null, inference_explanation: null, inference_basis: null,
+      source_expression: null, source_display_label: null, redundant_with_id: null,
+      value_source_support: "UNVERIFIED", qualifiers: [], value_form: "SINGLE",
+      proposed_attribute_key: "trip_unit_model", proposed_enum_value: null,
+      normalized: { type: "TEXT", value: "MODEL-X", unit: null },
+    };
+    const duplicate: Candidate = { ...value, id: duplicateId, redundant_with_id: valueId,
+      qualifiers: ["Protection functions"], normalized: null,
+      mapping_status: "UNMAPPED", reason_code: "UNREPRESENTABLE_VALUE_FORM" };
+    const raw: Candidate = { ...value, id: rawId, raw_unmapped: true,
+      raw_label: "Branch device", source_display_label: "Current Rating (Unspecified)",
+      attribute_display_name: null, proposed_attribute_key: null, raw_value: "600A",
+      raw_unit: "A", mapping_status: "UNMAPPED", normalized: null, reason_code: "UNSUPPORTED_ATTRIBUTE" };
+    const group = { group_id: groupId, kind: "EQUIPMENT" as const, label: equipment.display_name,
+      source_description: equipment.source_description, tag: null, registry_type: "LV_BREAKER",
+      page_numbers: [2], matching_candidate_count: 4, matching_attribute_count: 3,
+      matching_identification_count: 1 };
+    vi.mocked(getExtractionStatuses).mockResolvedValue({ "rd-a": {
+      revision_document_id: "rd-a", processing_run_id: "processing", ineligible_reason: null,
+      extraction: { latest_attempt: run, effective_result: run }, enrichment: null,
+    } });
+    vi.mocked(getRunSources).mockResolvedValue({ items: [] });
+    vi.mocked(getGroupCandidates).mockImplementation(async (_scope, _run, _group, _filters, _cursor, _signal, id) => ({
+      total: 4, next_cursor: null, previous_cursor: null, group, identification: equipment,
+      items: id ? [duplicate] : [equipment, value, duplicate, raw],
+    }));
+    nav.search = `mode=evidence&extractionRun=${runId}&equipmentGroup=${groupId}`;
+    const view = renderViewer();
+    const identification = await screen.findByRole("region", { name: "Equipment identification" });
+    expect(within(identification).getByRole("button", { name: /LV Breaker 1/ })).toBeVisible();
+    const registry = screen.getByRole("region", { name: "Registry attributes" });
+    expect(within(registry).getAllByRole("button")).toHaveLength(1);
+    expect(within(registry).queryByText("LV Breaker 1")).toBeNull();
+    expect(screen.getByRole("region", { name: "Unmapped source attributes" })).toHaveTextContent("Current Rating (Unspecified)");
+    await user.click(screen.getByText("Possible repeated assertions"));
+    const repeat = screen.getByText("Possible repeated assertions").closest("details")!;
+    expect(within(repeat).getByRole("button", { name: /Trip Unit Model/ })).toBeVisible();
+    await user.click(within(repeat).getByRole("button", { name: /Trip Unit Model/ }));
+    nav.search = nav.push.mock.lastCall?.[0].split("?")[1] ?? "";
+    view.rerender(<DocumentViewer projectId={P} revision={revision} row={makeRow()} />);
+    await user.click(await screen.findByRole("button", { name: "View related assertion" }));
+    expect(nav.push.mock.lastCall?.[0]).toContain(`candidate=${valueId}`);
   });
 
   it("keeps a selected historical run fixed after current results arrive", async () => {

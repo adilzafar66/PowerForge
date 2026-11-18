@@ -3,7 +3,7 @@
 from collections import defaultdict
 from uuid import UUID
 
-from sqlalchemy import case, exists, func, literal, select, tuple_
+from sqlalchemy import case, exists, func, literal, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import aggregate_order_by
 from sqlalchemy.orm import aliased
 
@@ -26,6 +26,8 @@ from powerforge_api.schemas.extraction_publication import (
 from powerforge_api.services.extraction_cursor import decode_cursor, encode_cursor
 from powerforge_document_processing.models import DocumentPage
 from powerforge_document_processing.storage import StorageError
+from powerforge_engineering_model.registry import list_equipment_definitions
+from powerforge_extraction.assertion_consistency import redundant_assertions
 from powerforge_extraction.enrichment_execution import read_exact
 from powerforge_extraction.enrichment_models import RunSourceEnrichmentBinding as Binding
 from powerforge_extraction.identities import identity_hash
@@ -34,9 +36,38 @@ from powerforge_extraction.publication_records import Candidate, Fragment
 from powerforge_extraction.stage_execution import StageResult
 
 UNASSIGNED_KEY = UUID(int=0)
+EQUIPMENT_NAMES = {e.key: e.display_name for e in list_equipment_definitions()}
+ATTRIBUTE_NAMES = {
+    (equipment.key, attribute.key): attribute.display_name
+    for equipment in list_equipment_definitions()
+    for attribute in equipment.attributes
+}
 
 
-def _candidate(row, evidence_ids):
+def _equipment_order(run_id):
+    return (
+        select(
+            Candidate.id,
+            func.row_number()
+            .over(
+                partition_by=Candidate.registry_type,
+                order_by=(DocumentPage.page_number, Candidate.ordinal, Candidate.id),
+            )
+            .label("occurrence"),
+        )
+        .join(DocumentPage, DocumentPage.id == Candidate.document_page_id)
+        .where(Candidate.run_id == run_id, Candidate.kind == "EQUIPMENT")
+        .subquery()
+    )
+
+
+def _equipment_name(tag, tag_state, registry_type, occurrence):
+    if tag and tag_state == "PRESENT":
+        return tag
+    return f"{EQUIPMENT_NAMES.get(registry_type, 'Unknown equipment')} {occurrence}"
+
+
+def _candidate(row, equipment_type, evidence_ids, occurrence, assertion, redundant_id):
     common = dict(
         id=row.id,
         page_id=row.document_page_id,
@@ -50,6 +81,7 @@ def _candidate(row, evidence_ids):
         return EquipmentCandidate(
             **common,
             source_description=row.source_description,
+            display_name=_equipment_name(row.tag, row.tag_state, row.registry_type, occurrence),
             registry_type=row.registry_type,
             tag=row.tag,
             tag_state=row.tag_state,
@@ -73,11 +105,20 @@ def _candidate(row, evidence_ids):
         equipment_id=row.equipment_id,
         association=row.association,
         raw_unmapped=row.raw_unmapped,
+        origin=row.attribute_origin or "EXTRACTED",
+        attribute_display_name=ATTRIBUTE_NAMES.get((equipment_type, row.proposed_attribute_key)),
         raw_label=row.raw_label,
         raw_value=row.raw_value,
         raw_unit=row.raw_unit,
+        proposed_value=row.proposed_value,
+        proposed_unit=row.proposed_unit,
+        inference_explanation=row.inference_explanation,
+        inference_basis=row.inference_basis,
+        source_expression=assertion.get("source_expression"),
+        source_display_label=assertion.get("display_label"),
+        redundant_with_id=redundant_id,
         value_source_support=row.value_source_support or "UNVERIFIED",
-        qualifiers=row.qualifiers,
+        qualifiers=row.qualifiers or [],
         value_form=row.value_form,
         proposed_attribute_key=row.proposed_attribute_key,
         proposed_enum_value=row.proposed_enum_value,
@@ -85,15 +126,30 @@ def _candidate(row, evidence_ids):
     )
 
 
-def _group(owner_id, label, tag, registry_type, page_numbers, total):
+def _group(
+    owner_id,
+    description,
+    tag,
+    tag_state,
+    registry_type,
+    occurrence,
+    page_numbers,
+    total,
+    attribute_count,
+):
     return Group(
         kind="EQUIPMENT" if owner_id else "UNASSIGNED",
         group_id=owner_id if owner_id else "unassigned",
-        label=label if owner_id else "Ungrouped observations",
+        label=_equipment_name(tag, tag_state, registry_type, occurrence)
+        if owner_id
+        else "Ungrouped observations",
+        source_description=description,
         tag=tag,
         registry_type=registry_type,
         page_numbers=page_numbers,
         matching_candidate_count=total,
+        matching_attribute_count=attribute_count,
+        matching_identification_count=total - attribute_count,
     )
 
 
@@ -102,7 +158,10 @@ def _candidate_rows(run_id, query, term):
     group_id = case((Candidate.kind == "EQUIPMENT", Candidate.id), else_=Candidate.equipment_id)
     stmt = (
         select(
-            Candidate.id.label("candidate_id"), group_id.label("group_id"), DocumentPage.page_number
+            Candidate.id.label("candidate_id"),
+            group_id.label("group_id"),
+            Candidate.kind,
+            DocumentPage.page_number,
         )
         .select_from(Candidate)
         .join(DocumentPage, DocumentPage.id == Candidate.document_page_id)
@@ -110,11 +169,32 @@ def _candidate_rows(run_id, query, term):
         .where(Candidate.run_id == run_id)
     )
     if term:
+        positions = _equipment_order(run_id)
+        stmt = stmt.outerjoin(positions, positions.c.id == group_id)
+        tag = func.coalesce(Candidate.tag, owner.tag)
+        tag_state = func.coalesce(Candidate.tag_state, owner.tag_state)
+        display_name = case(
+            ((tag_state == "PRESENT") & tag.is_not(None), tag),
+            else_=func.concat(
+                case(
+                    EQUIPMENT_NAMES,
+                    value=func.coalesce(Candidate.registry_type, owner.registry_type),
+                    else_="Unknown equipment",
+                ),
+                " ",
+                positions.c.occurrence,
+            ),
+        )
         # strpos treats percent, underscores and backslashes as literal characters.
         terms = func.unnest(
             func.array_cat(Candidate.search_terms, owner.search_terms)
         ).column_valued("search_term")
-        stmt = stmt.where(exists(select(1).where(func.strpos(terms, term) > 0)))
+        stmt = stmt.where(
+            or_(
+                exists(select(1).where(func.strpos(terms, term) > 0)),
+                func.strpos(func.lower(display_name), term) > 0,
+            )
+        )
     for column, value in (
         (Candidate.kind, query.kind),
         (Candidate.mapping_status, query.mapping_status),
@@ -192,19 +272,24 @@ def candidates(reader, run_id, query):
                     aggregate_order_by(matching.c.page_number.distinct(), matching.c.page_number)
                 ).label("pages"),
                 func.count().label("size"),
+                func.count().filter(matching.c.kind == "ATTRIBUTE").label("attributes"),
                 func.min(matching.c.page_number).label("first_page"),
             )
             .group_by(matching.c.group_id)
             .subquery()
         )
+        positions = _equipment_order(run_id)
         stmt = (
             select(
                 counts.c.group_id,
                 owner.source_description,
                 owner.tag,
+                owner.tag_state,
                 owner.registry_type,
+                positions.c.occurrence,
                 counts.c.pages,
                 counts.c.size,
+                counts.c.attributes,
                 case((counts.c.group_id.is_(None), 2**31 - 1), else_=counts.c.first_page).label(
                     "sort_page"
                 ),
@@ -212,10 +297,11 @@ def candidates(reader, run_id, query):
             )
             .select_from(counts)
             .outerjoin(owner, owner.id == counts.c.group_id)
+            .outerjoin(positions, positions.c.id == owner.id)
         )
         total = session.scalar(select(func.count()).select_from(counts))
         batch, cursors = _page(session, query, scope, limit, stmt)
-        return BrowserPage[Group](items=[_group(*row[:6]) for row in batch], total=total, **cursors)
+        return BrowserPage[Group](items=[_group(*row[:9]) for row in batch], total=total, **cursors)
 
     stmt = select(
         matching.c.candidate_id,
@@ -271,30 +357,57 @@ def candidates(reader, run_id, query):
     if group_matches is None:
         return BrowserPage[CandidateItem](items=items, total=total, **cursors)
     pages = session.execute(
-        select(matching.c.page_number, func.count())
+        select(
+            matching.c.page_number,
+            func.count(),
+            func.count().filter(matching.c.kind == "ATTRIBUTE"),
+        )
         .where(group_matches)
         .group_by(matching.c.page_number)
         .order_by(matching.c.page_number)
     ).all()
+    identification = _load_items(session, run_id, [owner.id])[0] if owner else None
     group = _group(
         owner.id if owner else None,
         owner.source_description if owner else None,
         owner.tag if owner else None,
+        owner.tag_state if owner else None,
         owner.registry_type if owner else None,
-        [page for page, _ in pages],
-        sum(count for _, count in pages),
+        0,
+        [page for page, _, _ in pages],
+        sum(count for _, count, _ in pages),
+        sum(count for _, _, count in pages),
     )
-    return MembersPage(items=items, group=group, total=total, **cursors)
+    if identification:
+        group.label = identification.display_name
+    return MembersPage(
+        items=items, group=group, identification=identification, total=total, **cursors
+    )
 
 
 def _load_items(session, run_id, ids):
     if not ids:
         return []
+    owner = aliased(Candidate)
+    positions = _equipment_order(run_id)
     rows = {
-        row.id: row
-        for row in session.scalars(
-            select(Candidate).where(Candidate.run_id == run_id, Candidate.id.in_(ids))
+        row.id: (row, equipment_type, occurrence)
+        for row, equipment_type, occurrence in session.execute(
+            select(Candidate, owner.registry_type, positions.c.occurrence)
+            .outerjoin(owner, owner.id == Candidate.equipment_id)
+            .outerjoin(positions, positions.c.id == Candidate.id)
+            .where(Candidate.run_id == run_id, Candidate.id.in_(ids))
         )
+    }
+    stage_ids = {row.work_unit_id for row, _, _ in rows.values()}
+    stages = {
+        s.work_unit_id: s.payload
+        for s in session.scalars(select(StageResult).where(StageResult.work_unit_id.in_(stage_ids)))
+    }
+    duplicate_refs = {key: redundant_assertions(payload) for key, payload in stages.items()}
+    local_ids = {
+        (row.work_unit_id, row.local_ref): row.id
+        for row in session.scalars(select(Candidate).where(Candidate.work_unit_id.in_(stage_ids)))
     }
     evidence = defaultdict(list)
     for owner_id, evidence_id in session.execute(
@@ -303,7 +416,27 @@ def _load_items(session, run_id, ids):
         .order_by(Fragment.candidate_id, Fragment.ordinal)
     ):
         evidence[owner_id].append(evidence_id)
-    return [_candidate(rows[id], evidence[id]) for id in ids]
+    items = []
+    for id in ids:
+        row, equipment_type, occurrence = rows[id]
+        payload = stages[row.work_unit_id]
+        assertions = (
+            payload.get("equipment", ())
+            if row.kind == "EQUIPMENT"
+            else (*payload.get("attributes", ()), *payload.get("raw_unmapped", ()))
+        )
+        primary_ref = duplicate_refs[row.work_unit_id].get(row.local_ref)
+        items.append(
+            _candidate(
+                row,
+                equipment_type,
+                evidence[id],
+                occurrence,
+                assertions[row.ordinal],
+                local_ids.get((row.work_unit_id, primary_ref)),
+            )
+        )
+    return items
 
 
 def sources(reader, run_id):

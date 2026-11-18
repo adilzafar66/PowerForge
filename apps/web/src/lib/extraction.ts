@@ -32,6 +32,9 @@ export type EvidenceGroup = {
   registry_type: string | null;
   page_numbers: number[];
   matching_candidate_count: number;
+  matching_attribute_count: number;
+  matching_identification_count: number;
+  source_description: string | null;
 };
 export type Region = { x: string; y: string; width: string; height: string };
 export type ValueSourceSupport = "TEXT_MATCH" | "TEXT_MISMATCH" | "UNVERIFIED";
@@ -66,13 +69,18 @@ type CandidateBase = {
 };
 export type Candidate = CandidateBase & (
   | {
-      kind: "EQUIPMENT"; source_description: string; registry_type: string | null;
+      kind: "EQUIPMENT"; display_name: string; source_description: string; registry_type: string | null;
       tag: string | null; tag_state: string; qualification: string; raw_qualification: string | null;
     }
   | {
       kind: "ATTRIBUTE"; equipment_id: string | null; association: "ASSERTED" | "UNCERTAIN" | "UNASSIGNED";
-      raw_unmapped: boolean; raw_label: string | null; raw_value: string; raw_unit: string | null;
-      qualifiers: string[]; value_form: string; proposed_attribute_key: string | null;
+      raw_unmapped: boolean; origin: "EXTRACTED" | "INFERRED"; attribute_display_name: string | null;
+      raw_label: string | null; raw_value: string | null; raw_unit: string | null;
+      proposed_value: string | null; proposed_unit: string | null; inference_explanation: string | null;
+      inference_basis: string | null;
+      source_expression: string | null; source_display_label: string | null;
+      redundant_with_id: string | null;
+      qualifiers: string[]; value_form: string | null; proposed_attribute_key: string | null;
       proposed_enum_value: string | null; value_source_support: ValueSourceSupport;
       normalized: { type: string; value: string | boolean; unit: string | null } | null;
     }
@@ -215,7 +223,7 @@ export function getGroupCandidates(
   scope: DocumentScope, runId: string, groupId: string, filters: EvidenceFilters,
   cursor: string | null, signal?: AbortSignal, candidateId?: string,
 ) {
-  return request<CursorPage<Candidate> & { group: EvidenceGroup }>(
+  return request<CursorPage<Candidate> & { group: EvidenceGroup; identification: Extract<Candidate, { kind: "EQUIPMENT" }> | null }>(
     `${runPath(scope, runId)}/candidates${queryString({ view: "members", group_id: groupId, ...filters, cursor, candidate_id: candidateId })}`,
     { signal },
   );
