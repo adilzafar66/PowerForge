@@ -1,0 +1,8 @@
+{
+  "name": "powerforge-extraction-debugger",
+  "private": true,
+  "type": "module",
+  "scripts": {"build":"tsc --noEmit && vite build","test":"vitest run"},
+  "dependencies": {"react":"19.1.0","react-dom":"19.1.0"},
+  "devDependencies": {"@types/react":"^19","@types/react-dom":"^19","typescript":"^5.8","vite":"^6","vitest":"^3.2","jsdom":"^26","@testing-library/react":"^16"}
+}

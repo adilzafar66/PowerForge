@@ -3,37 +3,20 @@
 import argparse
 import os
 from datetime import UTC, datetime
-from hashlib import sha256
 from pathlib import Path
 from uuid import UUID
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
 
 from powerforge_document_processing.storage.base import ObjectStorage, StorageError
 from powerforge_document_processing.storage.s3 import S3ObjectStorage
-from powerforge_extraction.response_audit import ResponseAudit
+from powerforge_extraction.audit_reader import read_audit as read_verified_audit
 from powerforge_shared.config import get_settings
 
 
 def read_audit(engine, storage: ObjectStorage, work_unit_id: UUID) -> bytes:
-    with Session(engine) as session, session.begin():
-        audit = session.get(ResponseAudit, work_unit_id)
-        if audit is None or audit.expires_at <= datetime.now(UTC):
-            raise ValueError("Response audit is unavailable or has expired")
-        stream = storage.get(audit.object_key)
-        try:
-            body = stream.read(audit.output_bytes + 1)
-        finally:
-            stream.close()
-        if len(body) != audit.output_bytes or sha256(body).hexdigest() != audit.output_sha256:
-            raise ValueError("Audit output failed its size or digest check")
-        session.execute(
-            text("INSERT INTO extraction_response_audit_reads(work_unit_id) VALUES (:id)"),
-            {"id": work_unit_id},
-        )
-    return body
+    return read_verified_audit(engine, storage, work_unit_id, now=datetime.now(UTC))
 
 
 def main():

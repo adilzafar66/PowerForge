@@ -119,3 +119,6 @@ assertions fail local schema validation and produce no candidates. Valid
 assertions can still appear as Unmapped after engineering validation. The API
 exposes sanitized details, while the exact Stage 2 output text stays in the
 audit bucket. Counts and digests remain in immutable history after expiry.
+
+For local operator inspection of retained Stage 2 responses, see the
+[Extraction Debugger](../tools/extraction-debugger/README.md).

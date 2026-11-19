@@ -7,5 +7,7 @@ venv
 **/node_modules
 **/.next
 .env
+**/.env
+tools/extraction-debugger
 **/*.egg-info
 **/*.tsbuildinfo
