@@ -31,12 +31,13 @@ def test_profile_round_trips_and_rejects_pinned_manifest_drift():
         "phase-6r-publication-v2",
         "phase-6r-publication-v3",
         "phase-6r-publication-v4",
+        "phase-6r-publication-v5",
     ],
 )
 def test_previous_publication_pin_cannot_be_loaded_for_execution(previous_version):
     profile = extraction_profile(Settings(_env_file=None, extraction_use_fake_provider=True))
-    assert profile.manifest["publication_version"] == "phase-6r-publication-v5"
-    assert profile.manifest["unit_interpretation_version"] == "source-unit-interpretation-v1"
+    assert profile.manifest["publication_version"] == "phase-6r-publication-v6"
+    assert profile.manifest["unit_interpretation_version"] == "source-unit-interpretation-v2"
     assert profile.schema_version == profile.manifest["version"] == "phase-6r-wire-v4"
     assert [stage["version"] for stage in profile.manifest["stages"]] == [
         "phase-6r-v1",

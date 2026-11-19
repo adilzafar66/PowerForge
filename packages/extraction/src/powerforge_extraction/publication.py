@@ -16,7 +16,7 @@ from powerforge_extraction.stage_contracts import (
 )
 from powerforge_extraction.unit_notation import SCALAR, matches_proposal, source_supports_unit
 
-VERSION = "phase-6r-publication-v5"
+VERSION = "phase-6r-publication-v6"
 BOOLEAN = {"true": True, "yes": True, "false": False, "no": False}
 ValueSourceSupport = Literal["TEXT_MATCH", "TEXT_MISMATCH", "UNVERIFIED"]
 

@@ -80,13 +80,15 @@ here after implementation.
   add optional `display_label`. These values remain in the immutable result
   payload and are exposed through the candidate API. A display label is
   explicitly identified as presentation metadata in the viewer.
-- Publication uses `phase-6r-publication-v5` and the pinned
-  `source-unit-interpretation-v1` policy. An extracted dimensional assertion
+- Publication uses `phase-6r-publication-v6` and the pinned
+  `source-unit-interpretation-v2` policy. An extracted dimensional assertion
   carries the literal unit and a separate AI proposal from the registry.
   PowerForge verifies the notation against the proposal and its SI scale,
   requires resolved literal evidence, and uses the existing decimal converter.
   Unsupported spellings or contradictory evidence leave the assertion unmapped.
-  The original value, literal unit, and proposal remain available for review.
+  The original value, literal unit, and proposal remain available for review. Scope unit
+  evidence to the reported numeric literal and keep compound denominators
+  intact. Require explicit context for bare inches and quotation marks.
 - Complete resolved EQUIPMENT citations can establish literal support for
   model, catalog_number or trip_unit_model. Qualifiers, partial source tokens,
   ambiguous transcripts and inferred values retain their conservative support
