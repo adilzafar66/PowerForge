@@ -68,9 +68,9 @@ here after implementation.
   is `equipment-descriptions-v2`. Assembly-level identifiers belong to the BUS
   observation when their source association is supported. Each tag requires its
   actual citation. Tags and occurrence display names remain separate fields.
-- Stage 2 uses `attribute_extraction_v6.txt` for the `compact-page-v1` input,
-  schema `phase-6r-attributes-v4`, prompt bundle `phase-6r-stages-v7`, and aggregate
-  wire identity `phase-6r-wire-v4`. The registry-owned
+- Stage 2 uses `attribute_extraction_v7.txt` for the `compact-page-v1` input,
+  schema `phase-6r-attributes-v5`, prompt bundle `phase-6r-stages-v8`, and aggregate
+  wire identity `phase-6r-wire-v5`. The registry-owned
   `attribute-descriptions-v1` guidance explains commonly confused meanings.
   Canonical registry keys, allowed values, units and requirements are unchanged.
   The prompt explicitly limits each assertion to 12 citations and prioritizes
@@ -80,7 +80,7 @@ here after implementation.
   add optional `display_label`. These values remain in the immutable result
   payload and are exposed through the candidate API. A display label is
   explicitly identified as presentation metadata in the viewer.
-- Publication uses `phase-6r-publication-v6` and the pinned
+- Publication uses `phase-6r-publication-v7` and the pinned
   `source-unit-interpretation-v2` policy. An extracted dimensional assertion
   carries the literal unit and a separate AI proposal from the registry.
   PowerForge verifies the notation against the proposal and its SI scale,
@@ -114,6 +114,12 @@ here after implementation.
   v4 and extends the candidate shape to store extracted unit proposals in the
   existing column. Earlier results keep their stored values and remain readable.
   Old execution profiles fail resource/schema admission after upgrade.
+
+Stage 2 v5 adds assertion-local schema quarantine. An invalid source value
+or malformed local reference is tracked by its original array position. The
+provider output is stored as exact bounded bytes. Its digest and sanitized
+diagnostics survive body expiry. Candidate publication and audit linkage commit
+together. See [audit storage and operator access](EXTRACTION.md#stage-2-response-audit).
 
 Primary production changes are in `stage_contracts.py`, `stage_execution.py`,
 `extraction_profile.py`, `publication.py`, `assertion_consistency.py`,

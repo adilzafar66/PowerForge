@@ -641,3 +641,87 @@ def test_registry_guidance_explains_distinct_ratings_and_retains_registry_keys(r
     assert "UL and CSA" in ATTRIBUTE_DESCRIPTIONS["standard"]
     profile = extraction_profile(Settings(_env_file=None))
     assert profile.manifest["attribute_descriptions"] == ATTRIBUTE_DESCRIPTION_VERSION
+
+
+def test_attribute_admission_quarantines_multiple_local_failures(
+    attribute_request, attribute_envelope
+):
+    from powerforge_extraction.attribute_admission import admit_attributes
+
+    valid = attribute_envelope["attributes"][0]
+    attribute_envelope["attributes"] = [
+        dict(valid, local_ref=f"valid-{index}", raw_value="0") for index in range(24)
+    ] + [
+        dict(valid, local_ref="empty", raw_value=""),
+        dict(valid, local_ref="blank", raw_value=" \t\n"),
+        dict(valid, local_ref="broken-inferred", origin="INFERRED"),
+        {key: value for key, value in valid.items() if key != "local_ref"},
+        dict(valid, local_ref="private malformed ref"),
+        dict(valid, local_ref="valid-neighbor", raw_value=" 600 "),
+    ]
+    attribute_envelope["raw_unmapped"].append(
+        dict(attribute_envelope["raw_unmapped"][0], local_ref="unmapped-invalid", raw_value="")
+    )
+    result = admit_attributes(attribute_request, json.dumps(attribute_envelope).encode())
+    assert (result.received, result.accepted, len(result.rejected)) == (32, 26, 6)
+    assert result.result.attributes[-1].local_ref == "valid-neighbor"
+    assert result.result.attributes[-1].raw_value == " 600 "
+    assert result.result.attributes[0].raw_value == "0"
+    assert result.result.raw_unmapped[0].local_ref == "a3"
+    assert [entry.index for entry in result.rejected] == [24, 25, 26, 27, 28, 1]
+    assert [entry.local_ref for entry in result.rejected] == [
+        "empty",
+        "blank",
+        "broken-inferred",
+        None,
+        None,
+        "unmapped-invalid",
+    ]
+    assert result.rejected[0].issues[0].path == ("attributes", 24, "raw_value")
+    assert "private malformed ref" not in repr(result.rejected)
+
+
+@pytest.mark.parametrize("violation", ["upstream", "page", "version", "shape", "duplicate"])
+def test_attribute_admission_keeps_global_integrity_fatal(
+    attribute_request, attribute_envelope, violation
+):
+    from powerforge_extraction.attribute_admission import admit_attributes
+
+    if violation == "duplicate":
+        attribute_envelope["raw_unmapped"][0].update(local_ref="a1", raw_value="")
+    elif violation == "shape":
+        attribute_envelope["attributes"] = {}
+    elif violation == "version":
+        attribute_envelope["version"] = "phase-6r-attributes-v4"
+    else:
+        attribute_envelope[
+            f"{violation}_hash" if violation == "upstream" else "page_context_hash"
+        ] = "f" * 64
+    result = admit_attributes(attribute_request, json.dumps(attribute_envelope).encode())
+    assert result.result is None and result.fatal and not result.rejected
+    if violation == "duplicate":
+        assert result.fatal[0].error_type == "duplicate_reference"
+
+
+def test_attribute_admission_distinguishes_empty_from_all_rejected(
+    attribute_request, attribute_envelope
+):
+    from powerforge_extraction.attribute_admission import admit_attributes
+
+    attribute_envelope.update(
+        attributes=[dict(attribute_envelope["attributes"][0], raw_value="")], raw_unmapped=[]
+    )
+    rejected = admit_attributes(attribute_request, json.dumps(attribute_envelope).encode())
+    assert (rejected.received, rejected.accepted, len(rejected.rejected)) == (1, 0, 1)
+    assert rejected.result is None and rejected.fatal[0].error_type == "all_assertions_quarantined"
+    attribute_envelope["attributes"] = []
+    empty = admit_attributes(attribute_request, json.dumps(attribute_envelope).encode())
+    assert empty.received == empty.accepted == 0 and empty.result is not None
+    assert not empty.rejected and not empty.fatal
+
+
+def test_attribute_admission_rejects_duplicate_json_keys(attribute_request):
+    from powerforge_extraction.attribute_admission import admit_attributes
+
+    rejected = admit_attributes(attribute_request, b'{"stage":1,"stage":2}')
+    assert rejected.result is None and rejected.fatal[0].error_type == "invalid_json_structure"

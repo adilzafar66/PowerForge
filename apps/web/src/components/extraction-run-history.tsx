@@ -174,12 +174,27 @@ function SourceLayoutDetails({ scope, binding }: { scope: DocumentScope; binding
 }
 
 function Attempt({ attempt }: { attempt: RunAttempt }) {
+  const validation = attempt.assertion_validation;
+  const counts = validation?.counts;
   return (
     <li className="rounded-md border border-border p-2">
       <strong>{label(attempt.stage)}</strong>
       <p>Page {pageRanges(attempt.page_numbers)} · Attempt {attempt.attempt_number} · {runState(attempt).label}</p>
       {attempt.stage_outcome === "NO_ELIGIBLE_ATTRIBUTES" && <p>Skipped: no recognized equipment eligible for attributes.</p>}
       {attempt.error_code && <p className="text-warning">{readableKey(attempt.error_code)}</p>}
+      {validation?.state === "PARTIALLY_VALIDATED" && <p className="text-warning">Partially validated</p>}
+      {counts && <p>{counts.received} received · {counts.accepted} schema-valid · {counts.quarantined} quarantined</p>}
+      {!counts && attempt.stage === "ATTRIBUTE_EXTRACTION" && attempt.provider_calls > 0 &&
+        <p>Assertion counts unavailable.</p>}
+      {!!validation?.rejections.length && <details>
+        <summary className="cursor-pointer">Quarantined assertions</summary>
+        <p>These assertions failed schema validation and have no candidates.</p>
+        <ul>{validation.rejections.map((issue, index) => <li key={index}>
+          {issue.error_type} · {issue.path.join(".")}
+        </li>)}</ul>
+        {counts && counts.quarantined > validation.rejections.length &&
+          <p>Showing {validation.rejections.length} of {counts.quarantined} rejections.</p>}
+      </details>}
       <p className="text-muted">Calls {attempt.provider_calls} · Tokens {attempt.usage ? `${attempt.usage.input_tokens} in / ${attempt.usage.output_tokens} out` : "unavailable"}
         {attempt.latency_ms != null && ` · ${attempt.latency_ms} ms`} · Cost {attempt.estimated_cost ? `${attempt.estimated_cost.amount} ${attempt.estimated_cost.currency} (${attempt.estimated_cost.pricing_version})` : "unavailable"}</p>
       {!!(attempt.validation_diagnostics.length || attempt.stage_diagnostics.length) && <details>

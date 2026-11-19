@@ -1048,12 +1048,20 @@ def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operat
     assert any("Unrelated" in text for ref, text in readings.items() if ref not in table_refs)
 
 
-def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(operation_context):
+def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
+    operation_context, monkeypatch
+):
+    from datetime import UTC, datetime, timedelta
+    from hashlib import sha256
     from types import SimpleNamespace
 
+    from extraction_worker import read_response_audit
     from extraction_worker.openai_extraction import OpenAIExtractionProvider
+    from extraction_worker.read_response_audit import read_audit
+    from powerforge_document_processing.storage import InMemoryObjectStorage
     from powerforge_extraction.identities import identity_hash
     from powerforge_extraction.models import ExtractionAICall
+    from powerforge_extraction.response_audit import ResponseAudit
     from powerforge_extraction.stage_execution import StageResult
     from spatial_layout_support import drawn_table
 
@@ -1063,6 +1071,8 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
     source = new_source(ctx, "mocked-live-schedule.pdf", drawn_table(nearby=True))
     _, run_id, units = admitted_page(ctx, source)
     calls = []
+    originals = []
+    audit_storage = InMemoryObjectStorage()
 
     class Responses:
         def create(self, **kwargs):
@@ -1112,13 +1122,23 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                         }
                     ],
                 )
+                payload["raw_unmapped"] += [
+                    dict(payload["raw_unmapped"][0], local_ref="private-ref", raw_value=""),
+                    dict(
+                        payload["raw_unmapped"][0],
+                        local_ref="raw-2",
+                        raw_value="second source reading",
+                    ),
+                ]
+            original = json.dumps(payload, indent=2)
+            originals.append(original.encode())
             return SimpleNamespace(
                 status="completed",
                 usage=SimpleNamespace(input_tokens=100, output_tokens=30),
                 output=[
                     SimpleNamespace(
                         type="message",
-                        content=[SimpleNamespace(type="output_text", text=json.dumps(payload))],
+                        content=[SimpleNamespace(type="output_text", text=original)],
                     )
                 ],
             )
@@ -1132,6 +1152,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
             lambda claim: OpenAIExtractionProvider(
                 ctx["settings"], claim.profile, SimpleNamespace(responses=Responses())
             ),
+            audit_storage=audit_storage,
         )
     assert len(calls) == 2
     assert calls[0]["page_context_hash"] == calls[1]["page_context_hash"]
@@ -1145,15 +1166,60 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         assert recognition.diagnostics[0]["code"] == "UNKNOWN_READING"
         assert attribute.diagnostics[0]["code"] == "INVALID_OWNER_REFERENCE"
         assert attribute.payload["raw_unmapped"][0]["equipment_ref"] == "foreign-owner"
+        assert [item["local_ref"] for item in attribute.payload["raw_unmapped"]] == [
+            "raw-1",
+            "raw-2",
+        ]
+        retained = session.get(ResponseAudit, units["ATTRIBUTE_EXTRACTION"])
+        assert retained.output_sha256 == sha256(originals[1]).hexdigest()
+        assert (retained.received, retained.accepted, retained.quarantined) == (3, 2, 1)
+        assert retained.rejections[0]["local_ref_sha256"] == sha256(b"private-ref").hexdigest()
+        engine = session.get_bind()
         audit = session.scalars(
             select(ExtractionAICall).where(ExtractionAICall.run_id == run_id)
         ).all()
         assert len(audit) == 2
         assert all(call.input_tokens == 100 and call.output_tokens == 30 for call in audit)
         assert all(call.estimated_cost_usd is None for call in audit)
+    assert read_audit(engine, audit_storage, units["ATTRIBUTE_EXTRACTION"]) == originals[1]
+
+    class AfterExpiry(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime.now(UTC) + timedelta(days=31)
+
+    monkeypatch.setattr(read_response_audit, "datetime", AfterExpiry)
+    with pytest.raises(ValueError, match="expired"):
+        read_audit(engine, audit_storage, units["ATTRIBUTE_EXTRACTION"])
+    audit_storage.delete(retained.object_key)
+    with ctx["factory"]() as session:
+        assert (
+            session.scalar(
+                text("SELECT count(*) FROM extraction_response_audit_reads WHERE work_unit_id=:id"),
+                {"id": units["ATTRIBUTE_EXTRACTION"]},
+            )
+            == 1
+        )
     base = ctx["operation_base"].removesuffix("/extraction")
     run_url = f"{base}/documents/{source['revision_document_id']}/extraction/runs/{run_id}"
-    attempts = client.get(run_url).json()["attempts"]
+    detail = client.get(run_url)
+    attempts = detail.json()["attempts"]
+    attributes = next(attempt for attempt in attempts if attempt["stage"] == "ATTRIBUTE_EXTRACTION")
+    assert attributes["status"] == "COMPLETED" and not attributes["retryable"]
+    assert attributes["assertion_validation"] == {
+        "state": "PARTIALLY_VALIDATED",
+        "counts": {"received": 3, "accepted": 2, "quarantined": 1},
+        "rejections": [
+            {
+                "category": "FIELD_CONSTRAINT",
+                "error_type": "string_too_short",
+                "path": ["raw_unmapped", 1, "raw_value"],
+            }
+        ],
+    }
+    assert "private-ref" not in detail.text and "object_key" not in detail.text
+    source_counts = client.get(f"{run_url}/sources").json()["items"][0]["assertion_counts"]
+    assert source_counts == {"received": 3, "accepted": 2, "quarantined": 1}
     assert all(
         attempt["usage"] == {"input_tokens": 100, "output_tokens": 30} for attempt in attempts
     )
@@ -1594,11 +1660,14 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
 
 @pytest.mark.parametrize("breakage", ["missing-candidate", "missing-fragment", "foreign-owner"])
 def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch, breakage):
-    from powerforge_ai.extraction import ExecutionUsage, ExtractionResponse
+    from powerforge_ai.extraction import AttributeOutput, ExecutionUsage
+    from powerforge_document_processing.storage import InMemoryObjectStorage
     from powerforge_extraction.publication_records import Candidate, Fragment
+    from powerforge_extraction.response_audit import ResponseAudit
     from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
 
     ctx = operation_context
+    audit_storage = InMemoryObjectStorage()
     with pymupdf.open(stream=native_pdf(), filetype="pdf") as page, pymupdf.open() as document:
         document.insert_pdf(page)
         document.insert_pdf(page)
@@ -1643,10 +1712,10 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
                     )
                 ],
             )
-            return ExtractionResponse[request.response_model](
-                result=request.response_model.model_validate_json(json.dumps(payload)),
-                usage=ExecutionUsage(),
+            payload["attributes"].append(
+                dict(payload["attributes"][0], local_ref="invalid", raw_value="")
             )
+            return AttributeOutput(json.dumps(payload).encode(), ExecutionUsage())
 
     def execute(stage, page):
         return execute_unit(
@@ -1655,6 +1724,7 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
             ctx["storage"],
             ctx["settings"],
             lambda _: Provider(),
+            audit_storage=audit_storage,
         )
 
     assert execute("EQUIPMENT_RECOGNITION", 1)
@@ -1687,6 +1757,9 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
     attempt_id = units[("ATTRIBUTE_EXTRACTION", 1)]
     with ctx["factory"]() as session:
         assert session.get(StageResult, attempt_id) is None
+        retained = session.get(ResponseAudit, attempt_id)
+        assert retained.accepted == retained.quarantined == 1
+        assert retained.rejections[0]["index"] == 1
         assert (
             session.scalar(select(Candidate.id).where(Candidate.work_unit_id == attempt_id)) is None
         )
@@ -1758,3 +1831,98 @@ def test_equipment_names_are_stable_across_pages_filters_and_pagination(operatio
     assert members.status_code == 200
     assert members.json()["items"] == []
     assert members.json()["identification"]["display_name"] == f"{display_type} 2"
+
+
+@pytest.mark.parametrize(
+    "case", ["wrong-upstream", "all-rejected", "storage-failure", "lease-loss"]
+)
+def test_attribute_audit_failure_boundaries(operation_context, case):
+    from powerforge_ai.extraction import AttributeOutput, ExecutionUsage
+    from powerforge_document_processing.storage import InMemoryObjectStorage
+    from powerforge_document_processing.storage.base import StorageError
+    from powerforge_extraction.publication_records import Candidate
+    from powerforge_extraction.response_audit import ResponseAudit
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
+
+    ctx = operation_context
+    source = new_source(ctx, "attribute-audit-boundaries.pdf")
+    _, run_id, units = admitted_page(ctx, source)
+    attr_id = units["ATTRIBUTE_EXTRACTION"]
+    expected_error = (
+        "RESPONSE_AUDIT_UNAVAILABLE" if case == "storage-failure" else "INVALID_PROVIDER_RESPONSE"
+    )
+
+    class AuditStorage(InMemoryObjectStorage):
+        def put(self, key, fileobj, size, content_type):
+            if case == "storage-failure":
+                raise StorageError("test failure")
+            super().put(key, fileobj, size, content_type)
+            if case == "lease-loss":
+                with ctx["factory"].begin() as session:
+                    ExtractionCoordinator(session, ctx["settings"]).cancel(run_id)
+
+    audit_storage = AuditStorage()
+    calls = []
+
+    class Provider:
+        def execute(self, request):
+            calls.append(request.stage)
+            if request.stage == "EQUIPMENT_RECOGNITION":
+                return FakeExtractionProvider("success").execute(request)
+            wire = json.loads(request.text)
+            payload = {
+                key: wire[key] for key in ("version", "stage", "page_context_hash", "upstream_hash")
+            }
+            if case == "wrong-upstream":
+                payload["upstream_hash"] = "f" * 64
+            payload.update(
+                attributes=[],
+                raw_unmapped=[
+                    dict(
+                        local_ref="raw-1",
+                        equipment_ref=None,
+                        association="UNASSIGNED",
+                        raw_label="Original source label",
+                        display_label=None,
+                        raw_value="",
+                        raw_unit=None,
+                        qualifiers=[],
+                        value_form="SINGLE",
+                        evidence=[],
+                    )
+                ],
+            )
+            return AttributeOutput(json.dumps(payload).encode(), ExecutionUsage())
+
+    assert execute_unit(
+        units["EQUIPMENT_RECOGNITION"],
+        ctx["factory"],
+        ctx["storage"],
+        ctx["settings"],
+        lambda _: Provider(),
+        audit_storage=audit_storage,
+    )
+    finished = execute_unit(
+        attr_id,
+        ctx["factory"],
+        ctx["storage"],
+        ctx["settings"],
+        lambda _: Provider(),
+        audit_storage=audit_storage,
+    )
+    assert finished is (case != "lease-loss")
+    assert calls == ["EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"]
+    with ctx["factory"]() as session:
+        assert session.get(StageResult, attr_id) is None
+        assert session.scalar(select(Candidate.id).where(Candidate.work_unit_id == attr_id)) is None
+        attempt = session.get(ExtractionWorkUnit, attr_id)
+        audit = session.get(ResponseAudit, attr_id)
+        if case == "lease-loss":
+            assert attempt.status == "CANCELLED" and audit is None
+        else:
+            assert attempt.status == "FAILED" and attempt.error_code == expected_error
+            if case == "storage-failure":
+                assert audit is None
+            else:
+                assert audit.received == 1 and audit.accepted == 0
+                assert audit.quarantined == (case == "all-rejected")

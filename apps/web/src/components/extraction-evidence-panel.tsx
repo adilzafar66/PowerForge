@@ -135,6 +135,12 @@ function CandidateBrowser({ scope, params, browser, update, page, highlighted }:
   const kind = params.get("kind");
   const search = params.get("search")?.slice(0, 200) ?? "";
   const selectedPage = browser.sources.data?.items.find((item) => item.page_number === (opened ? returnPage : page));
+  const assertionCounts = (currentOnly ? (selectedPage ? [selectedPage] : []) : browser.sources.data?.items ?? [])
+    .reduce((total, item) => ({
+      received: total.received + (item.assertion_counts?.received ?? 0),
+      accepted: total.accepted + (item.assertion_counts?.accepted ?? 0),
+      quarantined: total.quarantined + (item.assertion_counts?.quarantined ?? 0),
+    }), { received: 0, accepted: 0, quarantined: 0 });
   const filters: EvidenceFilters = {
     search: search.trim() || undefined,
     page_id: currentOnly ? selectedPage?.page_id : undefined,
@@ -185,6 +191,10 @@ function CandidateBrowser({ scope, params, browser, update, page, highlighted }:
         </div>
       )}
       {statuses.error && <PanelMessage error retry={() => void statuses.refetch()}>{apiErrorOf(statuses.error).detail}</PanelMessage>}
+      {assertionCounts.quarantined > 0 && <PanelMessage>
+        Partially validated. {assertionCounts.accepted} of {assertionCounts.received} assertions passed schema validation.
+        {" "}{assertionCounts.quarantined} quarantined assertions have no candidates. See Run history for details.
+      </PanelMessage>}
       {!runId && !statuses.isPending && <PanelMessage>No published candidates. Check run history for extraction progress.</PanelMessage>}
       {runId && (
         <div className="grid grid-cols-2 gap-2">

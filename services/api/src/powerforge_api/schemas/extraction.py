@@ -63,6 +63,7 @@ class UnitResponse(ReadModel):
     error_code: str | None
     output_counts: dict[str, int]
     validation_diagnostics: list[ValidationIssue] = Field(default_factory=list)
+    assertion_validation: "AssertionValidation | None" = None
     stage_diagnostics: list[dict] = Field(default_factory=list)
     result_sha256: str | None = None
     provider_calls: int = 0
@@ -80,6 +81,18 @@ class UnitResponse(ReadModel):
 class AttemptUsage(BaseModel):
     input_tokens: int
     output_tokens: int
+
+
+class AssertionCounts(BaseModel):
+    received: int
+    accepted: int
+    quarantined: int
+
+
+class AssertionValidation(BaseModel):
+    state: Literal["VALIDATED", "PARTIALLY_VALIDATED", "REJECTED"]
+    counts: AssertionCounts | None
+    rejections: list[ValidationIssue]
 
 
 class AttemptCost(BaseModel):

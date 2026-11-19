@@ -487,7 +487,8 @@ class ExtractionCoordinator:
             ),
         )
 
-    def complete_stage(self, unit_id, token, wire, result, usage, publication=None):
+    def complete_stage(self, unit_id, token, wire, result, usage, publication=None, *, audit=None):
+        from powerforge_extraction.response_audit import record_audit
         from powerforge_extraction.stage_contracts import NoEligibleAttributes
         from powerforge_extraction.stage_execution import store_result, validate_plan
 
@@ -500,6 +501,8 @@ class ExtractionCoordinator:
         if publication is None:
             raise ValueError("Stage completion requires verified publication")
         snapshot = validate_plan(self.session, unit, profile)
+        if audit is not None:
+            record_audit(self.session, unit, *audit)
         unit.output_counts = store_result(self.session, unit, snapshot, wire, result, publication)
         self._telemetry(unit, profile, self.now(), "SUCCEEDED", None, usage)
         unit.status, unit.finished_at = US.COMPLETED, self.now()
@@ -548,9 +551,14 @@ class ExtractionCoordinator:
         usage: ExecutionUsage | None = None,
         *,
         diagnostics: tuple[ValidationIssue, ...] = (),
+        audit=None,
     ) -> None:
+        from powerforge_extraction.response_audit import record_audit
+
         run, unit, _ = self._authorized(unit_id, token)
         profile = read_profile(self._execution(run.id).configuration)
+        if audit is not None:
+            record_audit(self.session, unit, *audit)
         self._telemetry(unit, profile, self.now(), "FAILED", code.value, usage, diagnostics)
         self._settle_failure(run, unit, profile, code.value)
 

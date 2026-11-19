@@ -7,6 +7,7 @@ import openai
 from pydantic import ValidationError
 
 from powerforge_ai.extraction import (
+    AttributeOutput,
     ErrorCode,
     ExecutionUsage,
     ExtractionRequest,
@@ -41,7 +42,7 @@ class OpenAIExtractionProvider:
             )
         )
 
-    def execute(self, request: ExtractionRequest) -> ExtractionResponse:
+    def execute(self, request: ExtractionRequest) -> ExtractionResponse | AttributeOutput:
         model = RESPONSES.get(request.stage)
         if (
             model is None
@@ -191,6 +192,8 @@ class OpenAIExtractionProvider:
                     ValidationIssue(category="CAPACITY", error_type="response_byte_limit"),
                 ),
             )
+        if request.stage == "ATTRIBUTE_EXTRACTION":
+            return AttributeOutput(raw, usage)
         try:
             result = model.model_validate_json(raw)
         except ValidationError as exc:

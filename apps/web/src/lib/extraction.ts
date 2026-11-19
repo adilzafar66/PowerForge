@@ -101,8 +101,14 @@ export type RunAttempt = {
   usage: { input_tokens: number; output_tokens: number } | null;
   estimated_cost: { amount: string; currency: string; pricing_version: string } | null;
   validation_diagnostics: { category: string; error_type: string; path: (string | number)[] }[];
+  assertion_validation?: {
+    state: "VALIDATED" | "PARTIALLY_VALIDATED" | "REJECTED";
+    counts: AssertionCounts | null;
+    rejections: { category: string; error_type: string; path: (string | number)[] }[];
+  } | null;
   stage_diagnostics: { code: string; ref?: string; citation?: number; omitted?: number }[];
 };
+export type AssertionCounts = { received: number; accepted: number; quarantined: number };
 export type RunDetail = {
   run: HistoryRun;
   attempts: RunAttempt[];
@@ -118,6 +124,7 @@ export type SourceBinding = {
   prepared_manifest_hash: string; spatial_manifest_hash: string;
   layout_producer_run_id: string;
   page_context_hash: string | null;
+  assertion_counts?: AssertionCounts | null;
 };
 export type SourceLayout = {
   manifest: {

@@ -8,7 +8,7 @@ import openai
 import pytest
 
 from extraction_worker.openai_extraction import OpenAIExtractionProvider
-from powerforge_ai.extraction import ErrorCode, ExtractionRequest, ProviderFailure
+from powerforge_ai.extraction import AttributeOutput, ErrorCode, ExtractionRequest, ProviderFailure
 from powerforge_extraction.extraction_profile import PROMPTS, RESPONSES, STAGES, extraction_profile
 from powerforge_extraction.stage_contracts import stage_schema_version
 from powerforge_shared.config import Settings
@@ -183,7 +183,19 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
     with httpx.Client(transport=httpx.MockTransport(respond)) as http:
         sdk = openai.OpenAI(api_key="test", max_retries=0, http_client=http)
         provider = OpenAIExtractionProvider(settings, profile, sdk)
-        if outcome == "success":
+        if stage == STAGES[1] and outcome in {
+            "success",
+            "invalid",
+            "schema",
+            "pattern",
+            "cardinality",
+        }:
+            response = provider.execute(request)
+            assert isinstance(response, AttributeOutput)
+            original = ("{" if outcome == "invalid" else json.dumps(payload)).encode()
+            assert response.output_text == original
+            assert response.usage.output_tokens == 45
+        elif outcome == "success":
             response = provider.execute(request)
             assert response.result.model_dump(mode="json") == payload
             assert response.usage.output_tokens == 45

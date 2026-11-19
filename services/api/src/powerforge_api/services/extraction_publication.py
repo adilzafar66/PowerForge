@@ -33,6 +33,7 @@ from powerforge_extraction.enrichment_models import RunSourceEnrichmentBinding a
 from powerforge_extraction.identities import identity_hash
 from powerforge_extraction.pinned_sources import selected_snapshot
 from powerforge_extraction.publication_records import Candidate, Fragment
+from powerforge_extraction.response_audit import ResponseAudit
 from powerforge_extraction.stage_execution import StageResult
 
 UNASSIGNED_KEY = UUID(int=0)
@@ -453,6 +454,19 @@ def sources(reader, run_id):
         .where(Binding.run_id == run_id)
         .order_by(DocumentPage.page_number)
     )
+    counts = {
+        page_id: dict(received=received, accepted=accepted, quarantined=quarantined)
+        for page_id, received, accepted, quarantined in reader.session.execute(
+            select(
+                ResponseAudit.document_page_id,
+                ResponseAudit.received,
+                ResponseAudit.accepted,
+                ResponseAudit.quarantined,
+            )
+            .join(StageResult, StageResult.work_unit_id == ResponseAudit.work_unit_id)
+            .where(ResponseAudit.run_id == run_id)
+        )
+    }
     pages = []
     for binding, number, context_hash in rows:
         snapshot = _snapshot(reader.session, binding)
@@ -471,6 +485,7 @@ def sources(reader, run_id):
                 layout_producer_run_id=snapshot.layout.producer_run_id,
                 text_coverage=snapshot.prepared.manifest.text_coverage,
                 page_context_hash=context_hash,
+                assertion_counts=counts.get(binding.document_page_id),
             )
         )
     return RunSources(items=pages)

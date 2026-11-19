@@ -560,11 +560,17 @@ describe("DocumentViewer", () => {
       extraction: { latest_attempt: run, effective_result: run }, enrichment: null,
     } });
     vi.mocked(getGroups).mockResolvedValue({ items: [], total: 0, next_cursor: null, previous_cursor: null });
-    vi.mocked(getRunSources).mockResolvedValue({ items: [] });
+    vi.mocked(getRunSources).mockResolvedValue({ items: [{
+      page_id: "page-one", page_number: 1, page_image_id: "pinned-image",
+      prepared_result_id: "prep", spatial_result_id: "layout", layout_producer_run_id: "producer",
+      prepared_manifest_hash: "hash", spatial_manifest_hash: "hash", page_context_hash: "page-hash",
+      assertion_counts: { received: 5, accepted: 3, quarantined: 2 },
+    }] });
     nav.search = `mode=evidence&extractionRun=${historical}`;
     renderViewer();
     expect(await screen.findByText("No candidates match these filters.")).toBeVisible();
     expect(getGroups).toHaveBeenCalledWith(expect.anything(), historical, expect.anything(), null, expect.anything());
+    expect(await screen.findByText(/3 of 5 assertions passed schema validation/)).toHaveTextContent("2 quarantined assertions");
   });
 
   it("opens run details while candidate publication is unavailable", async () => {
@@ -581,7 +587,16 @@ describe("DocumentViewer", () => {
     } });
     vi.mocked(getHistory).mockResolvedValue({ items: [run], total: 1, next_cursor: null, previous_cursor: null });
     vi.mocked(getRunDetail).mockResolvedValue({
-      run, attempts: [], coverage: { required_units: 1, completed_required_units: 1 },
+      run, attempts: [{
+        id: "attempt", stage: "ATTRIBUTE_EXTRACTION", status: "COMPLETED", page_numbers: [1],
+        attempt_number: 1, retryable: false, error_code: null, provider_calls: 1,
+        latency_ms: 2000, stage_outcome: "RESULT", result_sha256: "hash", usage: null,
+        estimated_cost: null, validation_diagnostics: [], stage_diagnostics: [],
+        assertion_validation: {
+          state: "PARTIALLY_VALIDATED", counts: { received: 2, accepted: 1, quarantined: 1 },
+          rejections: [{ category: "FIELD_CONSTRAINT", error_type: "string_too_short", path: ["attributes", 0, "raw_value"] }],
+        },
+      }], coverage: { required_units: 1, completed_required_units: 1 },
       can_browse_candidates: false, can_retry: false, can_cancel: false, execution: null,
     });
     vi.mocked(getRunSources).mockResolvedValue({ items: [] });
@@ -592,6 +607,10 @@ describe("DocumentViewer", () => {
     view.rerender(<DocumentViewer projectId={P} revision={revision} row={makeRow()} />);
     expect(await screen.findByRole("region", { name: "Selected extraction run" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Browse candidates" })).toBeNull();
+    expect(screen.getByText("Partially validated")).toBeVisible();
+    expect(screen.getByText("2 received · 1 schema-valid · 1 quarantined")).toBeVisible();
+    await user.click(screen.getByText("Quarantined assertions"));
+    expect(screen.getByText(/attributes.0.raw_value/)).toBeVisible();
   });
 
   it("explains running processing without requesting pages", async () => {

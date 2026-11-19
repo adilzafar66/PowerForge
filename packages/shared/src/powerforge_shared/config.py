@@ -82,6 +82,11 @@ class Settings(BaseSettings):
     extraction_max_concurrent_per_run: int = Field(default=2, ge=1, le=32)
     extraction_max_concurrent_global: int = Field(default=4, ge=1, le=64)
     extraction_timeout_seconds: int = Field(default=100, ge=1, le=300)
+    extraction_response_audit_retention_days: int = Field(default=30, ge=1, le=365)
+    extraction_response_audit_bucket: str = ""
+    extraction_response_audit_endpoint_url: str | None = None
+    extraction_response_audit_write_access_key: str = ""
+    extraction_response_audit_write_secret_key: str = ""
     extraction_lease_seconds: int = Field(default=30, ge=3, le=600)
     extraction_backoff_seconds: int = Field(default=5, ge=0, le=300)
     extraction_redispatch_seconds: int = Field(default=30, ge=1, le=300)

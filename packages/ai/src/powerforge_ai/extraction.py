@@ -1,5 +1,6 @@
 """Provider-neutral bounded extraction execution contracts; no vendor SDK types."""
 
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Literal, Protocol
 from uuid import UUID
@@ -20,6 +21,7 @@ class ErrorCode(StrEnum):
     BUDGET = "CALL_BUDGET_EXHAUSTED"
     DISABLED = "EXTERNAL_PROCESSING_DISABLED"
     INTERNAL = "EXECUTION_FAILED"
+    AUDIT = "RESPONSE_AUDIT_UNAVAILABLE"
     DEPENDENCY = "PREREQUISITE_FAILED"
 
 
@@ -85,6 +87,8 @@ ValidationType = Literal[
     "upstream_identity_mismatch",
     "response_byte_limit",
     "output_token_limit",
+    "invalid_json_structure",
+    "all_assertions_quarantined",
 ]
 ValidationField = Literal[
     "version",
@@ -206,5 +210,11 @@ class ExtractionResponse[Result: BaseModel](BaseModel):
     usage: ExecutionUsage
 
 
+@dataclass(frozen=True)
+class AttributeOutput:
+    output_text: bytes = field(repr=False)
+    usage: ExecutionUsage
+
+
 class ExtractionProvider(Protocol):
-    def execute(self, request: ExtractionRequest) -> ExtractionResponse: ...
+    def execute(self, request: ExtractionRequest) -> ExtractionResponse | AttributeOutput: ...

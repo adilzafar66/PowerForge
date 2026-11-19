@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from powerforge_api.schemas.extraction import AssertionCounts
 from powerforge_extraction.publication import ValueSourceSupport
 from powerforge_extraction.stage_contracts import (
     Association,
@@ -130,6 +131,7 @@ class PinnedRunPage(BaseModel):
     text_coverage: Literal["UNKNOWN"]
     printed_text_independently_verified: Literal[False] = False
     page_context_hash: str | None
+    assertion_counts: AssertionCounts | None = None
 
 
 class RunSources(BaseModel):

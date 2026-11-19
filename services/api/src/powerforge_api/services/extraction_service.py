@@ -1,6 +1,5 @@
 """Read-only, revision-membership-scoped extraction queries."""
 
-import json
 from datetime import datetime
 from uuid import UUID
 
@@ -32,14 +31,16 @@ from powerforge_extraction.enums import (
     ExtractionRunStatus,
     WorkUnitStatus,
 )
-from powerforge_extraction.extraction_profile import ExtractionProfile, manifest
+from powerforge_extraction.extraction_profile import ExtractionProfile
 from powerforge_extraction.identities import identity_hash
 from powerforge_extraction.models import (
     ExtractionAICall,
     ExtractionRun,
     ExtractionWorkUnit,
 )
+from powerforge_extraction.profiles import read_profile
 from powerforge_extraction.publication_records import Candidate
+from powerforge_extraction.response_audit import ResponseAudit
 from powerforge_extraction.stage_execution import StageResult
 
 
@@ -159,16 +160,13 @@ class ExtractionReadService:
         run = self._run(run_id)
         coverage, rows = self.coverage(run)
         control = self.session.get(RunExecution, run.id)
-        profile = (
-            ExtractionProfile.model_validate_json(json.dumps(control.configuration))
-            if control
-            else None
-        )
-        eligible = (
-            retryable_keys(rows, profile.max_attempts)
-            if profile and profile.manifest == manifest()
-            else set()
-        )
+        configuration = control.configuration if control else {}
+        try:
+            installed_profile = read_profile(configuration) if control else None
+        except ValueError:
+            installed_profile = None
+        profile = installed_profile if isinstance(installed_profile, ExtractionProfile) else None
+        eligible = retryable_keys(rows, profile.max_attempts) if profile else set()
         now = self.session.scalar(select(func.clock_timestamp()))
         calls = {
             call.work_unit_id: call
@@ -188,11 +186,11 @@ class ExtractionReadService:
             started = len(started_ids)
             all_reported = len(calls) == started
             execution = ExecutionSummary(
-                profile_key=profile.key,
-                execution_kind=profile.execution_kind,
+                profile_key=configuration["key"],
+                execution_kind=configuration["execution_kind"],
                 cancel_requested_at=control.cancel_requested_at,
                 calls_admitted=control.calls_admitted,
-                call_budget=profile.max_calls,
+                call_budget=configuration["max_calls"],
                 reported_calls=len(calls),
                 provider_calls_started=started,
                 unreported_provider_calls=max(0, started - len(calls)),
@@ -229,6 +227,13 @@ class ExtractionReadService:
             "estimated_cost",
             "stage_diagnostics",
             "validation_diagnostics",
+            "assertion_validation",
+        }
+        audits = {
+            audit.work_unit_id: audit
+            for audit in self.session.scalars(
+                select(ResponseAudit).where(ResponseAudit.run_id == run.id)
+            )
         }
         return RunDetail(
             run=RunResponse.model_validate(run),
@@ -248,6 +253,7 @@ class ExtractionReadService:
                         "effective": r.status == WorkUnitStatus.COMPLETED,
                         "stage_outcome": results[r.id].outcome if r.id in results else None,
                         "stage_diagnostics": results[r.id].diagnostics if r.id in results else [],
+                        "assertion_validation": _assertion_validation(audits.get(r.id)),
                         "retryable": bool(
                             profile
                             and run.status
@@ -270,6 +276,26 @@ class ExtractionReadService:
                 for r in rows
             ],
         )
+
+
+def _assertion_validation(audit):
+    if audit is None:
+        return None
+    return {
+        "state": (
+            "REJECTED"
+            if audit.fatal_diagnostics
+            else "PARTIALLY_VALIDATED"
+            if audit.quarantined
+            else "VALIDATED"
+        ),
+        "counts": dict(
+            received=audit.received, accepted=audit.accepted, quarantined=audit.quarantined
+        )
+        if audit.received is not None
+        else None,
+        "rejections": [item["issues"][0] for item in audit.rejections[:32]],
+    }
 
 
 def _attempt_telemetry(call, started):

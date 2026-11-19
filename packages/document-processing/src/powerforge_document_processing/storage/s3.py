@@ -85,11 +85,20 @@ class S3ObjectStorage:
         secret_key: str,
         bucket: str,
         region: str,
+        read_timeout: float = 60,
+        max_attempts: int = 2,
+        head_before_put: bool = True,
     ) -> None:
         self.bucket = bucket
         self._region = region
+        self._head_before_put = head_before_put
         self._client = self._build_client(
-            endpoint_url, access_key, secret_key, region, read_timeout=60, max_attempts=2
+            endpoint_url,
+            access_key,
+            secret_key,
+            region,
+            read_timeout=read_timeout,
+            max_attempts=max_attempts,
         )
         # Presigning is an offline computation. A second client is needed only because
         # SigV4 signs the Host header, so the URL must be signed for the browser's host.
@@ -182,8 +191,27 @@ class S3ObjectStorage:
                 return
             raise self._failure("ensure_bucket", exc) from None
 
+    def require_expiry(self, prefix: str, days: int) -> None:
+        """Require expiration for every object written to this audit prefix."""
+        try:
+            response = self._client.get_bucket_lifecycle_configuration(Bucket=self.bucket)
+            versioning = self._client.get_bucket_versioning(Bucket=self.bucket)
+        except (ClientError, BotoCoreError) as exc:
+            raise self._failure("check audit expiry", exc) from None
+        matching = []
+        for rule in response.get("Rules", ()):
+            if rule.get("Status") != "Enabled":
+                continue
+            expiration = rule.get("Expiration", {})
+            rule_filter = rule.get("Filter", {"Prefix": rule.get("Prefix", "")})
+            if set(rule_filter) <= {"Prefix"} and prefix.startswith(rule_filter.get("Prefix", "")):
+                if expiration:
+                    matching.append(expiration)
+        if matching != [{"Days": days}] or versioning.get("Status") is not None:
+            raise StorageError("The audit bucket does not enforce the pinned retention period")
+
     def put(self, key: str, fileobj: BinaryIO, size: int, content_type: str) -> None:
-        if self.exists(key):
+        if self._head_before_put and self.exists(key):
             raise ObjectAlreadyExists("Object already exists")
         try:
             self._client.put_object(

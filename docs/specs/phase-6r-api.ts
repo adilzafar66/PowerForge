@@ -81,6 +81,8 @@ export interface EstimatedCost {
   pricing_version: string;
 }
 
+export type AssertionCounts = { received: number; accepted: number; quarantined: number };
+
 export interface Attempt {
   id: Id;
   attempt_number: number;
@@ -94,6 +96,11 @@ export interface Attempt {
   latency_ms: number | null;
   estimated_cost: EstimatedCost | null;
   result_sha256: Sha256 | null;
+  assertion_validation: {
+    state: "VALIDATED" | "PARTIALLY_VALIDATED" | "REJECTED";
+    counts: AssertionCounts | null;
+    rejections: { category: string; error_type: string; path: (string | number)[] }[];
+  } | null;
 }
 
 export interface RunSummary {
@@ -117,6 +124,7 @@ export interface PageBinding {
 }
 
 export interface PinnedRunSource {
+  assertion_counts: AssertionCounts | null;
   document_id: Id;
   page_id: Id;
   page_number: number;

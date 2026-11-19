@@ -23,14 +23,14 @@ KEY = "phase-6r"
 PROFILE_VERSION = "phase-6r-profile-v1"
 STAGES = ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION")
 RESPONSES = dict(zip(STAGES, (RecognitionResponse, AttributeResponse), strict=True))
-PROMPT_VERSION = "phase-6r-stages-v7"
-SCHEMA_VERSION = "phase-6r-wire-v4"
+PROMPT_VERSION = "phase-6r-stages-v8"
+SCHEMA_VERSION = "phase-6r-wire-v5"
 PROMPTS = {
     stage: files("powerforge_extraction")
     .joinpath(f"prompts/{filename}")
     .read_text(encoding="utf-8")
     for stage, filename in zip(
-        STAGES, ("equipment_recognition_v3.txt", "attribute_extraction_v6.txt"), strict=True
+        STAGES, ("equipment_recognition_v3.txt", "attribute_extraction_v7.txt"), strict=True
     )
 }
 
@@ -43,10 +43,11 @@ class ExtractionProfile(ExecutionProfile):
     stage: Literal["EQUIPMENT_RECOGNITION"] = "EQUIPMENT_RECOGNITION"
     input_strategy: Literal["PINNED_PAGE"] = "PINNED_PAGE"
     stages: tuple[Literal["EQUIPMENT_RECOGNITION"], Literal["ATTRIBUTE_EXTRACTION"]] = STAGES
-    schema_version: Literal["phase-6r-wire-v4"] = SCHEMA_VERSION
+    schema_version: Literal["phase-6r-wire-v5"] = SCHEMA_VERSION
     manifest: dict
     source_rules: str
     max_transport_bytes: int = Field(gt=0)
+    response_audit_retention_days: int = Field(ge=1, le=365)
 
     @property
     def identity_hash(self):
@@ -159,6 +160,7 @@ def extraction_profile(settings):
         max_input_bytes=min(MAX_IMAGE_BYTES, settings.extraction_max_input_bytes),
         max_image_pixels=min(MAX_IMAGE_PIXELS, settings.extraction_max_image_pixels),
         max_transport_bytes=settings.extraction_max_request_bytes,
+        response_audit_retention_days=settings.extraction_response_audit_retention_days,
         max_output_tokens=settings.extraction_max_output_tokens,
         max_attempts=settings.extraction_max_attempts,
         max_calls=settings.extraction_max_calls,
