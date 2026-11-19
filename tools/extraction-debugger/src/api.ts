@@ -2,7 +2,7 @@ export type Issue = { category: string; error_type: string; path: (string | numb
 export type Collection = "attributes" | "raw_unmapped";
 export type Attempt = {
   attempt_id: string; run_id: string; document: string; page: number; attempt_number: number;
-  finished_at: string | null; status: string; provider: string; model: string;
+  finished_at: string | null; status: string; provider: string; model: string | null;
   validation: string | null; received: number | null; accepted: number | null;
   quarantined: number | null; output_bytes: number | null; output_sha256: string | null;
   expires_at: string | null; retained: boolean | null; duration_ms: number | null;

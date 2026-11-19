@@ -22,6 +22,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from powerforge_document_processing.storage.base import StorageError
 from powerforge_document_processing.storage.s3 import S3ObjectStorage
 from powerforge_extraction.audit_reader import AuditReadError, read_audit
+from powerforge_shared.config import get_settings
 
 HOST = "127.0.0.1:3100"
 ORIGIN = f"http://{HOST}"
@@ -209,7 +210,7 @@ def main():
             access_key=access,
             secret_key=storage_secret,
             bucket=bucket,
-            region="us-east-1",
+            region=get_settings().s3_region,
         )
     except Exception:
         raise SystemExit("Invalid operator database or audit-storage configuration.") from None

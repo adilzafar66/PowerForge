@@ -76,7 +76,12 @@ def test_debugger_partial_attempt_comparison_and_exact_export(operation_context,
         engine = db.get_bind()
         db.execute(text(f"CREATE ROLE {role} LOGIN"))
         grant_path = Path(debugger.__file__).with_name("grant-operator.sql")
-        grants = grant_path.read_text().replace(':"debugger_operator"', role)
+        quote = engine.dialect.identifier_preparer.quote_identifier
+        grants = (
+            grant_path.read_text()
+            .replace(':"DBNAME"', quote(db.scalar(text("SELECT current_database()"))))
+            .replace(':"debugger_operator"', quote(role))
+        )
         db.connection().exec_driver_sql(grants)
     reader = create_engine(engine.url.set(username=role, password=None))
     try:

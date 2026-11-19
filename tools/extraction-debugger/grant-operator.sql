@@ -1,5 +1,5 @@
 -- Invoke as the schema administrator with psql -v debugger_operator=operator_login.
-GRANT CONNECT ON DATABASE powerforge TO :"debugger_operator";
+GRANT CONNECT ON DATABASE :"DBNAME" TO :"debugger_operator";
 GRANT USAGE ON SCHEMA public TO :"debugger_operator";
 GRANT SELECT ON public.extraction_response_audits TO :"debugger_operator";
 GRANT INSERT (work_unit_id) ON public.extraction_response_audit_reads TO :"debugger_operator";

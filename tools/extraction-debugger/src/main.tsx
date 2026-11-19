@@ -102,7 +102,7 @@ function Workspace() {
           <button className="attempt" aria-pressed={row.attempt_id === selected} onClick={() => setSelected(row.attempt_id)}>
             <strong>{row.document}</strong><span>Page {row.page} · Attempt {row.attempt_number}</span>
             <span className="badge">{validationName(row)}</span><span>{row.status} · {retention(row)}</span>
-            <small>{row.provider} · {row.model}{row.duration_ms !== null && ` · ${row.duration_ms} ms`}</small>
+            <small>{row.provider} · {row.model ?? "Model unavailable"}{row.duration_ms !== null && ` · ${row.duration_ms} ms`}</small>
             <small>{row.received ?? "—"} received · {row.accepted ?? "—"} accepted · {row.quarantined ?? "—"} quarantined</small>
             <code>Run {row.run_id}</code><code>Attempt {row.attempt_id}</code><small>{date(row.finished_at)}</small>
           </button></li>)}</ul> : <p className="muted">No audited attempts match.</p>}
@@ -193,7 +193,7 @@ function AttemptView({ id }: { id: string }) {
       <details><summary>Execution and response metadata</summary>
         <dl className="metadata">{Object.entries({
           "Run UUID": row.run_id, "Attempt UUID": row.attempt_id, "Finished": date(row.finished_at),
-          "Provider and model": `${row.provider} · ${row.model}`, "Latency": row.duration_ms === null ? null : `${row.duration_ms} ms`,
+          "Provider and model": `${row.provider} · ${row.model ?? "Model unavailable"}`, "Latency": row.duration_ms === null ? null : `${row.duration_ms} ms`,
           "Input tokens": row.input_tokens, "Cached input tokens": row.cached_input_tokens, "Output tokens": row.output_tokens,
           "Estimated cost": row.cost === null ? null : `USD ${row.cost} · ${row.pricing_basis}`, "Output bytes": row.output_bytes,
           "Response SHA-256": row.output_sha256, "Expiry": date(row.expires_at), "Stage error": row.error_code,

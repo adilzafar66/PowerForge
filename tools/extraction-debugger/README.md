@@ -13,11 +13,14 @@ migration applied. Set up the private audit bucket and lifecycle as described in
 
 Create an individual PostgreSQL login as the schema administrator. Inside
 `psql`, run `CREATE ROLE audit_alex LOGIN;` and `\password audit_alex`.
-Then apply the debugger's column-level grants from the repository root:
+Then apply the debugger's column-level grants from the repository root.
+Set `POWERFORGE_ADMIN_DATABASE_URL` to the schema administrator's libpq
+connection URL for the target database. The script grants access to the
+database selected by `psql`.
 
 ```sh
-docker compose -p powerforge exec -T postgres psql -X -v ON_ERROR_STOP=1 \
-  -U powerforge -d powerforge -v debugger_operator=audit_alex \
+psql -X -v ON_ERROR_STOP=1 -d "$POWERFORGE_ADMIN_DATABASE_URL" \
+  -v debugger_operator=audit_alex \
   < tools/extraction-debugger/grant-operator.sql
 ```
 
@@ -38,7 +41,8 @@ Generate the startup secret with `export EXTRACTION_DEBUGGER_SECRET="$(openssl r
 Supply the database URL in the form
 `postgresql+psycopg://audit_alex:URL_ENCODED_PASSWORD@127.0.0.1:5432/powerforge`.
 Use the loopback endpoint of the **audit** MinIO on your Mac, typically
-`http://127.0.0.1:9010`.
+`http://127.0.0.1:9010`. Set `S3_REGION` to the same storage region as the
+extraction worker when overriding the PowerForge default.
 
 From the repository root:
 

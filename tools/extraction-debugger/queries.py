@@ -19,7 +19,7 @@ class Attempt(BaseModel):
     finished_at: datetime | None
     status: str
     provider: str
-    model: str
+    model: str | None
     validation: Validation | None
     received: int | None
     accepted: int | None

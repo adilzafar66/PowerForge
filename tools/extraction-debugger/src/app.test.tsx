@@ -32,6 +32,14 @@ function serve(record = detail, raw = '{"attributes":[{"raw_value":"<img src=x o
   return fetch;
 }
 
+it("shows when historical model information is unavailable", async () => {
+  serve({ ...detail, attempt: { ...attempt, model: null } });
+  render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: /Siemens fixture.*Model unavailable/ }));
+  const model = await screen.findByText("Provider and model");
+  expect(model.parentElement?.textContent).toContain("openai · Model unavailable");
+});
+
 it("navigates to the original index and reveals raw only on request", async () => {
   const fetch = serve();
   render(<App />);

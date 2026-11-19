@@ -8,6 +8,7 @@ from sqlalchemy import create_engine
 
 from powerforge_document_processing.storage.s3 import S3ObjectStorage
 from powerforge_extraction.audit_reader import read_audit
+from powerforge_shared.config import get_settings
 
 
 def test_configured_minio_retrieval():
@@ -23,7 +24,7 @@ def test_configured_minio_retrieval():
         access_key=os.environ["EXTRACTION_RESPONSE_AUDIT_READ_ACCESS_KEY"],
         secret_key=os.environ["EXTRACTION_RESPONSE_AUDIT_READ_SECRET_KEY"],
         bucket=os.environ["EXTRACTION_RESPONSE_AUDIT_BUCKET"],
-        region="us-east-1",
+        region=get_settings().s3_region,
     )
     try:
         assert read_audit(engine, storage, UUID(fixture))
