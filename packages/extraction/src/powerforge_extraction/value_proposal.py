@@ -367,7 +367,10 @@ def normalize_proposal(item, definition, evidence):
         if failure:
             return *failure, {}
         normalized = normalize_attribute_value(
-            definition.equipment_type, definition.key, value, unit
+            definition.equipment_type,
+            definition.key,
+            value.strip() if kind == "TEXT" else value,
+            unit,
         )
         if kind in _NUMERIC_TYPES and Fraction(normalized) != _exact(definition, value, unit):
             return "UNMAPPED", "INEXACT_NORMALIZATION", {}

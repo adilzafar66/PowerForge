@@ -1512,3 +1512,34 @@ def test_text_cleanup_uses_the_literal_source_label(key, label, raw, proposal, s
     assert (actual_status, actual_reason) == (status, reason)
     assert fields.get("value_text") == (proposal if status == "MAPPED" else None)
     assert (item.raw_label, item.raw_value, item.proposed_value) == (label, raw, proposal)
+
+
+@pytest.mark.parametrize("inferred", [False, True], ids=["extracted", "inferred"])
+def test_normalized_text_trims_outer_whitespace_but_preserves_the_proposal(stage_inputs, inferred):
+    from powerforge_extraction.stage_contracts import InferredAssertion
+
+    proposal = "  PDG3  75 \t"
+    if inferred:
+        item = InferredAssertion(
+            origin="INFERRED",
+            local_ref="model",
+            equipment_ref="owner",
+            association="ASSERTED",
+            attribute_key="model",
+            proposed_value=proposal,
+            proposed_unit=None,
+            inference_explanation="Synthetic contextual proposal.",
+            inference_basis=None,
+            source_expression=None,
+            evidence=(),
+        )
+    else:
+        item = assertion(
+            "model", attribute_key="model", raw_value="PDG3  75", proposed_value=proposal
+        )
+    (row,) = stage_inputs(item)
+    assert row["mapping_status"] == "MAPPED"
+    assert row["value_text"] == "PDG3  75"
+    assert row["proposed_value"] == proposal
+    if not inferred:
+        assert row["raw_value"] == "PDG3  75"

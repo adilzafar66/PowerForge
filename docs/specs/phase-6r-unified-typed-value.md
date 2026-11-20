@@ -89,7 +89,7 @@ Introduce:
 - Aggregate wire identity: `phase-6r-wire-v6`
 - Prompt bundle: `phase-6r-stages-v9`
 - Attribute prompt file: `attribute_extraction_v8.txt`
-- Publication version: `phase-6r-publication-v10` (adds literal source-label verification to the `v9` fidelity rules)
+- Publication version: `phase-6r-publication-v11` (trims normalized TEXT values while retaining the recorded proposal)
 
 Keep the Stage 1 recognition contract unchanged.
 
@@ -527,6 +527,7 @@ exactly. Preserve meaningful punctuation, internal whitespace, leading zeros, an
 capitalization. A demonstrably altered standalone identifier is INVALID. Other cleanup
 that cannot be verified remains UNMAPPED for review. A matching label verifies the
 transcription cleanup only. Registry meaning and ownership remain separate.
+Trim surrounding whitespace from normalized TEXT and retain the original proposal exactly.
 
 ### 6.4 Failure Behavior
 
