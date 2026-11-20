@@ -25,8 +25,6 @@ STAGES = ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION")
 RESPONSES = dict(zip(STAGES, (RecognitionResponse, AttributeResponse), strict=True))
 PROMPT_VERSION = "phase-6r-stages-v9"
 SCHEMA_VERSION = "phase-6r-wire-v6"
-# Enable execution when typed publication and its database audit guards land.
-TYPED_VALUE_PUBLICATION_READY = False
 PROMPTS = {
     stage: files("powerforge_extraction")
     .joinpath(f"prompts/{filename}")
@@ -193,7 +191,7 @@ def require_profile(profile):
 def provider_available(settings, provider):
     if provider == "local":
         return settings.enrichment_enabled
-    if not TYPED_VALUE_PUBLICATION_READY or not settings.extraction_enabled:
+    if not settings.extraction_enabled:
         return False
     if provider == "fake":
         return settings.extraction_use_fake_provider

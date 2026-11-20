@@ -101,13 +101,3 @@ def test_v5_wire_pin_is_rejected_by_v6_execution_profile():
     stored["schema_version"] = "phase-6r-wire-v5"
     with pytest.raises(ValueError, match="phase-6r-wire-v6"):
         read_profile(stored)
-
-
-def test_typed_wire_cannot_execute_before_publication_is_ready():
-    from powerforge_extraction.extraction_profile import provider_available
-
-    fake = Settings(_env_file=None, extraction_use_fake_provider=True, enrichment_enabled=True)
-    live = Settings(_env_file=None, extraction_external_enabled=True)
-    assert not provider_available(fake, "fake")
-    assert not provider_available(live, "openai")
-    assert provider_available(fake, "local")

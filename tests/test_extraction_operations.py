@@ -3,6 +3,7 @@
 import json
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
+from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 from threading import Event
@@ -1396,7 +1397,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                     proposed_unit="kV",
                     inference_explanation="Test fixture for a competing voltage proposal.",
                     inference_basis="ENGINEERING_KNOWLEDGE",
-                    source_expression=None,
+                    source_expression="Product configuration note",
                     evidence=[],
                 )
                 response.update(
@@ -1532,7 +1533,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
     assert inferred["proposed_value"] == "0.7" and inferred["proposed_unit"] == "kV"
     assert inferred["inference_basis"] == "ENGINEERING_KNOWLEDGE"
     assert inferred["inference_explanation"]
-    assert inferred["source_expression"] == "600"
+    assert inferred["source_expression"] == "Product configuration note"
     assert inferred["raw_label"] is None and inferred["raw_value"] is None
     assert inferred["normalized"] == {"type": "NUMBER", "value": "0.7", "unit": "kV"}
     assert inferred["value_source_support"] == "UNVERIFIED" and inferred["evidence_ids"] == []
@@ -1666,7 +1667,19 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
             session.flush()
 
 
-@pytest.mark.parametrize("breakage", ["missing-candidate", "missing-fragment", "foreign-owner"])
+@pytest.mark.parametrize(
+    "breakage",
+    [
+        "missing-candidate",
+        "missing-fragment",
+        "foreign-owner",
+        "boolean-as-text",
+        "integer-as-text",
+        "wrong-alternates",
+        "missing-audit",
+        "old-contract",
+    ],
+)
 def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch, breakage):
     from powerforge_ai.extraction import AttributeOutput, ExecutionUsage
     from powerforge_document_processing.storage import InMemoryObjectStorage
@@ -1675,6 +1688,9 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
     from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
 
     ctx = operation_context
+    if breakage == "missing-audit":
+        ctx["settings"].extraction_use_fake_provider = False
+        ctx["settings"].extraction_external_enabled = True
     audit_storage = InMemoryObjectStorage()
     with pymupdf.open(stream=native_pdf(), filetype="pdf") as page, pymupdf.open() as document:
         document.insert_pdf(page)
@@ -1721,6 +1737,19 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
                     )
                 ],
             )
+            if breakage in {"boolean-as-text", "integer-as-text"}:
+                payload["attributes"][0].update(
+                    proposed_value=(True if breakage == "boolean-as-text" else 7),
+                )
+            if breakage == "wrong-alternates":
+                payload["attributes"][0].update(
+                    raw_value="20 in (508 mm)",
+                    raw_unit="in",
+                    proposed_unit="in",
+                    proposed_value="20",
+                    value_form="EQUIVALENT_UNITS",
+                    alternate_representations=[{"value": "508", "unit": "mm"}],
+                )
             payload["attributes"].append(
                 dict(payload["attributes"][0], local_ref="invalid", raw_value="")
             )
@@ -1750,6 +1779,12 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
             return
         if breakage == "missing-fragment":
             observations[0].evidence = []
+        if breakage == "boolean-as-text":
+            observations[0].fields["proposed_value"] = "true"
+        if breakage == "integer-as-text":
+            observations[0].fields["proposed_value"] = "7"
+        if breakage == "wrong-alternates":
+            observations[0].fields["alternate_representations"] = [{"value": "500", "unit": "mm"}]
         if breakage == "foreign-owner":
             stage = SimpleNamespace(
                 work_unit_id=stage.work_unit_id,
@@ -1762,8 +1797,61 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
         real_publish(session, stage, image_id, observations)
 
     monkeypatch.setattr(publication_records, "publish", broken_publish)
-    assert execute("ATTRIBUTE_EXTRACTION", 1)
+    if breakage == "missing-audit":
+        from powerforge_extraction import response_audit
+
+        real_record = response_audit.record_audit
+        completion, failure = [], []
+
+        def omit_during_completion(session, unit, *args):
+            if completion:
+                failure.append(unit.id)
+                return real_record(session, unit, *args)
+            completion.append(unit.id)
+
+        monkeypatch.setattr(response_audit, "record_audit", omit_during_completion)
+    if breakage == "old-contract":
+        from powerforge_extraction import stage_execution
+
+        real_store = stage_execution.store_result
+
+        def store_old_version(session, unit, snapshot, wire, result, observations):
+            old = {"version": "phase-6r-attributes-v4"}
+            return real_store(
+                session,
+                unit,
+                snapshot,
+                wire.model_copy(update=old),
+                result.model_copy(update={**old, "attributes": ()}),
+                [],
+            )
+
+        monkeypatch.setattr(stage_execution, "store_result", store_old_version)
+    from sqlalchemy import event
+
+    errors = []
+
+    def observe_database_rejection(context):
+        diagnostics = getattr(context.original_exception, "diag", None)
+        if diagnostics is not None:
+            errors.append(diagnostics.message_primary)
+
+    engine = ctx["factory"].kw["bind"]
+    event.listen(engine, "handle_error", observe_database_rejection)
+    try:
+        assert execute("ATTRIBUTE_EXTRACTION", 1)
+    finally:
+        event.remove(engine, "handle_error", observe_database_rejection)
+    if breakage in {"boolean-as-text", "integer-as-text", "wrong-alternates"}:
+        assert errors == ["Candidate must preserve the attribute origin and proposal"]
+    if breakage == "old-contract":
+        assert errors == ["Stage 2 result must use the pinned typed contract"]
     attempt_id = units[("ATTRIBUTE_EXTRACTION", 1)]
+    if breakage == "missing-audit":
+        # Commit rejected the result. The fenced failure transaction retained
+        # the response audit on its own, just as for other publication failures.
+        assert completion == failure == [attempt_id]
+        assert errors == ["Stage 2 publication requires its retained response audit"]
     with ctx["factory"]() as session:
         assert session.get(StageResult, attempt_id) is None
         retained = session.get(ResponseAudit, attempt_id)
@@ -1935,3 +2023,131 @@ def test_attribute_audit_failure_boundaries(operation_context, case):
             else:
                 assert audit.received == 1 and audit.accepted == 0
                 assert audit.quarantined == (case == "all-rejected")
+
+
+def test_typed_proposals_survive_publication_read_and_search(operation_context):
+    from powerforge_ai.extraction import ExecutionUsage, ExtractionResponse
+    from powerforge_extraction.publication_records import Candidate
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
+    from spatial_layout_support import drawn_table
+
+    ctx = operation_context
+    width = "20 in (508.000 mm)"
+    alternate = {"value": "508.000", "unit": "mm"}
+    source = new_source(ctx, "typed-proposals.pdf", drawn_table(rows=[("Width", width)]))
+    _, run_id, units = admitted_page(ctx, source)
+    cases = (
+        ("bus", "enclosure_width", width, "20", "in", "20"),
+        ("breaker", "pole_count", "37 Pole", 37, None, "37"),
+        ("breaker", "normally_closed", "No", False, None, "false"),
+        ("breaker", "model", "Model: UNIT-MODEL-98", "UNIT-MODEL-98", None, "unit-model-98"),
+        ("transformer", "primary_connection", "Star", "WYE", None, "wye"),
+        ("breaker", "manufacturer", "Unknown", None, None, None),
+    )
+
+    class Provider:
+        def execute(self, request):
+            if request.stage == "EQUIPMENT_RECOGNITION":
+                response = FakeExtractionProvider("success").execute(request)
+                payload = response.result.model_dump(mode="json")
+                prototype = payload["equipment"][0]
+                payload["equipment"] = [
+                    {**prototype, "local_ref": ref, "registry_type": kind}
+                    for ref, kind in (
+                        ("bus", "BUS"),
+                        ("breaker", "LV_BREAKER"),
+                        ("transformer", "TWO_WINDING_TRANSFORMER"),
+                    )
+                ]
+            else:
+                wire = json.loads(request.text)
+                payload = {
+                    key: wire[key]
+                    for key in ("version", "stage", "page_context_hash", "upstream_hash")
+                }
+                payload["attributes"] = [
+                    dict(
+                        origin="EXTRACTED",
+                        local_ref=key,
+                        equipment_ref=owner,
+                        attribute_key=key,
+                        association="ASSERTED",
+                        raw_label=None,
+                        raw_value=raw,
+                        raw_unit=unit,
+                        proposed_value=proposal,
+                        proposed_unit=unit,
+                        qualifiers=[],
+                        value_form="EQUIVALENT_UNITS" if unit else "SINGLE",
+                        alternate_representations=[alternate] if unit else [],
+                        evidence=[{"kind": "QUOTE", "role": "VALUE", "quote": width}]
+                        if unit
+                        else [],
+                    )
+                    for owner, key, raw, proposal, unit, _ in cases
+                ]
+                payload["raw_unmapped"] = []
+            return ExtractionResponse[request.response_model](
+                result=request.response_model.model_validate_json(json.dumps(payload)),
+                usage=ExecutionUsage(),
+            )
+
+    for unit_id in (units["EQUIPMENT_RECOGNITION"], units["ATTRIBUTE_EXTRACTION"]):
+        assert execute_unit(
+            unit_id, ctx["factory"], ctx["storage"], ctx["settings"], lambda _: Provider()
+        )
+    root = ctx["operation_base"].removesuffix("/extraction")
+    url = f"{root}/documents/{source['revision_document_id']}/extraction/runs/{run_id}/candidates"
+    reply = client.get(url, params={"kind": "ATTRIBUTE"})
+    assert reply.status_code == 200, reply.text
+    public = {row["proposed_attribute_key"]: row for row in reply.json()["items"]}
+    assert len(public) == len(cases)
+    width_row = public["enclosure_width"]
+    assert width_row["value_form"] == "EQUIVALENT_UNITS"
+    assert width_row["alternate_representations"] == [alternate]
+    assert width_row["normalized"]["unit"] == "mm"
+    assert Decimal(width_row["normalized"]["value"]) == Decimal("508")
+    assert public["normally_closed"]["normalized"]["value"] is False
+    assert public["manufacturer"]["reason_code"] == "NO_VALUE_PROPOSAL"
+    with ctx["factory"]() as session:
+        attempt = units["ATTRIBUTE_EXTRACTION"]
+        stage = session.get(StageResult, attempt)
+        assert stage.payload["version"] == "phase-6r-attributes-v6"
+        rows = {
+            row.local_ref: row
+            for row in session.scalars(select(Candidate).where(Candidate.work_unit_id == attempt))
+        }
+        assert rows["enclosure_width"].alternate_representations == [alternate]
+        assert "508.000 mm" in rows["enclosure_width"].search_terms
+        assert session.scalar(
+            text("SELECT proposed_value IS NULL FROM extraction_candidates WHERE id=:id"),
+            {"id": rows["manufacturer"].id},
+        )
+        for _, key, raw, proposal, unit, term in cases:
+            row = rows[key]
+            api = public[key]
+            assert row.proposed_value == api["proposed_value"] == proposal
+            assert type(row.proposed_value) is type(api["proposed_value"]) is type(proposal)
+            assert api["raw_value"] == raw and api["proposed_unit"] == unit
+            assert "proposed_enum_value" not in api
+            if term:
+                assert api["mapping_status"] == "MAPPED"
+                assert term in row.search_terms
+                found = client.get(url, params={"kind": "ATTRIBUTE", "search": term})
+                assert api["id"] in {item["id"] for item in found.json()["items"]}
+        alternate_match = client.get(url, params={"kind": "ATTRIBUTE", "search": "508.000 mm"})
+        assert alternate_match.json()["items"] == [width_row]
+        for column, value in (
+            ("raw_value", "changed"),
+            ("proposed_value", '"changed"'),
+            ("value_number", "999"),
+            ("alternate_representations", "[]"),
+        ):
+            with (
+                pytest.raises(DBAPIError, match="Published candidates are immutable"),
+                session.begin_nested(),
+            ):
+                session.execute(
+                    text(f"UPDATE extraction_candidates SET {column}=:value WHERE id=:id"),
+                    {"value": value, "id": rows["enclosure_width"].id},
+                )

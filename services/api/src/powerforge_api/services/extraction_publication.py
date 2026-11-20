@@ -111,8 +111,13 @@ def _candidate(row, equipment_type, evidence_ids, occurrence, assertion, redunda
         raw_label=row.raw_label,
         raw_value=row.raw_value,
         raw_unit=row.raw_unit,
-        proposed_value=row.proposed_value,
+        proposed_value=(
+            row.proposed_value
+            if row.proposed_value is not None
+            else assertion.get("proposed_enum_value")
+        ),
         proposed_unit=row.proposed_unit,
+        alternate_representations=row.alternate_representations or [],
         inference_explanation=row.inference_explanation,
         inference_basis=row.inference_basis,
         source_expression=assertion.get("source_expression"),
@@ -122,7 +127,6 @@ def _candidate(row, equipment_type, evidence_ids, occurrence, assertion, redunda
         qualifiers=row.qualifiers or [],
         value_form=row.value_form,
         proposed_attribute_key=row.proposed_attribute_key,
-        proposed_enum_value=row.proposed_enum_value,
         normalized=normalized,
     )
 

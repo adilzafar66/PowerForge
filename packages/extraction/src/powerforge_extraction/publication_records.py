@@ -36,8 +36,11 @@ class Candidate(Base):
     claimed_owner_ref: Mapped[str | None]
     raw_unmapped: Mapped[bool | None]
     attribute_origin: Mapped[str | None]
-    proposed_value: Mapped[str | None]
+    proposed_value: Mapped[str | int | bool | None] = mapped_column(JSONB(none_as_null=True))
     proposed_unit: Mapped[str | None]
+    alternate_representations: Mapped[list[dict[str, str]] | None] = mapped_column(
+        JSONB(none_as_null=True)
+    )
     inference_explanation: Mapped[str | None]
     inference_basis: Mapped[str | None]
     raw_label: Mapped[str | None]
@@ -47,7 +50,6 @@ class Candidate(Base):
     qualifiers: Mapped[list | None] = mapped_column(JSONB(none_as_null=True))
     value_form: Mapped[str | None]
     proposed_attribute_key: Mapped[str | None]
-    proposed_enum_value: Mapped[str | None]
     normalized_type: Mapped[str | None]
     normalized_unit: Mapped[str | None]
     value_number: Mapped[Decimal | None] = mapped_column(Numeric)
@@ -106,7 +108,7 @@ def publish(session, stage, page_image_id, observations):
         fields = dict(observation.fields)
         ref = fields.pop("owner_ref", None)
         search_terms = [
-            fields[key].casefold()
+            str(fields[key]).casefold()
             for key in (
                 "source_description",
                 "tag",
@@ -119,6 +121,11 @@ def publish(session, stage, page_image_id, observations):
             )
             if fields.get(key) is not None
         ]
+        if alternates := fields.get("alternate_representations"):
+            # The database permits at most seven search terms per candidate.
+            search_terms.append(
+                "\n".join(f"{item['value']} {item['unit']}" for item in alternates).casefold()
+            )
         search_terms.extend(
             assertions[ordinal][key].casefold()
             for key in ("source_expression", "display_label")

@@ -3,11 +3,12 @@
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictBool, StrictInt, StrictStr
 
 from powerforge_api.schemas.extraction import AssertionCounts
 from powerforge_extraction.publication import ValueSourceSupport
 from powerforge_extraction.stage_contracts import (
+    AlternateRepresentation,
     Association,
     AttributeOrigin,
     InferenceBasis,
@@ -73,8 +74,9 @@ class AttributeCandidate(CandidateBase):
     raw_label: str | None
     raw_value: str | None
     raw_unit: str | None
-    proposed_value: str | None
+    proposed_value: StrictStr | StrictInt | StrictBool | None
     proposed_unit: str | None
+    alternate_representations: list[AlternateRepresentation]
     inference_explanation: str | None
     inference_basis: InferenceBasis | None
     source_expression: str | None
@@ -82,9 +84,8 @@ class AttributeCandidate(CandidateBase):
     redundant_with_id: UUID | None
     value_source_support: ValueSourceSupport
     qualifiers: list[str]
-    value_form: Literal["SINGLE", "RANGE", "MULTIPLE", "QUALIFIED"] | None
+    value_form: Literal["SINGLE", "RANGE", "MULTIPLE", "QUALIFIED", "EQUIVALENT_UNITS"] | None
     proposed_attribute_key: str | None
-    proposed_enum_value: str | None
     normalized: NormalizedValue | None
 
 

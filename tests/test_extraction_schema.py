@@ -1,4 +1,4 @@
-"""Catalog checks for the clean 6R-D Alembic installation."""
+"""Catalog checks for the clean Phase 6R Alembic installation."""
 
 import pytest
 from sqlalchemy import inspect, text
@@ -8,15 +8,20 @@ from powerforge_api.db import get_engine
 pytestmark = pytest.mark.integration
 
 
-def test_phase6r_d_schema_exposes_only_unified_extraction(require_db):
+def test_phase6r_schema_exposes_only_unified_extraction(require_db):
     with get_engine().connect() as conn:
         assert conn.execute(text("SELECT version_num FROM alembic_version")).scalars().all() == [
-            "6r_0014e_response_audit"
+            "6r_0014f_typed_value_proposals"
         ]
         catalog = inspect(conn)
-        assert "ck_extraction_value_source_support" in {
-            check["name"] for check in catalog.get_check_constraints("extraction_candidates")
-        }
+        assert {
+            "ck_extraction_value_source_support",
+            "ck_extraction_candidate_proposal",
+            "ck_extraction_candidate_alternates",
+        } <= {check["name"] for check in catalog.get_check_constraints("extraction_candidates")}
+        columns = {c["name"]: str(c["type"]) for c in catalog.get_columns("extraction_candidates")}
+        assert columns["proposed_value"] == columns["alternate_representations"] == "JSONB"
+        assert columns["proposed_enum_value"] == "TEXT"
         assert {
             "extraction_runs",
             "extraction_work_units",

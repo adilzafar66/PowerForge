@@ -29,7 +29,6 @@ from powerforge_shared.config import Settings
         ("cardinality", "FIELD_CONSTRAINT", "too_long"),
     ],
 )
-@pytest.mark.usefixtures("transport_ready")
 def test_responses_transport_is_bounded_and_retains_measured_usage(
     stage, outcome, category, error_type
 ):
@@ -219,15 +218,6 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
         assert len(seen) == 1
 
 
-@pytest.fixture
-def transport_ready(monkeypatch):
-    # Exercise the adapter offline while the end-to-end publication gate is closed.
-    import powerforge_extraction.extraction_profile as profile_module
-
-    monkeypatch.setattr(profile_module, "TYPED_VALUE_PUBLICATION_READY", True)
-
-
-@pytest.mark.usefixtures("transport_ready")
 def test_live_transport_requires_worker_credentials():
     settings = Settings(_env_file=None, extraction_external_enabled=True)
     with pytest.raises(ProviderFailure) as error:

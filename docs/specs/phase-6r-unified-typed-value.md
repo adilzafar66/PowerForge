@@ -585,6 +585,9 @@ Prefer converting this column to JSONB so it can preserve the actual primitive p
 - SQL NULL for an unavailable proposal.
 
 Preserve existing historical text proposals as JSON strings through a controlled migration.
+Revision `6r_0014f_typed_value_proposals` converts the candidate column in place.
+It preserves SQL NULL and leaves immutable Stage 2 payloads, audit records, and
+normalized candidate values as stored.
 
 Inspect all current constraints, triggers, consumers, and ORM mappings before finalizing the conversion. If a materially safer persistence strategy is identified, document the alternative before implementing it.
 
@@ -625,6 +628,8 @@ The existing candidate search-term builder calls string methods on proposed valu
 Update it to safely generate searchable representations of supported primitive values without modifying stored proposal types.
 
 Include alternate representations where useful and consistent with existing search bounds.
+The search projection combines alternate values and units into one term so each
+candidate stays within the existing seven-term limit.
 
 Preserve search limits and deterministic query behavior.
 
@@ -695,6 +700,9 @@ Do not automatically label a proposal as verified merely because it is displayed
 Older records should continue to render without converting their original raw values or changing their original interpretation.
 
 Where a historical enum proposal exists, show it appropriately.
+The candidate API exposes it through `proposed_value` using the original
+Stage 2 assertion. The historical field remains in that assertion and in the
+database for inspection.
 
 Do not manufacture a v6 proposal for old records by replaying a new normalizer.
 
