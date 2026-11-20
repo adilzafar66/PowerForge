@@ -27,7 +27,7 @@ const candidateFor = (group) => {
     proposed_value: null, proposed_unit: null, inference_explanation: null, inference_basis: null,
     source_expression: null, source_display_label: null, redundant_with_id: null,
     raw_label: "Rated apparent power", raw_value: "750", raw_unit: "kVA", qualifiers: [],
-    value_form: "SINGLE", conflict: false, proposed_enum_value: null,
+    value_form: "SINGLE", conflict: false, alternate_representations: [],
     proposed_attribute_key: number === 4 ? null : "rated_apparent_power",
     normalized: number === 4 ? null : { type: "NUMBER", value: "750", unit: "kVA" },
     mapping_status: number === 4 ? "UNMAPPED" : "MAPPED", reason_code: number === 4 ? "UNSUPPORTED_ATTRIBUTE" : null,

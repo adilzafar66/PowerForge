@@ -317,8 +317,9 @@ function CandidateCard({ candidate, expanded, browser, highlighted, onSelect, on
   const title = candidate.kind === "EQUIPMENT"
     ? candidate.display_name
     : candidate.attribute_display_name ?? (candidate.raw_unmapped ? candidate.source_display_label ?? "Unmapped source attribute" : candidate.proposed_attribute_key) ?? "Source attribute";
-  const displayedValue = attribute?.normalized?.value ?? (inferred ? attribute?.proposed_value : attribute?.raw_value);
-  const displayedUnit = attribute?.normalized ? attribute.normalized.unit : inferred ? attribute?.proposed_unit : attribute?.raw_unit;
+  const hasProposal = attribute?.proposed_value != null;
+  const displayedValue = attribute?.normalized?.value ?? attribute?.proposed_value ?? attribute?.raw_value;
+  const displayedUnit = attribute?.normalized ? attribute.normalized.unit : hasProposal ? attribute?.proposed_unit : attribute?.raw_unit;
   return (
     <article className={card}>
       <button type="button" aria-expanded={expanded} onClick={onSelect}
@@ -341,16 +342,25 @@ function CandidateCard({ candidate, expanded, browser, highlighted, onSelect, on
           </>}
           {attribute && <>
             {inferred ? <>
-              <p className="break-words text-ink">Proposed value <strong>{attribute.proposed_value}{attribute.proposed_unit && ` ${attribute.proposed_unit}`}</strong></p>
+              <p className="break-words text-ink">Proposed value <strong className="whitespace-pre-wrap">{attribute.proposed_value != null ? String(attribute.proposed_value) : "Unavailable"}</strong></p>
+              {attribute.proposed_unit && <p>Proposed unit <strong>{attribute.proposed_unit}</strong></p>}
               <p className="break-words">Inference explanation <strong>{attribute.inference_explanation}</strong></p>
               <p>Basis <strong>{attribute.inference_basis ? readableKey(attribute.inference_basis) : "Unspecified"}</strong></p>
               {attribute.source_expression && <p>Original source expression <strong>{attribute.source_expression}</strong></p>}
               <p>Inferred value. Supporting references provide context. Review the inference and equipment association.</p>
             </> : <>
               {attribute.raw_label && <p>Original PDF label <strong>{attribute.raw_label}</strong></p>}
-              <p className="break-words text-ink">Raw value <strong>{attribute.raw_value}</strong></p>
+              <p className="break-words text-ink">Raw value <strong className="whitespace-pre-wrap">{attribute.raw_value}</strong></p>
               {attribute.raw_unit && <p>Source unit <strong>{attribute.raw_unit}</strong></p>}
-              {attribute.proposed_unit && <p>Proposed source unit <strong>{attribute.proposed_unit}</strong></p>}
+              {!attribute.raw_unmapped && <p className="break-words">Proposed value <strong className="whitespace-pre-wrap">{attribute.proposed_value != null ? String(attribute.proposed_value) : "Unavailable"}</strong></p>}
+              {attribute.proposed_unit && <p>Proposed unit <strong>{attribute.proposed_unit}</strong></p>}
+              {!!attribute.alternate_representations?.length && <div>
+                <p>Alternate representations</p>
+                <ul className="list-disc pl-4">
+                  {attribute.alternate_representations.map(({ value, unit }, index) =>
+                    <li key={index} className="break-words">{value} {unit}</li>)}
+                </ul>
+              </div>}
               <p>{valueSourceSupportLabel[attribute.value_source_support]}</p>
               {attribute.value_form && attribute.value_form !== "SINGLE" && <p>Source form: {readableKey(attribute.value_form)}</p>}
               {!!attribute.qualifiers.length && <p className="break-words">Qualifiers: {attribute.qualifiers.join(", ")}</p>}
@@ -358,8 +368,7 @@ function CandidateCard({ candidate, expanded, browser, highlighted, onSelect, on
             </>}
             <p>Equipment association <strong>{readableKey(attribute.association)}</strong></p>
             {attribute.proposed_attribute_key && <p>Registry proposal: {readableKey(attribute.proposed_attribute_key)}</p>}
-            {attribute.proposed_enum_value && <p>Proposed enum: {attribute.proposed_enum_value}</p>}
-            {attribute.normalized && <p>Normalized: {String(attribute.normalized.value)}{attribute.normalized.unit && ` ${attribute.normalized.unit}`}</p>}
+            {attribute.normalized && <p>Normalized value <strong>{String(attribute.normalized.value)}{attribute.normalized.unit && ` ${attribute.normalized.unit}`}</strong></p>}
             {attribute.raw_unmapped && <p>Unsupported source attribute</p>}
             {attribute.raw_unmapped && attribute.source_display_label && <p>Title is a presentation label. The original PDF label is preserved above.</p>}
             {attribute.redundant_with_id && <button type="button" className={docButtonClass("ghost", "tiny")}

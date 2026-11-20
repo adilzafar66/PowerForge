@@ -1,14 +1,69 @@
 import { useState } from "react";
 import type { Collection, Detail, Issue, PublishedCandidate } from "./api";
 
+class NumericLiteral {
+  constructor(readonly source: string, readonly integer: boolean) {}
+}
+
+export function parseInspectorJson(text: string): unknown {
+  return JSON.parse(text, (_key, value, context?: { source?: string }) => {
+    if (typeof value !== "number") return value;
+    const literal = context?.source;
+    if (literal && !/^-?\d+$/.test(literal)) return new NumericLiteral(literal, false);
+    if (literal === "-0") return new NumericLiteral(literal, true);
+    if (!Number.isSafeInteger(value)) {
+      return new NumericLiteral(literal ?? "Exact digits unavailable", !!literal);
+    }
+    return value;
+  });
+}
+
 export function object(value: unknown): Record<string, unknown> | undefined {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
+  return value && typeof value === "object" && !Array.isArray(value) && !(value instanceof NumericLiteral)
+    ? value as Record<string, unknown> : undefined;
 }
 
 export function display(value: unknown) {
   if (typeof value === "string") return value;
+  if (value instanceof NumericLiteral) return value.source;
   try { return JSON.stringify(value) ?? "Unavailable"; }
   catch { return "Expand JSON to inspect this value"; }
+}
+
+function typedValue(value: unknown) {
+  const type = value instanceof NumericLiteral ? (value.integer ? "integer" : "number")
+    : value === null ? "null" : Array.isArray(value) ? "array"
+    : typeof value === "number" && Number.isInteger(value) ? "integer" : typeof value;
+  const content = type === "object" || type === "array"
+    ? "See assertion JSON"
+    : typeof value === "string"
+      ? JSON.stringify(value.slice(0, 2048)) + (value.length > 2048 ? "…" : "")
+      : display(value);
+  return <><code>{content}</code> <span className="muted">({type})</span></>;
+}
+
+export function AssertionFields({ value }: { value: unknown }) {
+  const assertion = object(value);
+  if (!assertion) return null;
+  const fields = [
+    ["raw_value", "Raw value"], ["raw_unit", "Source unit"],
+    ["proposed_value", "Proposed value"], ["proposed_enum_value", "Historical enum proposal"],
+    ["proposed_unit", "Proposed unit"], ["value_form", "Source form"],
+  ] as const;
+  const alternates = assertion.alternate_representations;
+  const recorded = fields.filter(([key]) => Object.hasOwn(assertion, key));
+  const hasAlternates = Array.isArray(alternates) && alternates.length > 0;
+  if (!recorded.length && !hasAlternates) return null;
+  return <dl className="metadata assertion-fields" aria-label="Recorded assertion fields">
+    {recorded.map(([key, label]) =>
+      <div key={key}><dt>{label}</dt><dd>{typedValue(assertion[key])}</dd></div>)}
+    {hasAlternates && <div>
+      <dt>Alternate representations</dt><dd><ul>{alternates.slice(0, 4).map((item, index) => {
+        const pair = object(item);
+        return <li key={index}>{pair ? <>{typedValue(pair.value)} {typedValue(pair.unit)}</> : typedValue(item)}</li>;
+      })}</ul>{alternates.length > 4 && <span className="muted">See assertion JSON for additional entries.</span>}</dd>
+    </div>}
+  </dl>;
 }
 
 export function Copy({ value, label }: { value: string; label: string }) {
@@ -24,8 +79,9 @@ export function JsonTree({ value, path = "", name = "Response", root = true }: {
 }) {
   const [limit, setLimit] = useState(40);
   const [open, setOpen] = useState(root);
-  const children = value !== null && typeof value === "object" ? Object.entries(value) : null;
-  if (!children) return <div className="json-leaf"><code>{name}: {JSON.stringify(value)}</code>
+  const children = value !== null && typeof value === "object" && !(value instanceof NumericLiteral)
+    ? Object.entries(value) : null;
+  if (!children) return <div className="json-leaf"><code>{name}: {value instanceof NumericLiteral ? value.source : JSON.stringify(value)}</code>
     <Copy value={display(value)} label="Copy value" /><Copy value={path} label="Copy path" /></div>;
   return <details open={open} onToggle={event => setOpen(event.currentTarget.open)} className="json-node">
     <summary><code>{name}</code> <span className="muted">{Array.isArray(value) ? "Array" : "Object"} · {children.length}</span></summary>

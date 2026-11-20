@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { App } from "./main";
-import { JsonTree } from "./inspector";
+import { AssertionFields, JsonTree, parseInspectorJson } from "./inspector";
 import type { Attempt, Detail } from "./api";
 
 const id = "10000000-0000-4000-8000-000000000001";
@@ -131,7 +131,8 @@ it("disables export after an integrity failure", async () => {
 it("shows validated historical assertions without inventing original positions", async () => {
   serve({ ...detail, rejections: [], attempt: { ...attempt, received: null, accepted: null,
     quarantined: null, validation: null, retained: null }, validated: {
-      attributes: [{ local_ref: "historical", raw_value: "Recorded" }], raw_unmapped: [],
+      version: "phase-6r-attributes-v5",
+      attributes: [{ local_ref: "historical", raw_value: "Star", proposed_enum_value: "WYE" }], raw_unmapped: [],
     } });
   render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: /Siemens fixture/ }));
@@ -139,4 +140,57 @@ it("shows validated historical assertions without inventing original positions",
   fireEvent.click(screen.getByRole("button", { name: "Compare" }));
   expect(screen.getByText("Original position unavailable")).toBeTruthy();
   expect(screen.getByText("Validated assertion")).toBeTruthy();
+  const fields = screen.getByLabelText("Recorded assertion fields");
+  expect(within(fields).getByText("Historical enum proposal")).toBeTruthy();
+  expect(within(fields).getByText('"WYE"')).toBeTruthy();
+});
+
+it.each([
+  ["false", "false", "(boolean)"],
+  ['"false"', '"false"', "(string)"],
+  ["9007199254740993", "9007199254740993", "(integer)"],
+  ["1.0", "1.0", "(number)"],
+  ['"015.750"', '"015.750"', "(string)"],
+  ['"400/600"', '"400/600"', "(string)"],
+  ["null", "null", "(null)"],
+])("distinguishes the recorded JSON proposal %s", (literal, shown, type) => {
+  const assertion = parseInspectorJson(`{"proposed_value":${literal}}`);
+  const view = render(<><AssertionFields value={assertion} /><JsonTree value={assertion} /></>);
+  const fields = within(screen.getByLabelText("Recorded assertion fields"));
+  expect(fields.getByText(shown)).toBeTruthy();
+  expect(fields.getByText(type)).toBeTruthy();
+  expect(within(view.container).getByText(`proposed_value: ${shown}`)).toBeTruthy();
+});
+
+it("compares exact equivalent representations and the published canonical value", async () => {
+  const assertion = {
+    local_ref: "width", origin: "EXTRACTED", attribute_key: "enclosure_width",
+    raw_value: '20”(508.000mm)W', raw_unit: "”", proposed_value: "20.00", proposed_unit: "in",
+    value_form: "EQUIVALENT_UNITS", alternate_representations: [{ value: "508.000", unit: "mm" }],
+  };
+  const recorded = { version: "phase-6r-attributes-v6", attributes: [assertion], raw_unmapped: [] };
+  serve({
+    ...detail, schema_version: recorded.version, rejections: [], validated: recorded,
+    attempt: { ...attempt, received: 1, accepted: 1, quarantined: 0, validation: "validated" },
+    candidates: [{
+      ordinal: 0, local_ref: "width", mapping_status: "MAPPED", reason_code: null,
+      normalized_type: "NUMBER", normalized_value: "508", normalized_unit: "mm",
+      evidence: [{ role: "VALUE", localization: "RESOLVED", reason_code: null }],
+    }],
+  }, JSON.stringify(recorded));
+  render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: /Siemens fixture/ }));
+  fireEvent.click(await screen.findByRole("button", { name: /attributes\[0\]/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Reveal original response" }));
+  await screen.findByRole("button", { name: "Original response verified" });
+  fireEvent.click(screen.getByRole("button", { name: "Compare" }));
+  const [original, validated] = screen.getAllByLabelText("Recorded assertion fields");
+  for (const fields of [original, validated]) {
+    expect(within(fields).getByText('"20”(508.000mm)W"')).toBeTruthy();
+    expect(within(fields).getByText('"20.00"')).toBeTruthy();
+    expect(within(fields).getByText('"EQUIVALENT_UNITS"')).toBeTruthy();
+    expect(within(fields).getByText('"508.000"')).toBeTruthy();
+  }
+  expect(screen.getByText("508 mm")).toBeTruthy();
+  expect(screen.getByText("Evidence localization")).toBeTruthy();
 });

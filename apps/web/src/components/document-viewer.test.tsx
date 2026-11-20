@@ -417,7 +417,7 @@ describe("DocumentViewer", () => {
       raw_label: "Z", raw_value: "5.750", raw_unit: "pct", qualifiers: [], value_form: "SINGLE",
       proposed_value: null, proposed_unit: "%", inference_explanation: null, inference_basis: null,
       source_expression: null, source_display_label: null, redundant_with_id: null,
-      mapping_status: "MAPPED", proposed_attribute_key: "percent_impedance", proposed_enum_value: null,
+      mapping_status: "MAPPED", proposed_attribute_key: "percent_impedance", alternate_representations: [],
       normalized: { type: "NUMBER", value: "5.75", unit: "%" }, conflict: false, reason_code: null,
       value_source_support: support, evidence_ids: inferred ? [] : [evidenceId],
       ...(inferred ? {
@@ -473,7 +473,7 @@ describe("DocumentViewer", () => {
     expect(await screen.findByText("Original PDF label")).toHaveTextContent("Original PDF label Z");
     expect(screen.getByText("Raw value")).toHaveTextContent("Raw value 5.750");
     expect(screen.getByText("Source unit")).toHaveTextContent("Source unit pct");
-    expect(screen.getByText("Proposed source unit")).toHaveTextContent("Proposed source unit %");
+    expect(screen.getByText("Proposed unit")).toHaveTextContent("Proposed unit %");
     const image = await screen.findByRole("img", { name: "Pinned source page 2" });
     expect(image).toHaveAttribute("src", detail.page_image.url);
     expect(screen.queryByRole("img", { name: "Grounded source region" })).toBeNull();
@@ -485,6 +485,74 @@ describe("DocumentViewer", () => {
     await user.click(screen.getByRole("button", { name: "Back to source groups" }));
     followLastPush();
     expect(await screen.findByRole("searchbox", { name: "Search source groups" })).toHaveValue("TX-009");
+  });
+
+  it.each([
+    { title: "Enclosure Width", rawValue: "20 in (508.000 mm)", rawUnit: "in",
+      proposal: "20.000", unit: "in", status: "MAPPED" as const, display: "508 mm",
+      normalized: { type: "NUMBER", value: "508", unit: "mm" },
+      form: "EQUIVALENT_UNITS" as const, alternates: [{ value: "508.000", unit: "mm" }] },
+    { title: "Nominal Voltage", rawValue: "400/600 V", rawUnit: "V",
+      proposal: "400/600", unit: "V", status: "UNMAPPED" as const, display: "400/600 V",
+      form: "MULTIPLE" as const, reason: "PROPOSAL_TYPE_MISMATCH" },
+    { title: "Normally Closed", rawValue: "Yes", proposal: false,
+      status: "INVALID" as const, display: "false", reason: "SOURCE_VALUE_MISMATCH" },
+    { title: "Pole Count", rawValue: null, proposal: BigInt("9007199254740993"),
+      status: "UNMAPPED" as const, display: "9007199254740993", inferred: true },
+    { title: "Primary Connection", rawValue: "Star", proposal: "WYE",
+      status: "MAPPED" as const, display: "WYE", normalized: { type: "ENUM", value: "WYE", unit: null } },
+    { title: "Model", rawValue: "Model: 00-AB 75", proposal: "00-AB 75",
+      status: "MAPPED" as const, display: "00-AB 75",
+      normalized: { type: "TEXT", value: "00-AB 75", unit: null } },
+    { title: "Manufacturer", rawValue: "Unknown", proposal: null,
+      status: "UNMAPPED" as const, display: "Unknown", reason: "NO_VALUE_PROPOSAL" },
+  ])("renders the recorded $title value and provenance", async (example) => {
+    const runId = "10000000-0000-4000-8000-000000000001";
+    const groupId = "30000000-0000-4000-8000-000000000003";
+    const candidateId = "40000000-0000-4000-8000-000000000004";
+    const run = { id: runId, status: "COMPLETED" as const, processing_run_id: "processing",
+      profile_key: "phase-6r", created_at: "2026-01-20T12:00:00Z" };
+    const candidate: Candidate = {
+      id: candidateId, page_id: "page-two", attempt_id: "attempt", kind: "ATTRIBUTE",
+      equipment_id: groupId, association: "ASSERTED", raw_unmapped: false,
+      origin: example.inferred ? "INFERRED" : "EXTRACTED", attribute_display_name: example.title,
+      raw_label: null, raw_value: example.rawValue, raw_unit: example.rawUnit ?? null,
+      qualifiers: [], value_form: example.inferred ? null : example.form ?? "SINGLE",
+      proposed_value: example.proposal, proposed_unit: example.unit ?? null,
+      alternate_representations: example.alternates ?? [], proposed_attribute_key: "field",
+      inference_explanation: example.inferred ? "A synthetic contextual proposal." : null,
+      inference_basis: null, source_expression: null, source_display_label: null,
+      redundant_with_id: null, mapping_status: example.status, normalized: example.normalized ?? null,
+      conflict: false, reason_code: example.reason ?? null, value_source_support: "UNVERIFIED",
+      evidence_ids: [],
+    };
+    const group = { group_id: groupId, kind: "EQUIPMENT" as const, label: "Assembly",
+      source_description: "Assembly", tag: null, registry_type: "BUS", page_numbers: [2],
+      matching_candidate_count: 1, matching_attribute_count: 1, matching_identification_count: 0 };
+    vi.mocked(getExtractionStatuses).mockResolvedValue({ "rd-a": {
+      revision_document_id: "rd-a", processing_run_id: "processing", ineligible_reason: null,
+      extraction: { latest_attempt: run, effective_result: run }, enrichment: null,
+    } });
+    vi.mocked(getRunSources).mockResolvedValue({ items: [] });
+    vi.mocked(getGroupCandidates).mockResolvedValue({
+      total: 1, next_cursor: null, previous_cursor: null, group, items: [candidate], identification: null,
+    });
+    nav.search = `mode=evidence&extractionRun=${runId}&equipmentGroup=${groupId}&candidate=${candidateId}`;
+    renderViewer();
+    const registry = await screen.findByRole("region", { name: "Registry attributes" });
+    const card = within(registry).getByRole("button", { name: new RegExp(example.title) });
+    expect(card).toHaveTextContent(example.display);
+    expect(card).toHaveTextContent(example.inferred ? "Inferred" : "Extracted");
+    expect(within(registry).getByText("Proposed value")).toHaveTextContent(
+      example.proposal == null ? "Unavailable" : String(example.proposal),
+    );
+    if (example.rawValue === null) expect(within(registry).queryByText("Raw value")).toBeNull();
+    else expect(within(registry).getByText("Raw value")).toHaveTextContent(example.rawValue);
+    if (example.normalized) expect(within(registry).getByText("Normalized value")).toHaveTextContent(example.normalized.value);
+    if (example.alternates) {
+      expect(within(registry).getByText("Alternate representations")).toBeVisible();
+      expect(within(registry).getByText("508.000 mm")).toBeVisible();
+    }
   });
 
   it("separates identification, registry values, unmapped facts and repeated assertions", async () => {
@@ -510,7 +578,7 @@ describe("DocumentViewer", () => {
       proposed_value: null, proposed_unit: null, inference_explanation: null, inference_basis: null,
       source_expression: null, source_display_label: null, redundant_with_id: null,
       value_source_support: "UNVERIFIED", qualifiers: [], value_form: "SINGLE",
-      proposed_attribute_key: "trip_unit_model", proposed_enum_value: null,
+      proposed_attribute_key: "trip_unit_model", alternate_representations: [],
       normalized: { type: "TEXT", value: "MODEL-X", unit: null },
     };
     const duplicate: Candidate = { ...value, id: duplicateId, redundant_with_id: valueId,

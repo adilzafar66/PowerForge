@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createRoot } from "react-dom/client";
 import { api, errorText, type Attempt, type Detail } from "./api";
-import { assertions, Copy, Diagnostics, display, JsonTree, object, type Assertion } from "./inspector";
+import { AssertionFields, assertions, Copy, Diagnostics, display, JsonTree, object, parseInspectorJson, type Assertion } from "./inspector";
 import "./style.css";
 
 const validationNames: Record<string, string> = {
@@ -136,12 +136,13 @@ function AttemptView({ id }: { id: string }) {
   const fatalJSON = detail?.fatal.some(issue => issue.category === "JSON");
   const parsed = useMemo((): unknown => {
     if (raw !== undefined && !fatalJSON) {
-      try { return JSON.parse(raw); } catch { /* show raw text */ }
+      try { return parseInspectorJson(raw); } catch { /* show raw text */ }
     }
   }, [raw, fatalJSON]);
   useEffect(() => {
     const controller = new AbortController();
-    api(`/attempts/${encodeURIComponent(id)}`, controller.signal).then(response => response.json()).then(setDetail)
+    api(`/attempts/${encodeURIComponent(id)}`, controller.signal)
+      .then(response => response.text()).then(body => setDetail(parseInspectorJson(body) as Detail))
       .catch(failure => { if (!controller.signal.aborted) setError(errorText(failure)); });
     return () => controller.abort();
   }, [id]);
@@ -155,7 +156,8 @@ function AttemptView({ id }: { id: string }) {
     const matches = filter === "all" || item.state.toLowerCase() === filter ||
       original?.origin === filter || item.collection === filter || item.candidate?.mapping_status === filter;
     return matches && (!search || [ids(item), original?.local_ref, original?.attribute_key,
-      original?.raw_label, original?.raw_value, original?.proposed_value]
+      original?.raw_label, original?.raw_value, original?.proposed_value, original?.proposed_enum_value,
+      original?.proposed_unit, original?.alternate_representations]
       .some(value => display(value).toLowerCase().includes(search.toLowerCase())));
   });
   const chosen = rows.find(item => ids(item) === selected);
@@ -215,7 +217,7 @@ function AttemptView({ id }: { id: string }) {
       <label>Search assertions<input value={search} onChange={event => { setSearch(event.target.value); setLimit(60); }} /></label>
       <label>Show<select value={filter} onChange={event => { setFilter(event.target.value); setLimit(60); }}>
         <option value="all">All assertions</option><option value="accepted">Accepted</option><option value="quarantined">Quarantined</option>
-        <option value="MAPPED">Mapped</option><option value="UNMAPPED">Unmapped</option><option value="EXTRACTED">Extracted</option><option value="INFERRED">Inferred</option><option value="raw_unmapped">Raw unmapped</option>
+        <option value="MAPPED">Mapped</option><option value="UNMAPPED">Unmapped</option><option value="INVALID">Invalid</option><option value="EXTRACTED">Extracted</option><option value="INFERRED">Inferred</option><option value="raw_unmapped">Raw unmapped</option>
       </select></label>
       {(["attributes", "raw_unmapped"] as const).map(collection => <section key={collection}>
         <h3>{collection === "attributes" ? "Attributes" : "Raw unmapped"}</h3>
@@ -247,14 +249,15 @@ function AttemptView({ id }: { id: string }) {
       {mode === "compare" && (chosen ? <div className="comparison">
         <section><h3>{chosen.publishedPosition ? "Original position unavailable" : `Original · ${ids(chosen)}`}</h3>{chosen.original === undefined
           ? <p>Original content unavailable. Reveal the retained response when available.</p>
-          : <JsonTree value={chosen.original} name="Original assertion" />}</section>
+          : <><AssertionFields value={chosen.original} /><JsonTree value={chosen.original} name="Original assertion" /></>}</section>
         <section><h3>Validated and published</h3>{chosen.validated === undefined
           ? <p>{chosen.state === "Quarantined" ? "Quarantined before publication." : "Validated relationship unavailable."}</p>
-          : <JsonTree value={chosen.validated} name="Validated assertion" />}
+          : <><AssertionFields value={chosen.validated} /><JsonTree value={chosen.validated} name="Validated assertion" /></>}
           <Publication assertion={chosen} /></section>
       </div> : <p className="muted">Select an assertion to compare its recorded representations.</p>)}
       {mode === "assertions" && (chosen ? <><h3><code>{ids(chosen)}</code></h3><p>{chosen.state}</p>
         <Diagnostics issues={chosen.issues} />
+        <AssertionFields value={chosen.original ?? chosen.validated} />
         <Publication assertion={chosen} />
         {chosen.original !== undefined ? <JsonTree key={ids(chosen)} value={chosen.original} name="Original assertion" /> :
           <p className="muted">Original assertion content is unavailable.</p>}
@@ -268,7 +271,9 @@ function Publication({ assertion }: { assertion: Assertion }) {
   if (!candidate) return null;
   return <div className="publication">
     <p>Published <strong>{candidate.mapping_status}</strong>{candidate.reason_code && <> · <code>{candidate.reason_code}</code></>}</p>
-    {candidate.normalized_type && <p>Normalized <code>{candidate.normalized_value} {candidate.normalized_unit}</code></p>}
+    {candidate.normalized_type && <p>Normalized <span className="muted">({candidate.normalized_type.toLowerCase()})</span> <code>{
+      ["TEXT", "ENUM"].includes(candidate.normalized_type) ? JSON.stringify(candidate.normalized_value) : candidate.normalized_value
+    }{candidate.normalized_unit && ` ${candidate.normalized_unit}`}</code></p>}
     {candidate.evidence.length > 0 && <details><summary>Evidence localization</summary>
       <ul>{candidate.evidence.map((item, index) => <li key={index}>
         {item.role} · {item.localization}{item.reason_code && ` · ${item.reason_code}`}

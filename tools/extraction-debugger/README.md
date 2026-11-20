@@ -70,8 +70,14 @@ see sanitized errors such as `attributes[24].raw_value`.
 Choose **Compare** on an assertion to see the original and validated objects
 alongside the recorded candidate outcome. The debugger uses quarantine
 positions and matching local references to correlate the records. It displays
-normalized values as stored, including exact decimal strings. Schema admission
-and engineering mapping are separate outcomes.
+raw and proposed values with their JSON types, source and proposed units, and
+any alternate representations. Historical enum proposals retain their own
+label. Normalized values use their recorded type and exact stored digits.
+Schema admission and engineering mapping are separate outcomes.
+
+The exact numeric token display uses the browser's JSON source access. If an
+older browser cannot recover the digits of a large integer, **Raw text** and
+the verified export still provide the exact original response.
 
 **Export original** verifies and journals another retrieval. It downloads the
 exact bytes with a deterministic attempt-based filename. Treat that local

@@ -38,6 +38,8 @@ export type EvidenceGroup = {
 };
 export type Region = { x: string; y: string; width: string; height: string };
 export type ValueSourceSupport = "TEXT_MATCH" | "TEXT_MISMATCH" | "UNVERIFIED";
+export type ProposedValue = string | number | bigint | boolean | null;
+export type AlternateRepresentation = { value: string; unit: string };
 export const valueSourceSupportLabel: Record<ValueSourceSupport, string> = {
   TEXT_MATCH: "Matches cited text",
   TEXT_MISMATCH: "Cited value differs",
@@ -76,12 +78,15 @@ export type Candidate = CandidateBase & (
       kind: "ATTRIBUTE"; equipment_id: string | null; association: "ASSERTED" | "UNCERTAIN" | "UNASSIGNED";
       raw_unmapped: boolean; origin: "EXTRACTED" | "INFERRED"; attribute_display_name: string | null;
       raw_label: string | null; raw_value: string | null; raw_unit: string | null;
-      proposed_value: string | null; proposed_unit: string | null; inference_explanation: string | null;
+      proposed_value: ProposedValue; proposed_unit: string | null;
+      alternate_representations: AlternateRepresentation[];
+      inference_explanation: string | null;
       inference_basis: string | null;
       source_expression: string | null; source_display_label: string | null;
       redundant_with_id: string | null;
-      qualifiers: string[]; value_form: string | null; proposed_attribute_key: string | null;
-      proposed_enum_value: string | null; value_source_support: ValueSourceSupport;
+      qualifiers: string[];
+      value_form: "SINGLE" | "RANGE" | "MULTIPLE" | "QUALIFIED" | "EQUIVALENT_UNITS" | null;
+      proposed_attribute_key: string | null; value_source_support: ValueSourceSupport;
       normalized: { type: string; value: string | boolean; unit: string | null } | null;
     }
 );
@@ -233,7 +238,17 @@ export function getGroupCandidates(
   return request<CursorPage<Candidate> & { group: EvidenceGroup; identification: Extract<Candidate, { kind: "EQUIPMENT" }> | null }>(
     `${runPath(scope, runId)}/candidates${queryString({ view: "members", group_id: groupId, ...filters, cursor, candidate_id: candidateId })}`,
     { signal },
+    { read: readCandidatePage },
   );
+}
+
+async function readCandidatePage(response: Response): Promise<unknown> {
+  return JSON.parse(await response.text(), (key, value, context?: { source?: string }) => {
+    if (key !== "proposed_value" || typeof value !== "number" || Number.isSafeInteger(value)) return value;
+    // JSON integer proposals can exceed the limit of JavaScript's Number type.
+    const literal = context?.source;
+    return literal && /^-?\d+$/.test(literal) ? BigInt(literal) : "Integer precision unavailable";
+  });
 }
 
 export function getEvidence(scope: DocumentScope, id: string, signal?: AbortSignal) {

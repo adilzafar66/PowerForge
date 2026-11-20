@@ -62,7 +62,7 @@ export async function parseError(response: Response): Promise<ApiError> {
 export async function request<T>(
   path: string,
   init?: RequestInit,
-  options?: { server?: boolean; notifyWrite?: boolean },
+  options?: { server?: boolean; notifyWrite?: boolean; read?: (response: Response) => Promise<unknown> },
 ): Promise<T> {
   const base = resolveBase(options?.server);
   const response = await fetch(`${base}${path}`, {
@@ -84,7 +84,7 @@ export async function request<T>(
     if (options?.notifyWrite !== false && init?.method && init.method !== "GET") serverWriteConfirmed(path);
     return undefined as T;
   }
-  const result = (await response.json()) as T;
+  const result = (await (options?.read ? options.read(response) : response.json())) as T;
   if (options?.notifyWrite !== false && init?.method && !["GET", "HEAD"].includes(init.method))
     serverWriteConfirmed(path);
   return result;
