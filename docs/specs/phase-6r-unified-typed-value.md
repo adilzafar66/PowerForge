@@ -89,7 +89,7 @@ Introduce:
 - Aggregate wire identity: `phase-6r-wire-v6`
 - Prompt bundle: `phase-6r-stages-v9`
 - Attribute prompt file: `attribute_extraction_v8.txt`
-- Publication version: `phase-6r-publication-v8`
+- Publication version: `phase-6r-publication-v9` (supersedes the Milestone B `v8` pin after enum and text source-fidelity review)
 
 Keep the Stage 1 recognition contract unchanged.
 
@@ -509,13 +509,21 @@ Do not permit a source-faithful but registry-incompatible expression to become a
 
 ### 6.3 ENUM, BOOLEAN, and TEXT Fidelity
 
-For ENUM, enforce exact registry membership and retain source evidence. Keep semantic equivalence conservative: an enum's membership does not prove its association or meaning.
+For ENUM, enforce exact registry membership and retain source evidence. Verify an
+extracted proposal against the complete raw value, ignoring surrounding whitespace and
+case. For two-winding transformer primary and secondary connections, the complete source
+spelling `Star` can verify an AI proposal of `WYE`. A recognized source value that
+contradicts the proposal is INVALID. Other source spellings stay UNMAPPED when the
+proposal cannot be verified. These checks never generate a proposal and leave inferred
+enums, equipment association, and citation support under their existing policies.
 
 For BOOLEAN, accept explicit, unambiguous source expressions under a bounded policy. Ambiguous state descriptions should remain unmapped rather than guessed.
 
-For TEXT, permit minimal, justified cleanup. Preserve meaningful punctuation, whitespace within identifiers, leading zeros, capitalization, and model/catalog identifiers when material.
-
-Do not let generic string cleanup alter engineering identifiers.
+For TEXT, allow surrounding whitespace and removal of a leading registry display name
+followed by a colon, such as `Model: CMD6`. The entire remaining single-line value must
+match exactly. Preserve meaningful punctuation, internal whitespace, leading zeros, and
+capitalization. A demonstrably altered standalone identifier is INVALID. Other cleanup
+that cannot be verified remains UNMAPPED for review.
 
 ### 6.4 Failure Behavior
 
@@ -538,6 +546,15 @@ Any allowed unit conversion is performed by PowerForge, not OpenAI.
 For `EQUIVALENT_UNITS`, independently verify the alternate representations before normalizing the primary value.
 
 Ensure the normalization process remains decimal-safe, preserves exact numerical meaning, and does not introduce rounding or integer truncation.
+
+Extraction checks the shared engineering normalizer's result against the exact
+canonical quantity. If the existing 34-digit Decimal conversion loses precision,
+including for a repeating decimal, publication returns UNMAPPED with
+`INEXACT_NORMALIZATION`. The source value, units, proposal, and evidence remain
+available for review. For example, a temperature rise of `1 °F` is exactly
+`5/9 °C` and stays unmapped, while a rise of `9 °F` maps to `5 °C`.
+The shared engineering normalizer still returns its existing 34-digit result
+to other callers.
 
 Keep normalized candidate fields separate from raw and proposed fields.
 

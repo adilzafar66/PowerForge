@@ -5,6 +5,7 @@ from decimal import Decimal, DecimalException
 from fractions import Fraction
 from typing import NamedTuple
 
+from powerforge_engineering_model.enums import EquipmentType
 from powerforge_engineering_model.errors import EngineeringModelError
 from powerforge_engineering_model.registry import (
     exact_attribute_quantity,
@@ -126,8 +127,53 @@ def _registry_value(proposal, definition, inferred):
     return proposal, None
 
 
-def _single_fidelity(item, kind, value, quantities):
+def _reported_enum(text, definition):
+    """Verify a complete source spelling against the attribute's enum members."""
+    literal = text.casefold()
+    # This narrowly scoped spelling can verify an existing proposal. It never
+    # supplies a missing proposal or interprets a longer source expression.
+    if (
+        literal == "star"
+        and definition.equipment_type == EquipmentType.TWO_WINDING_TRANSFORMER
+        and definition.key in {"primary_connection", "secondary_connection"}
+    ):
+        literal = "wye"
+    matches = [member for member in definition.allowed_values if member.casefold() == literal]
+    return matches[0] if len(matches) == 1 else None
+
+
+_IDENTIFIER_KEYS = frozenset({"model", "catalog_number", "trip_unit_model"})
+_IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*(?:[ \t]+[0-9]+)?")
+
+
+def _text_fidelity(text, value, definition):
+    proposal = value.strip()
+    if text == proposal:
+        return None
+    label, delimiter, remainder = text.partition(":")
+    if delimiter:
+        if (
+            label.strip().casefold() != definition.name.casefold()
+            or ":" in remainder
+            or len(text.splitlines()) != 1
+        ):
+            return "UNMAPPED", "SOURCE_EXPRESSION_UNVERIFIED"
+        text = remainder.strip()
+        if text == proposal:
+            return None
+    if (
+        definition.key in _IDENTIFIER_KEYS
+        and _IDENTIFIER.fullmatch(text)
+        and _IDENTIFIER.fullmatch(proposal)
+        and proposal not in text.split()
+    ):
+        return "INVALID", "SOURCE_VALUE_MISMATCH"
+    return "UNMAPPED", "SOURCE_EXPRESSION_UNVERIFIED"
+
+
+def _single_fidelity(item, definition, value, quantities):
     text = item.raw_value.strip()
+    kind = definition.value_type
     if kind in _NUMERIC_TYPES:
         if not quantities or any(quantity.embedded for quantity in quantities):
             return "UNMAPPED", "SOURCE_EXPRESSION_UNVERIFIED"
@@ -146,8 +192,14 @@ def _single_fidelity(item, kind, value, quantities):
             return "UNMAPPED", "SOURCE_EXPRESSION_UNVERIFIED"
         if reported != value:
             return "INVALID", "SOURCE_VALUE_MISMATCH"
-    elif kind == "TEXT" and text != value.strip():
-        return "INVALID", "SOURCE_VALUE_MISMATCH"
+    elif kind == "TEXT":
+        return _text_fidelity(text, value, definition)
+    elif kind == "ENUM":
+        reported = _reported_enum(text, definition)
+        if reported is None:
+            return "UNMAPPED", "SOURCE_EXPRESSION_UNVERIFIED"
+        if reported != value:
+            return "INVALID", "SOURCE_VALUE_MISMATCH"
     return None
 
 
@@ -248,7 +300,7 @@ def _extracted_failure(item, definition, value, unit, evidence):
         else []
     )
     if item.value_form == "SINGLE":
-        failure = _single_fidelity(item, kind, value, quantities)
+        failure = _single_fidelity(item, definition, value, quantities)
         if failure:
             return failure
     elif kind not in _NUMERIC_TYPES:

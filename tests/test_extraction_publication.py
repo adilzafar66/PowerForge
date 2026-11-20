@@ -1238,6 +1238,89 @@ def test_registry_types_are_strict_and_text_preserves_identifiers(
 
 
 @pytest.mark.parametrize(
+    "equipment,key,raw,proposal,status,reason",
+    [
+        (
+            "TWO_WINDING_TRANSFORMER",
+            "primary_connection",
+            "Delta",
+            "WYE",
+            "INVALID",
+            "SOURCE_VALUE_MISMATCH",
+        ),
+        ("TWO_WINDING_TRANSFORMER", "primary_connection", " dElTa ", "DELTA", "MAPPED", None),
+        ("TWO_WINDING_TRANSFORMER", "primary_connection", "Star", "WYE", "MAPPED", None),
+        ("TWO_WINDING_TRANSFORMER", "secondary_connection", "STAR", "WYE", "MAPPED", None),
+        (
+            "TWO_WINDING_TRANSFORMER",
+            "secondary_connection",
+            "Star",
+            "DELTA",
+            "INVALID",
+            "SOURCE_VALUE_MISMATCH",
+        ),
+        (
+            "TWO_WINDING_TRANSFORMER",
+            "primary_connection",
+            "Star",
+            None,
+            "UNMAPPED",
+            "NO_VALUE_PROPOSAL",
+        ),
+        (
+            "TWO_WINDING_TRANSFORMER",
+            "primary_connection",
+            "Star/Delta",
+            "WYE",
+            "UNMAPPED",
+            "SOURCE_EXPRESSION_UNVERIFIED",
+        ),
+        (
+            "TWO_WINDING_TRANSFORMER",
+            "primary_connection",
+            "Y",
+            "WYE",
+            "UNMAPPED",
+            "SOURCE_EXPRESSION_UNVERIFIED",
+        ),
+        (
+            "LV_BREAKER",
+            "trip_unit_type",
+            "Star",
+            "ELECTRONIC",
+            "UNMAPPED",
+            "SOURCE_EXPRESSION_UNVERIFIED",
+        ),
+    ],
+)
+def test_extracted_enum_requires_complete_verified_source_spelling(
+    equipment, key, raw, proposal, status, reason
+):
+    from powerforge_extraction.value_proposal import normalize_proposal
+
+    definition = proposal_definition(equipment, key)
+    item = assertion("enum", attribute_key=key, raw_value=raw, proposed_value=proposal)
+    actual_status, actual_reason, fields = normalize_proposal(item, definition, [])
+    assert (actual_status, actual_reason) == (status, reason)
+    assert fields.get("value_text") == (proposal if status == "MAPPED" else None)
+
+
+def test_extracted_enum_mismatch_retains_raw_value_and_proposal(stage_inputs):
+    (row,) = stage_inputs(
+        assertion(
+            "contradiction",
+            attribute_key="primary_connection",
+            raw_value="Delta",
+            proposed_value="WYE",
+        )
+    )
+    assert row["mapping_status"] == "INVALID"
+    assert row["reason_code"] == "SOURCE_VALUE_MISMATCH"
+    assert row["raw_value"] == "Delta" and row["proposed_value"] == "WYE"
+    assert "value_text" not in row
+
+
+@pytest.mark.parametrize(
     "equipment,key,proposal,unit,expression,expected",
     [
         ("LV_BREAKER", "pole_count", 3, None, None, "MAPPED"),
@@ -1304,3 +1387,89 @@ def test_publication_preserves_equivalent_proposals_before_database_write(stage_
     assert row["alternate_representations"] == [{"value": "508.0", "unit": "mm"}]
     assert row["value_source_support"] == "UNVERIFIED"
     assert "value_number" not in row
+
+
+@pytest.mark.parametrize(
+    "key,raw,proposal,status,reason",
+    [
+        ("model", "  CMD6  ", "CMD6", "MAPPED", None),
+        ("model", "Model: CMD6", "CMD6", "MAPPED", None),
+        ("model", " model : 00-AB  75 ", "00-AB  75", "MAPPED", None),
+        ("catalog_number", "Catalog Number: 00-AB 75", "00-AB 75", "MAPPED", None),
+        ("trip_unit_model", "Trip Unit Model: ETU745", "ETU745", "MAPPED", None),
+        ("model", "00-AB 75", "0-ab75", "INVALID", "SOURCE_VALUE_MISMATCH"),
+        ("model", "Model: 00-AB", "0-AB", "INVALID", "SOURCE_VALUE_MISMATCH"),
+        ("model", "Model: CMD6", "cmd6", "INVALID", "SOURCE_VALUE_MISMATCH"),
+        ("model", "Model: CMD6 75", "CMD6", "UNMAPPED", "SOURCE_EXPRESSION_UNVERIFIED"),
+        ("model", "Model: CMD6 3 Pole", "CMD6", "UNMAPPED", "SOURCE_EXPRESSION_UNVERIFIED"),
+        ("model", "Model: CMD6\nSerial: Q2", "CMD6", "UNMAPPED", "SOURCE_EXPRESSION_UNVERIFIED"),
+        ("model", "Description: CMD6", "CMD6", "UNMAPPED", "SOURCE_EXPRESSION_UNVERIFIED"),
+        ("catalog_number", "Model: CMD6", "CMD6", "UNMAPPED", "SOURCE_EXPRESSION_UNVERIFIED"),
+        (
+            "manufacturer",
+            "Equipment from Acme Corp",
+            "Acme Corp",
+            "UNMAPPED",
+            "SOURCE_EXPRESSION_UNVERIFIED",
+        ),
+    ],
+)
+def test_text_cleanup_preserves_the_complete_source_value(key, raw, proposal, status, reason):
+    from powerforge_extraction.value_proposal import normalize_proposal
+
+    definition = proposal_definition("LV_BREAKER", key)
+    item = assertion("cleanup", attribute_key=key, raw_value=raw, proposed_value=proposal)
+    actual_status, actual_reason, fields = normalize_proposal(item, definition, [])
+    assert (actual_status, actual_reason) == (status, reason)
+    assert fields.get("value_text") == (proposal if status == "MAPPED" else None)
+    assert item.raw_value == raw and item.proposed_value == proposal
+
+
+@pytest.mark.parametrize(
+    "equipment,key,magnitude,unit,shared,exact",
+    [
+        (
+            "TWO_WINDING_TRANSFORMER",
+            "temperature_rise",
+            "1",
+            "°F",
+            "0.5555555555555555555555555555555556",
+            False,
+        ),
+        ("TWO_WINDING_TRANSFORMER", "temperature_rise", "9", "°F", "5", True),
+        (
+            "CABLE",
+            "positive_sequence_resistance",
+            "1",
+            "Ω/1000 ft",
+            "3.280839895013123359580052493438320",
+            False,
+        ),
+        ("CABLE", "positive_sequence_resistance", "0.3048", "Ω/1000 ft", "1", True),
+    ],
+)
+def test_extraction_requires_exact_conversion_with_existing_normalizer(
+    equipment, key, magnitude, unit, shared, exact
+):
+    from powerforge_engineering_model.registry import normalize_attribute_value
+    from powerforge_extraction.value_proposal import normalize_proposal
+
+    definition = proposal_definition(equipment, key)
+    raw = f"{magnitude} {unit}"
+    item = assertion(
+        "conversion",
+        attribute_key=key,
+        raw_value=raw,
+        raw_unit=unit,
+        proposed_value=magnitude,
+        proposed_unit=unit,
+    )
+    evidence = [{"role": "VALUE", "localization": "RESOLVED", "quote": raw}]
+    assert normalize_attribute_value(equipment, key, Decimal(magnitude), unit) == Decimal(shared)
+    status, reason, fields = normalize_proposal(item, definition, evidence)
+    if exact:
+        assert (status, reason) == ("MAPPED", None)
+        assert fields["value_number"] == Decimal(shared)
+        assert fields["normalized_unit"] == definition.canonical_unit
+    else:
+        assert (status, reason, fields) == ("UNMAPPED", "INEXACT_NORMALIZATION", {})
