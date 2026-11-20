@@ -271,6 +271,7 @@ function Publication({ assertion }: { assertion: Assertion }) {
   if (!candidate) return null;
   return <div className="publication">
     <p>Published <strong>{candidate.mapping_status}</strong>{candidate.reason_code && <> · <code>{candidate.reason_code}</code></>}</p>
+    <AssertionFields value={candidate} persisted />
     {candidate.normalized_type && <p>Normalized <span className="muted">({candidate.normalized_type.toLowerCase()})</span> <code>{
       ["TEXT", "ENUM"].includes(candidate.normalized_type) ? JSON.stringify(candidate.normalized_value) : candidate.normalized_value
     }{candidate.normalized_unit && ` ${candidate.normalized_unit}`}</code></p>}

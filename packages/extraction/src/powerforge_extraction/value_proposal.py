@@ -146,17 +146,19 @@ _IDENTIFIER_KEYS = frozenset({"model", "catalog_number", "trip_unit_model"})
 _IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*(?:[ \t]+[0-9]+)?")
 
 
-def _text_fidelity(text, value, definition):
+def _text_fidelity(text, value, definition, raw_label):
     proposal = value.strip()
     if text == proposal:
         return None
     label, delimiter, remainder = text.partition(":")
     if delimiter:
-        if (
-            label.strip().casefold() != definition.name.casefold()
-            or ":" in remainder
-            or len(text.splitlines()) != 1
-        ):
+        label = label.strip()
+        matches_label = (
+            bool(label) and label == raw_label.strip()
+            if raw_label is not None
+            else label.casefold() == definition.name.casefold()
+        )
+        if not matches_label or ":" in remainder or len(text.splitlines()) != 1:
             return "UNMAPPED", "SOURCE_EXPRESSION_UNVERIFIED"
         text = remainder.strip()
         if text == proposal:
@@ -193,7 +195,7 @@ def _single_fidelity(item, definition, value, quantities):
         if reported != value:
             return "INVALID", "SOURCE_VALUE_MISMATCH"
     elif kind == "TEXT":
-        return _text_fidelity(text, value, definition)
+        return _text_fidelity(text, value, definition, item.raw_label)
     elif kind == "ENUM":
         reported = _reported_enum(text, definition)
         if reported is None:

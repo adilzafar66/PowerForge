@@ -1418,7 +1418,9 @@ def test_text_cleanup_preserves_the_complete_source_value(key, raw, proposal, st
     from powerforge_extraction.value_proposal import normalize_proposal
 
     definition = proposal_definition("LV_BREAKER", key)
-    item = assertion("cleanup", attribute_key=key, raw_value=raw, proposed_value=proposal)
+    item = assertion(
+        "cleanup", attribute_key=key, raw_label=None, raw_value=raw, proposed_value=proposal
+    )
     actual_status, actual_reason, fields = normalize_proposal(item, definition, [])
     assert (actual_status, actual_reason) == (status, reason)
     assert fields.get("value_text") == (proposal if status == "MAPPED" else None)
@@ -1473,3 +1475,40 @@ def test_extraction_requires_exact_conversion_with_existing_normalizer(
         assert fields["normalized_unit"] == definition.canonical_unit
     else:
         assert (status, reason, fields) == ("UNMAPPED", "INEXACT_NORMALIZATION", {})
+
+
+@pytest.mark.parametrize(
+    "key,label,raw,proposal,status",
+    [
+        ("model", "Breaker Type", "Breaker Type: PDG3", "PDG3", "MAPPED"),
+        ("catalog_number", "Catalog No.", " Catalog No. : ABC123 ", "ABC123", "MAPPED"),
+        ("model", "Breaker Type", "  PDG3  ", "PDG3", "MAPPED"),
+        ("model", "Breaker Type", "Model: PDG3", "PDG3", "UNMAPPED"),
+        ("model", "breaker type", "Breaker Type: PDG3", "PDG3", "UNMAPPED"),
+        ("model", " ", "Model: PDG3", "PDG3", "UNMAPPED"),
+        ("model", None, "Model: PDG3", "PDG3", "MAPPED"),
+        ("model", None, "Breaker Type: PDG3", "PDG3", "UNMAPPED"),
+        ("model", "Breaker Type", "Breaker Type: PDG3", "pdg3", "INVALID"),
+        ("catalog_number", "Catalog No.", "Catalog No.: 00-AB 75", "0-ab75", "INVALID"),
+        ("model", "Breaker Type", "Breaker Type: PDG3 3 Pole", "PDG3", "UNMAPPED"),
+        ("model", "Breaker Type", "Breaker Type: PDG3 / PDG4", "PDG3", "UNMAPPED"),
+        ("model", "Breaker Type", "Breaker Type: PDG3\nSerial: Q2", "PDG3", "UNMAPPED"),
+        ("model", "Breaker Type", "Breaker Type:\nPDG3", "PDG3", "UNMAPPED"),
+    ],
+)
+def test_text_cleanup_uses_the_literal_source_label(key, label, raw, proposal, status):
+    from powerforge_extraction.value_proposal import normalize_proposal
+
+    definition = proposal_definition("LV_BREAKER", key)
+    item = assertion(
+        "source-label", attribute_key=key, raw_label=label, raw_value=raw, proposed_value=proposal
+    )
+    reason = {
+        "MAPPED": None,
+        "UNMAPPED": "SOURCE_EXPRESSION_UNVERIFIED",
+        "INVALID": "SOURCE_VALUE_MISMATCH",
+    }[status]
+    actual_status, actual_reason, fields = normalize_proposal(item, definition, [])
+    assert (actual_status, actual_reason) == (status, reason)
+    assert fields.get("value_text") == (proposal if status == "MAPPED" else None)
+    assert (item.raw_label, item.raw_value, item.proposed_value) == (label, raw, proposal)

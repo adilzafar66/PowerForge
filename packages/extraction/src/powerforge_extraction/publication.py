@@ -15,7 +15,7 @@ from powerforge_extraction.stage_contracts import (
 from powerforge_extraction.unit_notation import SCALAR
 from powerforge_extraction.value_proposal import normalize_proposal
 
-VERSION = "phase-6r-publication-v9"
+VERSION = "phase-6r-publication-v10"
 ValueSourceSupport = Literal["TEXT_MATCH", "TEXT_MISMATCH", "UNVERIFIED"]
 
 

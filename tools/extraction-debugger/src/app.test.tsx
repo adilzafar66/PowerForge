@@ -103,6 +103,7 @@ it("correlates shifted indices and compares an unmapped candidate using recorded
     ...detail, attempt: { ...attempt, received: 26, accepted: 25 },
     validated: { attributes: original.filter((_, index) => index !== 24), raw_unmapped: [] },
     candidates: [{ ordinal: 24, local_ref: "a25", mapping_status: "UNMAPPED", reason_code: "unit_unverified",
+      proposed_value: null, alternate_representations: null,
       normalized_type: null, normalized_value: null, normalized_unit: null, evidence: [] }],
   };
   serve(shifted, JSON.stringify({ attributes: original, raw_unmapped: [] }));
@@ -174,6 +175,8 @@ it("compares exact equivalent representations and the published canonical value"
     attempt: { ...attempt, received: 1, accepted: 1, quarantined: 0, validation: "validated" },
     candidates: [{
       ordinal: 0, local_ref: "width", mapping_status: "MAPPED", reason_code: null,
+      // Deliberately distinct projection to prove the UI reads the persisted row.
+      proposed_value: false, alternate_representations: [{ value: "509.000", unit: "mm" }],
       normalized_type: "NUMBER", normalized_value: "508", normalized_unit: "mm",
       evidence: [{ role: "VALUE", localization: "RESOLVED", reason_code: null }],
     }],
@@ -191,6 +194,10 @@ it("compares exact equivalent representations and the published canonical value"
     expect(within(fields).getByText('"EQUIVALENT_UNITS"')).toBeTruthy();
     expect(within(fields).getByText('"508.000"')).toBeTruthy();
   }
+  const persisted = within(screen.getByLabelText("Persisted candidate fields"));
+  expect(persisted.getByText("false")).toBeTruthy();
+  expect(persisted.getByText("(boolean)")).toBeTruthy();
+  expect(persisted.getByText('"509.000"')).toBeTruthy();
   expect(screen.getByText("508 mm")).toBeTruthy();
   expect(screen.getByText("Evidence localization")).toBeTruthy();
 });

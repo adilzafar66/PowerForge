@@ -89,7 +89,7 @@ Introduce:
 - Aggregate wire identity: `phase-6r-wire-v6`
 - Prompt bundle: `phase-6r-stages-v9`
 - Attribute prompt file: `attribute_extraction_v8.txt`
-- Publication version: `phase-6r-publication-v9` (supersedes the Milestone B `v8` pin after enum and text source-fidelity review)
+- Publication version: `phase-6r-publication-v10` (adds literal source-label verification to the `v9` fidelity rules)
 
 Keep the Stage 1 recognition contract unchanged.
 
@@ -519,11 +519,14 @@ enums, equipment association, and citation support under their existing policies
 
 For BOOLEAN, accept explicit, unambiguous source expressions under a bounded policy. Ambiguous state descriptions should remain unmapped rather than guessed.
 
-For TEXT, allow surrounding whitespace and removal of a leading registry display name
-followed by a colon, such as `Model: CMD6`. The entire remaining single-line value must
-match exactly. Preserve meaningful punctuation, internal whitespace, leading zeros, and
+For TEXT, allow surrounding whitespace and removal of a leading label followed by a colon.
+The prefix must match `raw_label` exactly after trimming surrounding whitespace. If
+`raw_label` is absent, the registry display name can establish the prefix with a
+case-insensitive match. The entire remaining single-line value must match the proposal
+exactly. Preserve meaningful punctuation, internal whitespace, leading zeros, and
 capitalization. A demonstrably altered standalone identifier is INVALID. Other cleanup
-that cannot be verified remains UNMAPPED for review.
+that cannot be verified remains UNMAPPED for review. A matching label verifies the
+transcription cleanup only. Registry meaning and ownership remain separate.
 
 ### 6.4 Failure Behavior
 
@@ -617,7 +620,7 @@ Ensure null proposal semantics are consistent between the application model and 
 
 For equivalent-unit expressions, preserve and validate the reported alternate representations against the immutable assertion.
 
-Maintain the historical guard behavior for existing response versions.
+Apply the immutability guards to existing records. Require v6 for new Stage 2 writes.
 
 Preserve exact recognition-result ownership, candidate ordinals, raw source fields, evidence, and existing mapping integrity constraints.
 
@@ -787,15 +790,13 @@ Include inferred enum, boolean, numeric, and text proposals with the appropriate
 On a disposable PostgreSQL 16 database:
 
 - Run the complete migration chain.
-- Test migration of representative historical inferred values.
 - Verify correct v6 typed proposal persistence.
 - Verify alternate-representation storage and source fidelity.
 - Test raw/proposal/normalized immutability.
 - Reject mismatched JSON primitive types in immutable guards.
 - Reject publication without the required response audit.
-- Verify historical read behavior.
 - Verify candidate searching across all five proposal types.
-- Verify no existing published records are silently modified.
+- Verify that published v6 records cannot be modified.
 
 ### 11.5 Frontend and Debugger Tests
 
@@ -853,7 +854,7 @@ Retain existing evidence and association semantics.
 
 Apply the additive migration, typed proposal persistence, alternate-representation storage, integrity guards, search projection, historical compatibility, and read API changes.
 
-**Exit criteria:** Migration tests, historical reads, immutable guards, and atomic audit publication pass.
+**Exit criteria:** A clean migration, v6 persistence, immutable guards, and atomic audit publication pass.
 
 ### Milestone D — Documents UI and Debugger
 

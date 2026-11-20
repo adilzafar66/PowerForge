@@ -31,7 +31,8 @@ try {
       });
       return route.fulfill({ json: path === "/api/attempts" ? { items: [attempt], next_cursor: null } : {
         attempt, rejections: [rejected], fatal: [], validated: { attributes: [accepted], raw_unmapped: [] },
-        candidates: [{ ordinal: 0, local_ref: "a2", mapping_status: "UNMAPPED", reason_code: "unit_unverified", evidence: [] }],
+        candidates: [{ ordinal: 0, local_ref: "a2", mapping_status: "UNMAPPED", reason_code: "unit_unverified",
+          proposed_value: null, alternate_representations: [], evidence: [] }],
       } });
     });
     await page.goto("http://127.0.0.1:3100");

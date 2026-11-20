@@ -54,6 +54,18 @@ def test_debugger_partial_attempt_comparison_and_exact_export(operation_context,
                 )
                 for i in range(26)
             ]
+            payload["attributes"][0].update(raw_value="No", proposed_value=False)
+            payload["attributes"][1].update(
+                raw_value="20 in (508.000 mm)",
+                raw_unit="in",
+                proposed_unit="in",
+                proposed_value="20.00",
+                value_form="EQUIVALENT_UNITS",
+                alternate_representations=[{"value": "508.000", "unit": "mm"}],
+            )
+            payload["attributes"][2].update(
+                raw_value="9007199254740993", proposed_value=9007199254740993
+            )
             payload["raw_unmapped"] = []
             original = (" " + json.dumps(payload, indent=2, ensure_ascii=False) + "\n").encode()
             return AttributeOutput(original, ExecutionUsage(input_tokens=100, output_tokens=50))
@@ -128,6 +140,15 @@ def test_debugger_partial_attempt_comparison_and_exact_export(operation_context,
         assert detail["validated"]["attributes"][24]["local_ref"] == "item-25"
         assert detail["candidates"][24]["local_ref"] == "item-25"
         assert detail["candidates"][24]["normalized_value"] == "WYE"
+        assert detail["candidates"][24]["proposed_value"] == "WYE"
+        assert detail["candidates"][24]["alternate_representations"] == []
+        assert detail["candidates"][0]["proposed_value"] is False
+        assert detail["candidates"][1]["proposed_value"] == "20.00"
+        assert detail["candidates"][1]["alternate_representations"] == [
+            {"value": "508.000", "unit": "mm"}
+        ]
+        assert detail["candidates"][2]["proposed_value"] == 9007199254740993
+        assert type(detail["candidates"][2]["proposed_value"]) is int
         assert "object_key" not in json.dumps(detail)
         for action in ("original", "export"):
             reply = client.post(f"/api/attempts/{attempt}/{action}", headers=headers)
@@ -172,6 +193,9 @@ def test_debugger_partial_attempt_comparison_and_exact_export(operation_context,
         with reader.begin() as db:
             with pytest.raises(Exception, match="permission denied"):
                 db.execute(text("DELETE FROM extraction_candidates WHERE false"))
+        with reader.begin() as db:
+            with pytest.raises(Exception, match="permission denied"):
+                db.execute(text("SELECT raw_value FROM extraction_candidates LIMIT 1"))
     finally:
         reader.dispose()
         with engine.begin() as db:

@@ -12,6 +12,8 @@ export type Attempt = {
 export type Rejection = { collection: Collection; index: number; issues: Issue[] };
 export type PublishedCandidate = {
   ordinal: number; local_ref: string; mapping_status: string; reason_code: string | null;
+  proposed_value: string | number | boolean | null;
+  alternate_representations: { value: string; unit: string }[] | null;
   normalized_type: string | null; normalized_value: string | null; normalized_unit: string | null;
   evidence: { role: string; localization: string; reason_code: string | null }[];
 };

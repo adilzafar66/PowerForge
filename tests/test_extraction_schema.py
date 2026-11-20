@@ -21,7 +21,6 @@ def test_phase6r_schema_exposes_only_unified_extraction(require_db):
         } <= {check["name"] for check in catalog.get_check_constraints("extraction_candidates")}
         columns = {c["name"]: str(c["type"]) for c in catalog.get_columns("extraction_candidates")}
         assert columns["proposed_value"] == columns["alternate_representations"] == "JSONB"
-        assert columns["proposed_enum_value"] == "TEXT"
         assert {
             "extraction_runs",
             "extraction_work_units",

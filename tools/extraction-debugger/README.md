@@ -24,6 +24,10 @@ psql -X -v ON_ERROR_STOP=1 -d "$POWERFORGE_ADMIN_DATABASE_URL" \
   < tools/extraction-debugger/grant-operator.sql
 ```
 
+For an existing operator, reapply this script after migration
+`6r_0014f_typed_value_proposals` to grant read access to the two persisted
+proposal columns.
+
 Use a dedicated MinIO/S3 operator identity with only `s3:GetObject` on
 `arn:aws:s3:::powerforge-response-audit/stage2/*`. Enable storage-side access
 auditing to cover reads outside the debugger. Keep database and storage reader
@@ -68,7 +72,8 @@ explorer keeps the original zero-based positions. Filter to **Quarantined** to
 see sanitized errors such as `attributes[24].raw_value`.
 
 Choose **Compare** on an assertion to see the original and validated objects
-alongside the recorded candidate outcome. The debugger uses quarantine
+alongside the proposal and alternate representations read from the persisted
+candidate, its mapping outcome, and its normalized value. The debugger uses quarantine
 positions and matching local references to correlate the records. It displays
 raw and proposed values with their JSON types, source and proposed units, and
 any alternate representations. Historical enum proposals retain their own

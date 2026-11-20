@@ -42,7 +42,7 @@ function typedValue(value: unknown) {
   return <><code>{content}</code> <span className="muted">({type})</span></>;
 }
 
-export function AssertionFields({ value }: { value: unknown }) {
+export function AssertionFields({ value, persisted = false }: { value: unknown; persisted?: boolean }) {
   const assertion = object(value);
   if (!assertion) return null;
   const fields = [
@@ -54,7 +54,7 @@ export function AssertionFields({ value }: { value: unknown }) {
   const recorded = fields.filter(([key]) => Object.hasOwn(assertion, key));
   const hasAlternates = Array.isArray(alternates) && alternates.length > 0;
   if (!recorded.length && !hasAlternates) return null;
-  return <dl className="metadata assertion-fields" aria-label="Recorded assertion fields">
+  return <dl className="metadata assertion-fields" aria-label={persisted ? "Persisted candidate fields" : "Recorded assertion fields"}>
     {recorded.map(([key, label]) =>
       <div key={key}><dt>{label}</dt><dd>{typedValue(assertion[key])}</dd></div>)}
     {hasAlternates && <div>
@@ -62,6 +62,9 @@ export function AssertionFields({ value }: { value: unknown }) {
         const pair = object(item);
         return <li key={index}>{pair ? <>{typedValue(pair.value)} {typedValue(pair.unit)}</> : typedValue(item)}</li>;
       })}</ul>{alternates.length > 4 && <span className="muted">See assertion JSON for additional entries.</span>}</dd>
+    </div>}
+    {persisted && !hasAlternates && <div>
+      <dt>Alternate representations</dt><dd><code>{alternates === null ? "null" : "[]"}</code></dd>
     </div>}
   </dl>;
 }

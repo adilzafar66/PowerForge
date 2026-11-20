@@ -98,11 +98,8 @@ def upgrade() -> None:
     BEGIN
         IF NEW.stage='ATTRIBUTE_EXTRACTION'
            AND NEW.payload->>'version' IS DISTINCT FROM 'phase-6r-attributes-v6'
-           AND EXISTS (
-            SELECT 1 FROM extraction_run_execution e WHERE e.run_id=NEW.run_id
-                AND e.configuration->>'schema_version'='phase-6r-wire-v6'
-        ) THEN RAISE EXCEPTION 'Stage 2 result must use the pinned typed contract'; END IF;
-        IF NEW.payload->>'version' IN ('phase-6r-attributes-v5','phase-6r-attributes-v6')
+        THEN RAISE EXCEPTION 'Stage 2 result must use the pinned typed contract'; END IF;
+        IF NEW.stage='ATTRIBUTE_EXTRACTION'
            AND NEW.outcome='RESULT'
            AND EXISTS (SELECT 1 FROM extraction_runs WHERE id=NEW.run_id AND provider='openai')
            AND NOT EXISTS (
@@ -116,7 +113,7 @@ def upgrade() -> None:
         RETURN NEW;
     END $$;
     CREATE OR REPLACE FUNCTION extraction_candidate_guard() RETURNS trigger LANGUAGE plpgsql AS $$
-    DECLARE s extraction_stage_results; o extraction_candidates; assertion jsonb; typed boolean;
+    DECLARE s extraction_stage_results; o extraction_candidates; assertion jsonb;
     BEGIN
         IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'Published candidates are immutable'; END IF;
         SELECT * INTO s FROM extraction_stage_results WHERE work_unit_id=NEW.work_unit_id;
@@ -131,9 +128,9 @@ def upgrade() -> None:
                  assertion->>'tag',assertion->>'qualification',assertion->>'raw_qualification')
             THEN RAISE EXCEPTION 'Candidate must preserve the raw equipment observation'; END IF;
         ELSE
-            typed := s.payload->>'version' IS NOT DISTINCT FROM 'phase-6r-attributes-v6';
-            IF typed AND (
-                assertion ? 'proposed_enum_value'
+            IF s.payload->>'version' IS DISTINCT FROM 'phase-6r-attributes-v6'
+                OR NEW.proposed_enum_value IS NOT NULL
+                OR assertion ? 'proposed_enum_value'
                 OR (assertion ? 'attribute_key') IS DISTINCT FROM (assertion ? 'proposed_value')
                 OR (assertion ? 'alternate_representations') IS DISTINCT FROM
                     (assertion ? 'attribute_key' AND assertion->>'origin'='EXTRACTED')
@@ -141,37 +138,26 @@ def upgrade() -> None:
                     AND assertion->>'proposed_value' !~ '^-?[0-9]+$')
                 OR (assertion ? 'alternate_representations'
                     AND jsonb_typeof(assertion->'alternate_representations') <> 'array')
-            ) THEN RAISE EXCEPTION 'Stage 2 assertion violates the typed proposal contract'; END IF;
+            THEN RAISE EXCEPTION 'Stage 2 assertion violates the typed proposal contract'; END IF;
             IF (NEW.raw_label,NEW.raw_value,NEW.raw_unit,NEW.qualifiers,NEW.value_form,
-                NEW.proposed_attribute_key,NEW.proposed_enum_value,NEW.claimed_owner_ref,
+                NEW.proposed_attribute_key,NEW.claimed_owner_ref,
                 NEW.raw_unmapped) IS DISTINCT FROM
                 (assertion->>'raw_label',assertion->>'raw_value',assertion->>'raw_unit',
                  assertion->'qualifiers',assertion->>'value_form',assertion->>'attribute_key',
-                 CASE WHEN NOT typed THEN assertion->>'proposed_enum_value' END,
                  assertion->>'equipment_ref',
                  NOT assertion ? 'attribute_key')
             THEN RAISE EXCEPTION 'Candidate must preserve the raw attribute assertion'; END IF;
             IF (NEW.attribute_origin,NEW.proposed_value,NEW.proposed_unit,
                 NEW.inference_explanation,NEW.inference_basis,NEW.alternate_representations)
                 IS DISTINCT FROM
-                (CASE WHEN typed OR s.payload->>'version'
-                    IN ('phase-6r-attributes-v2','phase-6r-attributes-v3',
-                     'phase-6r-attributes-v4','phase-6r-attributes-v5')
-                    THEN CASE WHEN assertion ? 'attribute_key' THEN assertion->>'origin'
-                        ELSE 'EXTRACTED' END END,
-                 CASE WHEN typed THEN NULLIF(assertion->'proposed_value', 'null'::jsonb)
-                     ELSE to_jsonb(assertion->>'proposed_value') END,
+                (CASE WHEN assertion ? 'attribute_key' THEN assertion->>'origin'
+                      ELSE 'EXTRACTED' END,
+                 NULLIF(assertion->'proposed_value', 'null'::jsonb),
                  assertion->>'proposed_unit',assertion->>'inference_explanation',
                  assertion->>'inference_basis',
-                 CASE WHEN typed THEN assertion->'alternate_representations' END)
-                OR (typed OR s.payload->>'version' IN
-                    ('phase-6r-attributes-v2','phase-6r-attributes-v3',
-                     'phase-6r-attributes-v4','phase-6r-attributes-v5'))
-                   AND NEW.attribute_origin IS NULL
-                OR (typed OR s.payload->>'version'
-                    IN ('phase-6r-attributes-v4','phase-6r-attributes-v5'))
-                   AND assertion ? 'attribute_key'
-                   AND NOT assertion ? 'proposed_unit'
+                 assertion->'alternate_representations')
+                OR NEW.attribute_origin IS NULL
+                OR (assertion ? 'attribute_key' AND NOT assertion ? 'proposed_unit')
             THEN RAISE EXCEPTION 'Candidate must preserve the attribute origin and proposal';
             END IF;
             SELECT * INTO o FROM extraction_candidates WHERE id=NEW.equipment_id;

@@ -14,7 +14,8 @@ GRANT SELECT (work_unit_id, duration_ms, input_tokens, output_tokens, cached_inp
 GRANT SELECT (work_unit_id, request_hash, result_hash, upstream_hash, payload)
     ON public.extraction_stage_results TO :"debugger_operator";
 GRANT SELECT (id, ordinal, local_ref, mapping_status, reason_code, normalized_type,
-    normalized_unit, value_number, value_integer, value_text, value_boolean, work_unit_id, kind)
+    normalized_unit, value_number, value_integer, value_text, value_boolean, work_unit_id, kind,
+    proposed_value, alternate_representations)
     ON public.extraction_candidates TO :"debugger_operator";
 GRANT SELECT (candidate_id, role, localization, reason_code, ordinal) ON public.extraction_evidence
     TO :"debugger_operator";

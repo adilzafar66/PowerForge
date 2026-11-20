@@ -4,8 +4,10 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, StrictBool, StrictInt, StrictStr
 from sqlalchemy import text
+
+from powerforge_extraction.stage_contracts import AlternateRepresentation
 
 Validation = Literal["validated", "partial", "fatal", "all_quarantined", "empty"]
 
@@ -48,6 +50,8 @@ class PublishedCandidate(BaseModel):
     local_ref: str
     mapping_status: str
     reason_code: str | None
+    proposed_value: StrictStr | StrictInt | StrictBool | None
+    alternate_representations: list[AlternateRepresentation] | None
     normalized_type: str | None
     normalized_value: str | None
     normalized_unit: str | None
@@ -145,6 +149,7 @@ def attempt_detail(engine, attempt_id):
             conn.execute(
                 text("""
             SELECT ordinal, local_ref, mapping_status, reason_code,
+              proposed_value, alternate_representations,
               normalized_type, normalized_unit,
               coalesce(value_number::text, value_integer::text, value_text,
                        value_boolean::text) AS normalized_value,
