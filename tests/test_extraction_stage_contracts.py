@@ -495,13 +495,22 @@ def test_admission_keeps_ambiguous_quote_for_localization(attribute_request, att
     assert citation.quote == "600"
 
 
-def test_gold_schedule_references_pinned_native_source():
+def test_gold_schedule_replays_v6_against_pinned_native_source():
+    from decimal import Decimal
+    from types import SimpleNamespace
+
+    from powerforge_extraction.attribute_admission import admit_attributes
+    from powerforge_extraction.publication import build_publication
+    from powerforge_extraction.stage_contracts import RecognitionResponse
+
     case = json.loads(Path("evals/phase6r/positioned-schedule.gold.json").read_text())
     assert case["source"] == FIXTURE.as_posix()
     source = FIXTURE.read_bytes()
     assert hashlib.sha256(source).hexdigest() == case["sha256"]
     prepared = prepare_pdf(source)
-    _, texts = sources(prepared)
+    geometry, texts = sources(prepared)
+    layout, _ = derive(prepared)
+    _, bodies = selected_readings(prepared.manifest, geometry, texts)
     by_digest = {hashlib.sha256(raw).hexdigest(): raw.decode() for raw in texts.values()}
     (page,) = case["pages"]
     assert page["page_number"] == prepared.manifest.owner.page_number
@@ -516,6 +525,84 @@ def test_gold_schedule_references_pinned_native_source():
             start, end = evidence["span"]
             assert 0 <= start < end <= len(text)
             assert text[start:end] == evidence["source_text"]
+
+    def citations(occurrences):
+        return [
+            {"kind": "QUOTE", "role": occurrence["role"], "quote": occurrence["source_text"]}
+            for occurrence in occurrences
+        ]
+
+    gold_equipment = page["equipment"]
+    upstream = RecognitionResponse.model_validate_json(
+        json.dumps(
+            {
+                "version": VERSION,
+                "stage": "EQUIPMENT_RECOGNITION",
+                "page_context_hash": layout.identity_hash,
+                "equipment": [
+                    dict(
+                        local_ref=item["id"],
+                        source_description=item["description"],
+                        registry_type=item["registry_type"],
+                        tag=item["tag"],
+                        tag_state=item["tag_state"],
+                        qualification=item["qualification"],
+                        raw_qualification=None,
+                        evidence=citations(item["evidence"]),
+                    )
+                    for item in gold_equipment
+                ],
+            }
+        )
+    )
+    inputs = SimpleNamespace(
+        page_context_hash=upstream.page_context_hash,
+        upstream_hash=contract_hash(upstream),
+        upstream=upstream,
+        attribute_catalog=attribute_catalog(upstream),
+    )
+    response = {
+        "version": ATTRIBUTE_VERSION,
+        "stage": "ATTRIBUTE_EXTRACTION",
+        "page_context_hash": inputs.page_context_hash,
+        "upstream_hash": inputs.upstream_hash,
+        "attributes": [
+            {
+                **{
+                    key: value
+                    for key, value in item.items()
+                    if key not in {"id", "equipment_id", "mapping_status", "normalized", "evidence"}
+                },
+                "local_ref": item["id"],
+                "equipment_ref": item["equipment_id"],
+                "association": "ASSERTED",
+                "evidence": citations(item["evidence"]),
+            }
+            for item in page["attributes"]
+        ],
+        "raw_unmapped": [],
+    }
+    admitted = admit_attributes(inputs, json.dumps(response).encode())
+    assert not admitted.fatal and not admitted.rejected
+    source_context = SimpleNamespace(layout=layout, text=texts, bodies=bodies)
+    published = build_publication(inputs, admitted.result, source_context)
+    artifact_sha = {
+        body.text_artifact.id: hashlib.sha256(texts[alias]).hexdigest()
+        for alias, body in bodies.items()
+    }
+    for observation, expected in zip(published, page["attributes"], strict=True):
+        assert observation.fields["owner_ref"] == expected["equipment_id"]
+        assert observation.fields["mapping_status"] == expected["mapping_status"]
+        for field in ("raw_value", "raw_unit", "proposed_value", "proposed_unit"):
+            assert observation.fields[field] == expected[field]
+        assert observation.fields["normalized_type"] == expected["normalized"]["type"]
+        assert observation.fields["normalized_unit"] == expected["normalized"]["unit"]
+        assert observation.fields["value_number"] == Decimal(expected["normalized"]["value"])
+        for actual, gold in zip(observation.evidence, expected["evidence"], strict=True):
+            assert actual["localization"] == gold["localization"]
+            assert actual["role"] == gold["role"] and actual["quote"] == gold["source_text"]
+            assert artifact_sha[actual["text_artifact_id"]] == gold["text_artifact_sha256"]
+            assert [actual["start"], actual["end"]] == gold["span"]
 
 
 def test_attribute_response_reports_upstream_identity_mismatch(

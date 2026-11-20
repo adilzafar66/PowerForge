@@ -53,7 +53,6 @@
           "raw_value": "600",
           "raw_unit": "V",
           "qualifiers": [],
-          "proposed_enum_value": null,
           "mapping_status": "MAPPED",
           "normalized": {
             "type": "NUMBER",
@@ -105,7 +104,12 @@
               "region": null,
               "localization": "RESOLVED"
             }
-          ]
+          ],
+          "origin": "EXTRACTED",
+          "proposed_value": "600",
+          "proposed_unit": "V",
+          "value_form": "SINGLE",
+          "alternate_representations": []
         }
       ]
     }

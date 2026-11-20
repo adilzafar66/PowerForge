@@ -10,6 +10,7 @@ from powerforge_engineering_model.enums import EquipmentType
 from powerforge_extraction.evidence_localization import EvidenceLocalizer
 from powerforge_extraction.publication import build_publication
 from powerforge_extraction.stage_contracts import (
+    QuoteCitation,
     ReadingCitation,
     RegistryAssertion,
 )
@@ -582,7 +583,7 @@ def test_siemens_style_inline_models_and_reviewable_inference():
             drawn_table(
                 rows=[
                     ("Device", "Description"),
-                    *[(model, "3 Pole") for model in models],
+                    *[(model, "CMD6 3 Pole" if model == "CMD6" else "Breaker") for model in models],
                     ("Trip Unit", "ETU745"),
                 ]
             )
@@ -649,6 +650,15 @@ def test_siemens_style_inline_models_and_reviewable_inference():
                 proposed_value="ETU745",
                 evidence=(cite(source, "ETU745"),),
             ),
+            assertion(
+                "inline-poles",
+                attribute_key="pole_count",
+                equipment_ref="CMD6",
+                raw_label=None,
+                raw_value="3 Pole",
+                proposed_value=3,
+                evidence=(QuoteCitation(kind="QUOTE", role="VALUE", quote="3 Pole"),),
+            ),
             infer("proposal"),
             infer("context", evidence=(cite(source, "ETU745", role="CONTEXT"),)),
             infer("mislabelled-citation", evidence=(cite(source, "ETU745"),)),
@@ -659,12 +669,14 @@ def test_siemens_style_inline_models_and_reviewable_inference():
     )
     wire = SimpleNamespace(upstream=upstream, attribute_catalog=attribute_catalog(upstream))
     observations = build_publication(wire, result, source)
-    *direct, inferred, contextual, mislabelled, invalid, foreign = observations
+    *direct, poles, inferred, contextual, mislabelled, invalid, foreign = observations
     assert len(direct) == 5
     assert all(d.fields["attribute_origin"] == "EXTRACTED" for d in direct)
     assert all(d.fields["value_source_support"] == "TEXT_MATCH" for d in direct)
     assert [d.fields["value_text"] for d in direct] == [*models, "ETU745"]
     assert all(d.fields["raw_label"] is None for d in direct[:-1])
+    assert poles.fields["owner_ref"] == "CMD6" and poles.fields["value_integer"] == 3
+    assert poles.evidence[0]["quote"] == "3 Pole"
     assert inferred.fields["attribute_origin"] == "INFERRED"
     assert inferred.fields["value_text"] == "ELECTRONIC" and not inferred.evidence
     assert (
@@ -883,9 +895,11 @@ def test_genuine_qualifiers_and_combined_values_stay_unmapped(stage_inputs):
 
 def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
     """Publication of a reviewed response fixture, without simulating AI reasoning."""
+    from powerforge_extraction.attribute_admission import admit_attributes
     from powerforge_extraction.stage_contracts import (
         ATTRIBUTE_VERSION,
         VERSION,
+        AlternateRepresentation,
         AttributeResponse,
         EquipmentObservation,
         InferredAssertion,
@@ -899,12 +913,13 @@ def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
         prepare_pdf(
             drawn_table(
                 rows=[
-                    ("Trip Unit", "ETU745"),
-                    ("Functions", "LSIG"),
+                    ("Trip Unit", "ETU745 LSIG"),
                     ("Short circuit", "SC=65KA"),
                     ("Bus Bracing", "65KA"),
                     ("Phase notation", "3PH"),
                     ("Voltage", "347/600V"),
+                    ("Current", "400 A / 600 A"),
+                    ("Width", "20 in (508.000 mm)"),
                     ("Standard / Branch device", "UL489 600A"),
                 ]
             )
@@ -1015,6 +1030,29 @@ def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
             "Example Manufacturer",
             "The synthetic product identification supports this manufacturer proposal.",
         ),
+        assertion(
+            "compound-current",
+            equipment_ref="bus",
+            attribute_key="short_circuit_current_rating",
+            raw_value="400 A / 600 A",
+            raw_unit="A",
+            proposed_value="400/600",
+            proposed_unit="A",
+            value_form="MULTIPLE",
+            evidence=(QuoteCitation(kind="QUOTE", role="VALUE", quote="400 A / 600 A"),),
+        ),
+        assertion(
+            "dimension",
+            equipment_ref="bus",
+            attribute_key="enclosure_width",
+            raw_value="20 in (508.000 mm)",
+            raw_unit="in",
+            proposed_value="20",
+            proposed_unit="in",
+            value_form="EQUIVALENT_UNITS",
+            alternate_representations=(AlternateRepresentation(value="508.000", unit="mm"),),
+            evidence=(QuoteCitation(kind="QUOTE", role="VALUE", quote="20 in (508.000 mm)"),),
+        ),
     )
     response = AttributeResponse(
         version=ATTRIBUTE_VERSION,
@@ -1024,8 +1062,15 @@ def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
         attributes=attributes,
         raw_unmapped=raw,
     )
-    wire = SimpleNamespace(upstream=upstream, attribute_catalog=attribute_catalog(upstream))
-    observations = build_publication(wire, response, source)
+    wire = SimpleNamespace(
+        upstream=upstream,
+        attribute_catalog=attribute_catalog(upstream),
+        page_context_hash=upstream.page_context_hash,
+        upstream_hash=contract_hash(upstream),
+    )
+    admitted = admit_attributes(wire, response.model_dump_json().encode())
+    assert not admitted.fatal and not admitted.rejected
+    observations = build_publication(wire, admitted.result, source)
     rows = {o.fields["local_ref"]: o.fields for o in observations}
     assert rows["model"]["value_text"] == "ETU745"
     assert rows["technology"]["value_text"] == "ELECTRONIC"
@@ -1036,6 +1081,11 @@ def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
     assert rows["voltage"]["reason_code"] == "UNREPRESENTABLE_VALUE_FORM"
     assert "value_number" not in rows["voltage"]
     assert attributes[4].source_expression == "347/600V"
+    assert rows["compound-current"]["mapping_status"] == "UNMAPPED"
+    assert rows["compound-current"]["proposed_value"] == "400/600"
+    assert rows["dimension"]["alternate_representations"] == [{"value": "508.000", "unit": "mm"}]
+    assert rows["dimension"]["value_number"] == Decimal("508")
+    assert rows["dimension"]["normalized_unit"] == "mm"
     assert rows["manufacturer"]["attribute_origin"] == "INFERRED"
     assert all(
         rows[ref]["value_source_support"] == "UNVERIFIED"
