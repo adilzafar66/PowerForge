@@ -5,8 +5,6 @@ from dataclasses import dataclass
 from decimal import Decimal, DecimalException
 from typing import Literal
 
-from powerforge_engineering_model.errors import EngineeringModelError
-from powerforge_engineering_model.registry import normalize_attribute_value
 from powerforge_extraction.evidence_localization import EvidenceLocalizer
 from powerforge_extraction.stage_contracts import (
     AttributeResponse,
@@ -14,10 +12,10 @@ from powerforge_extraction.stage_contracts import (
     NoEligibleAttributes,
     RegistryAssertion,
 )
-from powerforge_extraction.unit_notation import SCALAR, matches_proposal, source_supports_unit
+from powerforge_extraction.unit_notation import SCALAR
+from powerforge_extraction.value_proposal import normalize_proposal
 
-VERSION = "phase-6r-publication-v7"
-BOOLEAN = {"true": True, "yes": True, "false": False, "no": False}
+VERSION = "phase-6r-publication-v8"
 ValueSourceSupport = Literal["TEXT_MATCH", "TEXT_MISMATCH", "UNVERIFIED"]
 
 
@@ -26,70 +24,6 @@ class Observation:
     fields: dict
     evidence: list[dict]
     issues: tuple[str, ...] = ()
-
-
-def _value(item, definition, evidence):
-    value_type = definition.value_type
-    if isinstance(item, InferredAssertion):
-        text = item.proposed_value
-        raw = text.strip()
-        unit = item.proposed_unit
-        enum = item.proposed_value
-        if definition.canonical_unit is not None and unit is None:
-            return "UNMAPPED", "UNIT_MISSING_OR_AMBIGUOUS", {}
-    else:
-        text = item.raw_value
-        raw = text.strip()
-        raw_unit = item.raw_unit.strip() if item.raw_unit is not None else None
-        unit = item.proposed_unit
-        enum = item.proposed_enum_value
-        if item.value_form != "SINGLE" or item.qualifiers:
-            return "UNMAPPED", "UNREPRESENTABLE_VALUE_FORM", {}
-        if definition.canonical_unit is not None or raw_unit is not None or unit is not None:
-            if not raw_unit or unit is None:
-                return "UNMAPPED", "UNIT_MISSING_OR_AMBIGUOUS", {}
-            if not matches_proposal(raw_unit, unit, definition.supported_units):
-                return "UNMAPPED", "UNIT_INTERPRETATION_UNVERIFIED", {}
-            if raw.endswith(raw_unit):
-                number = raw[: -len(raw_unit)].strip()
-                if SCALAR.fullmatch(number):
-                    raw = number
-            if not source_supports_unit(raw, raw_unit, unit, evidence):
-                return "UNMAPPED", "UNIT_MISSING_OR_AMBIGUOUS", {}
-    if unit is not None and unit not in definition.supported_units:
-        return "INVALID", "INVALID_UNIT", {}
-    try:
-        if value_type in {"NUMBER", "INTEGER"}:
-            if len(raw) > 128 or not SCALAR.fullmatch(raw):
-                return "INVALID", "INVALID_VALUE", {}
-            value = Decimal(raw)
-            if abs(value.adjusted()) > 256 or abs(value.as_tuple().exponent) > 256:
-                return "INVALID", "INVALID_VALUE", {}
-        elif value_type == "BOOLEAN":
-            value = BOOLEAN[raw.casefold()]
-        elif value_type == "ENUM":
-            value = enum
-            if value not in definition.allowed_values:
-                return "INVALID", "INVALID_VALUE", {}
-        else:
-            if not raw:
-                return "INVALID", "INVALID_VALUE", {}
-            value = text
-        value = normalize_attribute_value(definition.equipment_type, definition.key, value, unit)
-        if value_type == "INTEGER" and not -(2**63) <= value < 2**63:
-            return "INVALID", "INVALID_VALUE", {}
-    except (EngineeringModelError, DecimalException, KeyError):
-        return "INVALID", "INVALID_VALUE", {}
-    slot = {"ENUM": "text", "TEXT": "text"}.get(value_type, value_type.lower())
-    return (
-        "MAPPED",
-        None,
-        {
-            "normalized_type": value_type,
-            "normalized_unit": definition.canonical_unit,
-            f"value_{slot}": value,
-        },
-    )
 
 
 def _value_source_support(item, definition, evidence, localizer) -> ValueSourceSupport:
@@ -195,7 +129,7 @@ def build_publication(wire, result, source):
         elif definition is None:
             status, reason, normalized = "UNMAPPED", "UNKNOWN_ATTRIBUTE_KEY", {}
         else:
-            status, reason, normalized = _value(item, definition, evidence)
+            status, reason, normalized = normalize_proposal(item, definition, evidence)
         fields = {
             "kind": "ATTRIBUTE",
             "local_ref": item.local_ref,
@@ -225,8 +159,15 @@ def build_publication(wire, result, source):
                 value_source_support=_value_source_support(item, definition, evidence, localizer),
                 qualifiers=list(item.qualifiers),
                 value_form=item.value_form,
-                proposed_enum_value=item.proposed_enum_value if registry_assertion else None,
-                proposed_unit=item.proposed_unit if registry_assertion else None,
+            )
+        if isinstance(item, RegistryAssertion):
+            fields.update(
+                proposed_value=item.proposed_value,
+                proposed_unit=item.proposed_unit,
+                alternate_representations=[
+                    alternate.model_dump(mode="json")
+                    for alternate in item.alternate_representations
+                ],
             )
         observations.append(Observation(fields, evidence, issues))
         if normalized:

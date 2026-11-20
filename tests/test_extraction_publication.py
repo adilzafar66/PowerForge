@@ -216,6 +216,7 @@ def stage_inputs(pinned_source):
         page_context_hash="0" * 64,
         equipment=(
             equipment("owner", EquipmentType.TWO_WINDING_TRANSFORMER),
+            equipment("bus", EquipmentType.BUS),
             equipment("legend", EquipmentType.TWO_WINDING_TRANSFORMER, "LEGEND_ONLY"),
             equipment("unknown", None),
         ),
@@ -250,7 +251,8 @@ def assertion(ref, **fields):
             "value_form": "SINGLE",
             "evidence": (),
             "attribute_key": "secondary_voltage",
-            "proposed_enum_value": None,
+            "proposed_value": "600",
+            "alternate_representations": (),
             "proposed_unit": None,
             **fields,
         }
@@ -270,6 +272,7 @@ def test_published_units_and_qualifiers(stage_inputs, pinned_source):
             evidence=header,
             value_form="RANGE",
             raw_value="600–690",
+            proposed_value="600–690",
             qualifiers=("continuous",),
         ),
         assertion(
@@ -278,9 +281,17 @@ def test_published_units_and_qualifiers(stage_inputs, pinned_source):
             proposed_unit="V",
             evidence=header,
             raw_value="600 / 347",
+            proposed_value="600/347",
             value_form="MULTIPLE",
         ),
-        assertion("e", raw_unit="V", proposed_unit="V", evidence=header, raw_value="NaN"),
+        assertion(
+            "e",
+            raw_unit="V",
+            proposed_unit="V",
+            evidence=header,
+            raw_value="NaN",
+            proposed_value="NaN",
+        ),
         assertion(
             "f",
             raw_unit="V",
@@ -294,9 +305,17 @@ def test_published_units_and_qualifiers(stage_inputs, pinned_source):
             proposed_unit="V",
             evidence=header,
             raw_value="600.1234567890123456789012345",
+            proposed_value="600.1234567890123456789012345",
         ),
         assertion("h", raw_unit="kV", proposed_unit="kV", evidence=header),
-        assertion("i", raw_unit="V", proposed_unit="V", evidence=header, raw_value="601"),
+        assertion(
+            "i",
+            raw_unit="V",
+            proposed_unit="V",
+            evidence=header,
+            raw_value="601",
+            proposed_value="601",
+        ),
         assertion("j", raw_unit="V", proposed_unit="kV", evidence=header),
     )
     (
@@ -321,9 +340,9 @@ def test_published_units_and_qualifiers(stage_inputs, pinned_source):
     assert missing["reason_code"] == disputed["reason_code"] == "UNIT_MISSING_OR_AMBIGUOUS"
     assert disputed["value_source_support"] == "TEXT_MATCH"
     assert qualified["qualifiers"] == ["continuous"] and qualified["raw_value"] == "600–690"
-    assert qualified["reason_code"] == multiple["reason_code"] == "UNREPRESENTABLE_VALUE_FORM"
+    assert qualified["reason_code"] == multiple["reason_code"] == "PROPOSAL_TYPE_MISMATCH"
     assert qualified["value_source_support"] == multiple["value_source_support"] == "UNVERIFIED"
-    assert malformed["reason_code"] == "INVALID_VALUE"
+    assert malformed["reason_code"] == "PROPOSAL_TYPE_MISMATCH"
     assert wrong_key["reason_code"] == "UNKNOWN_ATTRIBUTE_KEY"
     assert rejected["reason_code"] == "UNIT_INTERPRETATION_UNVERIFIED"
     assert rejected["raw_unit"] == "V" and rejected["proposed_unit"] == "kV"
@@ -397,8 +416,8 @@ def test_value_support_defers_to_transcription_conflicts(stage_inputs, pinned_so
 
 
 def test_units_match_label_or_value_without_guessing_unsupported_spellings():
-    from powerforge_extraction.publication import _value
     from powerforge_extraction.stage_contracts import AttributeDefinitionView
+    from powerforge_extraction.value_proposal import normalize_proposal
 
     definition = AttributeDefinitionView(
         equipment_type=EquipmentType.TWO_WINDING_TRANSFORMER,
@@ -418,7 +437,7 @@ def test_units_match_label_or_value_without_guessing_unsupported_spellings():
 
     def apply(raw_unit, evidence, proposed_unit="V", **fields):
         observation = assertion("a", raw_unit=raw_unit, proposed_unit=proposed_unit, **fields)
-        return _value(observation, definition, evidence)
+        return normalize_proposal(observation, definition, evidence)
 
     assert apply("V", [resolved("LABEL", "(V):")])[2]["value_number"] == Decimal("0.6")
     assert apply("V", [resolved("VALUE", "600V")], raw_value="600 V")[2]["value_number"] == (
@@ -449,13 +468,13 @@ def test_owner_and_enum_are_independent_of_evidence(stage_inputs):
 
     common = {"attribute_key": "primary_connection", "raw_value": "Star"}
     rows = stage_inputs(
-        assertion("a", **common, proposed_enum_value="WYE"),
-        assertion("b", **common, proposed_enum_value="Star"),
-        assertion("c", **common),
-        assertion("d", **common, equipment_ref="absent", proposed_enum_value="WYE"),
-        assertion("e", **common, equipment_ref="legend", proposed_enum_value="WYE"),
-        assertion("f", **common, equipment_ref="unknown", proposed_enum_value="WYE"),
-        assertion("g", **common, association="UNASSIGNED", proposed_enum_value="WYE"),
+        assertion("a", **common, proposed_value="WYE"),
+        assertion("b", **common, proposed_value="Star"),
+        assertion("c", **common, proposed_value=None),
+        assertion("d", **common, equipment_ref="absent", proposed_value="WYE"),
+        assertion("e", **common, equipment_ref="legend", proposed_value="WYE"),
+        assertion("f", **common, equipment_ref="unknown", proposed_value="WYE"),
+        assertion("g", **common, association="UNASSIGNED", proposed_value="WYE"),
         raw_unmapped=(
             RawUnmappedAssertion(
                 display_label=None,
@@ -472,8 +491,9 @@ def test_owner_and_enum_are_independent_of_evidence(stage_inputs):
         ),
     )
     assert rows[0]["value_text"] == "WYE" and rows[0]["raw_value"] == "Star"
-    assert rows[1]["proposed_enum_value"] == "Star"
-    assert all(row["reason_code"] == "INVALID_VALUE" for row in rows[1:3])
+    assert rows[1]["proposed_value"] == "Star"
+    assert rows[1]["reason_code"] == "PROPOSAL_TYPE_MISMATCH"
+    assert rows[2]["reason_code"] == "NO_VALUE_PROPOSAL"
     assert all(
         row["reason_code"] == "UNASSIGNED_OWNER"
         and row["association"] == "UNASSIGNED"
@@ -485,12 +505,12 @@ def test_owner_and_enum_are_independent_of_evidence(stage_inputs):
 
 
 def test_boolean_and_integer_lexical_policy():
-    from powerforge_extraction.publication import _value
     from powerforge_extraction.stage_contracts import (
         EquipmentObservation,
         RecognitionResponse,
         attribute_catalog,
     )
+    from powerforge_extraction.value_proposal import normalize_proposal
 
     sample = RecognitionResponse(
         version="phase-6r-v1",
@@ -513,14 +533,35 @@ def test_boolean_and_integer_lexical_policy():
     definitions = attribute_catalog(sample)
     boolean = next(d for d in definitions if d.value_type == "BOOLEAN")
     integer = next(d for d in definitions if d.value_type == "INTEGER" and d.canonical_unit is None)
-    assert _value(assertion("a", raw_value="  YeS "), boolean, [])[2]["value_boolean"] is True
-    assert _value(assertion("b", raw_value="available"), boolean, [])[1] == "INVALID_VALUE"
     assert (
-        _value(assertion("c", raw_value=str(2**63 - 1)), integer, [])[2]["value_integer"]
+        normalize_proposal(assertion("a", raw_value="  YeS ", proposed_value=True), boolean, [])[2][
+            "value_boolean"
+        ]
+        is True
+    )
+    assert (
+        normalize_proposal(assertion("b", raw_value="available", proposed_value=True), boolean, [])[
+            1
+        ]
+        == "SOURCE_EXPRESSION_UNVERIFIED"
+    )
+    assert (
+        normalize_proposal(
+            assertion("c", raw_value=str(2**63 - 1), proposed_value=2**63 - 1), integer, []
+        )[2]["value_integer"]
         == 2**63 - 1
     )
-    for raw in (str(2**63), "1.2", "1e1000000"):
-        assert _value(assertion("d", raw_value=raw), integer, [])[1] == "INVALID_VALUE"
+    for raw, proposal, reason in (
+        (str(2**63), 2**63, "INVALID_VALUE"),
+        ("1.2", 1, "SOURCE_VALUE_MISMATCH"),
+        ("1e1000000", "1e1000000", "PROPOSAL_TYPE_MISMATCH"),
+    ):
+        assert (
+            normalize_proposal(assertion("d", raw_value=raw, proposed_value=proposal), integer, [])[
+                1
+            ]
+            == reason
+        )
 
 
 def test_siemens_style_inline_models_and_reviewable_inference():
@@ -594,6 +635,7 @@ def test_siemens_style_inline_models_and_reviewable_inference():
                     equipment_ref=model,
                     raw_label=None,
                     raw_value=model,
+                    proposed_value=model,
                     evidence=(cite(source, model),),
                 )
                 for model in models
@@ -604,6 +646,7 @@ def test_siemens_style_inline_models_and_reviewable_inference():
                 equipment_ref="WL",
                 raw_label="Trip Unit",
                 raw_value="ETU745",
+                proposed_value="ETU745",
                 evidence=(cite(source, "ETU745"),),
             ),
             infer("proposal"),
@@ -710,8 +753,8 @@ def test_proposed_unit_verifies_spelling_and_scale_across_registry_families(
         get_attribute_definition,
         supported_input_units,
     )
-    from powerforge_extraction.publication import _value
     from powerforge_extraction.stage_contracts import AttributeDefinitionView
+    from powerforge_extraction.value_proposal import normalize_proposal
 
     attribute = get_attribute_definition(equipment, key)
     definition = AttributeDefinitionView(
@@ -727,10 +770,15 @@ def test_proposed_unit_verifies_spelling_and_scale_across_registry_families(
         extraction_guidance=None,
     )
     item = assertion(
-        "rating", attribute_key=key, raw_value="65", raw_unit=raw_unit, proposed_unit=proposed_unit
+        "rating",
+        attribute_key=key,
+        raw_value="65",
+        proposed_value="65",
+        raw_unit=raw_unit,
+        proposed_unit=proposed_unit,
     )
     evidence = [dict(role="VALUE", localization="RESOLVED", quote=source_value)]
-    status, _, fields = _value(item, definition, evidence)
+    status, _, fields = normalize_proposal(item, definition, evidence)
     if normalized is None:
         assert status == "UNMAPPED" and fields == {}
     else:
@@ -738,10 +786,12 @@ def test_proposed_unit_verifies_spelling_and_scale_across_registry_families(
         assert fields["value_number"] == Decimal(normalized)
         assert fields["normalized_unit"] == attribute.canonical_unit
         uncertain = [dict(evidence[0], source_issues=["TRANSCRIPTION_CONFLICT"])]
-        assert _value(item, definition, uncertain)[0] == "UNMAPPED"
+        assert normalize_proposal(item, definition, uncertain)[0] == "UNMAPPED"
 
 
-def test_equipment_identifier_can_support_its_literal_attribute_value(stage_inputs, pinned_source):
+def test_equipment_identifier_can_support_its_literal_attributenormalize_proposal(
+    stage_inputs, pinned_source
+):
     # A model can use the very same source token as the equipment description.
     rows = stage_inputs(
         assertion(
@@ -773,8 +823,8 @@ def test_equipment_identifier_can_support_its_literal_attribute_value(stage_inpu
 
 
 def test_genuine_qualifiers_and_combined_values_stay_unmapped(stage_inputs):
-    from powerforge_extraction.publication import _value
     from powerforge_extraction.stage_contracts import AttributeDefinitionView
+    from powerforge_extraction.value_proposal import normalize_proposal
 
     definition = AttributeDefinitionView(
         equipment_type=EquipmentType.BUS,
@@ -789,15 +839,21 @@ def test_genuine_qualifiers_and_combined_values_stay_unmapped(stage_inputs):
         extraction_guidance=None,
     )
     assert (
-        _value(assertion("phases", attribute_key="phase_count", raw_value="3"), definition, [])[2][
-            "value_integer"
-        ]
+        normalize_proposal(
+            assertion("phases", attribute_key="phase_count", raw_value="3", proposed_value=3),
+            definition,
+            [],
+        )[2]["value_integer"]
         == 3
     )
     assert (
-        _value(
+        normalize_proposal(
             assertion(
-                "qualified-phases", attribute_key="phase_count", raw_value="3", qualifiers=("3PH",)
+                "qualified-phases",
+                attribute_key="phase_count",
+                raw_value="3",
+                proposed_value=3,
+                qualifiers=("3PH",),
             ),
             definition,
             [],
@@ -805,8 +861,20 @@ def test_genuine_qualifiers_and_combined_values_stay_unmapped(stage_inputs):
         == "UNREPRESENTABLE_VALUE_FORM"
     )
     rows = stage_inputs(
-        assertion("model", attribute_key="model", raw_value="MODEL-X", qualifiers=("LSIG",)),
-        assertion("voltage", raw_value="347/600V", raw_unit="V", value_form="MULTIPLE"),
+        assertion(
+            "model",
+            attribute_key="model",
+            raw_value="MODEL-X",
+            proposed_value="MODEL-X",
+            qualifiers=("LSIG",),
+        ),
+        assertion(
+            "voltage",
+            raw_value="347/600V",
+            raw_unit="V",
+            value_form="MULTIPLE",
+            proposed_value="347/600",
+        ),
     )
     assert rows[0]["reason_code"] == "UNREPRESENTABLE_VALUE_FORM"
     assert rows[1]["mapping_status"] == "UNMAPPED"
@@ -865,6 +933,7 @@ def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
         equipment_ref="breaker",
         attribute_key="trip_unit_model",
         raw_value="ETU745",
+        proposed_value="ETU745",
         evidence=(cite(source, "ETU745"),),
     )
 
@@ -917,6 +986,7 @@ def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
             equipment_ref="bus",
             attribute_key="short_circuit_current_rating",
             raw_value="65KA",
+            proposed_value="65",
             raw_unit="KA",
             proposed_unit="kA",
             evidence=(cite(source, "SC=65KA"),),
@@ -925,7 +995,8 @@ def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
             "phases",
             equipment_ref="bus",
             attribute_key="phase_count",
-            raw_value="3",
+            raw_value="3PH",
+            proposed_value=3,
             evidence=(cite(source, "3PH"),),
         ),
         inferred(
@@ -962,7 +1033,8 @@ def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
     assert rows["sccr"]["value_number"] == Decimal("65")
     assert rows["sccr"]["raw_value"] == "65KA" and rows["sccr"]["raw_unit"] == "KA"
     assert rows["phases"]["value_integer"] == 3 and not rows["phases"]["qualifiers"]
-    assert rows["voltage"]["value_number"] == Decimal("0.6")
+    assert rows["voltage"]["reason_code"] == "UNREPRESENTABLE_VALUE_FORM"
+    assert "value_number" not in rows["voltage"]
     assert attributes[4].source_expression == "347/600V"
     assert rows["manufacturer"]["attribute_origin"] == "INFERRED"
     assert all(
@@ -977,3 +1049,258 @@ def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
         o.fields.get("proposed_attribute_key") == "short_time_withstand_current"
         for o in observations
     )
+
+
+def proposal_definition(equipment, key):
+    from powerforge_engineering_model.registry import (
+        get_attribute_definition,
+        supported_input_units,
+    )
+    from powerforge_extraction.stage_contracts import AttributeDefinitionView
+
+    definition = get_attribute_definition(equipment, key)
+    return AttributeDefinitionView(
+        equipment_type=EquipmentType(equipment),
+        key=key,
+        name=definition.display_name,
+        required=definition.required,
+        value_type=definition.value_type.value,
+        canonical_unit=definition.canonical_unit,
+        supported_units=supported_input_units(equipment, key),
+        allowed_values=definition.allowed_values,
+        notes=definition.notes,
+        extraction_guidance=None,
+    )
+
+
+@pytest.mark.parametrize(
+    "raw,proposal,unit,expected",
+    [
+        ("12 Sym. kA", "12", "kA", Decimal("12")),
+        ("1600 A RMS", "1600", "A", Decimal("1.6")),
+        ("Isc = 25 kA", "25", "kA", Decimal("25")),
+        ("15.75 A", "15.75", "A", Decimal("0.01575")),
+        ("+0012.7500 kA", "12.75", "kA", Decimal("12.75")),
+        ("-1.25e3 A", "-1250.000", "A", Decimal("-1.25")),
+        ("12 kA", 12, "kA", "PROPOSAL_TYPE_MISMATCH"),
+        ("12 kA", None, "kA", "NO_VALUE_PROPOSAL"),
+        ("12.75 kA", "13", "kA", "SOURCE_VALUE_MISMATCH"),
+        ("1.2 kA", "1200", "A", "SOURCE_VALUE_MISMATCH"),
+        ("400/600 A", "600", "A", "SOURCE_VALUE_MISMATCH"),
+        ("3 × 500 A", "1500", "A", "SOURCE_VALUE_MISMATCH"),
+        ("12 kA at 480 V", "12", "kA", "SOURCE_VALUE_MISMATCH"),
+        ("12 kA at full load", "12", "kA", "UNREPRESENTABLE_VALUE_FORM"),
+        ("12–15 kA", "12", "kA", "SOURCE_VALUE_MISMATCH"),
+        ("1200A1", "1200", "A", "SOURCE_EXPRESSION_UNVERIFIED"),
+        ("CMD6", "6", "A", "SOURCE_EXPRESSION_UNVERIFIED"),
+        ("1,600 A", "1600", "A", "SOURCE_EXPRESSION_UNVERIFIED"),
+        ("12 kg", "12", "A", "SOURCE_EXPRESSION_UNVERIFIED"),
+        ("12 kA", "12", "A", "SOURCE_UNIT_MISMATCH"),
+        ("12 kA", "1e" + "9" * 100, "kA", "INVALID_VALUE"),
+        (
+            "1.234567891234567891234567891234567894 A",
+            "1.234567891234567891234567891234567894",
+            "A",
+            "INEXACT_NORMALIZATION",
+        ),
+    ],
+)
+def test_numeric_proposal_requires_an_exact_unambiguous_literal(raw, proposal, unit, expected):
+    from powerforge_extraction.value_proposal import normalize_proposal
+
+    definition = proposal_definition("BUS", "short_circuit_current_rating")
+    item = assertion(
+        "numeric",
+        attribute_key=definition.key,
+        raw_value=raw,
+        proposed_value=proposal,
+        raw_unit=unit,
+        proposed_unit=unit,
+    )
+    evidence = [
+        {"role": "VALUE", "localization": "RESOLVED", "quote": raw},
+        {"role": "HEADER", "localization": "RESOLVED", "quote": f"Rating ({unit})"},
+    ]
+    status, reason, fields = normalize_proposal(item, definition, evidence)
+    if isinstance(expected, Decimal):
+        assert (status, reason, fields["value_number"]) == ("MAPPED", None, expected)
+    else:
+        assert reason == expected and not fields
+        if expected in {"SOURCE_VALUE_MISMATCH", "SOURCE_UNIT_MISMATCH", "INVALID_VALUE"}:
+            assert status == "INVALID"
+        else:
+            assert status == "UNMAPPED"
+
+
+@pytest.mark.parametrize(
+    "raw,proposal,form",
+    [
+        ("400/600 V", "400/600", "MULTIPLE"),
+        ("12–15 kA", "12–15", "RANGE"),
+        ("3 × 500 A", "3 × 500", "MULTIPLE"),
+        ("400 A / 600 A", "400/600", "MULTIPLE"),
+    ],
+)
+def test_source_faithful_compound_remains_reviewable(stage_inputs, raw, proposal, form):
+    (row,) = stage_inputs(
+        assertion("compound", raw_value=raw, proposed_value=proposal, value_form=form)
+    )
+    assert row["mapping_status"] == "UNMAPPED"
+    assert row["raw_value"] == raw and row["proposed_value"] == proposal
+    assert "value_number" not in row
+
+
+@pytest.mark.parametrize(
+    "raw,primary,primary_literal,primary_unit,alternate,alternate_unit,expected",
+    [
+        ("20”(508mm)W", "20", "”", "in", "508", "mm", None),
+        ("0 in (0 mm)", "0", "in", "in", "0", "mm", None),
+        ("508mm (20”)", "508", "mm", "mm", "20", "”", None),
+        ("20 in (50.8 cm)", "20", "in", "in", "50.8", "cm", None),
+        ("20”(500mm)W", "20", "”", "in", "500", "mm", "INCONSISTENT_REPRESENTATIONS"),
+        ("20”(500mm)W", "20", "”", "in", "508", "mm", "UNVERIFIED_REPRESENTATIONS"),
+        ("20”(508mm)W", "508", "”", "in", "20", "mm", "SOURCE_VALUE_MISMATCH"),
+        ("20”(508mm)W", "20", "”", "in", "508", "cm", "UNVERIFIED_REPRESENTATIONS"),
+        ("20 in", "20", "in", "in", "508", "mm", "UNVERIFIED_REPRESENTATIONS"),
+        ("20”(508mm) (50.8cm)", "20", "”", "in", "508", "mm", "UNVERIFIED_REPRESENTATIONS"),
+        (
+            "20 in (508.000000000000000000000000000000000001 mm)",
+            "20",
+            "in",
+            "in",
+            "508.000000000000000000000000000000000001",
+            "mm",
+            "INCONSISTENT_REPRESENTATIONS",
+        ),
+    ],
+)
+def test_alternate_quantities_require_complete_exact_pairs(
+    raw, primary, primary_literal, primary_unit, alternate, alternate_unit, expected
+):
+    from powerforge_extraction.stage_contracts import AlternateRepresentation
+    from powerforge_extraction.value_proposal import normalize_proposal
+
+    definition = proposal_definition("BUS", "enclosure_width")
+    item = assertion(
+        "width",
+        raw_value=raw,
+        raw_unit=primary_literal,
+        proposed_unit=primary_unit,
+        proposed_value=primary,
+        value_form="EQUIVALENT_UNITS",
+        alternate_representations=(AlternateRepresentation(value=alternate, unit=alternate_unit),),
+    )
+    resolved = {"role": "VALUE", "localization": "RESOLVED", "quote": raw}
+    status, reason, fields = normalize_proposal(item, definition, [resolved])
+    assert reason == expected
+    if expected is None:
+        assert status == "MAPPED"
+        assert fields["value_number"] == Decimal("0" if primary == "0" else "508")
+        uncertain = dict(resolved, source_issues=["TRANSCRIPTION_CONFLICT"])
+        for evidence in ([], [uncertain], [dict(resolved, quote="20 in")]):
+            assert normalize_proposal(item, definition, evidence) == (
+                "UNMAPPED",
+                "UNVERIFIED_REPRESENTATIONS",
+                {},
+            )
+    else:
+        assert status == ("INVALID" if expected == "SOURCE_VALUE_MISMATCH" else "UNMAPPED")
+        assert not fields
+
+
+@pytest.mark.parametrize(
+    "equipment,key,raw,proposal,expected",
+    [
+        ("LV_BREAKER", "pole_count", "3 Pole", 3, "MAPPED"),
+        ("LV_BREAKER", "pole_count", "3 Pole", True, "UNMAPPED"),
+        ("LV_BREAKER", "pole_count", "3 Pole", "3", "UNMAPPED"),
+        ("LV_BREAKER", "pole_count", "2.5 Pole", 2, "INVALID"),
+        ("LV_BREAKER", "normally_closed", "No", False, "MAPPED"),
+        ("LV_BREAKER", "normally_closed", "No", True, "INVALID"),
+        ("LV_BREAKER", "normally_closed", "Yes", "true", "UNMAPPED"),
+        ("LV_BREAKER", "normally_closed", "auto", False, "UNMAPPED"),
+        ("LV_BREAKER", "model", " 00-AB 75 ", "00-AB 75", "MAPPED"),
+        ("LV_BREAKER", "model", "00-AB 75", "0-ab75", "INVALID"),
+        ("LV_BREAKER", "trip_unit_type", "Electronic", "ELECTRONIC", "MAPPED"),
+        ("LV_BREAKER", "trip_unit_type", "Electronic", "UNKNOWN_ENUM", "INVALID"),
+    ],
+)
+def test_registry_types_are_strict_and_text_preserves_identifiers(
+    equipment, key, raw, proposal, expected
+):
+    from powerforge_extraction.value_proposal import normalize_proposal
+
+    definition = proposal_definition(equipment, key)
+    item = assertion("typed", raw_value=raw, proposed_value=proposal)
+    status, _, fields = normalize_proposal(item, definition, [])
+    assert status == expected
+    assert bool(fields) == (expected == "MAPPED")
+
+
+@pytest.mark.parametrize(
+    "equipment,key,proposal,unit,expression,expected",
+    [
+        ("LV_BREAKER", "pole_count", 3, None, None, "MAPPED"),
+        ("LV_BREAKER", "pole_count", "3", None, None, "INVALID"),
+        ("LV_BREAKER", "normally_closed", False, None, None, "MAPPED"),
+        ("LV_BREAKER", "normally_closed", "false", None, None, "INVALID"),
+        ("LV_BREAKER", "manufacturer", "Example", None, "CMD6", "MAPPED"),
+        ("LV_BREAKER", "manufacturer", 123, None, None, "INVALID"),
+        ("LV_BREAKER", "trip_unit_type", "ELECTRONIC", None, "ETU745", "MAPPED"),
+        ("LV_BREAKER", "trip_unit_type", "INVENTED", None, None, "INVALID"),
+        ("BUS", "short_circuit_current_rating", "1.25", "kA", None, "MAPPED"),
+        ("BUS", "short_circuit_current_rating", 12, "kA", None, "INVALID"),
+        ("BUS", "short_circuit_current_rating", "1200", "A", "1.2 kA", "INVALID"),
+        ("BUS", "short_circuit_current_rating", "1500", "A", "3 × 500 A", "UNMAPPED"),
+        ("BUS", "short_circuit_current_rating", "600", "A", "400/600 A", "UNMAPPED"),
+    ],
+)
+def test_inferred_proposals_use_registry_types_and_cannot_resolve_source_arithmetic(
+    equipment, key, proposal, unit, expression, expected
+):
+    from powerforge_extraction.stage_contracts import InferredAssertion
+    from powerforge_extraction.value_proposal import normalize_proposal
+
+    definition = proposal_definition(equipment, key)
+    item = InferredAssertion(
+        origin="INFERRED",
+        local_ref="inference",
+        equipment_ref="owner",
+        association="ASSERTED",
+        attribute_key=key,
+        proposed_value=proposal,
+        proposed_unit=unit,
+        source_expression=expression,
+        inference_explanation="Test fixture for a separately reviewable inference.",
+        inference_basis="EQUIPMENT_CHARACTERISTICS",
+        evidence=(),
+    )
+    status, _, fields = normalize_proposal(item, definition, [])
+    assert status == expected and bool(fields) == (expected == "MAPPED")
+
+
+def test_publication_preserves_equivalent_proposals_before_database_write(stage_inputs):
+    from powerforge_extraction.stage_contracts import AlternateRepresentation
+
+    raw = "20”(508.0mm)W"
+    alternates = (AlternateRepresentation(value="508.0", unit="mm"),)
+    (row,) = stage_inputs(
+        assertion(
+            "width",
+            equipment_ref="bus",
+            attribute_key="enclosure_width",
+            raw_value=raw,
+            raw_unit="”",
+            proposed_value="20",
+            proposed_unit="in",
+            value_form="EQUIVALENT_UNITS",
+            alternate_representations=alternates,
+        )
+    )
+    assert row["mapping_status"] == "UNMAPPED"
+    assert row["reason_code"] == "UNVERIFIED_REPRESENTATIONS"
+    assert row["raw_value"] == raw
+    assert row["proposed_value"] == "20"
+    assert row["alternate_representations"] == [{"value": "508.0", "unit": "mm"}]
+    assert row["value_source_support"] == "UNVERIFIED"
+    assert "value_number" not in row

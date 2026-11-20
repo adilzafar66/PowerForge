@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 from decimal import Context, Decimal, DecimalException, localcontext
 from enum import StrEnum
+from fractions import Fraction
 from types import MappingProxyType
 
 from powerforge_engineering_model.errors import (
@@ -97,6 +98,37 @@ def as_decimal(value: object) -> Decimal:
     return number
 
 
+def _conversion_units(input_unit, canonical_unit, semantic_context):
+    source = get_unit(input_unit) if input_unit is not None else None
+    target = get_unit(canonical_unit) if canonical_unit is not None else None
+    if (source is None) != (target is None) or (
+        source is not None and target is not None and source.dimension != target.dimension
+    ):
+        raise IncompatibleUnit(f"Cannot convert {input_unit!r} to {canonical_unit!r}")
+    if "hp" in (input_unit, canonical_unit) and semantic_context not in (
+        UnitSemanticContext.MOTOR_ACTIVE_POWER,
+        UnitSemanticContext.VFD_ACTIVE_POWER,
+    ):
+        raise IncompatibleUnit("Horsepower is permitted only for motor/VFD active-power ratings")
+    return source, target
+
+
+def _convert(number, source, target, input_unit, semantic_context, factor):
+    if (
+        source.dimension == "temperature"
+        and semantic_context != UnitSemanticContext.TEMPERATURE_DIFFERENCE
+    ):
+        if input_unit == "°F":
+            return (number - 32) * 5 / 9
+        return number * 9 / 5 + 32
+    return (
+        number
+        * factor(source.numerator)
+        * factor(target.denominator)
+        / (factor(source.denominator) * factor(target.numerator))
+    )
+
+
 def normalize_value(
     value: object,
     input_unit: str | None,
@@ -110,38 +142,28 @@ def normalize_value(
     Percent and per-unit have distinct dimensions. Horsepower needs an explicit context.
     """
     number = as_decimal(value)
-    source = get_unit(input_unit) if input_unit is not None else None
-    target = get_unit(canonical_unit) if canonical_unit is not None else None
-    if (source is None) != (target is None) or (
-        source is not None and target is not None and source.dimension != target.dimension
-    ):
-        raise IncompatibleUnit(f"Cannot convert {input_unit!r} to {canonical_unit!r}")
-    if "hp" in (input_unit, canonical_unit) and semantic_context not in (
-        UnitSemanticContext.MOTOR_ACTIVE_POWER,
-        UnitSemanticContext.VFD_ACTIVE_POWER,
-    ):
-        raise IncompatibleUnit("Horsepower is permitted only for motor/VFD active-power ratings")
+    source, target = _conversion_units(input_unit, canonical_unit, semantic_context)
     if input_unit == canonical_unit:
         return value if type(value) is int else number
     assert source is not None and target is not None
     try:
         with localcontext(Context(prec=34)):
-            if source.dimension == "temperature":
-                if semantic_context == UnitSemanticContext.TEMPERATURE_DIFFERENCE:
-                    return (
-                        number
-                        * source.numerator
-                        * target.denominator
-                        / (source.denominator * target.numerator)
-                    )
-                if input_unit == "°F":
-                    return (number - 32) * 5 / 9
-                return number * 9 / 5 + 32
-            return (
-                number
-                * source.numerator
-                * target.denominator
-                / (source.denominator * target.numerator)
-            )
+            return _convert(number, source, target, input_unit, semantic_context, Decimal)
     except DecimalException:
         raise InvalidAttributeValue("Number exceeds the supported conversion range") from None
+
+
+def exact_canonical_quantity(
+    value: Decimal | int,
+    input_unit: str | None,
+    canonical_unit: str | None,
+    *,
+    semantic_context: UnitSemanticContext | None = None,
+) -> Fraction:
+    """Represent a bounded quantity exactly for equivalence and precision checks."""
+    source, target = _conversion_units(input_unit, canonical_unit, semantic_context)
+    number = Fraction(value)
+    if input_unit == canonical_unit:
+        return number
+    assert source is not None and target is not None
+    return _convert(number, source, target, input_unit, semantic_context, Fraction)

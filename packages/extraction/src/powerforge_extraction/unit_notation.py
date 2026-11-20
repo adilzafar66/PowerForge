@@ -4,7 +4,7 @@ import re
 
 from powerforge_engineering_model.units import UNITS
 
-VERSION = "source-unit-interpretation-v2"
+VERSION = "source-unit-interpretation-v3"
 SCALAR = re.compile(r"[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?")
 _SOURCE_NUMBER = re.compile(rf"(?<![\w.,+/−-]){SCALAR.pattern}(?![\d.,])")
 
@@ -39,10 +39,10 @@ _BASE_SYMBOLS = {
     "VA": "(?i:VA)",
     "var": "(?i:var)",
     "Hz": "(?i:Hz)",
-    "in": r"""(?:in|["″])""",
-    "ft": r"(?:ft|['′])",
+    "in": r"""(?:in|["″”])""",
+    "ft": r"(?:ft|['′’])",
 }
-_LENGTH_MARKS = frozenset({"'", '"', "′", "″"})
+_LENGTH_MARKS = frozenset({"'", '"', "′", "″", "’", "”"})
 _CONTEXT_SENSITIVE_UNITS = _LENGTH_MARKS | {"in"}
 _BASE_PATTERN = "|".join(
     _BASE_SYMBOLS.get(base, re.escape(base)) for base in _BASE_WORDS if base != "%"
@@ -60,7 +60,7 @@ _SI_NAME = re.compile(
 
 # Keep slash and multiplication expressions together. A supported unit at the
 # start of an unsupported compound is not evidence for that supported unit.
-_WORD = r"""(?:(?i:volt-amperes?)|°?[^\W\d_]+(?:\.[^\W\d_]+)*\.?|[%℃℉'"′″])(?!\w)"""
+_WORD = r"""(?:(?i:volt-amperes?)|°?[^\W\d_]+(?:\.[^\W\d_]+)*\.?|[%℃℉'"′″’”])(?!\w)"""
 _MULTIPLY_OR_ALTERNATIVE = r"[·⋅*×^-]|(?i:\bor\b)"
 _OPERATOR = rf"/|(?i:\bper\b)|{_MULTIPLY_OR_ALTERNATIVE}"
 _HORIZONTAL_SPACE = r"[^\S\r\n]"
@@ -74,7 +74,7 @@ _MIXED_LENGTH = (
 # Degrees followed by arcminutes or arcseconds are a combined angular
 # expression, even though the smaller units use the same marks as lengths.
 _COMPOUND_ANGLE = (
-    rf"""°(?:{_HORIZONTAL_SPACE}*{SCALAR.pattern}{_HORIZONTAL_SPACE}*['′"″]){{1,2}}(?!\w)"""
+    rf"""°(?:{_HORIZONTAL_SPACE}*{SCALAR.pattern}{_HORIZONTAL_SPACE}*['′"″’”]){{1,2}}(?!\w)"""
 )
 _TOKEN = re.compile(
     rf"(?<![^\W\d]|_)(?:{_MIXED_LENGTH}|{_COMPOUND_ANGLE}|"
@@ -83,6 +83,8 @@ _TOKEN = re.compile(
 )
 _VALUE_PART = re.compile(rf"(?P<number>{_SOURCE_NUMBER.pattern})|{_TOKEN.pattern}")
 _SUFFIX_GAP = re.compile(rf"{_HORIZONTAL_SPACE}*(?:[(\[]{_HORIZONTAL_SPACE}*)?")
+_DESCRIPTOR_GAP = re.compile(rf"(?i:sym\.?|asym\.?|rms){_HORIZONTAL_SPACE}+")
+_PARENTHESIZED_NUMBER = re.compile(r"\(\s*[+-]?(?:[0-9]|\.[0-9])")
 _UNIT_OPERATORS = re.compile(_OPERATOR)
 _SPACE = re.compile(rf"{_HORIZONTAL_SPACE}+")
 _UNIT_LABEL = re.compile(r"\bunits?\s*[:=]\s*$", re.IGNORECASE)
@@ -162,12 +164,23 @@ def _length_suffix_is_explicit(quote: str, number: re.Match[str], unit: re.Match
         return True
     if spelling == "in":
         # A following object can make this "in" an English preposition.
-        return _ends_unit_expression(quote, unit.end())
-    if spelling in {'"', "'"}:
+        return _ends_unit_expression(quote, unit.end()) or bool(
+            _PARENTHESIZED_NUMBER.match(quote[unit.end() :].lstrip())
+        )
+    openings = {'"': '"', "'": "'", "”": "“", "’": "‘"}
+    if spelling in openings:
         # A closing prose quote is not a linear measurement mark.
-        mark = re.escape(spelling)
-        if re.search(rf"(?<!\w){mark}(?=\s*\w)[^{mark}\n]*$", quote[: number.end()]):
+        close, open_ = re.escape(spelling), re.escape(openings[spelling])
+        if re.search(rf"(?<!\w){open_}(?=\s*\w)[^{close}\n]*$", quote[: number.end()]):
             return False
+        if spelling in {"’", "”"}:
+            # Typeset quotation marks need more context than a standalone number.
+            before = quote[: number.start()].rstrip()
+            after = quote[unit.end() :].lstrip()
+            return unit.start() == number.end() and (
+                bool(_PARENTHESIZED_NUMBER.match(after))
+                or (before.endswith("(") and after.startswith(")"))
+            )
         return unit.start() == number.end() or _ends_unit_expression(quote, unit.end())
     return True
 
@@ -181,10 +194,25 @@ def _source_units(quote: str):
         if part["number"] is None:
             yield None, part
             continue
-        unit = _TOKEN.match(quote, _SUFFIX_GAP.match(quote, cursor).end())
+        start = _SUFFIX_GAP.match(quote, cursor).end()
+        descriptor = _DESCRIPTOR_GAP.match(quote, start)
+        unit = _TOKEN.match(quote, descriptor.end() if descriptor else start)
         if unit is not None:
             cursor = unit.end()
             yield part, unit
+
+
+def numeric_unit_spans(text: str):
+    """Expose numbered unit expressions for exact proposal validation."""
+    for number, unit in _source_units(text):
+        if number is not None and _length_suffix_is_explicit(text, number, unit):
+            yield number.span(), unit.span(), _without_sentence_dot(unit[0])
+
+
+def is_unit_notation(token: str) -> bool:
+    return _looks_like_unit(token) or any(
+        _looks_like_unit(part.strip()) for part in _UNIT_OPERATORS.split(token)
+    )
 
 
 def _unit_tokens(quote: str, raw_value: str, raw_unit: str, role: str):
@@ -219,7 +247,14 @@ def _unit_tokens(quote: str, raw_value: str, raw_unit: str, role: str):
             yield token
 
 
-def source_supports_unit(raw_value: str, raw_unit: str, proposed_unit: str, evidence) -> bool:
+def source_supports_unit(
+    raw_value: str,
+    raw_unit: str,
+    proposed_unit: str,
+    evidence,
+    *,
+    same_value_alternate_units: frozenset[str] = frozenset(),
+) -> bool:
     """Require the literal unit and reject conflicting or uncertain unit evidence."""
     supported = False
     spelling = _SPELLINGS[proposed_unit]
@@ -236,7 +271,7 @@ def source_supports_unit(raw_value: str, raw_unit: str, proposed_unit: str, evid
             return False
         for token in tokens:
             bare = _without_sentence_dot(token)
-            if spelling.fullmatch(bare) is None:
+            if spelling.fullmatch(bare) is None and bare not in same_value_alternate_units:
                 return False
             supported |= raw_unit in (token, bare)
     return supported

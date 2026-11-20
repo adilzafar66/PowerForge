@@ -1396,7 +1396,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                     proposed_unit="kV",
                     inference_explanation="Test fixture for a competing voltage proposal.",
                     inference_basis="ENGINEERING_KNOWLEDGE",
-                    source_expression="600",
+                    source_expression=None,
                     evidence=[],
                 )
                 response.update(

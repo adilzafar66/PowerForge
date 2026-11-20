@@ -1,5 +1,8 @@
 """Public lookup and value normalization boundary for registry-v1."""
 
+from decimal import Decimal
+from fractions import Fraction
+
 from powerforge_engineering_model.definitions import (
     AttributeDefinition,
     AttributeValue,
@@ -17,6 +20,7 @@ from powerforge_engineering_model.registry_v1 import REGISTRY
 from powerforge_engineering_model.units import (
     UnitSemanticContext,
     as_decimal,
+    exact_canonical_quantity,
     get_unit,
     normalize_value,
 )
@@ -80,6 +84,22 @@ def supported_input_units(
                 )
             )
     return ()  # Startup validation rejects missing unit-family definitions.
+
+
+def exact_attribute_quantity(
+    equipment_type: EquipmentType | str,
+    attribute_key: str,
+    value: Decimal | int,
+    input_unit: str | None,
+) -> Fraction:
+    """Compare numeric registry values using the normalizer's exact unit factors."""
+    attribute = get_attribute_definition(equipment_type, attribute_key)
+    return exact_canonical_quantity(
+        value,
+        input_unit,
+        attribute.canonical_unit,
+        semantic_context=_semantic_context(equipment_type, attribute_key),
+    )
 
 
 def normalize_attribute_value(
