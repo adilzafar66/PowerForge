@@ -145,7 +145,8 @@ def attribute_envelope(attribute_request):
         "qualifiers": [],
         "value_form": "SINGLE",
         "attribute_key": "primary_connection",
-        "proposed_enum_value": "WYE",
+        "proposed_value": "WYE",
+        "alternate_representations": [],
         "proposed_unit": None,
         "evidence": [
             {"kind": "READING", "role": "LABEL", "reading_ref": reading, "quote": None},
@@ -154,11 +155,18 @@ def attribute_envelope(attribute_request):
     }
     # A foreign owner is recoverable in D. Admission preserves the assertion for review.
     conflict = dict(example, local_ref="a2", equipment_ref="foreign-owner", raw_value="Delta")
-    conflict["proposed_enum_value"] = "DELTA"
+    conflict["proposed_value"] = "DELTA"
     raw = {
         key: value
         for key, value in example.items()
-        if key not in {"attribute_key", "proposed_enum_value", "proposed_unit", "origin"}
+        if key
+        not in {
+            "attribute_key",
+            "proposed_value",
+            "proposed_unit",
+            "origin",
+            "alternate_representations",
+        }
     }
     raw.update(
         display_label=None,
@@ -197,7 +205,7 @@ def test_unified_projection_and_exact_prerequisite(
     assert {item.required for item in attributes.attribute_catalog} == {True, False}
     payload = attribute_envelope
     result = parse_response(attributes, json.dumps(payload).encode())
-    assert [(a.raw_value, a.proposed_enum_value) for a in result.attributes] == [
+    assert [(a.raw_value, a.proposed_value) for a in result.attributes] == [
         ("Star", "WYE"),
         ("Delta", "DELTA"),
     ]
@@ -452,7 +460,7 @@ def test_admission_preserves_assertions_for_deferred_publication_checks(
     missing_unit.update(
         attribute_key="secondary_voltage",
         raw_value="600",
-        proposed_enum_value=None,
+        proposed_value=None,
         raw_unit=None,
         qualifiers=["At startup"],
         value_form="QUALIFIED",
@@ -461,7 +469,7 @@ def test_admission_preserves_assertions_for_deferred_publication_checks(
     unsupported.update(
         equipment_ref="foreign-owner",
         attribute_key="unregistered_key",
-        proposed_enum_value="UNSUPPORTED_ENUM",
+        proposed_value="UNSUPPORTED_ENUM",
     )
     result = parse_response(attribute_request, json.dumps(attribute_envelope).encode())
     missing_unit, unsupported = result.attributes
@@ -472,7 +480,7 @@ def test_admission_preserves_assertions_for_deferred_publication_checks(
     assert missing_unit.evidence[0].quote == "600"
     assert unsupported.equipment_ref == "foreign-owner"
     assert unsupported.attribute_key == "unregistered_key"
-    assert unsupported.proposed_enum_value == "UNSUPPORTED_ENUM"
+    assert unsupported.proposed_value == "UNSUPPORTED_ENUM"
 
 
 @pytest.mark.parametrize("recognition_request", [True], indirect=True)
@@ -692,7 +700,7 @@ def test_attribute_admission_keeps_global_integrity_fatal(
     elif violation == "shape":
         attribute_envelope["attributes"] = {}
     elif violation == "version":
-        attribute_envelope["version"] = "phase-6r-attributes-v4"
+        attribute_envelope["version"] = "phase-6r-attributes-v5"
     else:
         attribute_envelope[
             f"{violation}_hash" if violation == "upstream" else "page_context_hash"
@@ -725,3 +733,182 @@ def test_attribute_admission_rejects_duplicate_json_keys(attribute_request):
 
     rejected = admit_attributes(attribute_request, b'{"stage":1,"stage":2}')
     assert rejected.result is None and rejected.fatal[0].error_type == "invalid_json_structure"
+
+
+@pytest.mark.parametrize(
+    "key,raw,proposal,form",
+    [
+        ("rated_current", "015.750 A", "015.750", "SINGLE"),
+        ("pole_count", "3 Pole", 3, "SINGLE"),
+        ("model", "00-AB 75", "00-AB 75", "SINGLE"),
+        ("drawout", "No", False, "SINGLE"),
+        ("primary_connection", "Star", "WYE", "SINGLE"),
+        ("rated_voltage", "400/600 V", "400/600", "MULTIPLE"),
+        ("rated_voltage", "400/600 V", None, "MULTIPLE"),
+    ],
+)
+def test_extracted_proposals_round_trip(
+    attribute_request, attribute_envelope, key, raw, proposal, form
+):
+    from powerforge_extraction.attribute_admission import admit_attributes
+
+    attribute_envelope["attributes"][0].update(
+        attribute_key=key, raw_value=raw, proposed_value=proposal, value_form=form
+    )
+    admission = admit_attributes(attribute_request, json.dumps(attribute_envelope).encode())
+    assert not admission.fatal and not admission.rejected
+    assertion = admission.result.attributes[0]
+    assert assertion.raw_value == raw
+    assert assertion.proposed_value == proposal
+    assert type(assertion.proposed_value) is type(proposal)
+    serialized = json.loads(admission.result.model_dump_json())["attributes"][0]
+    assert type(serialized["proposed_value"]) is type(proposal)
+    assert "proposed_enum_value" not in serialized
+    assert "proposed_value" not in admission.result.raw_unmapped[0].model_dump()
+
+
+@pytest.mark.parametrize(
+    "bad_fields,path",
+    [
+        ({"proposed_value": 3.0}, "proposed_value"),
+        ({"proposed_value": []}, "proposed_value"),
+        ({"proposed_value": {}}, "proposed_value"),
+        ({"proposed_value": "x" * 2049}, "proposed_value"),
+        ({"proposed_value": " \t"}, "proposed_value"),
+        ({"proposed_enum_value": "WYE"}, "*"),
+        ({"value_form": "EQUIVALENT_UNITS"}, "alternate_representations"),
+        (
+            {"alternate_representations": [{"value": "508", "unit": "mm"}]},
+            "alternate_representations",
+        ),
+        (
+            {
+                "value_form": "EQUIVALENT_UNITS",
+                "alternate_representations": [{"value": "508", "unit": "mm"}] * 5,
+            },
+            "alternate_representations",
+        ),
+        (
+            {
+                "value_form": "EQUIVALENT_UNITS",
+                "alternate_representations": [{"value": "1/2", "unit": "mm"}],
+            },
+            "alternate_representations",
+        ),
+        (
+            {
+                "value_form": "EQUIVALENT_UNITS",
+                "alternate_representations": [{"value": 508, "unit": "mm"}],
+            },
+            "alternate_representations",
+        ),
+        (
+            {
+                "value_form": "EQUIVALENT_UNITS",
+                "alternate_representations": [{"value": "508", "unit": " "}],
+            },
+            "alternate_representations",
+        ),
+    ],
+)
+def test_v6_invalid_fields_are_quarantined(attribute_request, attribute_envelope, bad_fields, path):
+    from powerforge_extraction.attribute_admission import admit_attributes
+
+    attribute_envelope["attributes"][0].update(bad_fields)
+    admission = admit_attributes(attribute_request, json.dumps(attribute_envelope).encode())
+    assert (admission.received, admission.accepted, len(admission.rejected)) == (3, 2, 1)
+    assert admission.result.attributes[0].local_ref == "a2"
+    rejected = admission.rejected[0]
+    assert (rejected.collection, rejected.index, rejected.local_ref) == ("attributes", 0, "a1")
+    assert any(issue.path[:3] == ("attributes", 0, path) for issue in rejected.issues)
+
+
+@pytest.mark.parametrize("field", ["proposed_value", "alternate_representations"])
+def test_v6_extracted_requires_explicit_fields(attribute_request, attribute_envelope, field):
+    from powerforge_extraction.attribute_admission import admit_attributes
+
+    del attribute_envelope["attributes"][0][field]
+    admission = admit_attributes(attribute_request, json.dumps(attribute_envelope).encode())
+    (rejected,) = admission.rejected
+    assert any(
+        issue.path == ("attributes", 0, field) and issue.error_type == "missing"
+        for issue in rejected.issues
+    )
+
+
+def test_equivalent_unit_wire_preserves_reported_values(attribute_request, attribute_envelope):
+    raw = "20”(508.000mm)W"
+    alternates = [{"value": "508.000", "unit": "mm"}]
+    attribute_envelope["attributes"][0].update(
+        attribute_key="width",
+        raw_value=raw,
+        raw_unit="”",
+        proposed_value="20",
+        proposed_unit="in",
+        value_form="EQUIVALENT_UNITS",
+        alternate_representations=alternates,
+    )
+    result = parse_response(attribute_request, json.dumps(attribute_envelope).encode())
+    item = json.loads(result.model_dump_json())["attributes"][0]
+    assert item["raw_value"] == raw
+    assert item["alternate_representations"] == alternates
+
+
+@pytest.mark.parametrize("proposal", ["0.125", 8, False])
+def test_inferred_proposals_are_strict_primitives(attribute_request, attribute_envelope, proposal):
+    from powerforge_extraction.attribute_admission import admit_attributes
+
+    inferred = dict(
+        origin="INFERRED",
+        local_ref="inferred",
+        equipment_ref="equipment-0",
+        association="ASSERTED",
+        attribute_key="primary_connection",
+        proposed_value=proposal,
+        proposed_unit=None,
+        inference_explanation="Synthetic proposed registry value.",
+        inference_basis=None,
+        source_expression=None,
+        evidence=[],
+    )
+    attribute_envelope["attributes"] = [
+        inferred,
+        dict(inferred, local_ref="null", proposed_value=None),
+        dict(inferred, local_ref="float", proposed_value=3.0),
+        dict(inferred, local_ref="alternate", alternate_representations=[]),
+        dict(inferred, local_ref="form", value_form="EQUIVALENT_UNITS"),
+    ]
+    admission = admit_attributes(attribute_request, json.dumps(attribute_envelope).encode())
+    assert [rejection.index for rejection in admission.rejected] == [1, 2, 3, 4]
+    accepted = admission.result.attributes[0].proposed_value
+    assert accepted == proposal and type(accepted) is type(proposal)
+
+
+def test_fake_provider_attributes_use_v6_wire(attribute_request):
+    from powerforge_ai.extraction import ExtractionRequest
+    from powerforge_extraction.attribute_admission import admit_attributes
+    from powerforge_extraction.extraction_profile import RESPONSES
+    from powerforge_extraction.stage_execution import FakeExtractionProvider
+
+    stage = attribute_request.stage
+    request = ExtractionRequest(
+        work_unit_id=uuid4(),
+        unit_key=f"{stage}:page:000001",
+        stage=stage,
+        attempt_number=1,
+        model="deterministic-phase-6r-v1",
+        instructions="Offline v6 fixture",
+        schema_version=attribute_request.version,
+        timeout_seconds=1,
+        max_output_tokens=1024,
+        text=json.dumps(provider_input(attribute_request)),
+        image=b"mock-png",
+        image_mime_type="image/png",
+        image_detail="high",
+        response_model=RESPONSES[stage],
+    )
+    output = FakeExtractionProvider("success").execute(request)
+    raw = output.result.model_dump_json().encode()
+    admission = admit_attributes(attribute_request, raw)
+    assert admission.result == output.result
+    assert admission.result.version == "phase-6r-attributes-v6"

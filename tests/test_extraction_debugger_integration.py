@@ -49,7 +49,8 @@ def test_debugger_partial_attempt_comparison_and_exact_export(operation_context,
                     evidence=[],
                     attribute_key="primary_connection",
                     proposed_unit=None,
-                    proposed_enum_value="WYE",
+                    proposed_value="WYE",
+                    alternate_representations=[],
                 )
                 for i in range(26)
             ]

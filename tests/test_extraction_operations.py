@@ -1355,7 +1355,8 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                     origin="EXTRACTED",
                     local_ref="rating",
                     attribute_key="secondary_voltage",
-                    proposed_enum_value=None,
+                    proposed_value="600",
+                    alternate_representations=[],
                     proposed_unit="kV",
                     equipment_ref="e0",
                     association="UNCERTAIN",
@@ -1376,7 +1377,13 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                         k: v
                         for k, v in attribute.items()
                         if k
-                        not in {"attribute_key", "proposed_enum_value", "proposed_unit", "origin"}
+                        not in {
+                            "attribute_key",
+                            "proposed_value",
+                            "proposed_unit",
+                            "origin",
+                            "alternate_representations",
+                        }
                     },
                 }
                 inference = dict(
@@ -1400,6 +1407,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                             attribute,
                             local_ref="mismatched-rating",
                             raw_value="601",
+                            proposed_value="601",
                             evidence=attribute["evidence"][:2],
                         ),
                         dict(
@@ -1699,7 +1707,8 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
                         origin="EXTRACTED",
                         local_ref="a1",
                         attribute_key="primary_connection",
-                        proposed_enum_value="WYE",
+                        proposed_value="WYE",
+                        alternate_representations=[],
                         proposed_unit=None,
                         equipment_ref="equipment-1",
                         association="ASSERTED",

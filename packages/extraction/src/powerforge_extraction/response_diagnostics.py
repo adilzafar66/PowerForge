@@ -48,6 +48,8 @@ def validation_issues(error: ValidationError) -> tuple[ValidationIssue, ...]:
             if error_type == "json_invalid"
             else "FIELD_CONSTRAINT"
             if error_type in _CONSTRAINTS
+            else "CROSS_FIELD"
+            if error_type == "alternate_representations_mismatch"
             else "SCHEMA"
         )
         issue = ValidationIssue(

@@ -25,7 +25,7 @@ _REF = TypeAdapter(Ref)
 
 
 class AttributeEnvelope(Contract):
-    version: Literal["phase-6r-attributes-v5"]
+    version: Literal[ATTRIBUTE_VERSION]
     stage: Literal["ATTRIBUTE_EXTRACTION"]
     page_context_hash: Hash
     upstream_hash: Hash

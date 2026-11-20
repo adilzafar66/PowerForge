@@ -3,7 +3,16 @@
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, WithJsonSchema
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    ValidationInfo,
+    WithJsonSchema,
+    field_validator,
+)
+from pydantic_core import PydanticCustomError
 
 from powerforge_ai.extraction import ResponseValidationFailure, ValidationIssue
 from powerforge_engineering_model.enums import EquipmentType
@@ -20,17 +29,19 @@ from powerforge_engineering_model.registry import (
 )
 from powerforge_engineering_model.registry_v1 import REGISTRY
 from powerforge_extraction.identities import canonical_json, identity_hash
+from powerforge_extraction.unit_notation import SCALAR
 from powerforge_provenance.layout_observations import SpatialLayout
 from powerforge_provenance.spatial_base import ExactDecimal
 from powerforge_provenance.spatial_sources import PageOwner
 
 VERSION = "phase-6r-v1"
-ATTRIBUTE_VERSION = "phase-6r-attributes-v5"
+ATTRIBUTE_VERSION = "phase-6r-attributes-v6"
 ATTRIBUTE_INPUT_VERSION = "compact-page-v1"
 MAX_REQUEST_BYTES = 2 * 1024 * 1024
 MAX_RESPONSE_BYTES = 512 * 1024
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 MAX_IMAGE_PIXELS = 24_000_000
+MAX_ALTERNATE_REPRESENTATIONS = 4
 
 Stage = Literal["EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"]
 TagState = Literal["PRESENT", "ABSENT", "UNREADABLE", "AMBIGUOUS"]
@@ -45,6 +56,8 @@ Ref = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]{1,96}$")]
 Hash = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 Raw = Annotated[str, StringConstraints(min_length=1, max_length=2048)]
 AssertionValue = Annotated[str, StringConstraints(min_length=1, max_length=2048, pattern=r"\S")]
+ProposedValue = AssertionValue | int | bool
+DecimalLiteral = Annotated[str, StringConstraints(max_length=128, pattern=rf"^{SCALAR.pattern}$")]
 Short = Annotated[str, StringConstraints(min_length=1, max_length=256)]
 Quote = Annotated[str, StringConstraints(min_length=1, max_length=512)]
 # Pydantic's default Decimal schema advertises fractional JSON numbers. The
@@ -114,11 +127,31 @@ class AttributeAssertion(Contract):
     evidence: Citations
 
 
+class AlternateRepresentation(Contract):
+    value: DecimalLiteral
+    unit: Annotated[str, StringConstraints(min_length=1, max_length=256, pattern=r"\S")]
+
+
 class RegistryAssertion(AttributeAssertion):
     origin: Literal["EXTRACTED"]
     attribute_key: Ref
-    proposed_enum_value: Short | None
+    proposed_value: ProposedValue | None
     proposed_unit: Short | None
+    value_form: Literal["SINGLE", "RANGE", "MULTIPLE", "QUALIFIED", "EQUIVALENT_UNITS"]
+    alternate_representations: Annotated[
+        tuple[AlternateRepresentation, ...], Field(max_length=MAX_ALTERNATE_REPRESENTATIONS)
+    ]
+
+    @field_validator("alternate_representations")
+    @classmethod
+    def validate_value_form(cls, representations, info: ValidationInfo):
+        form = info.data.get("value_form")
+        if form is not None and (form == "EQUIVALENT_UNITS") != bool(representations):
+            raise PydanticCustomError(
+                "alternate_representations_mismatch",
+                "Only EQUIVALENT_UNITS requires a nonempty alternate representations list",
+            )
+        return representations
 
 
 class InferredAssertion(Contract):
@@ -127,7 +160,7 @@ class InferredAssertion(Contract):
     equipment_ref: Ref
     association: Literal["ASSERTED", "UNCERTAIN"]
     attribute_key: Ref
-    proposed_value: AssertionValue
+    proposed_value: ProposedValue
     proposed_unit: Short | None
     inference_explanation: Annotated[
         str, StringConstraints(min_length=1, max_length=512, strip_whitespace=True)
@@ -150,7 +183,7 @@ class RecognitionResponse(Contract):
 
 
 class AttributeResponse(Contract):
-    version: Literal["phase-6r-attributes-v5"]
+    version: Literal[ATTRIBUTE_VERSION]
     stage: Literal["ATTRIBUTE_EXTRACTION"]
     page_context_hash: Hash
     upstream_hash: Hash
@@ -209,7 +242,7 @@ class RecognitionRequest(Contract):
 
 
 class AttributeRequest(Contract):
-    version: Literal["phase-6r-attributes-v5"]
+    version: Literal[ATTRIBUTE_VERSION]
     stage: Literal["ATTRIBUTE_EXTRACTION"]
     page_context_hash: Hash
     page: PinnedPageContext
@@ -221,7 +254,7 @@ class AttributeRequest(Contract):
 
 
 class NoEligibleAttributes(Contract):
-    version: Literal["phase-6r-attributes-v5"]
+    version: Literal[ATTRIBUTE_VERSION]
     stage: Literal["ATTRIBUTE_EXTRACTION"]
     outcome: Literal["NO_ELIGIBLE_ATTRIBUTES"]
     page_context_hash: Hash

@@ -29,6 +29,7 @@ from powerforge_shared.config import Settings
         ("cardinality", "FIELD_CONSTRAINT", "too_long"),
     ],
 )
+@pytest.mark.usefixtures("transport_ready")
 def test_responses_transport_is_bounded_and_retains_measured_usage(
     stage, outcome, category, error_type
 ):
@@ -218,6 +219,15 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
         assert len(seen) == 1
 
 
+@pytest.fixture
+def transport_ready(monkeypatch):
+    # Exercise the adapter offline while the end-to-end publication gate is closed.
+    import powerforge_extraction.extraction_profile as profile_module
+
+    monkeypatch.setattr(profile_module, "TYPED_VALUE_PUBLICATION_READY", True)
+
+
+@pytest.mark.usefixtures("transport_ready")
 def test_live_transport_requires_worker_credentials():
     settings = Settings(_env_file=None, extraction_external_enabled=True)
     with pytest.raises(ProviderFailure) as error:
@@ -234,3 +244,34 @@ def test_provider_visual_region_schema_only_offers_exact_coordinate_types(stage)
     assert set(fields) == {"x", "y", "width", "height"}
     for field in fields.values():
         assert field["anyOf"] == [{"type": "string"}, {"type": "integer"}]
+
+
+def test_provider_typed_schema_has_only_supported_primitive_branches():
+    from powerforge_extraction.extraction_profile import structured_schema
+
+    schema = structured_schema(RESPONSES[STAGES[1]].model_json_schema())
+    definitions = schema["$defs"]
+
+    def check_shape(node):
+        if "$ref" in node:
+            assert node["$ref"].removeprefix("#/$defs/") in definitions
+        if node.get("type") == "object":
+            assert set(node["required"]) == set(node["properties"])
+            assert node["additionalProperties"] is False
+            for child in node["properties"].values():
+                check_shape(child)
+        for child in node.get("anyOf", ()):
+            check_shape(child)
+        if "items" in node:
+            check_shape(node["items"])
+
+    check_shape(schema)
+    for definition, nullable in (("RegistryAssertion", True), ("InferredAssertion", False)):
+        fields = definitions[definition]["properties"]
+        assert "proposed_enum_value" not in fields
+        assert ("alternate_representations" in fields) is nullable
+        allowed = {"string", "integer", "boolean"}
+        if nullable:
+            allowed.add("null")
+        assert {branch["type"] for branch in fields["proposed_value"]["anyOf"]} == allowed
+    assert definitions["AlternateRepresentation"]["properties"]["value"]["type"] == "string"

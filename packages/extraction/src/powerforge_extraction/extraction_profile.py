@@ -23,14 +23,16 @@ KEY = "phase-6r"
 PROFILE_VERSION = "phase-6r-profile-v1"
 STAGES = ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION")
 RESPONSES = dict(zip(STAGES, (RecognitionResponse, AttributeResponse), strict=True))
-PROMPT_VERSION = "phase-6r-stages-v8"
-SCHEMA_VERSION = "phase-6r-wire-v5"
+PROMPT_VERSION = "phase-6r-stages-v9"
+SCHEMA_VERSION = "phase-6r-wire-v6"
+# Enable execution when typed publication and its database audit guards land.
+TYPED_VALUE_PUBLICATION_READY = False
 PROMPTS = {
     stage: files("powerforge_extraction")
     .joinpath(f"prompts/{filename}")
     .read_text(encoding="utf-8")
     for stage, filename in zip(
-        STAGES, ("equipment_recognition_v3.txt", "attribute_extraction_v7.txt"), strict=True
+        STAGES, ("equipment_recognition_v3.txt", "attribute_extraction_v8.txt"), strict=True
     )
 }
 
@@ -43,7 +45,7 @@ class ExtractionProfile(ExecutionProfile):
     stage: Literal["EQUIPMENT_RECOGNITION"] = "EQUIPMENT_RECOGNITION"
     input_strategy: Literal["PINNED_PAGE"] = "PINNED_PAGE"
     stages: tuple[Literal["EQUIPMENT_RECOGNITION"], Literal["ATTRIBUTE_EXTRACTION"]] = STAGES
-    schema_version: Literal["phase-6r-wire-v5"] = SCHEMA_VERSION
+    schema_version: Literal[SCHEMA_VERSION] = SCHEMA_VERSION
     manifest: dict
     source_rules: str
     max_transport_bytes: int = Field(gt=0)
@@ -191,7 +193,7 @@ def require_profile(profile):
 def provider_available(settings, provider):
     if provider == "local":
         return settings.enrichment_enabled
-    if not settings.extraction_enabled:
+    if not TYPED_VALUE_PUBLICATION_READY or not settings.extraction_enabled:
         return False
     if provider == "fake":
         return settings.extraction_use_fake_provider
