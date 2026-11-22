@@ -31,10 +31,7 @@ def test_debugger_partial_attempt_comparison_and_exact_export(operation_context,
             nonlocal original
             if request.stage == "EQUIPMENT_RECOGNITION":
                 return FakeExtractionProvider("success").execute(request)
-            wire = json.loads(request.text)
-            payload = {
-                key: wire[key] for key in ("version", "stage", "page_context_hash", "upstream_hash")
-            }
+            payload = {}
             payload["attributes"] = [
                 dict(
                     origin="EXTRACTED",
@@ -68,7 +65,9 @@ def test_debugger_partial_attempt_comparison_and_exact_export(operation_context,
             )
             payload["raw_unmapped"] = []
             original = (" " + json.dumps(payload, indent=2, ensure_ascii=False) + "\n").encode()
-            return AttributeOutput(original, ExecutionUsage(input_tokens=100, output_tokens=50))
+            return AttributeOutput(
+                original, ExecutionUsage(input_tokens=100, output_tokens=50), request
+            )
 
     for stage in ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"):
         assert execute_unit(

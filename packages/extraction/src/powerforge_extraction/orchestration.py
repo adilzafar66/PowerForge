@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from hashlib import sha256
 from typing import Protocol
 from uuid import UUID, uuid4
 
@@ -422,12 +423,18 @@ class ExtractionCoordinator:
 
         if request is None or (
             request.work_unit_id != unit.id
+            or request.unit_key != unit.unit_key
+            or request.attempt_number != unit.attempt_number
             or request.stage != unit.stage
             or request.instructions != PROMPTS[unit.stage]
             or request.response_model is not RESPONSES[unit.stage]
             or request.schema_version != stage_schema_version(unit.stage)
         ):
             raise ValueError("Request differs from its pinned extraction stage")
+        if request.stage == "ATTRIBUTE_EXTRACTION":
+            if not request.text:
+                raise ValueError("Stage 2 requires a complete provider input")
+            delivery.provider_request_hash = sha256(request.text.encode()).hexdigest()
         delivery.provider_started_at = self.now()
         self.session.flush()
 

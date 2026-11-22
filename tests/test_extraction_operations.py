@@ -7,6 +7,7 @@ from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 from threading import Event
+from time import monotonic, sleep
 from uuid import UUID, uuid4
 
 import pymupdf
@@ -25,6 +26,7 @@ from powerforge_document_processing.models import (
     RevisionDocument,
 )
 from powerforge_document_processing.storage.base import TransientStorageError
+from powerforge_extraction.controls import UnitExecution
 from powerforge_extraction.enqueue import get_extraction_enqueue
 from powerforge_extraction.execution import execute_unit
 from powerforge_extraction.layout_execution import execute_enrichment
@@ -93,6 +95,16 @@ def new_source(ctx, filename, content=None):
     }
 
 
+def wait_for_availability(ctx, unit_id):
+    # Tests call the worker synchronously, without the scheduler's redelivery interval.
+    deadline = monotonic() + 2
+    with ctx["factory"]() as session:
+        available_at = session.get(UnitExecution, unit_id).available_at
+        while now(session) < available_at:
+            assert monotonic() < deadline, f"Work unit {unit_id} is still unavailable"
+            sleep(0.02)
+
+
 def preparation(ctx, source):
     with ctx["factory"].begin() as session:
         membership = session.get(RevisionDocument, UUID(source["revision_document_id"]))
@@ -113,6 +125,7 @@ def preparation(ctx, source):
         ).all()
         ids = [unit.id for unit in units]
     for unit_id in ids:
+        wait_for_availability(ctx, unit_id)
         assert execute_enrichment(
             unit_id,
             ctx["factory"],
@@ -170,6 +183,8 @@ def admitted_page(ctx, source):
                 select(ExtractionWorkUnit).where(ExtractionWorkUnit.run_id == run_id)
             )
         }
+    for unit_id in units.values():
+        wait_for_availability(ctx, unit_id)
     return operation_id, run_id, units
 
 
@@ -1031,7 +1046,7 @@ def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operat
             lambda _claim: CapturingProvider(),
         )
     first, second = calls
-    assert first["page_context_hash"] == second["page_context_hash"]
+    assert {"upstream_hash", "page_context_hash"}.isdisjoint(second)
     assert first["page"]["owner"] == second["page"]["owner"]
     assert first["page"]["layout_sha256"] == second["page"]["layout_sha256"]
     page = second["page"]
@@ -1060,6 +1075,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
     from extraction_worker.openai_extraction import OpenAIExtractionProvider
     from extraction_worker.read_response_audit import read_audit
     from powerforge_document_processing.storage import InMemoryObjectStorage
+    from powerforge_extraction.controls import UnitExecution
     from powerforge_extraction.identities import identity_hash
     from powerforge_extraction.models import ExtractionAICall
     from powerforge_extraction.response_audit import ResponseAudit
@@ -1079,8 +1095,11 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         def create(self, **kwargs):
             wire = json.loads(kwargs["input"][0]["content"][0]["text"])
             calls.append(wire)
-            payload = {key: wire[key] for key in ("version", "stage", "page_context_hash")}
+            payload = {}
             if wire["stage"] == "EQUIPMENT_RECOGNITION":
+                payload.update(
+                    {key: wire[key] for key in ("version", "stage", "page_context_hash")}
+                )
                 payload["equipment"] = [
                     {
                         "local_ref": "local-1",
@@ -1106,7 +1125,6 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                     "TWO_WINDING_TRANSFORMER"
                 }
                 payload.update(
-                    upstream_hash=wire["upstream_hash"],
                     attributes=[],
                     raw_unmapped=[
                         {
@@ -1156,12 +1174,16 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
             audit_storage=audit_storage,
         )
     assert len(calls) == 2
-    assert calls[0]["page_context_hash"] == calls[1]["page_context_hash"]
+    assert {"page_context_hash", "upstream_hash"}.isdisjoint(calls[1])
     assert calls[1]["input_version"] == "compact-page-v1"
     with ctx["factory"]() as session:
         recognition = session.get(StageResult, units["EQUIPMENT_RECOGNITION"])
         attribute = session.get(StageResult, units["ATTRIBUTE_EXTRACTION"])
-        assert calls[1]["upstream"] == recognition.payload
+        assert calls[1]["upstream"] == {
+            key: value for key, value in recognition.payload.items() if key != "page_context_hash"
+        }
+        assert attribute.page_context_hash == recognition.page_context_hash
+        assert attribute.upstream_hash == recognition.result_hash
         assert recognition.request_hash == identity_hash(calls[0])
         assert attribute.request_hash == identity_hash(calls[1])
         assert recognition.diagnostics[0]["code"] == "UNKNOWN_READING"
@@ -1172,6 +1194,8 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
             "raw-2",
         ]
         retained = session.get(ResponseAudit, units["ATTRIBUTE_EXTRACTION"])
+        delivery = session.get(UnitExecution, units["ATTRIBUTE_EXTRACTION"])
+        assert delivery.provider_request_hash == retained.request_hash == attribute.request_hash
         assert retained.output_sha256 == sha256(originals[1]).hexdigest()
         assert (retained.received, retained.accepted, retained.quarantined) == (3, 2, 1)
         assert retained.rejections[0]["local_ref_sha256"] == sha256(b"private-ref").hexdigest()
@@ -1182,6 +1206,12 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         assert len(audit) == 2
         assert all(call.input_tokens == 100 and call.output_tokens == 30 for call in audit)
         assert all(call.estimated_cost_usd is None for call in audit)
+        with (
+            pytest.raises(DBAPIError, match="Dispatched extraction request identity is immutable"),
+            session.begin_nested(),
+        ):
+            delivery.provider_request_hash = "f" * 64
+            session.flush()
     assert read_audit(engine, audit_storage, units["ATTRIBUTE_EXTRACTION"]) == originals[1]
 
     class AfterExpiry(datetime):
@@ -1306,7 +1336,7 @@ def test_invalid_response_audit_is_fenced_and_redacted(operation_context, caplog
 
 
 def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
-    from powerforge_ai.extraction import ExecutionUsage, ExtractionResponse
+    from powerforge_ai.extraction import AttributeOutput, ExecutionUsage, ExtractionResponse
     from powerforge_extraction.publication_records import Candidate, Fragment
     from spatial_layout_support import drawn_table
 
@@ -1334,8 +1364,11 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
             label = next(item["reading_ref"] for item in readings if item["text"] == "TX-1")
             header = next(item["reading_ref"] for item in readings if item["text"] == "(KV)")
             value = next(item["reading_ref"] for item in readings if item["text"] == "600")
-            response = {key: wire[key] for key in ("version", "stage", "page_context_hash")}
+            response = {}
             if wire["stage"] == "EQUIPMENT_RECOGNITION":
+                response.update(
+                    {key: wire[key] for key in ("version", "stage", "page_context_hash")}
+                )
                 response["equipment"] = [
                     dict(
                         local_ref=f"e{index}",
@@ -1401,7 +1434,6 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                     evidence=[],
                 )
                 response.update(
-                    upstream_hash=wire["upstream_hash"],
                     attributes=[
                         attribute,
                         dict(
@@ -1442,6 +1474,8 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                         ),
                     ],
                 )
+            if request.stage == "ATTRIBUTE_EXTRACTION":
+                return AttributeOutput(json.dumps(response).encode(), ExecutionUsage(), request)
             return ExtractionResponse[request.response_model](
                 result=request.response_model.model_validate_json(json.dumps(response)),
                 usage=ExecutionUsage(),
@@ -1678,11 +1712,15 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
         "wrong-alternates",
         "missing-audit",
         "old-contract",
+        "foreign-response",
+        "wrong-dispatch-hash",
+        "wrong-upstream-binding",
     ],
 )
 def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch, breakage):
-    from powerforge_ai.extraction import AttributeOutput, ExecutionUsage
+    from powerforge_ai.extraction import AttributeOutput, ExecutionUsage, ValidationIssue
     from powerforge_document_processing.storage import InMemoryObjectStorage
+    from powerforge_extraction.models import ExtractionAICall
     from powerforge_extraction.publication_records import Candidate, Fragment
     from powerforge_extraction.response_audit import ResponseAudit
     from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
@@ -1708,14 +1746,16 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
         ).all()
         units = {(row.stage, row.page_numbers[0]): row.id for row in rows}
 
+    previous_output = None
+
     class Provider:
         def execute(self, request):
+            nonlocal previous_output
             if request.stage == "EQUIPMENT_RECOGNITION":
                 return FakeExtractionProvider("success").execute(request)
-            wire = json.loads(request.text)
-            payload = {
-                key: wire[key] for key in ("version", "stage", "page_context_hash", "upstream_hash")
-            }
+            if breakage == "foreign-response" and previous_output is not None:
+                return previous_output
+            payload = {}
             payload.update(
                 raw_unmapped=[],
                 attributes=[
@@ -1753,9 +1793,13 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
             payload["attributes"].append(
                 dict(payload["attributes"][0], local_ref="invalid", raw_value="")
             )
-            return AttributeOutput(json.dumps(payload).encode(), ExecutionUsage())
+            previous_output = AttributeOutput(
+                json.dumps(payload).encode(), ExecutionUsage(), request
+            )
+            return previous_output
 
     def execute(stage, page):
+        wait_for_availability(ctx, units[(stage, page)])
         return execute_unit(
             units[(stage, page)],
             ctx["factory"],
@@ -1827,6 +1871,27 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
             )
 
         monkeypatch.setattr(stage_execution, "store_result", store_old_version)
+    if breakage in {"wrong-dispatch-hash", "wrong-upstream-binding"}:
+        from powerforge_extraction import stage_execution
+
+        real_store = stage_execution.store_result
+        real_projection = stage_execution.provider_input
+
+        def store_wrong_binding(session, unit, snapshot, wire, result, observations):
+            if breakage == "wrong-upstream-binding":
+                result = result.model_copy(update={"upstream_hash": "f" * 64})
+            else:
+                monkeypatch.setattr(
+                    stage_execution,
+                    "provider_input",
+                    lambda value: {**real_projection(value), "foreign_input": True},
+                )
+            try:
+                return real_store(session, unit, snapshot, wire, result, observations)
+            finally:
+                monkeypatch.setattr(stage_execution, "provider_input", real_projection)
+
+        monkeypatch.setattr(stage_execution, "store_result", store_wrong_binding)
     from sqlalchemy import event
 
     errors = []
@@ -1846,6 +1911,8 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
         assert errors == ["Candidate must preserve the attribute origin and proposal"]
     if breakage == "old-contract":
         assert errors == ["Stage 2 result must use the pinned typed contract"]
+    if breakage == "wrong-dispatch-hash":
+        assert errors == ["Stage 2 result differs from its dispatched request"]
     attempt_id = units[("ATTRIBUTE_EXTRACTION", 1)]
     if breakage == "missing-audit":
         # Commit rejected the result. The fenced failure transaction retained
@@ -1855,8 +1922,19 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
     with ctx["factory"]() as session:
         assert session.get(StageResult, attempt_id) is None
         retained = session.get(ResponseAudit, attempt_id)
-        assert retained.accepted == retained.quarantined == 1
-        assert retained.rejections[0]["index"] == 1
+        if breakage == "foreign-response":
+            assert retained is None
+            call = session.scalar(
+                select(ExtractionAICall).where(ExtractionAICall.work_unit_id == attempt_id)
+            )
+            assert call.validation_diagnostics == [
+                ValidationIssue(
+                    category="ENVELOPE", error_type="request_binding_mismatch"
+                ).model_dump(mode="json")
+            ]
+        else:
+            assert retained.accepted == retained.quarantined == 1
+            assert retained.rejections[0]["index"] == 1
         assert (
             session.scalar(select(Candidate.id).where(Candidate.work_unit_id == attempt_id)) is None
         )
@@ -1864,6 +1942,8 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
             session.scalar(select(Fragment.id).where(Fragment.work_unit_id == attempt_id)) is None
         )
         assert session.get(ExtractionWorkUnit, attempt_id).status == "FAILED"
+        if breakage == "wrong-upstream-binding":
+            assert session.get(ExtractionWorkUnit, attempt_id).error_code == "INVALID_SOURCE_INPUT"
         assert session.get(ExtractionRun, run_id).status == "PARTIALLY_COMPLETED"
         assert session.get(ExtractionRun, run_id).pages_processed == 1
         assert session.get(StageResult, units[("EQUIPMENT_RECOGNITION", 1)]) is not None
@@ -1966,10 +2046,7 @@ def test_attribute_audit_failure_boundaries(operation_context, case):
             calls.append(request.stage)
             if request.stage == "EQUIPMENT_RECOGNITION":
                 return FakeExtractionProvider("success").execute(request)
-            wire = json.loads(request.text)
-            payload = {
-                key: wire[key] for key in ("version", "stage", "page_context_hash", "upstream_hash")
-            }
+            payload = {}
             if case == "wrong-upstream":
                 payload["upstream_hash"] = "f" * 64
             payload.update(
@@ -1989,7 +2066,7 @@ def test_attribute_audit_failure_boundaries(operation_context, case):
                     )
                 ],
             )
-            return AttributeOutput(json.dumps(payload).encode(), ExecutionUsage())
+            return AttributeOutput(json.dumps(payload).encode(), ExecutionUsage(), request)
 
     assert execute_unit(
         units["EQUIPMENT_RECOGNITION"],
@@ -2021,12 +2098,15 @@ def test_attribute_audit_failure_boundaries(operation_context, case):
             if case == "storage-failure":
                 assert audit is None
             else:
-                assert audit.received == 1 and audit.accepted == 0
+                if case == "all-rejected":
+                    assert (audit.received, audit.accepted) == (1, 0)
+                else:
+                    assert audit.received is None and audit.accepted is None
                 assert audit.quarantined == (case == "all-rejected")
 
 
 def test_typed_proposals_survive_publication_read_and_search(operation_context):
-    from powerforge_ai.extraction import ExecutionUsage, ExtractionResponse
+    from powerforge_ai.extraction import AttributeOutput, ExecutionUsage, ExtractionResponse
     from powerforge_extraction.publication_records import Candidate
     from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
     from spatial_layout_support import drawn_table
@@ -2060,11 +2140,7 @@ def test_typed_proposals_survive_publication_read_and_search(operation_context):
                     )
                 ]
             else:
-                wire = json.loads(request.text)
-                payload = {
-                    key: wire[key]
-                    for key in ("version", "stage", "page_context_hash", "upstream_hash")
-                }
+                payload = {}
                 payload["attributes"] = [
                     dict(
                         origin="EXTRACTED",
@@ -2087,6 +2163,7 @@ def test_typed_proposals_survive_publication_read_and_search(operation_context):
                     for owner, key, raw, proposal, unit, _ in cases
                 ]
                 payload["raw_unmapped"] = []
+                return AttributeOutput(json.dumps(payload).encode(), ExecutionUsage(), request)
             return ExtractionResponse[request.response_model](
                 result=request.response_model.model_validate_json(json.dumps(payload)),
                 usage=ExecutionUsage(),
@@ -2112,7 +2189,7 @@ def test_typed_proposals_survive_publication_read_and_search(operation_context):
     with ctx["factory"]() as session:
         attempt = units["ATTRIBUTE_EXTRACTION"]
         stage = session.get(StageResult, attempt)
-        assert stage.payload["version"] == "phase-6r-attributes-v6"
+        assert stage.payload["version"] == "phase-6r-attributes-v7"
         rows = {
             row.local_ref: row
             for row in session.scalars(select(Candidate).where(Candidate.work_unit_id == attempt))

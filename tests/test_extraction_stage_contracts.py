@@ -179,10 +179,6 @@ def attribute_envelope(attribute_request):
         value_form="RANGE",
     )
     return {
-        "version": ATTRIBUTE_VERSION,
-        "stage": request.stage,
-        "page_context_hash": request.page_context_hash,
-        "upstream_hash": request.upstream_hash,
         "attributes": [example, conflict],
         "raw_unmapped": [raw],
     }
@@ -210,9 +206,8 @@ def test_unified_projection_and_exact_prerequisite(
         ("Delta", "DELTA"),
     ]
     assert result.raw_unmapped[0].raw_value == "45 to 50"
-    payload["upstream_hash"] = "9" * 64
-    with pytest.raises(ValueError, match="prerequisite"):
-        parse_response(attributes, json.dumps(payload).encode())
+    assert result.upstream_hash == attributes.upstream_hash
+    assert result.page_context_hash == attributes.page_context_hash
 
 
 @pytest.mark.parametrize("recognition_request", [True], indirect=True)
@@ -222,7 +217,10 @@ def test_compact_schedule_keeps_readings_coordinates_and_layout(attribute_reques
     page = compact["page"]
     full_page = original["page"]
     assert compact["input_version"] == ATTRIBUTE_INPUT_VERSION
-    for key in original.keys() - {"page"}:
+    assert {"upstream_hash", "page_context_hash"}.isdisjoint(compact)
+    assert "page_context_hash" not in compact["upstream"]
+    assert compact["upstream"]["equipment"] == original["upstream"]["equipment"]
+    for key in original.keys() - {"page", "upstream", "upstream_hash", "page_context_hash"}:
         assert compact[key] == original[key]
     for key in full_page.keys() - {"readings", "layout"}:
         assert page[key] == full_page[key]
@@ -562,10 +560,6 @@ def test_gold_schedule_replays_v6_against_pinned_native_source():
         attribute_catalog=attribute_catalog(upstream),
     )
     response = {
-        "version": ATTRIBUTE_VERSION,
-        "stage": "ATTRIBUTE_EXTRACTION",
-        "page_context_hash": inputs.page_context_hash,
-        "upstream_hash": inputs.upstream_hash,
         "attributes": [
             {
                 **{
@@ -603,16 +597,6 @@ def test_gold_schedule_replays_v6_against_pinned_native_source():
             assert actual["role"] == gold["role"] and actual["quote"] == gold["source_text"]
             assert artifact_sha[actual["text_artifact_id"]] == gold["text_artifact_sha256"]
             assert [actual["start"], actual["end"]] == gold["span"]
-
-
-def test_attribute_response_reports_upstream_identity_mismatch(
-    attribute_request, attribute_envelope
-):
-    attribute_envelope["upstream_hash"] = "f" * 64
-    with pytest.raises(ValueError, match="Foreign recognition prerequisite") as error:
-        parse_response(attribute_request, json.dumps(attribute_envelope).encode())
-    assert error.value.issue.path == ("upstream_hash",)
-    assert error.value.issue.error_type == "upstream_identity_mismatch"
 
 
 def test_validation_diagnostics_bound_and_redact_nested_errors(recognition_request):
@@ -971,7 +955,7 @@ def test_inferred_proposals_are_strict_primitives(attribute_request, attribute_e
     assert accepted == proposal and type(accepted) is type(proposal)
 
 
-def test_fake_provider_attributes_use_v6_wire(attribute_request):
+def test_fake_provider_attributes_use_v7_wire(attribute_request):
     from powerforge_ai.extraction import ExtractionRequest
     from powerforge_extraction.attribute_admission import admit_attributes
     from powerforge_extraction.extraction_profile import RESPONSES
@@ -984,7 +968,7 @@ def test_fake_provider_attributes_use_v6_wire(attribute_request):
         stage=stage,
         attempt_number=1,
         model="deterministic-phase-6r-v1",
-        instructions="Offline v6 fixture",
+        instructions="Offline v7 fixture",
         schema_version=attribute_request.version,
         timeout_seconds=1,
         max_output_tokens=1024,
@@ -995,7 +979,8 @@ def test_fake_provider_attributes_use_v6_wire(attribute_request):
         response_model=RESPONSES[stage],
     )
     output = FakeExtractionProvider("success").execute(request)
-    raw = output.result.model_dump_json().encode()
-    admission = admit_attributes(attribute_request, raw)
-    assert admission.result == output.result
-    assert admission.result.version == "phase-6r-attributes-v6"
+    assert output.request is request
+    admission = admit_attributes(attribute_request, output.output_text)
+    assert admission.result.attributes == admission.result.raw_unmapped == ()
+    assert admission.result.version == ATTRIBUTE_VERSION
+    assert admission.result.upstream_hash == attribute_request.upstream_hash

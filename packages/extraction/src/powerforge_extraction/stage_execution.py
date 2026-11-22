@@ -8,7 +8,12 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
-from powerforge_ai.extraction import ExecutionUsage, ExtractionRequest, ExtractionResponse
+from powerforge_ai.extraction import (
+    AttributeOutput,
+    ExecutionUsage,
+    ExtractionRequest,
+    ExtractionResponse,
+)
 from powerforge_extraction.extraction_profile import PROMPTS, RESPONSES, STAGES
 from powerforge_extraction.identities import canonical_json, identity_hash
 from powerforge_extraction.models import ExtractionWorkUnit
@@ -140,6 +145,8 @@ def provider_input(wire: RecognitionRequest | AttributeRequest | NoEligibleAttri
     if not isinstance(wire, AttributeRequest):
         return payload
 
+    del payload["page_context_hash"], payload["upstream_hash"]
+    del payload["upstream"]["page_context_hash"]
     payload["input_version"] = ATTRIBUTE_INPUT_VERSION
     page = payload["page"]
     layout = page["layout"]
@@ -344,31 +351,32 @@ class FakeExtractionProvider:
             raise ProviderFailure(ErrorCode.UNAVAILABLE)
         if self.scenario in {"invalid", "permanent"}:
             raise ProviderFailure(ErrorCode.INVALID)
+        if request.stage == STAGES[1]:
+            return AttributeOutput(
+                b'{"attributes":[],"raw_unmapped":[]}', ExecutionUsage(), request
+            )
         payload = {
             "version": request.schema_version,
             "stage": request.stage,
         }
         wire = json.loads(request.text)
         payload["page_context_hash"] = wire["page_context_hash"]
-        if request.stage == STAGES[0]:
-            payload["equipment"] = (
-                [
-                    dict(
-                        local_ref="equipment-1",
-                        source_description="Synthetic equipment",
-                        registry_type="TWO_WINDING_TRANSFORMER",
-                        tag_state="ABSENT",
-                        tag=None,
-                        qualification="UNKNOWN",
-                        raw_qualification=None,
-                        evidence=[],
-                    )
-                ]
-                if self.scenario != "empty"
-                else []
-            )
-        else:
-            payload.update(upstream_hash=wire["upstream_hash"], attributes=[], raw_unmapped=[])
+        payload["equipment"] = (
+            [
+                dict(
+                    local_ref="equipment-1",
+                    source_description="Synthetic equipment",
+                    registry_type="TWO_WINDING_TRANSFORMER",
+                    tag_state="ABSENT",
+                    tag=None,
+                    qualification="UNKNOWN",
+                    raw_qualification=None,
+                    evidence=[],
+                )
+            ]
+            if self.scenario != "empty"
+            else []
+        )
         return ExtractionResponse[request.response_model](
             result=request.response_model.model_validate_json(canonical_json(payload)),
             usage=ExecutionUsage(),

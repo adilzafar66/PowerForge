@@ -1068,7 +1068,9 @@ def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
         page_context_hash=upstream.page_context_hash,
         upstream_hash=contract_hash(upstream),
     )
-    admitted = admit_attributes(wire, response.model_dump_json().encode())
+    admitted = admit_attributes(
+        wire, response.model_dump_json(include={"attributes", "raw_unmapped"}).encode()
+    )
     assert not admitted.fatal and not admitted.rejected
     observations = build_publication(wire, admitted.result, source)
     rows = {o.fields["local_ref"]: o.fields for o in observations}

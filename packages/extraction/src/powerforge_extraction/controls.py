@@ -69,3 +69,4 @@ class UnitExecution(Base):
     dispatch_count: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
     hard_deadline_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     provider_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    provider_request_hash: Mapped[str | None] = mapped_column()

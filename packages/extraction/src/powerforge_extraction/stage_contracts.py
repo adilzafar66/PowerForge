@@ -35,7 +35,7 @@ from powerforge_provenance.spatial_base import ExactDecimal
 from powerforge_provenance.spatial_sources import PageOwner
 
 VERSION = "phase-6r-v1"
-ATTRIBUTE_VERSION = "phase-6r-attributes-v6"
+ATTRIBUTE_VERSION = "phase-6r-attributes-v7"
 ATTRIBUTE_INPUT_VERSION = "compact-page-v1"
 MAX_REQUEST_BYTES = 2 * 1024 * 1024
 MAX_RESPONSE_BYTES = 512 * 1024
@@ -182,13 +182,16 @@ class RecognitionResponse(Contract):
     equipment: Annotated[tuple[EquipmentObservation, ...], Field(max_length=128)]
 
 
-class AttributeResponse(Contract):
+class AttributeProviderResponse(Contract):
+    attributes: Annotated[tuple[RegistryAssertion | InferredAssertion, ...], Field(max_length=512)]
+    raw_unmapped: Annotated[tuple[RawUnmappedAssertion, ...], Field(max_length=16)]
+
+
+class AttributeResponse(AttributeProviderResponse):
     version: Literal[ATTRIBUTE_VERSION]
     stage: Literal["ATTRIBUTE_EXTRACTION"]
     page_context_hash: Hash
     upstream_hash: Hash
-    attributes: Annotated[tuple[RegistryAssertion | InferredAssertion, ...], Field(max_length=512)]
-    raw_unmapped: Annotated[tuple[RawUnmappedAssertion, ...], Field(max_length=16)]
 
 
 class ReadingText(Contract):
@@ -369,17 +372,16 @@ def parse_response(
                     "Inconsistent equipment tag state",
                 )
     else:
-        result = AttributeResponse.model_validate_json(payload)
+        assertions = AttributeProviderResponse.model_validate_json(payload)
+        result = AttributeResponse(
+            version=ATTRIBUTE_VERSION,
+            stage=request.stage,
+            page_context_hash=request.page_context_hash,
+            upstream_hash=request.upstream_hash,
+            attributes=assertions.attributes,
+            raw_unmapped=assertions.raw_unmapped,
+        )
         collections = (("attributes", result.attributes), ("raw_unmapped", result.raw_unmapped))
-        if result.upstream_hash != request.upstream_hash:
-            raise ResponseValidationFailure(
-                ValidationIssue(
-                    category="CROSS_FIELD",
-                    error_type="upstream_identity_mismatch",
-                    path=("upstream_hash",),
-                ),
-                "Foreign recognition prerequisite",
-            )
     if result.page_context_hash != request.page_context_hash:
         raise ResponseValidationFailure(
             ValidationIssue(

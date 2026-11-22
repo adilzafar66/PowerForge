@@ -87,6 +87,7 @@ ValidationType = Literal[
     "duplicate_reference",
     "page_identity_mismatch",
     "upstream_identity_mismatch",
+    "request_binding_mismatch",
     "response_byte_limit",
     "output_token_limit",
     "invalid_json_structure",
@@ -191,7 +192,7 @@ class ProviderFailure(Exception):
 
 
 class ExtractionRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", frozen=True)
     work_unit_id: UUID
     unit_key: str
     attempt_number: int
@@ -219,6 +220,8 @@ class ExtractionResponse[Result: BaseModel](BaseModel):
 class AttributeOutput:
     output_text: bytes = field(repr=False)
     usage: ExecutionUsage
+    # The transport returns the immutable request that produced these bytes.
+    request: ExtractionRequest = field(repr=False)
 
 
 class ExtractionProvider(Protocol):

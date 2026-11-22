@@ -2,7 +2,6 @@
 
 import json
 from dataclasses import dataclass, replace
-from typing import Literal
 
 from pydantic import Field, TypeAdapter, ValidationError
 
@@ -14,7 +13,6 @@ from powerforge_extraction.stage_contracts import (
     AttributeRequest,
     AttributeResponse,
     Contract,
-    Hash,
     InferredAssertion,
     RawUnmappedAssertion,
     Ref,
@@ -25,10 +23,6 @@ _REF = TypeAdapter(Ref)
 
 
 class AttributeEnvelope(Contract):
-    version: Literal[ATTRIBUTE_VERSION]
-    stage: Literal["ATTRIBUTE_EXTRACTION"]
-    page_context_hash: Hash
-    upstream_hash: Hash
     attributes: list[object] = Field(max_length=512)
     raw_unmapped: list[object] = Field(max_length=16)
 
@@ -112,24 +106,12 @@ def admit_attributes(request: AttributeRequest, raw: bytes) -> AttributeAdmissio
         envelope = AttributeEnvelope.model_validate(value)
     except ValidationError as error:
         return AttributeAdmission(fatal=validation_issues(error))
-    received = len(envelope.attributes) + len(envelope.raw_unmapped)
-    for field, error_type in (
-        ("page_context_hash", "page_identity_mismatch"),
-        ("upstream_hash", "upstream_identity_mismatch"),
-    ):
-        if getattr(envelope, field) != getattr(request, field):
-            return AttributeAdmission(
-                received=received,
-                fatal=(
-                    ValidationIssue(category="CROSS_FIELD", error_type=error_type, path=(field,)),
-                ),
-            )
-
     items = [
         (group, index, item)
         for group in ("attributes", "raw_unmapped")
         for index, item in enumerate(getattr(envelope, group))
     ]
+    received = len(items)
     refs = set()
     identified = []
     for group, index, item in items:

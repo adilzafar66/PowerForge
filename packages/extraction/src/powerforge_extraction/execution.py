@@ -4,6 +4,7 @@ import logging
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
+from hashlib import sha256
 from threading import Event, Thread
 from uuid import UUID
 
@@ -79,10 +80,11 @@ def execute_unit(
                 AttributeAdmission,
                 admit_attributes,
             )
+            from powerforge_extraction.identities import canonical_json
             from powerforge_extraction.publication import build_publication
             from powerforge_extraction.response_audit import response_audit_writer, retain_output
             from powerforge_extraction.stage_contracts import AttributeRequest, parse_response
-            from powerforge_extraction.stage_execution import request_for
+            from powerforge_extraction.stage_execution import provider_input, request_for
 
             wire, request, source = request_for(factory, storage, claim)
             result = wire
@@ -91,6 +93,12 @@ def execute_unit(
                 live_attributes = (
                     isinstance(wire, AttributeRequest) and claim.profile.provider == "openai"
                 )
+                if isinstance(wire, AttributeRequest) and (
+                    request.image is None
+                    or sha256(request.image).hexdigest() != wire.page.image_sha256
+                    or request.text != canonical_json(provider_input(wire))
+                ):
+                    raise ProviderFailure(ErrorCode.INPUT)
                 if live_attributes and audit_storage is None:
                     audit_storage = response_audit_writer(
                         settings, claim.profile.response_audit_retention_days
@@ -107,17 +115,19 @@ def execute_unit(
                 )
                 budget_issue = ValidationIssue(category="CAPACITY", error_type="output_token_limit")
                 if isinstance(wire, AttributeRequest):
-                    if live_attributes and not isinstance(response, AttributeOutput):
-                        raise ProviderFailure(ErrorCode.AUDIT, usage)
-                    raw = (
-                        response.output_text
-                        if isinstance(response, AttributeOutput)
-                        else response.result.model_dump_json().encode()
-                    )
+                    if not isinstance(response, AttributeOutput) or response.request is not request:
+                        raise ProviderFailure(
+                            ErrorCode.INVALID,
+                            usage,
+                            diagnostics=(
+                                ValidationIssue(
+                                    category="ENVELOPE", error_type="request_binding_mismatch"
+                                ),
+                            ),
+                        )
+                    raw = response.output_text
                     retained = None
-                    if isinstance(response, AttributeOutput):
-                        if audit_storage is None:
-                            raise ProviderFailure(ErrorCode.AUDIT, usage)
+                    if audit_storage is not None:
                         retained = retain_output(
                             audit_storage,
                             claim.unit_id,

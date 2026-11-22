@@ -12,7 +12,7 @@ from powerforge_extraction.stage_contracts import (
     ATTRIBUTE_INPUT_VERSION,
     MAX_IMAGE_BYTES,
     MAX_IMAGE_PIXELS,
-    AttributeResponse,
+    AttributeProviderResponse,
     RecognitionResponse,
     attribute_catalog,
     equipment_catalog,
@@ -22,15 +22,15 @@ from powerforge_extraction.stage_contracts import (
 KEY = "phase-6r"
 PROFILE_VERSION = "phase-6r-profile-v1"
 STAGES = ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION")
-RESPONSES = dict(zip(STAGES, (RecognitionResponse, AttributeResponse), strict=True))
-PROMPT_VERSION = "phase-6r-stages-v9"
-SCHEMA_VERSION = "phase-6r-wire-v6"
+RESPONSES = dict(zip(STAGES, (RecognitionResponse, AttributeProviderResponse), strict=True))
+PROMPT_VERSION = "phase-6r-stages-v10"
+SCHEMA_VERSION = "phase-6r-wire-v7"
 PROMPTS = {
     stage: files("powerforge_extraction")
     .joinpath(f"prompts/{filename}")
     .read_text(encoding="utf-8")
     for stage, filename in zip(
-        STAGES, ("equipment_recognition_v3.txt", "attribute_extraction_v8.txt"), strict=True
+        STAGES, ("equipment_recognition_v3.txt", "attribute_extraction_v9.txt"), strict=True
     )
 }
 

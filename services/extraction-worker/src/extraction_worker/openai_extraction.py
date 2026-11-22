@@ -193,7 +193,7 @@ class OpenAIExtractionProvider:
                 ),
             )
         if request.stage == "ATTRIBUTE_EXTRACTION":
-            return AttributeOutput(raw, usage)
+            return AttributeOutput(raw, usage, request)
         try:
             result = model.model_validate_json(raw)
         except ValidationError as exc:

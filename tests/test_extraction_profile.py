@@ -13,7 +13,7 @@ def test_profile_round_trips_and_rejects_pinned_manifest_drift():
     settings = Settings(_env_file=None, extraction_use_fake_provider=True)
     profile = resolve_profile(KEY, settings)
     assert profile.provider == "fake"
-    assert profile.prompt_version == "phase-6r-stages-v9"
+    assert profile.prompt_version == "phase-6r-stages-v10"
     assert profile.stages == STAGES
     assert read_profile(json.loads(profile.model_dump_json())) == profile
     stored = profile.model_dump(mode="json")
@@ -44,10 +44,10 @@ def test_previous_publication_pin_cannot_be_loaded_for_execution(previous_versio
     profile = extraction_profile(Settings(_env_file=None, extraction_use_fake_provider=True))
     assert profile.manifest["publication_version"] == "phase-6r-publication-v11"
     assert profile.manifest["unit_interpretation_version"] == "source-unit-interpretation-v3"
-    assert profile.schema_version == profile.manifest["version"] == "phase-6r-wire-v6"
+    assert profile.schema_version == profile.manifest["version"] == "phase-6r-wire-v7"
     assert [stage["version"] for stage in profile.manifest["stages"]] == [
         "phase-6r-v1",
-        "phase-6r-attributes-v6",
+        "phase-6r-attributes-v7",
     ]
     previous = profile.model_copy(
         update={"manifest": {**profile.manifest, "publication_version": previous_version}}
@@ -97,9 +97,9 @@ def test_legacy_profile_keys_are_not_admitted(key):
         resolve_profile(key, Settings(_env_file=None))
 
 
-def test_v5_wire_pin_is_rejected_by_v6_execution_profile():
+def test_v6_wire_pin_is_rejected_by_v7_execution_profile():
     profile = extraction_profile(Settings(_env_file=None, extraction_use_fake_provider=True))
     stored = profile.model_dump(mode="json")
-    stored["schema_version"] = "phase-6r-wire-v5"
-    with pytest.raises(ValueError, match="phase-6r-wire-v6"):
+    stored["schema_version"] = "phase-6r-wire-v6"
+    with pytest.raises(ValueError, match="phase-6r-wire-v7"):
         read_profile(stored)

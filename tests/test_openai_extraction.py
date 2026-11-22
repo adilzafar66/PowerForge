@@ -42,12 +42,13 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
             {"equipment": []}
             if stage == STAGES[0]
             else {
-                "upstream_hash": "b" * 64,
                 "attributes": [],
                 "raw_unmapped": [],
             }
         ),
     }
+    if stage == STAGES[1]:
+        payload = {key: payload[key] for key in ("attributes", "raw_unmapped")}
     secret = "CONFIDENTIAL SOURCE STRING"
     if outcome == "success" and stage == STAGES[1]:
         payload["attributes"] = [
@@ -122,7 +123,10 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
             ]
         collection = "equipment" if stage == STAGES[0] else "raw_unmapped"
         assert "maxItems" not in schema_fields[collection]
-        assert "pattern" not in schema_fields["page_context_hash"]
+        if stage == STAGES[1]:
+            assert set(schema_fields) == {"attributes", "raw_unmapped"}
+        else:
+            assert "pattern" not in schema_fields["page_context_hash"]
         if outcome == "provider_schema":
             return httpx.Response(
                 400,
@@ -194,6 +198,7 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
             assert isinstance(response, AttributeOutput)
             original = ("{" if outcome == "invalid" else json.dumps(payload)).encode()
             assert response.output_text == original
+            assert response.request is request
             assert response.usage.output_tokens == 45
         elif outcome == "success":
             response = provider.execute(request)
