@@ -201,3 +201,21 @@ it("compares exact equivalent representations and the published canonical value"
   expect(screen.getByText("508 mm")).toBeTruthy();
   expect(screen.getByText("Evidence localization")).toBeTruthy();
 });
+
+
+it("shows performance nulls and large counts without an audit", async () => {
+  serve({ ...detail, attempt: { ...attempt, retained: null, validation: null, status: "FAILED" },
+    requested_reasoning_effort: "low",
+    performance: { version: 1, provider_call_ms: 100_000, response_status: "timeout",
+      request: { body_bytes: 2_100_000, native_readings: 123, ocr_readings: 3_022 },
+      ocr_selected: true },
+  });
+  render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: /Siemens fixture/ }));
+  fireEvent.click(await screen.findByText("Performance"));
+  expect(screen.getByText("100,000 ms")).toBeTruthy();
+  expect(screen.getByText("2,100,000")).toBeTruthy();
+  expect(screen.getByText("3,022")).toBeTruthy();
+  expect(screen.getByText("Pinned reasoning effort").parentElement?.textContent).toContain("low");
+  expect(screen.getByText("Reasoning tokens").parentElement?.textContent).toContain("Unavailable");
+});

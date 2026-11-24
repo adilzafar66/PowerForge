@@ -1064,8 +1064,9 @@ def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operat
     assert any("Unrelated" in text for ref, text in readings.items() if ref not in table_refs)
 
 
+@pytest.mark.parametrize("input_version", ["compact-page-v1", "compact-page-v2"])
 def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
-    operation_context, monkeypatch
+    operation_context, monkeypatch, input_version
 ):
     from datetime import UTC, datetime, timedelta
     from hashlib import sha256
@@ -1075,9 +1076,12 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
     from extraction_worker.openai_extraction import OpenAIExtractionProvider
     from extraction_worker.read_response_audit import read_audit
     from powerforge_document_processing.storage import InMemoryObjectStorage
+    from powerforge_extraction.compact_context import reading_rows
     from powerforge_extraction.controls import UnitExecution
-    from powerforge_extraction.identities import identity_hash
+    from powerforge_extraction.extraction_profile import stage_request_hash
+    from powerforge_extraction.identities import canonical_json, identity_hash
     from powerforge_extraction.models import ExtractionAICall
+    from powerforge_extraction.publication_records import Fragment
     from powerforge_extraction.response_audit import ResponseAudit
     from powerforge_extraction.stage_execution import StageResult
     from spatial_layout_support import drawn_table
@@ -1085,6 +1089,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
     ctx = operation_context
     ctx["settings"].extraction_use_fake_provider = False
     ctx["settings"].extraction_external_enabled = True
+    ctx["settings"].extraction_attribute_input_version = input_version
     source = new_source(ctx, "mocked-live-schedule.pdf", drawn_table(nearby=True))
     _, run_id, units = admitted_page(ctx, source)
     calls = []
@@ -1097,6 +1102,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
             calls.append(wire)
             payload = {}
             if wire["stage"] == "EQUIPMENT_RECOGNITION":
+                assert "reasoning" not in kwargs
                 payload.update(
                     {key: wire[key] for key in ("version", "stage", "page_context_hash")}
                 )
@@ -1120,10 +1126,14 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                     }
                 ]
             else:
+                assert kwargs["reasoning"] == {"effort": "medium"}
                 assert wire["upstream"]["equipment"][0]["local_ref"] == "local-1"
                 assert {item["equipment_type"] for item in wire["attribute_catalog"]} == {
                     "TWO_WINDING_TRANSFORMER"
                 }
+                panel_ref = next(
+                    row[0] for row in reading_rows(wire["page"]["readings"]) if row[1] == "TX-1"
+                )
                 payload.update(
                     attributes=[],
                     raw_unmapped=[
@@ -1137,7 +1147,14 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                             "raw_unit": None,
                             "qualifiers": [],
                             "value_form": "SINGLE",
-                            "evidence": [],
+                            "evidence": [
+                                {
+                                    "kind": "READING",
+                                    "role": "VALUE",
+                                    "reading_ref": panel_ref,
+                                    "quote": None,
+                                }
+                            ],
                         }
                     ],
                 )
@@ -1153,7 +1170,11 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
             originals.append(original.encode())
             return SimpleNamespace(
                 status="completed",
-                usage=SimpleNamespace(input_tokens=100, output_tokens=30),
+                usage=SimpleNamespace(
+                    input_tokens=100,
+                    output_tokens=30,
+                    output_tokens_details=SimpleNamespace(reasoning_tokens=7),
+                ),
                 output=[
                     SimpleNamespace(
                         type="message",
@@ -1162,6 +1183,11 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                 ],
             )
 
+    # Changing deployment defaults after admission must not rewrite the pinned effort.
+    ctx["settings"].extraction_attribute_reasoning_effort = "low"
+    ctx["settings"].extraction_attribute_input_version = (
+        "compact-page-v1" if input_version == "compact-page-v2" else "compact-page-v2"
+    )
     for stage in ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"):
         assert execute_unit(
             units[stage],
@@ -1175,7 +1201,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         )
     assert len(calls) == 2
     assert {"page_context_hash", "upstream_hash"}.isdisjoint(calls[1])
-    assert calls[1]["input_version"] == "compact-page-v1"
+    assert calls[1]["input_version"] == input_version
     with ctx["factory"]() as session:
         recognition = session.get(StageResult, units["EQUIPMENT_RECOGNITION"])
         attribute = session.get(StageResult, units["ATTRIBUTE_EXTRACTION"])
@@ -1185,17 +1211,33 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         assert attribute.page_context_hash == recognition.page_context_hash
         assert attribute.upstream_hash == recognition.result_hash
         assert recognition.request_hash == identity_hash(calls[0])
-        assert attribute.request_hash == identity_hash(calls[1])
+        assert attribute.request_hash == stage_request_hash(canonical_json(calls[1]), "medium")
+        assert attribute.request_hash != identity_hash(calls[1])
         assert recognition.diagnostics[0]["code"] == "UNKNOWN_READING"
         assert attribute.diagnostics[0]["code"] == "INVALID_OWNER_REFERENCE"
         assert attribute.payload["raw_unmapped"][0]["equipment_ref"] == "foreign-owner"
+        fragments = session.scalars(
+            select(Fragment).where(Fragment.work_unit_id == units["ATTRIBUTE_EXTRACTION"])
+        ).all()
+        assert len(fragments) == 2
+        assert all(item.localization == "RESOLVED" and item.quote == "TX-1" for item in fragments)
         assert [item["local_ref"] for item in attribute.payload["raw_unmapped"]] == [
             "raw-1",
             "raw-2",
         ]
+        metrics = session.get(ExtractionWorkUnit, units["ATTRIBUTE_EXTRACTION"]).performance
+        assert metrics["provider_call_ms"] <= metrics["attempt_total_ms"]
+        assert metrics["request"]["native_readings"] == sum(
+            1 for _ in reading_rows(calls[1]["page"]["readings"])
+        )
+        assert metrics["request"]["body_bytes"] > metrics["request"]["page_bytes"]
+        assert metrics["reasoning_tokens"] == 7 and metrics["visible_output_tokens"] == 23
+        assert metrics["response_status"] == "completed"
+        assert "source reading" not in json.dumps(metrics)
         retained = session.get(ResponseAudit, units["ATTRIBUTE_EXTRACTION"])
         delivery = session.get(UnitExecution, units["ATTRIBUTE_EXTRACTION"])
         assert delivery.provider_request_hash == retained.request_hash == attribute.request_hash
+        assert retained.attribute_reasoning_effort == "medium"
         assert retained.output_sha256 == sha256(originals[1]).hexdigest()
         assert (retained.received, retained.accepted, retained.quarantined) == (3, 2, 1)
         assert retained.rejections[0]["local_ref_sha256"] == sha256(b"private-ref").hexdigest()
@@ -1715,6 +1757,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
         "foreign-response",
         "wrong-dispatch-hash",
         "wrong-upstream-binding",
+        "wrong-audit-effort",
     ],
 )
 def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch, breakage):
@@ -1726,7 +1769,7 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
     from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
 
     ctx = operation_context
-    if breakage == "missing-audit":
+    if breakage in {"missing-audit", "wrong-audit-effort"}:
         ctx["settings"].extraction_use_fake_provider = False
         ctx["settings"].extraction_external_enabled = True
     audit_storage = InMemoryObjectStorage()
@@ -1902,6 +1945,22 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
             errors.append(diagnostics.message_primary)
 
     engine = ctx["factory"].kw["bind"]
+
+    if breakage == "wrong-audit-effort":
+        # Simulate an audit row with the correct dispatch digest but a different effort.
+        from powerforge_extraction import response_audit
+
+        real_add = response_audit.ResponseAudit
+        seen = []
+
+        def build_audit(**metadata):
+            if not seen:
+                metadata["attribute_reasoning_effort"] = "low"
+            seen.append(metadata["attribute_reasoning_effort"])
+            return real_add(**metadata)
+
+        monkeypatch.setattr(response_audit, "ResponseAudit", build_audit)
+
     event.listen(engine, "handle_error", observe_database_rejection)
     try:
         assert execute("ATTRIBUTE_EXTRACTION", 1)
@@ -1913,6 +1972,9 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
         assert errors == ["Stage 2 result must use the pinned typed contract"]
     if breakage == "wrong-dispatch-hash":
         assert errors == ["Stage 2 result differs from its dispatched request"]
+    if breakage == "wrong-audit-effort":
+        assert errors == ["Response audit differs from its pinned reasoning effort"]
+        assert seen == ["low", "medium"]
     attempt_id = units[("ATTRIBUTE_EXTRACTION", 1)]
     if breakage == "missing-audit":
         # Commit rejected the result. The fenced failure transaction retained
@@ -1941,7 +2003,12 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
         assert (
             session.scalar(select(Fragment.id).where(Fragment.work_unit_id == attempt_id)) is None
         )
-        assert session.get(ExtractionWorkUnit, attempt_id).status == "FAILED"
+        failed = session.get(ExtractionWorkUnit, attempt_id)
+        assert failed.status == "FAILED"
+        assert failed.performance["failure_stage"] == (
+            "admission" if breakage == "foreign-response" else "db_publish"
+        )
+        assert failed.performance["attempt_total_ms"] >= failed.performance["admission_ms"]
         if breakage == "wrong-upstream-binding":
             assert session.get(ExtractionWorkUnit, attempt_id).error_code == "INVALID_SOURCE_INPUT"
         assert session.get(ExtractionRun, run_id).status == "PARTIALLY_COMPLETED"

@@ -33,10 +33,12 @@ from powerforge_extraction.unit_notation import SCALAR
 from powerforge_provenance.layout_observations import SpatialLayout
 from powerforge_provenance.spatial_base import ExactDecimal
 from powerforge_provenance.spatial_sources import PageOwner
+from powerforge_shared.config import AttributeInputVersion
 
 VERSION = "phase-6r-v1"
 ATTRIBUTE_VERSION = "phase-6r-attributes-v7"
-ATTRIBUTE_INPUT_VERSION = "compact-page-v1"
+LEGACY_ATTRIBUTE_INPUT_VERSION = "compact-page-v1"
+ATTRIBUTE_INPUT_VERSION = "compact-page-v2"
 MAX_REQUEST_BYTES = 2 * 1024 * 1024
 MAX_RESPONSE_BYTES = 512 * 1024
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
@@ -245,6 +247,9 @@ class RecognitionRequest(Contract):
 
 
 class AttributeRequest(Contract):
+    input_version: AttributeInputVersion = Field(
+        default=LEGACY_ATTRIBUTE_INPUT_VERSION, exclude=True
+    )
     version: Literal[ATTRIBUTE_VERSION]
     stage: Literal["ATTRIBUTE_EXTRACTION"]
     page_context_hash: Hash

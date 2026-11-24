@@ -11,10 +11,11 @@ from powerforge_document_processing.layout_readings import selected_readings
 from powerforge_engineering_model.enums import EquipmentType
 from powerforge_engineering_model.extraction_descriptions import DESCRIPTION_VERSION
 from powerforge_engineering_model.registry_v1 import REGISTRY
+from powerforge_extraction.compact_context import expand_compact_page
 from powerforge_extraction.stage_contracts import (
     ATTRIBUTE_DESCRIPTION_VERSION,
-    ATTRIBUTE_INPUT_VERSION,
     ATTRIBUTE_VERSION,
+    LEGACY_ATTRIBUTE_INPUT_VERSION,
     MAX_REQUEST_BYTES,
     MAX_RESPONSE_BYTES,
     VERSION,
@@ -216,7 +217,7 @@ def test_compact_schedule_keeps_readings_coordinates_and_layout(attribute_reques
     compact = json.loads(json.dumps(provider_input(attribute_request)))
     page = compact["page"]
     full_page = original["page"]
-    assert compact["input_version"] == ATTRIBUTE_INPUT_VERSION
+    assert compact["input_version"] == LEGACY_ATTRIBUTE_INPUT_VERSION
     assert {"upstream_hash", "page_context_hash"}.isdisjoint(compact)
     assert "page_context_hash" not in compact["upstream"]
     assert compact["upstream"]["equipment"] == original["upstream"]["equipment"]
@@ -294,6 +295,9 @@ def test_compact_input_preserves_alternate_and_overlapping_token_links(attribute
             "members": [item.model_dump(mode="json") for item in reading.members],
             "preferred": reading.preferred.model_dump(mode="json"),
         }
+    candidate = provider_input(request.model_copy(update={"input_version": "compact-page-v2"}))
+    assert candidate["input_version"] == "compact-page-v2"
+    assert expand_compact_page(candidate["page"]) == compact
     columns = compact["readings"]["columns"]
     first_row, second_row, *_ = compact["readings"]["rows"]
     assert first_row[columns.index("alternate_texts")] == ["Conflicting OCR"]

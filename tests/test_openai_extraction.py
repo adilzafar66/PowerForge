@@ -10,6 +10,7 @@ import pytest
 from extraction_worker.openai_extraction import OpenAIExtractionProvider
 from powerforge_ai.extraction import AttributeOutput, ErrorCode, ExtractionRequest, ProviderFailure
 from powerforge_extraction.extraction_profile import PROMPTS, RESPONSES, STAGES, extraction_profile
+from powerforge_extraction.performance import AttemptPerformance, active_performance
 from powerforge_extraction.stage_contracts import stage_schema_version
 from powerforge_shared.config import Settings
 
@@ -19,6 +20,7 @@ from powerforge_shared.config import Settings
     "outcome, category, error_type",
     [
         ("success", None, None),
+        ("timeout", None, None),
         ("incomplete", "INCOMPLETE", "max_output_tokens"),
         ("refusal", "REFUSAL", "refusal"),
         ("invalid", "JSON", "json_invalid"),
@@ -105,6 +107,10 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
         seen.append(wire)
         assert http_request.url.path == "/v1/responses"
         assert wire["store"] is False and "tools" not in wire
+        if stage == STAGES[1]:
+            assert wire["reasoning"] == {"effort": "medium"}
+        else:
+            assert "reasoning" not in wire
         assert wire["instructions"] == PROMPTS[stage]
         (message,) = wire["input"]
         assert message["role"] == "user"
@@ -127,6 +133,8 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
             assert set(schema_fields) == {"attributes", "raw_unmapped"}
         else:
             assert "pattern" not in schema_fields["page_context_hash"]
+        if outcome == "timeout":
+            raise httpx.ReadTimeout(secret, request=http_request)
         if outcome == "provider_schema":
             return httpx.Response(
                 400,
@@ -183,10 +191,25 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
         image_detail="high",
         stage=stage,
         response_model=RESPONSES[stage],
+        reasoning_effort=profile.reasoning_effort_for(stage),
     )
     with httpx.Client(transport=httpx.MockTransport(respond)) as http:
         sdk = openai.OpenAI(api_key="test", max_retries=0, http_client=http)
         provider = OpenAIExtractionProvider(settings, profile, sdk)
+        performance = AttemptPerformance()
+        if outcome == "timeout":
+            token = active_performance.set(performance)
+            try:
+                with pytest.raises(ProviderFailure) as error:
+                    provider.execute(request)
+            finally:
+                active_performance.reset(token)
+            assert error.value.code == ErrorCode.TIMEOUT
+            assert error.value.usage is None and secret not in str(error.value)
+            assert performance.provider_call_ms is not None
+            assert performance.failure_stage == "provider_call"
+            assert performance.response_status == "timeout"
+            return
         if stage == STAGES[1] and outcome in {
             "success",
             "invalid",
@@ -270,3 +293,49 @@ def test_provider_typed_schema_has_only_supported_primitive_branches():
             allowed.add("null")
         assert {branch["type"] for branch in fields["proposed_value"]["anyOf"]} == allowed
     assert definitions["AlternateRepresentation"]["properties"]["value"]["type"] == "string"
+
+
+@pytest.mark.parametrize(
+    "reasoning, output, expected",
+    [
+        (None, 45, (None, None)),
+        (0, 45, (0, 45)),
+        (20, 45, (20, 25)),
+        (46, 45, (None, None)),
+        (-1, 45, (None, None)),
+        ("12", 45, (None, None)),
+        (True, 45, (None, None)),
+        (20, None, (20, None)),
+    ],
+)
+def test_optional_provider_details_never_change_admission(reasoning, output, expected):
+    from types import SimpleNamespace
+
+    stage = STAGES[1]
+    response = SimpleNamespace(
+        status="completed",
+        service_tier="priority",
+        reasoning=SimpleNamespace(effort="medium"),
+        usage=SimpleNamespace(
+            output_tokens=output, output_tokens_details=SimpleNamespace(reasoning_tokens=reasoning)
+        ),
+        output=[
+            SimpleNamespace(
+                type="message",
+                content=[
+                    SimpleNamespace(type="output_text", text='{"attributes":[],"raw_unmapped":[]}')
+                ],
+            )
+        ],
+    )
+    performance = AttemptPerformance()
+    token = active_performance.set(performance)
+    try:
+        result = OpenAIExtractionProvider._admit_response(
+            response, SimpleNamespace(stage=stage), RESPONSES[stage]
+        )
+    finally:
+        active_performance.reset(token)
+    assert result.usage.output_tokens == output
+    assert (performance.reasoning_tokens, performance.visible_output_tokens) == expected
+    assert performance.service_tier == "priority" and performance.reasoning_effort == "medium"

@@ -255,6 +255,7 @@ class ExtractionWorkUnit(Record, Base):
     heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     error_code: Mapped[str | None] = mapped_column(Text)
     error_message: Mapped[str | None] = mapped_column(Text)
+    performance: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), deferred=True)
     output_counts: Mapped[dict] = mapped_column(
         JSONB, nullable=False, server_default=text("'{}'::jsonb")
     )

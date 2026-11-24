@@ -195,7 +195,7 @@ function AttemptView({ id }: { id: string }) {
       <details><summary>Execution and response metadata</summary>
         <dl className="metadata">{Object.entries({
           "Run UUID": row.run_id, "Attempt UUID": row.attempt_id, "Finished": date(row.finished_at),
-          "Provider and model": `${row.provider} · ${row.model ?? "Model unavailable"}`, "Latency": row.duration_ms === null ? null : `${row.duration_ms} ms`,
+          "Provider and model": `${row.provider} · ${row.model ?? "Model unavailable"}`, "Recorded call duration": row.duration_ms === null ? null : `${row.duration_ms} ms`,
           "Input tokens": row.input_tokens, "Cached input tokens": row.cached_input_tokens, "Output tokens": row.output_tokens,
           "Estimated cost": row.cost === null ? null : `USD ${row.cost} · ${row.pricing_basis}`, "Output bytes": row.output_bytes,
           "Response SHA-256": row.output_sha256, "Expiry": date(row.expires_at), "Stage error": row.error_code,
@@ -204,6 +204,7 @@ function AttemptView({ id }: { id: string }) {
         }).map(([label, value]) => <div key={label}><dt>{label}</dt><dd><code>{value ?? "Unavailable"}</code>
           {label.endsWith("UUID") && typeof value === "string" && <Copy value={value} label={`Copy ${label}`} />}</dd></div>)}</dl>
       </details>
+      <PerformanceSection detail={detail} />
       <Diagnostics issues={detail.fatal} fatal />
       <div className="actions"><button className="primary" disabled={retained !== "Within retention" || busy || raw !== undefined} onClick={() => void reveal()}>
         {busy ? "Verifying…" : raw === undefined ? "Reveal original response" : "Original response verified"}</button>
@@ -284,3 +285,45 @@ function Publication({ assertion }: { assertion: Assertion }) {
 
 const root = document.getElementById("root");
 if (root) createRoot(root).render(<App />);
+
+function PerformanceSection({ detail }: { detail: Detail }) {
+  const { attempt, performance } = detail;
+  const request = performance?.request;
+  const duration = (value?: number) => value == null ? null : `${value.toLocaleString()} ms`;
+  const metadata = (values: Record<string, string | number | null | undefined>) =>
+    <dl className="metadata">{Object.entries(values).map(([label, value]) =>
+      <div key={label}><dt>{label}</dt><dd>{typeof value === "number" ? value.toLocaleString() : value ?? "Unavailable"}</dd></div>
+    )}</dl>;
+  return <details><summary>Performance</summary>
+    {metadata({
+      "Model": attempt.model, "Outcome": attempt.status,
+      "Provider response": performance?.response_status, "Failure stage": performance?.failure_stage,
+      "Pinned reasoning effort": detail.requested_reasoning_effort,
+      "Provider-reported reasoning effort": performance?.reasoning_effort, "Service tier": performance?.service_tier,
+      "Queue wait": duration(performance?.queue_wait_ms), "Provider call": duration(performance?.provider_call_ms),
+      "Source loading": duration(performance?.source_load_ms), "Request build": duration(performance?.request_build_ms),
+      "Response admission": duration(performance?.admission_ms), "Localization and normalization": duration(performance?.localization_normalization_ms),
+      "Audit storage": duration(performance?.audit_store_ms), "Database publication through flush": duration(performance?.db_publish_ms),
+      "Attempt through settlement": duration(performance?.attempt_total_ms),
+      "Input tokens": attempt.input_tokens, "Cached input tokens": attempt.cached_input_tokens,
+      "Output tokens": attempt.output_tokens, "Reasoning tokens": performance?.reasoning_tokens,
+      "Visible output tokens": performance?.visible_output_tokens,
+      "OCR selected": performance?.ocr_selected == null ? null : performance.ocr_selected ? "Yes" : "No",
+      "Native readings": request?.native_readings, "OCR readings": request?.ocr_readings,
+      "Alternate readings": request?.alternate_readings, "Reading text characters": request?.reading_text_chars,
+      "Uncertain readings": request?.uncertain_readings, "Conflicting or ambiguous overlaps": request?.conflicting_overlap_count,
+      "Reading order links": request?.order_count, "Overlap links": request?.overlap_count,
+      "Line groups": request?.line_count, "Tables": request?.table_count, "Cells": request?.cell_count,
+      "Equipment occurrences": request?.equipment_count, "Eligible equipment types": request?.eligible_type_count,
+      "Registry definitions": request?.registry_definition_count,
+      "Image dimensions": request ? `${request.image_width} × ${request.image_height} px` : null,
+      "Image detail": request?.image_detail, "Encoded image bytes": request?.encoded_image_bytes,
+      "Request body bytes": request?.body_bytes, "Page context bytes": request?.page_bytes,
+      "Instructions bytes": request?.instructions_bytes, "Output schema bytes": request?.schema_bytes,
+      "Registry catalog bytes": request?.catalog_bytes, "Recognized equipment bytes": request?.recognition_bytes,
+      "Input text SHA-256": request?.input_sha256, "Profile SHA-256": performance?.profile_sha256,
+      "Prompt SHA-256": performance?.prompt_sha256, "Transport schema SHA-256": performance?.schema_sha256,
+    })}
+    {!performance && <p className="muted">Detailed measurements are unavailable for this attempt.</p>}
+  </details>;
+}

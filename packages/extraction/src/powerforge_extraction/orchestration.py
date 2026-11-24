@@ -5,7 +5,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from hashlib import sha256
 from typing import Protocol
 from uuid import UUID, uuid4
 
@@ -36,6 +35,7 @@ from powerforge_extraction.errors import (
     LeaseLost,
 )
 from powerforge_extraction.models import ExtractionRun, ExtractionWorkUnit
+from powerforge_extraction.performance import active_performance, elapsed_ms, measure
 from powerforge_extraction.persistence import ExtractionPersistence
 from powerforge_extraction.profiles import (
     ExecutionProfile,
@@ -79,6 +79,7 @@ class Claim:
     mime_type: str
     size_bytes: int
     sha256: str
+    queue_wait_ms: int | None = None
 
 
 def dependency_ready():
@@ -271,6 +272,7 @@ class ExtractionCoordinator:
         from powerforge_extraction.stage_execution import prerequisite_result, validate_plan
 
         no_call = False
+        queue_wait_ms = None
         if isinstance(profile, ExtractionProfile):
             try:
                 validate_plan(self.session, unit, profile)
@@ -282,6 +284,12 @@ class ExtractionCoordinator:
                     if parent is None:
                         return None
                     no_call = not attribute_catalog(recognition_result(parent))
+                    ready_at = max(
+                        delivery.available_at,
+                        self.session.get(ExtractionWorkUnit, parent.work_unit_id).finished_at,
+                    )
+                    # Use the same PostgreSQL clock for eligibility and claim.
+                    queue_wait_ms = max(0, (now - ready_at) // timedelta(milliseconds=1))
             except (ValueError, KeyError, StopIteration):
                 unit.status, unit.error_code, unit.finished_at = (
                     US.FAILED,
@@ -358,6 +366,7 @@ class ExtractionCoordinator:
             artifact.mime_type,
             artifact.size_bytes,
             artifact.sha256,
+            queue_wait_ms,
         )
 
     def _authorized(self, unit_id: UUID, token: UUID):
@@ -418,7 +427,7 @@ class ExtractionCoordinator:
 
             if not live_admission_authorized(self.session, run, profile):
                 raise ProviderFailure(ErrorCode.DISABLED)
-        from powerforge_extraction.extraction_profile import PROMPTS, RESPONSES
+        from powerforge_extraction.extraction_profile import RESPONSES, stage_request_hash
         from powerforge_extraction.stage_contracts import stage_schema_version
 
         if request is None or (
@@ -426,15 +435,19 @@ class ExtractionCoordinator:
             or request.unit_key != unit.unit_key
             or request.attempt_number != unit.attempt_number
             or request.stage != unit.stage
-            or request.instructions != PROMPTS[unit.stage]
+            or request.instructions != profile.instructions_for(unit.stage)
             or request.response_model is not RESPONSES[unit.stage]
             or request.schema_version != stage_schema_version(unit.stage)
+            or request.reasoning_effort != profile.reasoning_effort_for(unit.stage)
+            or request.reasoning_effort != unit.execution_metadata.get("attribute_reasoning_effort")
         ):
             raise ValueError("Request differs from its pinned extraction stage")
         if request.stage == "ATTRIBUTE_EXTRACTION":
             if not request.text:
                 raise ValueError("Stage 2 requires a complete provider input")
-            delivery.provider_request_hash = sha256(request.text.encode()).hexdigest()
+            delivery.provider_request_hash = stage_request_hash(
+                request.text, request.reasoning_effort
+            )
         delivery.provider_started_at = self.now()
         self.session.flush()
 
@@ -494,24 +507,39 @@ class ExtractionCoordinator:
             ),
         )
 
-    def complete_stage(self, unit_id, token, wire, result, usage, publication=None, *, audit=None):
+    def complete_stage(
+        self,
+        unit_id,
+        token,
+        wire,
+        result,
+        usage,
+        publication=None,
+        *,
+        audit=None,
+        attempt_start=None,
+    ):
         from powerforge_extraction.response_audit import record_audit
         from powerforge_extraction.stage_contracts import NoEligibleAttributes
         from powerforge_extraction.stage_execution import store_result, validate_plan
 
-        run, unit, delivery = self._authorized(unit_id, token)
-        if isinstance(result, NoEligibleAttributes) != (delivery.provider_started_at is None):
-            raise ValueError("Stage outcome differs from the provider call boundary")
-        if run.execution_purpose != "EXTRACTION":
-            raise ValueError("AI stage results require an extraction run")
-        profile = read_profile(self._execution(run.id).configuration)
-        if publication is None:
-            raise ValueError("Stage completion requires verified publication")
-        snapshot = validate_plan(self.session, unit, profile)
-        if audit is not None:
-            record_audit(self.session, unit, *audit)
-        unit.output_counts = store_result(self.session, unit, snapshot, wire, result, publication)
+        with measure("db_publish"):
+            run, unit, delivery = self._authorized(unit_id, token)
+            if isinstance(result, NoEligibleAttributes) != (delivery.provider_started_at is None):
+                raise ValueError("Stage outcome differs from the provider call boundary")
+            if run.execution_purpose != "EXTRACTION":
+                raise ValueError("AI stage results require an extraction run")
+            profile = read_profile(self._execution(run.id).configuration)
+            if publication is None:
+                raise ValueError("Stage completion requires verified publication")
+            snapshot = validate_plan(self.session, unit, profile)
+            if audit is not None:
+                record_audit(self.session, unit, *audit)
+            unit.output_counts = store_result(
+                self.session, unit, snapshot, wire, result, publication
+            )
         self._telemetry(unit, profile, self.now(), "SUCCEEDED", None, usage)
+        self._save_performance(unit, attempt_start)
         unit.status, unit.finished_at = US.COMPLETED, self.now()
         self.session.flush()
         units = self._units(run.id)
@@ -550,6 +578,13 @@ class ExtractionCoordinator:
         self._delivery(new, self.now() + timedelta(seconds=seconds))
         return new
 
+    @staticmethod
+    def _save_performance(unit, attempt_start):
+        performance = active_performance.get()
+        if performance is not None and attempt_start is not None:
+            performance.attempt_total_ms = elapsed_ms(attempt_start)
+            unit.performance = performance.model_dump(mode="json", exclude_none=True)
+
     def fail(
         self,
         unit_id: UUID,
@@ -559,6 +594,7 @@ class ExtractionCoordinator:
         *,
         diagnostics: tuple[ValidationIssue, ...] = (),
         audit=None,
+        attempt_start=None,
     ) -> None:
         from powerforge_extraction.response_audit import record_audit
 
@@ -567,10 +603,16 @@ class ExtractionCoordinator:
         if audit is not None:
             record_audit(self.session, unit, *audit)
         self._telemetry(unit, profile, self.now(), "FAILED", code.value, usage, diagnostics)
-        self._settle_failure(run, unit, profile, code.value)
+        self._settle_failure(run, unit, profile, code.value, attempt_start=attempt_start)
 
     def _settle_failure(
-        self, run: ExtractionRun, unit: ExtractionWorkUnit, profile: ExecutionProfile, code: str
+        self,
+        run: ExtractionRun,
+        unit: ExtractionWorkUnit,
+        profile: ExecutionProfile,
+        code: str,
+        *,
+        attempt_start=None,
     ) -> None:
         if profile.provider == "openai" and code in {
             ErrorCode.INTERRUPTED.value,
@@ -589,7 +631,9 @@ class ExtractionCoordinator:
                 and managed_remote_run(self.session, run.id)
             ):
                 code = UNKNOWN_PROVIDER_OUTCOME
-        unit.status, unit.error_code, unit.finished_at = US.FAILED, code, self.now()
+        finished = self.now()
+        self._save_performance(unit, attempt_start)
+        unit.status, unit.error_code, unit.finished_at = US.FAILED, code, finished
         self.session.flush()
         control = self._execution(run.id)
         if (

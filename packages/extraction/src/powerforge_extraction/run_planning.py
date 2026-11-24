@@ -25,13 +25,16 @@ class EnrichmentSelection(BaseModel):
 
 
 def metadata(profile, stage, page, binding):
-    return dict(
+    result = dict(
         prerequisite_key=prerequisite(stage, page),
         stage_manifest_version=profile.schema_version,
         stage_identity=next(s for s in profile.manifest["stages"] if s["stage"] == stage),
         source_page_id=str(binding.document_page_id),
         binding_hash=binding.binding_hash,
     )
+    if (effort := profile.reasoning_effort_for(stage)) is not None:
+        result["attribute_reasoning_effort"] = effort
+    return result
 
 
 def plan_extraction_run(coordinator, document_id, revision_document_id, pages, mode, selections):

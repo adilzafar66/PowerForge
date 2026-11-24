@@ -6,7 +6,7 @@ GRANT INSERT (work_unit_id) ON public.extraction_response_audit_reads TO :"debug
 GRANT SELECT (id, original_filename) ON public.documents TO :"debugger_operator";
 GRANT SELECT (id, page_number) ON public.document_pages TO :"debugger_operator";
 GRANT SELECT (id, document_id, provider, model) ON public.extraction_runs TO :"debugger_operator";
-GRANT SELECT (id, run_id, execution_metadata, attempt_number, finished_at, status, stage,
+GRANT SELECT (id, run_id, execution_metadata, attempt_number, finished_at, status, stage, performance,
     output_counts, error_code) ON public.extraction_work_units TO :"debugger_operator";
 GRANT SELECT (work_unit_id, duration_ms, input_tokens, output_tokens, cached_input_tokens,
     estimated_cost_usd, pricing_basis, schema_version, prompt_version, validation_diagnostics)

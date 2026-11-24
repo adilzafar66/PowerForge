@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 
 from powerforge_ai.extraction import AttributeOutput, ExecutionUsage
 from powerforge_document_processing.storage import InMemoryObjectStorage
@@ -19,8 +20,19 @@ from test_extraction_operations import operation_context as operation_context
 pytestmark = pytest.mark.integration
 
 
-def test_debugger_partial_attempt_comparison_and_exact_export(operation_context, monkeypatch):
+@pytest.mark.parametrize("timeout", [False, True])
+def test_debugger_partial_attempt_comparison_and_exact_export(
+    operation_context, monkeypatch, timeout
+):
+    from types import SimpleNamespace
+
+    import openai
+
+    from extraction_worker.openai_extraction import OpenAIExtractionProvider
+
     ctx = operation_context
+    if timeout:
+        ctx["settings"].extraction_use_fake_provider = False
     source = new_source(ctx, "siemens-pattern-fixture.pdf")
     _, run_id, units = admitted_page(ctx, source)
     store = InMemoryObjectStorage()
@@ -69,13 +81,30 @@ def test_debugger_partial_attempt_comparison_and_exact_export(operation_context,
                 original, ExecutionUsage(input_tokens=100, output_tokens=50), request
             )
 
+    def timeout_call(**_kwargs):
+        import httpx
+
+        raise openai.APITimeoutError(
+            request=httpx.Request("POST", "https://api.openai.com/v1/responses")
+        )
+
     for stage in ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"):
         assert execute_unit(
             units[stage],
-            ctx["factory"],
+            sessionmaker(ctx["factory"].kw["bind"], autoflush=True)
+            if timeout and stage == "ATTRIBUTE_EXTRACTION"
+            else ctx["factory"],
             ctx["storage"],
             ctx["settings"],
-            lambda _: Provider(),
+            lambda claim: (
+                OpenAIExtractionProvider(
+                    ctx["settings"],
+                    claim.profile,
+                    SimpleNamespace(responses=SimpleNamespace(create=timeout_call)),
+                )
+                if timeout and claim.unit_key.startswith("ATTRIBUTE_EXTRACTION:")
+                else Provider()
+            ),
             audit_storage=store,
         )
 
@@ -103,11 +132,32 @@ def test_debugger_partial_attempt_comparison_and_exact_export(operation_context,
             base_url=debugger.ORIGIN,
             client=("127.0.0.1", 31415),
         )
+        assert client.get(f"/api/attempts/{units['ATTRIBUTE_EXTRACTION']}").status_code == 401
         headers = {"Origin": debugger.ORIGIN, "X-Debugger-Request": "1"}
         assert (
             client.post("/api/login", headers=headers, json={"secret": secret}).status_code == 204
         )
         attempt = units["ATTRIBUTE_EXTRACTION"]
+        if timeout:
+            reply = client.get(
+                "/api/attempts", params={"identity": str(run_id), "status": "FAILED"}
+            )
+            assert reply.status_code == 200
+            assert [row["attempt_id"] for row in reply.json()["items"]] == [str(attempt)]
+            result = client.get(f"/api/attempts/{attempt}").json()
+            assert result["attempt"]["input_tokens"] is None
+            assert result["attempt"]["retained"] is None
+            assert result["validated"] is None and result["candidates"] == []
+            assert result["performance"]["provider_call_ms"] >= 0
+            assert result["performance"]["response_status"] == "timeout"
+            assert result["requested_reasoning_effort"] == "medium"
+            assert result["performance"]["failure_stage"] == "provider_call"
+            assert result["performance"]["request"]["body_bytes"] > 0
+            assert result["performance"]["reasoning_tokens"] is None
+            assert (
+                client.post(f"/api/attempts/{attempt}/original", headers=headers).status_code == 404
+            )
+            return
         reply = client.get(
             "/api/attempts",
             params={
@@ -134,6 +184,9 @@ def test_debugger_partial_attempt_comparison_and_exact_export(operation_context,
             == []
         )
         detail = client.get(f"/api/attempts/{attempt}").json()
+        assert detail["performance"]["version"] == 1
+        assert detail["performance"]["attempt_total_ms"] >= detail["performance"]["admission_ms"]
+        assert detail["performance"]["provider_call_ms"] is None
         assert detail["attempt"]["published"] == 25
         assert detail["rejections"][0]["index"] == 24
         assert detail["validated"]["attributes"][24]["local_ref"] == "item-25"

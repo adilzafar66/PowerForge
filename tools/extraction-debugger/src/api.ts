@@ -17,7 +17,33 @@ export type PublishedCandidate = {
   normalized_type: string | null; normalized_value: string | null; normalized_unit: string | null;
   evidence: { role: string; localization: string; reason_code: string | null }[];
 };
+type Performance = {
+  version: 1;
+  queue_wait_ms?: number;
+  source_load_ms?: number;
+  request_build_ms?: number;
+  provider_call_ms?: number;
+  admission_ms?: number;
+  localization_normalization_ms?: number;
+  audit_store_ms?: number;
+  db_publish_ms?: number;
+  attempt_total_ms?: number;
+  failure_stage?: string;
+  response_status?: string;
+  reasoning_tokens?: number;
+  visible_output_tokens?: number;
+  service_tier?: string;
+  reasoning_effort?: string;
+  ocr_selected?: boolean;
+  profile_sha256?: string;
+  prompt_sha256?: string;
+  schema_sha256?: string;
+  request?: Record<string, number | string | null>;
+};
+
 export type Detail = {
+  performance?: Performance | null;
+  requested_reasoning_effort?: "none" | "low" | "medium" | null;
   attempt: Attempt; request_sha256: string | null; result_sha256: string | null;
   upstream_sha256: string | null; schema_version: string | null; prompt_version: string | null;
   rejections: Rejection[]; fatal: Issue[];

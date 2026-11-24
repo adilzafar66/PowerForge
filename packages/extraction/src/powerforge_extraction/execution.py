@@ -2,10 +2,11 @@
 
 import logging
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from datetime import UTC, datetime
 from hashlib import sha256
 from threading import Event, Thread
+from time import perf_counter_ns
 from uuid import UUID
 
 from pydantic import ValidationError
@@ -27,6 +28,7 @@ from powerforge_document_processing.storage.base import (
 )
 from powerforge_extraction.errors import LeaseLost
 from powerforge_extraction.orchestration import Claim, ExtractionCoordinator
+from powerforge_extraction.performance import AttemptPerformance, active_performance, measure
 from powerforge_extraction.response_diagnostics import validation_issues
 from powerforge_shared.config import Settings
 
@@ -72,6 +74,21 @@ def execute_unit(
         claim = ExtractionCoordinator(session, settings).claim(unit_id)
     if claim is None:
         return False
+    performance = (
+        AttemptPerformance(queue_wait_ms=claim.queue_wait_ms)
+        if claim.unit_key.startswith("ATTRIBUTE_EXTRACTION:")
+        else None
+    )
+    token = active_performance.set(performance)
+    try:
+        return _execute_claim(claim, factory, storage, settings, provider_factory, audit_storage)
+    finally:
+        active_performance.reset(token)
+
+
+def _execute_claim(claim, factory, storage, settings, provider_factory, audit_storage):
+    unit_id = claim.unit_id
+    attempt_start = perf_counter_ns()
     usage = None
     audit = None
     try:
@@ -93,16 +110,22 @@ def execute_unit(
                 live_attributes = (
                     isinstance(wire, AttributeRequest) and claim.profile.provider == "openai"
                 )
-                if isinstance(wire, AttributeRequest) and (
-                    request.image is None
-                    or sha256(request.image).hexdigest() != wire.page.image_sha256
-                    or request.text != canonical_json(provider_input(wire))
+                with measure("request_build"):
+                    if isinstance(wire, AttributeRequest) and (
+                        request.image is None
+                        or sha256(request.image).hexdigest() != wire.page.image_sha256
+                        or request.text != canonical_json(provider_input(wire))
+                    ):
+                        raise ProviderFailure(ErrorCode.INPUT)
+                with (
+                    measure("audit_store")
+                    if live_attributes and audit_storage is None
+                    else nullcontext()
                 ):
-                    raise ProviderFailure(ErrorCode.INPUT)
-                if live_attributes and audit_storage is None:
-                    audit_storage = response_audit_writer(
-                        settings, claim.profile.response_audit_retention_days
-                    )
+                    if live_attributes and audit_storage is None:
+                        audit_storage = response_audit_writer(
+                            settings, claim.profile.response_audit_retention_days
+                        )
                 with factory.begin() as session:
                     ExtractionCoordinator(session, settings).mark_provider_started(
                         claim.unit_id, claim.token, request
@@ -115,36 +138,44 @@ def execute_unit(
                 )
                 budget_issue = ValidationIssue(category="CAPACITY", error_type="output_token_limit")
                 if isinstance(wire, AttributeRequest):
-                    if not isinstance(response, AttributeOutput) or response.request is not request:
-                        raise ProviderFailure(
-                            ErrorCode.INVALID,
-                            usage,
-                            diagnostics=(
-                                ValidationIssue(
-                                    category="ENVELOPE", error_type="request_binding_mismatch"
+                    with measure("admission"):
+                        if (
+                            not isinstance(response, AttributeOutput)
+                            or response.request is not request
+                        ):
+                            raise ProviderFailure(
+                                ErrorCode.INVALID,
+                                usage,
+                                diagnostics=(
+                                    ValidationIssue(
+                                        category="ENVELOPE", error_type="request_binding_mismatch"
+                                    ),
                                 ),
-                            ),
-                        )
+                            )
                     raw = response.output_text
                     retained = None
                     if audit_storage is not None:
-                        retained = retain_output(
-                            audit_storage,
-                            claim.unit_id,
-                            claim.profile.response_audit_retention_days,
-                            raw,
-                            datetime.now(UTC),
+                        with measure("audit_store"):
+                            retained = retain_output(
+                                audit_storage,
+                                claim.unit_id,
+                                claim.profile.response_audit_retention_days,
+                                raw,
+                                datetime.now(UTC),
+                            )
+                    with measure("admission"):
+                        admission = (
+                            AttributeAdmission(fatal=(budget_issue,))
+                            if over_budget
+                            else admit_attributes(wire, raw)
                         )
-                    admission = (
-                        AttributeAdmission(fatal=(budget_issue,))
-                        if over_budget
-                        else admit_attributes(wire, raw)
-                    )
-                    if retained is not None:
-                        audit = (wire, retained, admission)
-                    if admission.result is None:
-                        raise ProviderFailure(ErrorCode.INVALID, usage, diagnostics=admission.fatal)
-                    result = admission.result
+                        if retained is not None:
+                            audit = (wire, retained, admission)
+                        if admission.result is None:
+                            raise ProviderFailure(
+                                ErrorCode.INVALID, usage, diagnostics=admission.fatal
+                            )
+                        result = admission.result
                 else:
                     if over_budget:
                         raise ProviderFailure(ErrorCode.INVALID, usage, diagnostics=(budget_issue,))
@@ -158,11 +189,24 @@ def execute_unit(
                         raise ProviderFailure(
                             ErrorCode.INVALID, usage, diagnostics=validation_issues(exc)
                         ) from None
-            publication = build_publication(wire, result, source)
-            with factory.begin() as session:
-                ExtractionCoordinator(session, settings).complete_stage(
-                    claim.unit_id, claim.token, wire, result, usage, publication, audit=audit
-                )
+            with measure("localization_normalization"):
+                publication = build_publication(wire, result, source)
+            try:
+                with factory.begin() as session:
+                    ExtractionCoordinator(session, settings).complete_stage(
+                        claim.unit_id,
+                        claim.token,
+                        wire,
+                        result,
+                        usage,
+                        publication,
+                        audit=audit,
+                        attempt_start=attempt_start,
+                    )
+            except Exception:
+                if (performance := active_performance.get()) is not None:
+                    performance.failure_stage = "db_publish"
+                raise
     except LeaseLost:
         return False
     except Exception as exc:
@@ -186,7 +230,13 @@ def execute_unit(
         try:
             with factory.begin() as session:
                 ExtractionCoordinator(session, settings).fail(
-                    claim.unit_id, claim.token, code, usage, diagnostics=diagnostics, audit=audit
+                    claim.unit_id,
+                    claim.token,
+                    code,
+                    usage,
+                    diagnostics=diagnostics,
+                    audit=audit,
+                    attempt_start=attempt_start,
                 )
         except LeaseLost:
             return False

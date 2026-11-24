@@ -5,6 +5,9 @@ from typing import Literal, Self
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+AttributeInputVersion = Literal["compact-page-v1", "compact-page-v2"]
+AttributeReasoningEffort = Literal["none", "low", "medium"]
+
 
 class Settings(BaseSettings):
     """Runtime settings for API and workers. Loaded from environment / `.env`."""
@@ -66,6 +69,8 @@ class Settings(BaseSettings):
     extraction_use_fake_provider: bool = False
     extraction_external_enabled: bool = False
     extraction_model: str = "gpt-6-luna"
+    extraction_attribute_input_version: AttributeInputVersion = "compact-page-v1"
+    extraction_attribute_reasoning_effort: AttributeReasoningEffort = "medium"
     extraction_max_pages: int = Field(default=50, ge=1, le=1000)
     extraction_max_input_bytes: int = Field(default=2_000_000, ge=1, le=16_000_000)
     extraction_max_image_pixels: int = Field(default=20_000_000, ge=1)

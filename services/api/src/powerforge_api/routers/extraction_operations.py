@@ -111,7 +111,7 @@ def preview(
     session: SessionDep,
     settings: SettingsDep,
 ):
-    with model_api_errors():
+    with action_errors(session):
         readonly = revision_read_only(session, project_id, revision_id)
         result = preview_operation(session, settings, project_id, revision_id, body)
         if readonly:

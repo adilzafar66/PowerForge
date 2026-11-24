@@ -14,9 +14,11 @@ from powerforge_ai.extraction import (
     ExtractionRequest,
     ExtractionResponse,
 )
-from powerforge_extraction.extraction_profile import PROMPTS, RESPONSES, STAGES
-from powerforge_extraction.identities import canonical_json, identity_hash
+from powerforge_extraction.compact_context import compact_page
+from powerforge_extraction.extraction_profile import RESPONSES, STAGES, stage_request_hash
+from powerforge_extraction.identities import canonical_json
 from powerforge_extraction.models import ExtractionWorkUnit
+from powerforge_extraction.performance import active_performance, measure
 from powerforge_extraction.pinned_sources import bound_snapshot, load_bound
 from powerforge_extraction.run_planning import metadata
 from powerforge_extraction.stage_contracts import (
@@ -147,7 +149,7 @@ def provider_input(wire: RecognitionRequest | AttributeRequest | NoEligibleAttri
 
     del payload["page_context_hash"], payload["upstream_hash"]
     del payload["upstream"]["page_context_hash"]
-    payload["input_version"] = ATTRIBUTE_INPUT_VERSION
+    payload["input_version"] = wire.input_version
     page = payload["page"]
     layout = page["layout"]
     source_layout = wire.page.layout
@@ -199,22 +201,40 @@ def provider_input(wire: RecognitionRequest | AttributeRequest | NoEligibleAttri
         "columns": order_columns,
         "rows": [[edge[key] for key in order_columns] for edge in layout["order"]],
     }
+    if wire.input_version == ATTRIBUTE_INPUT_VERSION:
+        compact_page(page)
     return payload
 
 
 def request_for(factory, storage, claim):
     profile = claim.profile
-    with factory() as session:
-        unit = session.get(ExtractionWorkUnit, claim.unit_id)
-        snapshot = validate_plan(session, unit, profile)
-        parent = prerequisite_result(session, unit)
-        owner = PageOwner(
-            document_id=unit.document_id,
-            document_page_id=UUID(unit.execution_metadata["source_page_id"]),
-            processing_run_id=unit.processing_run_id,
-            page_number=unit.page_numbers[0],
+    with measure("source_load"):
+        with factory() as session:
+            unit = session.get(ExtractionWorkUnit, claim.unit_id)
+            snapshot = validate_plan(session, unit, profile)
+            parent = prerequisite_result(session, unit)
+            owner = PageOwner(
+                document_id=unit.document_id,
+                document_page_id=UUID(unit.execution_metadata["source_page_id"]),
+                processing_run_id=unit.processing_run_id,
+                page_number=unit.page_numbers[0],
+            )
+        source = load_bound(snapshot, storage, unit, profile)
+    if (performance := active_performance.get()) is not None:
+        performance.profile_sha256 = profile.identity_hash
+        performance.prompt_sha256 = unit.execution_metadata["stage_identity"]["prompt_hash"]
+        performance.schema_sha256 = unit.execution_metadata["stage_identity"][
+            "transport_schema_hash"
+        ]
+        performance.ocr_selected = any(
+            body.producer.kind == "OCR" for body in source.bodies.values()
         )
-    source = load_bound(snapshot, storage, unit, profile)
+    with measure("request_build"):
+        return _build_request(unit, parent, owner, source, claim)
+
+
+def _build_request(unit, parent, owner, source, claim):
+    profile = claim.profile
     page = project_page(source)
     context_hash = contract_hash(page)
     if page.owner != owner:
@@ -249,6 +269,7 @@ def request_for(factory, storage, claim):
             return skip, None, source
         wire = AttributeRequest(
             **common,
+            input_version=profile.manifest["attribute_input_version"],
             upstream=upstream,
             attribute_description_version=ATTRIBUTE_DESCRIPTION_VERSION,
             upstream_hash=parent.result_hash,
@@ -261,7 +282,7 @@ def request_for(factory, storage, claim):
         unit_key=claim.unit_key,
         attempt_number=claim.attempt_number,
         model=profile.model,
-        instructions=PROMPTS[unit.stage],
+        instructions=profile.instructions_for(unit.stage),
         schema_version=wire.version,
         timeout_seconds=profile.timeout_seconds,
         max_output_tokens=profile.max_output_tokens,
@@ -271,6 +292,7 @@ def request_for(factory, storage, claim):
         image_detail="high",
         stage=unit.stage,
         response_model=RESPONSES[unit.stage],
+        reasoning_effort=profile.reasoning_effort_for(unit.stage),
     )
 
     # Bound the actual encoded text and image envelope, including JSON escaping.
@@ -326,7 +348,10 @@ def store_result(session, unit, snapshot, wire, result, observations):
         page_context_hash=result.page_context_hash,
         upstream_work_unit_id=parent.work_unit_id if parent else None,
         upstream_hash=parent.result_hash if parent else None,
-        request_hash=identity_hash(provider_input(wire)),
+        request_hash=stage_request_hash(
+            canonical_json(provider_input(wire)),
+            unit.execution_metadata.get("attribute_reasoning_effort"),
+        ),
         result_hash=contract_hash(result),
         payload=result.model_dump(mode="json"),
         diagnostics=publication_diagnostics(

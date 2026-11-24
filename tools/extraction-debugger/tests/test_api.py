@@ -108,6 +108,8 @@ def test_historical_attempt_without_model_lists_and_opens():
         rejections=[],
         fatal=[],
         validated=None,
+        performance=None,
+        requested_reasoning_effort=None,
     )
     engine = MagicMock()
     execute = engine.connect.return_value.__enter__.return_value.execute

@@ -382,11 +382,11 @@ class Verification:
 
 def verify_ready_document(factory, settings, storage, operation_id):
     """Check one ready document per scan without holding scheduling or publication locks."""
-    if not settings.enrichment_enabled or not provider_available(
-        settings, extraction_profile(settings).provider
-    ):
+    if not settings.enrichment_enabled:
         return None
     try:
+        if not provider_available(settings, extraction_profile(settings).provider):
+            return None
         layout = layout_profile(settings)
     except (ValueError, KeyError):
         return None

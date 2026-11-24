@@ -208,6 +208,7 @@ class ExtractionRequest(BaseModel):
     response_model: type[BaseModel] = Field(exclude=True)
     stage: Literal["EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"]
     image_detail: Literal["low", "high", "auto"] = "low"
+    reasoning_effort: Literal["none", "low", "medium"] | None = None
 
 
 class ExtractionResponse[Result: BaseModel](BaseModel):

@@ -7,6 +7,7 @@ from uuid import UUID
 from pydantic import BaseModel, StrictBool, StrictInt, StrictStr
 from sqlalchemy import text
 
+from powerforge_extraction.performance import AttemptPerformance
 from powerforge_extraction.stage_contracts import AlternateRepresentation
 
 Validation = Literal["validated", "partial", "fatal", "all_quarantined", "empty"]
@@ -69,6 +70,8 @@ class AttemptDetail(BaseModel):
     fatal: list[dict]
     validated: dict | None
     candidates: list[PublishedCandidate]
+    performance: AttemptPerformance | None = None
+    requested_reasoning_effort: Literal["none", "low", "medium"] | None = None
 
 
 _FIELDS = """
@@ -101,7 +104,8 @@ def list_attempts(engine, *, identity, validation, status, retention, cursor, li
     # UUID ordering is stable across inserts and independent of mutable run state.
     query = f"""
     SELECT * FROM (SELECT {_FIELDS} {_JOINS}
-      WHERE u.stage='ATTRIBUTE_EXTRACTION' AND a.work_unit_id IS NOT NULL
+      WHERE u.stage='ATTRIBUTE_EXTRACTION'
+        AND (a.work_unit_id IS NOT NULL OR u.performance IS NOT NULL OR c.work_unit_id IS NOT NULL)
         AND (CAST(:identity AS uuid) IS NULL
              OR u.id=:identity OR u.run_id=:identity)
         AND (CAST(:cursor AS uuid) IS NULL OR u.id<:cursor)
@@ -134,7 +138,9 @@ def attempt_detail(engine, attempt_id):
     query = f"""
     SELECT {_FIELDS}, coalesce(a.request_hash,s.request_hash) AS request_sha256,
     s.result_hash AS result_sha256, s.upstream_hash AS upstream_sha256,
-    c.schema_version, c.prompt_version, s.payload AS validated,
+    c.schema_version, c.prompt_version, s.payload AS validated, u.performance,
+    coalesce(a.attribute_reasoning_effort, u.execution_metadata->>'attribute_reasoning_effort')
+        AS requested_reasoning_effort,
     coalesce(a.rejections,'[]'::jsonb) AS rejections,
     coalesce(a.fatal_diagnostics,c.validation_diagnostics,'[]'::jsonb) AS fatal
     {_JOINS} LEFT JOIN extraction_stage_results s ON s.work_unit_id=u.id
@@ -167,6 +173,8 @@ def attempt_detail(engine, attempt_id):
         )
     return AttemptDetail(
         attempt=Attempt.model_validate(row),
+        performance=row["performance"],
+        requested_reasoning_effort=row["requested_reasoning_effort"],
         request_sha256=row["request_sha256"],
         result_sha256=row["result_sha256"],
         upstream_sha256=row["upstream_sha256"],
