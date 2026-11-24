@@ -204,6 +204,7 @@ class ExtractionRequest(BaseModel):
     max_output_tokens: int
     text: str | None = None
     input_version: str = "compact-page-v1"
+    request_digest_version: Literal["responses-body-v1"] | None = None
     image: bytes | None = None
     image_mime_type: str | None = None
     # Selected by trusted execution code; never supplied by a model or import path.

@@ -168,3 +168,66 @@ def test_compact_v2_profile_pins_its_prompt_and_keeps_v1_runnable():
     mixed["manifest"]["attribute_input_version"] = "compact-page-v1"
     with pytest.raises(ValueError, match="Pinned extraction resources"):
         read_profile(mixed)
+
+
+@pytest.mark.parametrize(
+    "source,guide",
+    [
+        ("compact-page-v1", "page.readings and page.layout.order"),
+        ("compact-page-v2", "Half-open Unicode offsets"),
+        ("readable-hybrid-v1", "The high-detail image"),
+        ("image-only-v1", "Do not cite READING"),
+        ("readable-text-v1", "Do not cite VISUAL"),
+    ],
+)
+def test_d0_prompt_and_catalog_pins_are_independent_of_source(source, guide):
+    settings = Settings(_env_file=None, extraction_attribute_input_version=source)
+    baseline = extraction_profile(settings)
+    core = extraction_profile(
+        settings.model_copy(update={"extraction_attribute_prompt_variant": "core-v1"})
+    )
+    consolidated = extraction_profile(
+        settings.model_copy(update={"extraction_attribute_prompt_variant": "core-catalog-v1"})
+    )
+    assert len({p.identity_hash for p in (baseline, core, consolidated)}) == 3
+    assert core.instructions_for(STAGES[1]) == consolidated.instructions_for(STAGES[1])
+    assert guide in core.instructions_for(STAGES[1])
+    assert core.instructions_for(STAGES[1]).count("## Source format") == 1
+    assert core.manifest["catalog_hash"] == baseline.manifest["catalog_hash"]
+    assert consolidated.manifest["catalog_hash"] != core.manifest["catalog_hash"]
+    assert (
+        core.request_digest_for(STAGES[1])
+        == consolidated.request_digest_for(STAGES[1])
+        == "responses-body-v1"
+    )
+    for profile in (core, consolidated):
+        assert read_profile(json.loads(profile.model_dump_json())) == profile
+        assert profile.manifest["stages"][0] == baseline.manifest["stages"][0]
+        assert profile.instructions_for(STAGES[0]) == baseline.instructions_for(STAGES[0])
+        assert profile.request_digest_for(STAGES[0]) is None
+        for digest in ("schema_hash", "transport_schema_hash"):
+            assert profile.manifest["stages"][1][digest] == baseline.manifest["stages"][1][digest]
+        for digest in ("attribute_core_hash", "source_guidance_hash", "catalog_hash"):
+            tampered = profile.model_dump(mode="json")
+            tampered["manifest"][digest] = "0" * 64
+            with pytest.raises(ValueError, match="Pinned extraction resources"):
+                read_profile(tampered)
+
+
+def test_legacy_catalog_and_prompt_hashes_match_pre_d0_profiles():
+    from powerforge_extraction.extraction_profile import manifest
+
+    # These identities were verified against the retained C2 request bodies.
+    historical_prompt_hashes = {
+        "compact-page-v1": "f7719e8064b8fc6ae584bda4ea9665a5908ff1b8565211eaf17f098586741f07",
+        "compact-page-v2": "6eda5ec3bef63ab68ba219613a111255f9bf56b584a96bb37b6448dfe92b6a3a",
+        "readable-hybrid-v1": "d061471c5f02d5976a64542e3e6f3b4d88b86efce8433bcee520166ee81a38af",
+        "image-only-v1": "33d375b3a7c18b27006b1399b18abb65ee328a5f1e12998aa852d685cd5df8dc",
+        "readable-text-v1": "c35e9854b6c8b686ca4db86983f21a39c91fe26d01d2b1616ecaf3a2d2dbdda2",
+    }
+    historical_catalog_hash = "c5b457a0560efcbf36f1cd28cef7b6f1c5db1c99042487b671424e09207fe87c"
+    for source, prompt_hash in historical_prompt_hashes.items():
+        record = manifest(source)
+        assert record["prompt_hash"] == prompt_hash
+        assert record["catalog_hash"] == historical_catalog_hash
+        assert "attribute_prompt_variant" not in record

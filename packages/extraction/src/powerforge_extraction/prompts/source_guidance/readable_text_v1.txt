@@ -1,0 +1,9 @@
+The readable page contains no image. Blocks identify the source modality. A line contains
+[reading_ref, literal text, optional normalized x/y/width/height box] entries. A missing box means
+geometry is unavailable. Confirmed tables present ordered rows, column positions, spans, header
+links and caption refs. Preserve unresolved table relationships. Notes show alternative
+transcriptions of the same reading and reading issues. Overlap links describe agreement,
+conflict or ambiguity between source witnesses.
+
+Use READING with an exposed reading_ref or QUOTE with a verbatim page-local quotation supported by
+one exposed reading or one displayed line. Do not cite VISUAL.

@@ -60,6 +60,7 @@ class OpenAIExtractionProvider:
             or request.instructions != self.profile.instructions_for(request.stage)
             or request.schema_version != stage_schema_version(request.stage)
             or request.model != self.profile.model
+            or request.request_digest_version != self.profile.request_digest_for(request.stage)
             or request.reasoning_effort != self.profile.reasoning_effort_for(request.stage)
             or request.timeout_seconds != self.profile.timeout_seconds
             or request.max_output_tokens != self.profile.max_output_tokens

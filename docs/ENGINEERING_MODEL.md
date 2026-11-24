@@ -8,7 +8,7 @@ The canonical engineering model belongs to a project revision. It is independent
 
 `powerforge_engineering_model.registry_v1` contains immutable typed Python definitions for `registry-v1`: 20 canonical equipment types, 296 attributes, 17 unit families, and 44 requirement reference rows. Three rows are `NONE` notices for Overcurrent Relay, Fuse, and CT; the other 41 rows form executable requirement groups (ANY_OF alternatives share a rule ID).
 
-The [approved JSON](specs/registry/PowerForge_registry-v1_reference.json) is the independent regression fixture for exact keys, labels, flags, units, enums, notes, ordering, and requirement metadata. It is not loaded by the application. The XLSX is supporting documentation only and is never parsed at runtime. Snapshot tests never regenerate the reference.
+The [approved JSON](specs/registry/PowerForge_registry-v1_reference.json) is the independent regression fixture for exact keys, labels, flags, units, enums, notes, ordering, and requirement metadata. It is not loaded by the application. The XLSX is supporting documentation only and is never parsed at runtime. Snapshot tests never regenerate the reference. Phase 6R D0 revises attribute prose only. The snapshot test reconstructs the original note values for comparison, and legacy Stage 2 profiles use those same frozen notes. The current registry API and equipment panel display the approved consolidated notes.
 
 Use the public interfaces rather than inspecting registry internals:
 

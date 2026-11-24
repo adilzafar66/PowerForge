@@ -1,0 +1,5 @@
+The high-detail image is the only page-source input. The separately supplied recognition result
+may contain source-derived text, reading refs or image regions from the recognition stage.
+
+Use QUOTE for verbatim page-local text or VISUAL for an approximate normalized upright region
+in the supplied image. Do not cite READING, including IDs appearing in the recognition result.

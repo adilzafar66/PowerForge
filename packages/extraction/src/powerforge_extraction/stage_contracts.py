@@ -19,9 +19,12 @@ from powerforge_engineering_model.enums import EquipmentType
 from powerforge_engineering_model.extraction_descriptions import (
     ATTRIBUTE_DESCRIPTION_VERSION,
     ATTRIBUTE_DESCRIPTIONS,
+    ATTRIBUTE_NOTES_VERSION,
     DESCRIPTION_VERSION,
     EQUIPMENT_DESCRIPTIONS,
+    EQUIPMENT_EXTRACTION_GUIDANCE,
 )
+from powerforge_engineering_model.legacy_attribute_notes import LEGACY_ATTRIBUTE_NOTES
 from powerforge_engineering_model.registry import (
     get_equipment_definition,
     list_equipment_definitions,
@@ -279,7 +282,11 @@ def equipment_catalog() -> tuple[EquipmentDefinitionView, ...]:
     )
 
 
-def attribute_catalog(upstream: RecognitionResponse) -> tuple[AttributeDefinitionView, ...]:
+def attribute_catalog(
+    upstream: RecognitionResponse, version: str = ATTRIBUTE_DESCRIPTION_VERSION
+) -> tuple[AttributeDefinitionView, ...]:
+    if version not in (ATTRIBUTE_DESCRIPTION_VERSION, ATTRIBUTE_NOTES_VERSION):
+        raise ValueError("Unknown Stage 2 attribute guidance")
     types = {
         item.registry_type
         for item in upstream.equipment
@@ -295,12 +302,33 @@ def attribute_catalog(upstream: RecognitionResponse) -> tuple[AttributeDefinitio
             canonical_unit=attribute.canonical_unit,
             supported_units=supported_input_units(key, attribute.key),
             allowed_values=attribute.allowed_values,
-            notes=attribute.notes,
-            extraction_guidance=ATTRIBUTE_DESCRIPTIONS.get(attribute.key),
+            notes=(
+                attribute.notes
+                if version == ATTRIBUTE_NOTES_VERSION
+                else LEGACY_ATTRIBUTE_NOTES.get((key, attribute.key), attribute.notes)
+            ),
+            extraction_guidance=(
+                ATTRIBUTE_DESCRIPTIONS.get(attribute.key)
+                if version == ATTRIBUTE_DESCRIPTION_VERSION
+                else None
+            ),
         )
         for key in sorted(types)
         for attribute in sorted(get_equipment_definition(key).attributes, key=lambda item: item.key)
     )
+
+
+def consolidated_catalog(definitions: tuple[AttributeDefinitionView, ...]) -> dict:
+    catalog = {
+        "attribute_catalog": [
+            item.model_dump(mode="json", exclude={"extraction_guidance"}) for item in definitions
+        ]
+    }
+    types = {item.equipment_type for item in definitions}
+    guidance = {key: value for key, value in EQUIPMENT_EXTRACTION_GUIDANCE.items() if key in types}
+    if guidance:
+        catalog["equipment_extraction_guidance"] = guidance
+    return catalog
 
 
 def stage_schema_version(stage: Stage) -> str:
@@ -343,8 +371,8 @@ def validate_request(
         request.upstream.page_context_hash != request.page_context_hash
         or contract_hash(request.upstream) != request.upstream_hash
         or not request.attribute_catalog
-        or request.attribute_description_version != ATTRIBUTE_DESCRIPTION_VERSION
-        or request.attribute_catalog != attribute_catalog(request.upstream)
+        or request.attribute_catalog
+        != attribute_catalog(request.upstream, request.attribute_description_version)
     ):
         raise ValueError("Attribute prerequisite or catalog mismatch")
 

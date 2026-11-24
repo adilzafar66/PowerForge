@@ -34,6 +34,8 @@ def metadata(profile, stage, page, binding):
     )
     if (effort := profile.reasoning_effort_for(stage)) is not None:
         result["attribute_reasoning_effort"] = effort
+    if stage == "ATTRIBUTE_EXTRACTION" and "attribute_prompt_variant" in profile.manifest:
+        result["request_digest_version"] = profile.request_digest_for(stage)
     return result
 
 

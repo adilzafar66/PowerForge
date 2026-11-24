@@ -284,6 +284,10 @@ Preserve the current evidence localizer's independent verification against pinne
 
 C2 adds opt-in readable hybrid, image-only and readable text-only configurations. V1 remains the production default and V2 the existing comparator. Offline payload and evidence replay precede a separately authorized live gate. See the [C2 specification](phase-6r-source-modality-optimization.md) and [evaluation, examples and reproduction commands](../../evals/phase6r/ATTRIBUTE_SOURCE_MODALITY_EVALUATION.md).
 
+### Milestone D0 — Attribute prompt and engineering guidance
+
+D0 separates the universal Stage 2 prompt, source-format guidance, equipment guidance, and registry notes. New admissions can opt into a prompt-only or consolidated candidate. Historical profiles retain their original prompt, catalog, and request digest. See the [D0 specification](phase-6r-d0-prompt-refactoring.md) and [offline evaluation](../../evals/phase6r/ATTRIBUTE_PROMPT_REFACTORING_EVALUATION.md).
+
 ## 9. Milestone D — Prompt and structured-output efficiency
 
 **Priority:** P2 / proceed based on measured output mix.

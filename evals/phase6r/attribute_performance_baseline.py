@@ -14,12 +14,13 @@ from powerforge_document_processing.storage.factory import build_s3_storage
 from powerforge_extraction.compact_context import expand_compact_page, reading_rows
 from powerforge_extraction.controls import RunExecution, UnitExecution
 from powerforge_extraction.extraction_profile import (
+    BODY_DIGEST_VERSION,
     REASONING_MODEL,
     extraction_profile,
     prompt_bundle,
     stage_request_hash,
 )
-from powerforge_extraction.identities import canonical_json, identity_hash
+from powerforge_extraction.identities import canonical_json, content_hash, identity_hash
 from powerforge_extraction.models import ExtractionWorkUnit
 from powerforge_extraction.performance import (
     AttemptPerformance,
@@ -31,8 +32,11 @@ from powerforge_extraction.profiles import read_profile
 from powerforge_extraction.provider_body import dispatch_hash, encoded_body, responses_body
 from powerforge_extraction.readable_context import reading_blocks
 from powerforge_extraction.stage_contracts import (
+    ATTRIBUTE_DESCRIPTION_VERSION,
     ATTRIBUTE_INPUT_VERSION,
+    ATTRIBUTE_NOTES_VERSION,
     LEGACY_ATTRIBUTE_INPUT_VERSION,
+    attribute_catalog,
 )
 from powerforge_extraction.stage_execution import (
     _build_request,
@@ -177,6 +181,8 @@ def measure_context_views(wire, request):
         transport = request.model_copy(
             update={
                 "text": canonical_json(payload),
+                "input_version": version,
+                "request_digest_version": None,
                 "instructions": prompts[request.stage],
                 "reasoning_effort": "medium",
             }
@@ -231,6 +237,9 @@ def measure_modalities(wire, request, pinned_image):
         transport = request.model_copy(
             update={
                 "input_version": version,
+                "request_digest_version": (
+                    BODY_DIGEST_VERSION if version in EXPERIMENTAL_INPUTS else None
+                ),
                 "text": canonical_json(payload),
                 "image": image,
                 "image_mime_type": "image/png" if image else None,
@@ -324,6 +333,94 @@ def measure_modalities(wire, request, pinned_image):
     return rows
 
 
+def measure_prompt_variants(wire, request, source, *, include_guidance=False):
+    """Compare prompts and catalogs on the same verified compact v1 input."""
+    rows = {}
+    baseline_payload = None
+    baseline_body = None
+
+    def size(data):
+        return len(canonical_json(data).encode())
+
+    for variant in ("legacy", "core-v1", "core-catalog-v1"):
+        consolidated = variant == "core-catalog-v1"
+        catalog_version = ATTRIBUTE_NOTES_VERSION if consolidated else ATTRIBUTE_DESCRIPTION_VERSION
+        version = LEGACY_ATTRIBUTE_INPUT_VERSION
+        projected = wire.model_copy(
+            update={
+                "input_version": version,
+                "attribute_description_version": catalog_version,
+                "attribute_catalog": attribute_catalog(wire.upstream, catalog_version),
+            }
+        )
+        payload = provider_input(projected)
+        instructions = prompt_bundle(version, variant)[1][request.stage]
+        transport = request.model_copy(
+            update={
+                "text": canonical_json(payload),
+                "input_version": version,
+                "instructions": instructions,
+                "image": source.image,
+                "image_mime_type": "image/png",
+                "reasoning_effort": "medium",
+                "request_digest_version": None if variant == "legacy" else BODY_DIGEST_VERSION,
+            }
+        )
+        body = responses_body(transport, transport.response_model)
+        body["service_tier"] = "default"
+
+        controls = {k: v for k, v in body.items() if k not in ("input", "instructions")}
+        if variant == "legacy":
+            baseline_payload, baseline_body = payload, body
+        elif controls != {
+            k: v for k, v in baseline_body.items() if k not in ("input", "instructions")
+        }:
+            raise ValueError("Prompt comparison changed provider controls")
+        if variant == "core-v1" and payload != baseline_payload:
+            raise ValueError("Prompt-only comparison changed the user input")
+        if consolidated:
+            guidance_fields = {
+                "attribute_description_version",
+                "attribute_catalog",
+                "equipment_extraction_guidance",
+            }
+            if {k: v for k, v in payload.items() if k not in guidance_fields} != {
+                k: v for k, v in baseline_payload.items() if k not in guidance_fields
+            }:
+                raise ValueError("Catalog comparison changed the pinned recognition or page")
+            if any("extraction_guidance" in item for item in payload["attribute_catalog"]):
+                raise ValueError("Consolidated catalog contains legacy guidance")
+        if body["input"][0]["content"][1] != baseline_body["input"][0]["content"][1]:
+            raise ValueError("Prompt comparison changed the page image")
+
+        guidance = payload.get("equipment_extraction_guidance", {})
+        entry = {
+            "instructions_bytes": len(instructions.encode()),
+            "catalog_bytes": size(payload["attribute_catalog"]),
+            "equipment_guidance_bytes": size(guidance) if guidance else 0,
+            "attribute_count": len(payload["attribute_catalog"]),
+            "attribute_guidance_fields": sum(
+                "extraction_guidance" in item for item in payload["attribute_catalog"]
+            ),
+            "active_legacy_guidance": sum(
+                bool(item.get("extraction_guidance")) for item in payload["attribute_catalog"]
+            ),
+            "equipment_guidance_count": len(guidance),
+            "body_bytes": len(encoded_body(body)),
+            "body_sha256": identity_hash(body),
+            "catalog_sha256": identity_hash(payload["attribute_catalog"]),
+            "instructions_sha256": content_hash(instructions),
+        }
+        if include_guidance:
+            entry.update(
+                instructions=instructions,
+                attribute_catalog=payload["attribute_catalog"],
+                equipment_extraction_guidance=guidance,
+            )
+        rows[variant] = entry
+    return rows
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("attempt", type=UUID, nargs="+")
@@ -339,11 +436,36 @@ def main():
         action="store_true",
         help="Verify all five Stage 2 source presets offline",
     )
+    parser.add_argument(
+        "--compare-prompts", action="store_true", help="Compare D0 variants offline"
+    )
+    parser.add_argument(
+        "--include-guidance",
+        action="store_true",
+        help="Include provider instructions and registry guidance in the D0 comparison",
+    )
     args = parser.parse_args()
+    if args.include_guidance and not args.compare_prompts:
+        parser.error("--include-guidance requires --compare-prompts")
     settings = get_settings()
     factory = get_session_factory()
     storage = build_s3_storage(settings)
     for unit_id in args.attempt:
+        if args.compare_prompts:
+            wire, request, source, _ = reconstruct_attempt(
+                factory, storage, settings, unit_id, args.reproject
+            )
+            print(
+                json.dumps(
+                    {
+                        "work_unit_id": str(unit_id),
+                        "prompts": measure_prompt_variants(
+                            wire, request, source, include_guidance=args.include_guidance
+                        ),
+                    }
+                )
+            )
+            continue
         print(
             json.dumps(
                 measure_attempt(

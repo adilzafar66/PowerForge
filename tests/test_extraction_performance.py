@@ -126,8 +126,17 @@ def test_request_metrics_match_http_body_and_exclude_content(status, effort):
     assert private not in metrics.model_dump_json()
 
 
-@pytest.mark.parametrize("mode", ["readable-hybrid-v1", "image-only-v1", "readable-text-v1"])
-def test_modality_digest_matches_sdk_transmission(mode):
+@pytest.mark.parametrize(
+    "mode,variant",
+    [
+        ("readable-hybrid-v1", "legacy"),
+        ("image-only-v1", "legacy"),
+        ("readable-text-v1", "legacy"),
+        ("compact-page-v1", "core-v1"),
+        ("compact-page-v1", "core-catalog-v1"),
+    ],
+)
+def test_modality_digest_matches_sdk_transmission(mode, variant):
     from powerforge_extraction.identities import identity_hash
     from powerforge_extraction.provider_body import dispatch_hash, encoded_body
 
@@ -135,12 +144,20 @@ def test_modality_digest_matches_sdk_transmission(mode):
         _env_file=None,
         extraction_external_enabled=True,
         extraction_attribute_input_version=mode,
+        extraction_attribute_prompt_variant=variant,
         extraction_timeout_seconds=180,
     )
     profile = extraction_profile(settings)
     stage = "ATTRIBUTE_EXTRACTION"
     payload = {"input_version": mode, "upstream": {"equipment": []}, "attribute_catalog": []}
-    if mode != "image-only-v1":
+    if mode.startswith("compact-"):
+        payload["page"] = {
+            "image_width": 10,
+            "image_height": 20,
+            "readings": {"rows": []},
+            "layout": {"tables": [], "order": {"rows": []}, "overlaps": []},
+        }
+    elif mode != "image-only-v1":
         payload["page"] = {"blocks": [{"source": "OCR", "lines": [[["q1", "µΩ"]]]}]}
     image = None if mode == "readable-text-v1" else b"test image"
     req = ExtractionRequest(
@@ -152,6 +169,7 @@ def test_modality_digest_matches_sdk_transmission(mode):
         image_mime_type="image/png" if image else None,
         image_detail="high",
         input_version=mode,
+        request_digest_version=profile.request_digest_for(stage),
         text=canonical_json(payload),
         model=profile.model,
         response_model=RESPONSES[stage],

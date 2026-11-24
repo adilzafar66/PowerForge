@@ -1,0 +1,9 @@
+The high-detail image shows the complete page. In page.readings and page.layout.order, each row
+follows the listed columns. Reading text is the preferred transcription. Coordinates are
+normalized to the upright page. Null coordinates mean geometry is unavailable. When
+layout.reading_sources lists members, alternate_texts follow member order with the preferred
+member omitted. Use reading issues, overlap kinds, table cells, spans and header links to
+interpret the layout. A partition marked unresolved does not establish table relationships.
+
+Use READING with a supplied reading_ref, QUOTE with a verbatim page-local quotation, or VISUAL with
+an approximate upright image region. Row indices and internal source-token IDs are not reading refs.

@@ -24,6 +24,7 @@ from powerforge_engineering_model.errors import (
     UnknownAttribute,
     UnknownEquipmentType,
 )
+from powerforge_engineering_model.legacy_attribute_notes import LEGACY_ATTRIBUTE_NOTES
 
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE = ROOT / "docs/specs/registry/PowerForge_registry-v1_reference.json"
@@ -31,10 +32,17 @@ REFERENCE = ROOT / "docs/specs/registry/PowerForge_registry-v1_reference.json"
 
 def test_registry_matches_independent_approved_snapshot() -> None:
     reference = json.loads(REFERENCE.read_text())
+    revised_notes = set()
     equipment = []
     for definition in REGISTRY.equipment_types:
         item = asdict(definition)
         item.pop("requirements")
+        for attribute in item["attributes"]:
+            key = (definition.key, attribute["key"])
+            if key in LEGACY_ATTRIBUTE_NOTES:
+                assert attribute["notes"] != LEGACY_ATTRIBUTE_NOTES[key]
+                attribute["notes"] = LEGACY_ATTRIBUTE_NOTES[key]
+                revised_notes.add(key)
         equipment.append(item)
     rows = []
     for row in REGISTRY.requirement_rules:
@@ -47,7 +55,8 @@ def test_registry_matches_independent_approved_snapshot() -> None:
         "unit_families": [asdict(f) for f in REGISTRY.unit_families],
         "requirement_rules": rows,
     }
-    # Only normalize tuples/enums to their JSON representation; preserve all metadata/order.
+    assert revised_notes == LEGACY_ATTRIBUTE_NOTES.keys()
+    # The only approved difference from the historical snapshot is current attribute prose.
     assert json.loads(json.dumps(snapshot)) == {key: reference[key] for key in snapshot}
     validate_registry()
     assert len(REGISTRY.equipment_types) == 20
@@ -77,7 +86,12 @@ def test_registry_semantics_and_canonical_units() -> None:
         ("OVERCURRENT_RELAY", "trip_output_operating_time", "s"),
     ]:
         assert get_attribute_definition(equipment, key).canonical_unit == unit
-    assert get_attribute_definition("LV_BREAKER", "trip_rating")
+    assert get_attribute_definition("BUS", "working_distance").notes == (
+        "Distance from the prospective arc source to the worker used for arc-flash evaluation."
+    )
+    assert get_attribute_definition("LV_BREAKER", "trip_rating").notes == (
+        "Rated trip current of the specified trip configuration."
+    )
     assert get_attribute_definition("LV_BREAKER", "long_time_pickup")
 
 

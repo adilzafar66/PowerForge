@@ -13,4 +13,4 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [tool.setuptools.package-data]
-powerforge_extraction = ["prompts/*.txt", "runtime_resources/preparation_v1/*.txt", "runtime_resources/layout_v1/*.txt"]
+powerforge_extraction = ["prompts/*.txt", "prompts/source_guidance/*.txt", "runtime_resources/preparation_v1/*.txt", "runtime_resources/layout_v1/*.txt"]

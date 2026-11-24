@@ -569,6 +569,7 @@ def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
     from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
 
     ctx = operation_context
+    ctx["settings"].extraction_attribute_prompt_variant = "core-catalog-v1"
     source = new_source(ctx, "retry.pdf")
     preparation(ctx, source)
     _, body = reviewed(ctx, [source])
@@ -603,8 +604,15 @@ def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
     assert groups_before["total"] == 1
     root = ctx["operation_base"] + f"/operations/{operation_id}"
 
+    first = []
+
     class AttributeProvider:
         def execute(self, request):
+            from powerforge_extraction.provider_body import dispatch_hash
+
+            assert "## Source format" in request.instructions
+            assert "equipment_extraction_guidance" in json.loads(request.text)
+            first.append(dispatch_hash(request))
             if cancel:
                 reply = client.post(root + "/cancel")
                 assert reply.status_code == 200 and reply.json()["cancel_requested"]
@@ -621,6 +629,7 @@ def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
     assert client.get(browser, params={"view": "groups"}).json() == groups_before
     if cancel:
         return
+    ctx["settings"].extraction_attribute_prompt_variant = "legacy"
     (target,) = detail_operation(ctx, operation_id)["items"][0]["extraction"]["retry_targets"]
     target.pop("page_number")
     target.pop("unknown_provider_outcome")
@@ -642,6 +651,7 @@ def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
     with ctx["factory"]() as session:
         result = session.get(StageResult, retry_id)
         assert (result.upstream_work_unit_id, result.upstream_hash) == (recognition, digest)
+        assert [result.request_hash] == first
         assert session.get(ExtractionRun, run_id).status == "COMPLETED"
 
 
@@ -1065,17 +1075,20 @@ def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operat
 
 
 @pytest.mark.parametrize(
-    "input_version",
+    "input_version,prompt_variant",
     [
-        "compact-page-v1",
-        "compact-page-v2",
-        "readable-hybrid-v1",
-        "image-only-v1",
-        "readable-text-v1",
+        ("compact-page-v1", "legacy"),
+        ("compact-page-v2", "legacy"),
+        ("readable-hybrid-v1", "legacy"),
+        ("image-only-v1", "legacy"),
+        ("readable-text-v1", "legacy"),
+        ("compact-page-v1", "core-v1"),
+        ("compact-page-v1", "core-catalog-v1"),
+        ("readable-text-v1", "core-catalog-v1"),
     ],
 )
 def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
-    operation_context, monkeypatch, input_version
+    operation_context, monkeypatch, input_version, prompt_variant
 ):
     from datetime import UTC, datetime, timedelta
     from hashlib import sha256
@@ -1100,6 +1113,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
     ctx["settings"].extraction_use_fake_provider = False
     ctx["settings"].extraction_external_enabled = True
     ctx["settings"].extraction_attribute_input_version = input_version
+    ctx["settings"].extraction_attribute_prompt_variant = prompt_variant
     source = new_source(ctx, "mocked-live-schedule.pdf", drawn_table(nearby=True))
     _, run_id, units = admitted_page(ctx, source)
     calls = []
@@ -1145,6 +1159,17 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                 assert {item["equipment_type"] for item in wire["attribute_catalog"]} == {
                     "TWO_WINDING_TRANSFORMER"
                 }
+                if prompt_variant == "core-catalog-v1":
+                    assert set(wire["equipment_extraction_guidance"]) == {"TWO_WINDING_TRANSFORMER"}
+                    assert all(
+                        "extraction_guidance" not in item for item in wire["attribute_catalog"]
+                    )
+                else:
+                    assert "equipment_extraction_guidance" not in wire
+                    assert all("extraction_guidance" in item for item in wire["attribute_catalog"])
+                assert ("## Source format" in kwargs["instructions"]) == (
+                    prompt_variant != "legacy"
+                )
                 content = kwargs["input"][0]["content"]
                 assert [x["type"] for x in content] == (
                     ["input_text"]
@@ -1215,7 +1240,10 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                 ],
             )
 
-    # Changing deployment defaults after admission must not rewrite the pinned effort.
+    # Changing defaults after admission must not rewrite the pinned Stage 2 resources.
+    ctx["settings"].extraction_attribute_prompt_variant = (
+        "core-catalog-v1" if prompt_variant == "legacy" else "legacy"
+    )
     ctx["settings"].extraction_attribute_reasoning_effort = "low"
     ctx["settings"].extraction_attribute_input_version = (
         "compact-page-v1" if input_version == "compact-page-v2" else "compact-page-v2"
@@ -1245,7 +1273,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         assert recognition.request_hash == identity_hash(calls[0])
         expected_digest = (
             stage_request_hash(canonical_json(calls[1]), "medium")
-            if input_version.startswith("compact-")
+            if input_version.startswith("compact-") and prompt_variant == "legacy"
             else identity_hash(bodies[1])
         )
         assert attribute.request_hash == expected_digest

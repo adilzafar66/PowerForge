@@ -1096,3 +1096,46 @@ def test_text_only_no_source_refuses_before_dispatch(attribute_request, monkeypa
             SimpleNamespace(profile=profile),
         )
     assert not failure.value.retryable
+
+
+def test_d0_catalog_uses_one_guidance_entry_per_eligible_type(attribute_request):
+    from powerforge_engineering_model.enums import EquipmentType
+    from powerforge_engineering_model.extraction_descriptions import ATTRIBUTE_NOTES_VERSION
+    from powerforge_extraction.stage_contracts import attribute_catalog, consolidated_catalog
+
+    upstream = attribute_request.upstream
+    known = upstream.equipment[0]
+    upstream = upstream.model_copy(
+        update={
+            "equipment": (
+                *upstream.equipment,
+                known.model_copy(update={"local_ref": "second-transformer"}),
+                known.model_copy(
+                    update={
+                        "local_ref": "legend-bus",
+                        "registry_type": EquipmentType.BUS,
+                        "qualification": "LEGEND_ONLY",
+                    }
+                ),
+            )
+        }
+    )
+    legacy = attribute_catalog(upstream)
+    assert legacy == attribute_request.attribute_catalog
+    definitions = attribute_catalog(upstream, ATTRIBUTE_NOTES_VERSION)
+    payload = consolidated_catalog(definitions)
+    assert list(payload["equipment_extraction_guidance"]) == [EquipmentType.TWO_WINDING_TRANSFORMER]
+    assert all("extraction_guidance" not in item for item in payload["attribute_catalog"])
+    assert next(item for item in definitions if item.key == "model").notes == (
+        "Equipment series or model identifier."
+    )
+    fields = {"notes", "extraction_guidance"}
+    assert [item.model_dump(exclude=fields) for item in legacy] == [
+        item.model_dump(exclude=fields) for item in definitions
+    ]
+    no_guidance = upstream.model_copy(
+        update={"equipment": (known.model_copy(update={"registry_type": EquipmentType.CT}),)}
+    )
+    assert "equipment_extraction_guidance" not in consolidated_catalog(
+        attribute_catalog(no_guidance, ATTRIBUTE_NOTES_VERSION)
+    )

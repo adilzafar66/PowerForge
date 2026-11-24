@@ -439,6 +439,7 @@ class ExtractionCoordinator:
             or request.instructions != profile.instructions_for(unit.stage)
             or request.response_model is not RESPONSES[unit.stage]
             or request.schema_version != stage_schema_version(unit.stage)
+            or request.request_digest_version != profile.request_digest_for(unit.stage)
             or request.reasoning_effort != profile.reasoning_effort_for(unit.stage)
             or request.reasoning_effort != unit.execution_metadata.get("attribute_reasoning_effort")
         ):

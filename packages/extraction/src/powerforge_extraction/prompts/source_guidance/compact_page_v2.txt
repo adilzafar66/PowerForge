@@ -1,0 +1,16 @@
+The high-detail image shows the complete page. Ordinary page.readings.rows and page.layout.order
+rows follow their listed columns. A LINE or CELL group links readings in the pinned layout.
+Its members follow member_columns. Half-open Unicode offsets [start, end) select each member's
+literal text. Spaces between members are display separators. Each member retains its reading_ref
+and upright normalized coordinates and inherits the group modality. Null coordinates mean
+geometry is unavailable.
+
+layout.support uses zero-based indices into [representation_ref, kind, source-token ID] rows.
+Overlaps are [left index, right index, kind]. reading_sources rows contain [reading_ref, member
+indices, preferred index]. Alternate texts follow member order with the preferred member omitted.
+Cell boundary_support and unresolved support also refer to layout.support. Respect conflicts,
+table cell and header links, and unresolved relationships. Grouping alone does not join measurements
+or establish equipment ownership.
+
+Use READING with an original reading_ref, QUOTE with a verbatim page-local quotation, or VISUAL
+with an approximate upright image region. Groups and support indices are not reading refs.

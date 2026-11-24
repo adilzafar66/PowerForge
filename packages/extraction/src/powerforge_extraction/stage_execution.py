@@ -17,7 +17,12 @@ from powerforge_ai.extraction import (
     ProviderFailure,
 )
 from powerforge_extraction.compact_context import compact_page
-from powerforge_extraction.extraction_profile import RESPONSES, STAGES, stage_request_hash
+from powerforge_extraction.extraction_profile import (
+    BODY_DIGEST_VERSION,
+    RESPONSES,
+    STAGES,
+    stage_request_hash,
+)
 from powerforge_extraction.identities import canonical_json
 from powerforge_extraction.models import ExtractionWorkUnit
 from powerforge_extraction.performance import active_performance, measure
@@ -26,8 +31,8 @@ from powerforge_extraction.provider_body import dispatch_hash, encoded_body, res
 from powerforge_extraction.readable_context import readable_page
 from powerforge_extraction.run_planning import metadata
 from powerforge_extraction.stage_contracts import (
-    ATTRIBUTE_DESCRIPTION_VERSION,
     ATTRIBUTE_INPUT_VERSION,
+    ATTRIBUTE_NOTES_VERSION,
     ATTRIBUTE_VERSION,
     LEGACY_ATTRIBUTE_INPUT_VERSION,
     AttributeRequest,
@@ -37,6 +42,7 @@ from powerforge_extraction.stage_contracts import (
     RecognitionRequest,
     RecognitionResponse,
     attribute_catalog,
+    consolidated_catalog,
     contract_hash,
     equipment_catalog,
     stage_schema_version,
@@ -155,6 +161,8 @@ def provider_input(wire: RecognitionRequest | AttributeRequest | NoEligibleAttri
         result["input_version"] = wire.input_version
         if wire.input_version != "image-only-v1":
             result["page"] = readable_page(wire.page)
+        if wire.attribute_description_version == ATTRIBUTE_NOTES_VERSION:
+            result.update(consolidated_catalog(wire.attribute_catalog))
         return result
     payload = wire.model_dump(mode="json")
     if not isinstance(wire, AttributeRequest):
@@ -162,6 +170,9 @@ def provider_input(wire: RecognitionRequest | AttributeRequest | NoEligibleAttri
 
     del payload["page_context_hash"], payload["upstream_hash"]
     del payload["upstream"]["page_context_hash"]
+    if wire.attribute_description_version == ATTRIBUTE_NOTES_VERSION:
+        del payload["attribute_description_version"]
+        payload.update(consolidated_catalog(wire.attribute_catalog))
     payload["input_version"] = wire.input_version
     page = payload["page"]
     layout = page["layout"]
@@ -275,7 +286,8 @@ def _build_request(unit, parent, owner, source, claim):
         if parent is None or parent.page_context_hash != context_hash:
             raise ValueError("Attribute stage requires exact successful recognition")
         upstream = recognition_result(parent)
-        definitions = attribute_catalog(upstream)
+        description_version = profile.manifest["attribute_descriptions"]
+        definitions = attribute_catalog(upstream, description_version)
         if not definitions:
             skip = NoEligibleAttributes(
                 version=ATTRIBUTE_VERSION,
@@ -290,7 +302,7 @@ def _build_request(unit, parent, owner, source, claim):
             **common,
             input_version=profile.manifest["attribute_input_version"],
             upstream=upstream,
-            attribute_description_version=ATTRIBUTE_DESCRIPTION_VERSION,
+            attribute_description_version=description_version,
             upstream_hash=parent.result_hash,
             attribute_catalog=definitions,
         )
@@ -313,6 +325,7 @@ def _build_request(unit, parent, owner, source, claim):
         max_output_tokens=profile.max_output_tokens,
         text=payload,
         input_version=version,
+        request_digest_version=profile.request_digest_for(unit.stage),
         image=source.image if send_image else None,
         image_mime_type="image/png" if send_image else None,
         image_detail="high",
@@ -322,7 +335,7 @@ def _build_request(unit, parent, owner, source, claim):
     )
 
     # Bound the actual encoded text and image envelope, including JSON escaping.
-    if version in EXPERIMENTAL_INPUTS:
+    if request.request_digest_version == BODY_DIGEST_VERSION:
         encoded_size = len(encoded_body(responses_body(request, request.response_model)))
     else:
         envelope = {
@@ -340,11 +353,15 @@ def _build_request(unit, parent, owner, source, claim):
 
 def publication_request_hash(unit, wire, request):
     text = canonical_json(provider_input(wire))
-    if isinstance(wire, AttributeRequest) and wire.input_version in EXPERIMENTAL_INPUTS:
+    if isinstance(wire, AttributeRequest) and (
+        wire.input_version in EXPERIMENTAL_INPUTS
+        or unit.execution_metadata.get("request_digest_version") == BODY_DIGEST_VERSION
+    ):
         if (
             request is None
             or request.work_unit_id != unit.id
             or request.input_version != wire.input_version
+            or request.request_digest_version != BODY_DIGEST_VERSION
             or request.text != text
         ):
             raise ValueError("Publication differs from the dispatched input")

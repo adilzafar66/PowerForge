@@ -121,3 +121,41 @@ ATTRIBUTE_DESCRIPTIONS = MappingProxyType(
         ),
     }
 )
+
+EQUIPMENT_EXTRACTION_GUIDANCE_VERSION = "equipment-extraction-guidance-v1"
+ATTRIBUTE_NOTES_VERSION = "registry-attribute-notes-d0-v1"
+
+EQUIPMENT_EXTRACTION_GUIDANCE = MappingProxyType(
+    {
+        EquipmentType.LV_BREAKER: (
+            "Keep frame, sensor, rating-plug, trip and long-time pickup currents distinct. "
+            "An unlabeled ampere rating may be meaningful even when its "
+            "specific function is unclear. "
+            "Distinguish breaker series, ordering identifier, trip-unit model and protection "
+            "functions. A specific model can support an inference about trip technology or "
+            "breaker class. An absent designation cannot establish either. Use UL or CSA "
+            "references as product-standard evidence unless the source independently establishes "
+            "the ANSI/IEC classification."
+        ),
+        EquipmentType.BUS: (
+            "Associate assembly ratings and enclosure data with the bus assembly. Associate "
+            "branch-device ratings with their respective devices. "
+            "Distinguish SC/SCCR, interrupting "
+            "capacity, bus bracing, peak withstand, and timed withstand. Bracing alone does not "
+            "establish a timed rating."
+        ),
+        EquipmentType.SYNCHRONOUS_GENERATOR: (
+            "Keep direct and quadrature axes, transient and subtransient quantities, and "
+            "open-circuit and short-circuit time constants distinct. Use the row, heading, "
+            "and reference base to distinguish machine-base reactances from values reported "
+            "on another base. Preserve test conditions and distinguish armature resistance "
+            "from other winding resistances."
+        ),
+        EquipmentType.TWO_WINDING_TRANSFORMER: (
+            "Keep primary and secondary values, nominal and tap voltages, base and fan-cooled "
+            "capacity, and positive- and zero-sequence impedance distinct. Use nameplate headings "
+            "and winding context to associate each value with the correct winding or rating. "
+            "Preserve paired secondary voltages and impedance ranges as reported."
+        ),
+    }
+)

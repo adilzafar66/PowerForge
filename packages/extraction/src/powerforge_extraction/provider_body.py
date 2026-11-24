@@ -3,9 +3,12 @@
 import base64
 import json
 
-from powerforge_extraction.extraction_profile import stage_request_hash, structured_schema
+from powerforge_extraction.extraction_profile import (
+    BODY_DIGEST_VERSION,
+    stage_request_hash,
+    structured_schema,
+)
 from powerforge_extraction.identities import identity_hash
-from powerforge_shared.config import EXPERIMENTAL_INPUTS
 
 
 def responses_body(request, model):
@@ -35,7 +38,7 @@ def responses_body(request, model):
     }
     if request.reasoning_effort is not None:
         body["reasoning"] = {"effort": request.reasoning_effort}
-    if request.input_version in EXPERIMENTAL_INPUTS:
+    if request.request_digest_version == BODY_DIGEST_VERSION:
         body["service_tier"] = "default"
     return body
 
@@ -46,6 +49,6 @@ def encoded_body(body):
 
 
 def dispatch_hash(request):
-    if request.input_version in EXPERIMENTAL_INPUTS:
+    if request.request_digest_version == BODY_DIGEST_VERSION:
         return identity_hash(responses_body(request, request.response_model))
     return stage_request_hash(request.text, request.reasoning_effort)

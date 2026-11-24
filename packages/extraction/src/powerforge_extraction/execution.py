@@ -112,7 +112,9 @@ def _execute_claim(claim, factory, storage, settings, provider_factory, audit_st
                 )
                 with measure("request_build"):
                     if isinstance(wire, AttributeRequest) and (
-                        request.input_version != wire.input_version
+                        wire.attribute_description_version
+                        != claim.profile.manifest["attribute_descriptions"]
+                        or request.input_version != wire.input_version
                         or ((request.image is None) != (wire.input_version == "readable-text-v1"))
                         or (
                             request.image is not None

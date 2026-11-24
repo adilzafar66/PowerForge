@@ -17,12 +17,14 @@ from powerforge_extraction.stage_contracts import (
     AttributeProviderResponse,
     RecognitionResponse,
     attribute_catalog,
+    consolidated_catalog,
     equipment_catalog,
     stage_schema_version,
 )
 from powerforge_shared.config import (
     EXPERIMENTAL_INPUTS,
     AttributeInputVersion,
+    AttributePromptVariant,
     AttributeReasoningEffort,
 )
 
@@ -49,7 +51,29 @@ COMPACT_ATTRIBUTE_PROMPT = (
 )
 
 
-def prompt_bundle(input_version: AttributeInputVersion):
+CORE_PROMPT_VERSION = "attribute-extraction-core-v1"
+SOURCE_GUIDANCE_VERSION = "stage2-source-guidance-v1"
+BODY_DIGEST_VERSION = "responses-body-v1"
+
+
+def core_resources(input_version: AttributeInputVersion) -> tuple[str, str]:
+    directory = files("powerforge_extraction").joinpath("prompts")
+    source_guide = input_version.replace("-", "_") + ".txt"
+    return (
+        directory.joinpath("attribute_extraction_core_v1.txt").read_text(encoding="utf-8"),
+        directory.joinpath("source_guidance", source_guide).read_text(encoding="utf-8"),
+    )
+
+
+def prompt_bundle(input_version: AttributeInputVersion, variant: AttributePromptVariant = "legacy"):
+    if variant in ("core-v1", "core-catalog-v1"):
+        core, source = core_resources(input_version)
+        return CORE_PROMPT_VERSION, {
+            **PROMPTS,
+            STAGES[1]: core.rstrip() + "\n\n## Source format\n\n" + source,
+        }
+    if variant != "legacy":
+        raise ValueError("Unsupported pinned Stage 2 prompt variant")
     if input_version == ATTRIBUTE_INPUT_VERSION:
         return COMPACT_PROMPT_VERSION, {**PROMPTS, STAGES[1]: COMPACT_ATTRIBUTE_PROMPT}
     if input_version == LEGACY_ATTRIBUTE_INPUT_VERSION:
@@ -125,8 +149,14 @@ class ExtractionProfile(ExecutionProfile):
         return None
 
     def instructions_for(self, stage: str) -> str:
-        _, prompts = prompt_bundle(self.manifest["attribute_input_version"])
+        _, prompts = prompt_bundle(
+            self.manifest["attribute_input_version"],
+            self.manifest.get("attribute_prompt_variant", "legacy"),
+        )
         return prompts[stage]
+
+    def request_digest_for(self, stage: str) -> str | None:
+        return self.manifest.get("request_digest_version") if stage == STAGES[1] else None
 
     @property
     def identity_hash(self):
@@ -170,8 +200,15 @@ def structured_schema(value: dict) -> dict:
     return properties
 
 
-def manifest(input_version: AttributeInputVersion = LEGACY_ATTRIBUTE_INPUT_VERSION):
+def manifest(
+    input_version: AttributeInputVersion = LEGACY_ATTRIBUTE_INPUT_VERSION,
+    variant: AttributePromptVariant = "legacy",
+):
     # The registry projection is pinned for both stages, including attribute definitions.
+    from powerforge_engineering_model.extraction_descriptions import (
+        ATTRIBUTE_NOTES_VERSION,
+        EQUIPMENT_EXTRACTION_GUIDANCE_VERSION,
+    )
     from powerforge_engineering_model.registry_v1 import REGISTRY
     from powerforge_extraction.assertion_consistency import VERSION as CONSISTENCY_VERSION
     from powerforge_extraction.publication import VERSION as PUBLICATION_VERSION
@@ -183,7 +220,7 @@ def manifest(input_version: AttributeInputVersion = LEGACY_ATTRIBUTE_INPUT_VERSI
     )
     from powerforge_extraction.unit_notation import VERSION as UNIT_INTERPRETATION_VERSION
 
-    _, prompts = prompt_bundle(input_version)
+    _, prompts = prompt_bundle(input_version, variant)
     catalog = equipment_catalog()
     sample = RecognitionResponse(
         version=stage_schema_version(STAGES[0]),
@@ -203,6 +240,28 @@ def manifest(input_version: AttributeInputVersion = LEGACY_ATTRIBUTE_INPUT_VERSI
             for item in catalog
         ),
     )
+    description_version = (
+        ATTRIBUTE_NOTES_VERSION if variant == "core-catalog-v1" else ATTRIBUTE_DESCRIPTION_VERSION
+    )
+    definitions = attribute_catalog(sample, description_version)
+    catalog_payload = (
+        consolidated_catalog(definitions)
+        if variant == "core-catalog-v1"
+        else [item.model_dump(mode="json") for item in definitions]
+    )
+    prompt_resources = {}
+    if variant != "legacy":
+        core, guide = core_resources(input_version)
+        prompt_resources = {
+            "attribute_prompt_variant": variant,
+            "attribute_core_version": CORE_PROMPT_VERSION,
+            "attribute_core_hash": content_hash(core),
+            "source_guidance_version": SOURCE_GUIDANCE_VERSION,
+            "source_guidance_hash": content_hash(guide),
+            "request_digest_version": BODY_DIGEST_VERSION,
+        }
+        if variant == "core-catalog-v1":
+            prompt_resources["equipment_guidance_version"] = EQUIPMENT_EXTRACTION_GUIDANCE_VERSION
     return {
         "version": SCHEMA_VERSION,
         "registry_version": REGISTRY.registry_version,
@@ -210,11 +269,11 @@ def manifest(input_version: AttributeInputVersion = LEGACY_ATTRIBUTE_INPUT_VERSI
         "unit_interpretation_version": UNIT_INTERPRETATION_VERSION,
         "consistency_version": CONSISTENCY_VERSION,
         "descriptions": DESCRIPTION_VERSION,
-        "attribute_descriptions": ATTRIBUTE_DESCRIPTION_VERSION,
+        "attribute_descriptions": description_version,
         "attribute_input_version": input_version,
         **(
             {
-                "request_digest_version": "responses-body-v1",
+                "request_digest_version": BODY_DIGEST_VERSION,
                 "page_projection": "none"
                 if input_version == "image-only-v1"
                 else "readable-page-v1",
@@ -223,11 +282,9 @@ def manifest(input_version: AttributeInputVersion = LEGACY_ATTRIBUTE_INPUT_VERSI
             if input_version in EXPERIMENTAL_INPUTS
             else {}
         ),
+        **prompt_resources,
         "catalog_hash": identity_hash(
-            [
-                [item.model_dump(mode="json") for item in catalog],
-                [item.model_dump(mode="json") for item in attribute_catalog(sample)],
-            ]
+            [[item.model_dump(mode="json") for item in catalog], catalog_payload]
         ),
         "prompt_hash": identity_hash(prompts),
         "stages": [
@@ -250,8 +307,9 @@ def extraction_profile(settings):
     if not fake and settings.extraction_model != REASONING_MODEL:
         raise ExtractionDisabled("The configured model is unsupported for Stage 2 reasoning effort")
     input_version = settings.extraction_attribute_input_version
-    record = manifest(input_version)
-    prompt_version, _ = prompt_bundle(input_version)
+    variant = settings.extraction_attribute_prompt_variant
+    record = manifest(input_version, variant)
+    prompt_version, _ = prompt_bundle(input_version, variant)
     return ExtractionProfile(
         provider="fake" if fake else "openai",
         model="deterministic-phase-6r-v1" if fake else settings.extraction_model,
@@ -291,8 +349,12 @@ def require_profile(profile):
         *EXPERIMENTAL_INPUTS,
     }:
         raise ValueError("Pinned extraction resources do not match this installation")
-    record = manifest(input_version)
-    prompt_version, _ = prompt_bundle(input_version)
+    variant = profile.manifest.get("attribute_prompt_variant", "legacy")
+    try:
+        record = manifest(input_version, variant)
+        prompt_version, _ = prompt_bundle(input_version, variant)
+    except (ValueError, TypeError, FileNotFoundError) as exc:
+        raise ValueError("Pinned extraction resources do not match this installation") from exc
     if (
         profile.manifest != record
         or profile.prompt_version != prompt_version
