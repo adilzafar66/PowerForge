@@ -1,11 +1,9 @@
 """OpenAI Responses transport for the two pinned extraction stages."""
 
-import base64
 import json
 import logging
 from typing import Any
 
-import httpx
 import openai
 from pydantic import ValidationError
 
@@ -21,7 +19,6 @@ from powerforge_ai.extraction import (
 from powerforge_extraction.extraction_profile import (
     RESPONSES,
     provider_available,
-    structured_schema,
 )
 from powerforge_extraction.identities import canonical_json
 from powerforge_extraction.performance import (
@@ -32,40 +29,12 @@ from powerforge_extraction.performance import (
     measure,
     request_metrics,
 )
+from powerforge_extraction.provider_body import encoded_body, responses_body
 from powerforge_extraction.response_diagnostics import validation_issues
 from powerforge_extraction.stage_contracts import MAX_RESPONSE_BYTES, stage_schema_version
 from powerforge_shared.config import Settings
 
 logger = logging.getLogger(__name__)
-
-
-def responses_body(request, model):
-    content = [
-        {"type": "input_text", "text": request.text},
-        {
-            "type": "input_image",
-            "detail": request.image_detail,
-            "image_url": "data:image/png;base64," + base64.b64encode(request.image).decode(),
-        },
-    ]
-    body = {
-        "model": request.model,
-        "instructions": request.instructions,
-        "input": [{"role": "user", "content": content}],
-        "text": {
-            "format": {
-                "type": "json_schema",
-                "name": request.stage.lower(),
-                "strict": True,
-                "schema": structured_schema(model.model_json_schema()),
-            }
-        },
-        "max_output_tokens": request.max_output_tokens,
-        "store": False,
-    }
-    if request.reasoning_effort is not None:
-        body["reasoning"] = {"effort": request.reasoning_effort}
-    return body
 
 
 class OpenAIExtractionProvider:
@@ -95,26 +64,32 @@ class OpenAIExtractionProvider:
             or request.timeout_seconds != self.profile.timeout_seconds
             or request.max_output_tokens != self.profile.max_output_tokens
             or not request.text
-            or not request.image
-            or request.image_mime_type != "image/png"
+            or (
+                request.stage == "ATTRIBUTE_EXTRACTION"
+                and request.input_version != self.profile.manifest["attribute_input_version"]
+            )
+            or (
+                request.stage != "ATTRIBUTE_EXTRACTION"
+                and request.input_version != "compact-page-v1"
+            )
+            or ((request.image is None) != (request.input_version == "readable-text-v1"))
+            or (request.image_mime_type != (None if request.image is None else "image/png"))
+            or request.image == b""
             or request.image_detail != "high"
         ):
             raise ProviderFailure(ErrorCode.INPUT)
         performance = active_performance.get()
         with measure("request_build"):
             body = responses_body(request, model)
-            if len(canonical_json(body).encode()) > self.profile.max_transport_bytes:
+            body_size = len(encoded_body(body))
+            if body_size > self.profile.max_transport_bytes:
                 raise ProviderFailure(ErrorCode.INPUT)
             if performance is not None:
                 try:
                     performance.request = request_metrics(
                         json.loads(request.text),
-                        body_bytes=len(
-                            httpx.Request(
-                                "POST", "https://api.openai.com/v1/responses", json=body
-                            ).content
-                        ),
-                        encoded_image_bytes=4 * ((len(request.image) + 2) // 3),
+                        body_bytes=body_size,
+                        encoded_image_bytes=4 * ((len(request.image or b"") + 2) // 3),
                         image_detail=request.image_detail,
                         instructions=request.instructions,
                         schema_bytes=len(canonical_json(body["text"]["format"]["schema"]).encode()),

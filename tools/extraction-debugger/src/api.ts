@@ -18,7 +18,10 @@ export type PublishedCandidate = {
   evidence: { role: string; localization: string; reason_code: string | null }[];
 };
 type Performance = {
-  version: 1;
+  version: 1 | 2;
+  input_configuration?: string;
+  source_projection?: string;
+  available_readings?: number;
   queue_wait_ms?: number;
   source_load_ms?: number;
   request_build_ms?: number;
@@ -38,7 +41,7 @@ type Performance = {
   profile_sha256?: string;
   prompt_sha256?: string;
   schema_sha256?: string;
-  request?: Record<string, number | string | null>;
+  request?: Record<string, number | string | boolean | null> & {image_sent?: boolean; native_sent?: boolean; ocr_sent?: boolean};
 };
 
 export type Detail = {

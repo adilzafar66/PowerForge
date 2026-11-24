@@ -10,7 +10,7 @@ MAX_GROUP_MEMBERS = 32
 MAX_GROUP_CHARS = 2048
 
 
-def _groups(rows, layout):
+def reading_sequences(rows, layout):
     """Group neighbouring clean readings only within an unbranched pinned baseline."""
     cells = {
         ref: (table["ref"], cell["ref"], cell["state"])
@@ -78,12 +78,20 @@ def _groups(rows, layout):
                     break
                 size = next_size
                 position += 1
-        if position - start < 3:
-            yield from rows[start:position]
+        yield rows[start:position]
+
+
+def _groups(rows, layout):
+    cells = {
+        ref for table in layout["tables"] for cell in table["cells"] for ref in cell["readings"]
+    }
+    for selected in reading_sequences(rows, layout):
+        if len(selected) < 3:
+            yield from selected
             continue
+        row = selected[0]
         members = []
         offset = 0
-        selected = rows[start:position]
         for ref, text, _, _, _, *region in selected:
             end = offset + len(text)
             members.append([ref, offset, end, *region])

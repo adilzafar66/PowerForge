@@ -280,6 +280,10 @@ Preserve the current evidence localizer's independent verification against pinne
 
 **Gate C:** Compact input can be reproduced and source-grounded exactly; independent annotations confirm no material loss of value discovery, ownership, or evidence correctness. Meaningful latency/token improvement is demonstrated or C is not promoted.
 
+### Milestone C2 — Stage 2 source modality
+
+C2 adds opt-in readable hybrid, image-only and readable text-only configurations. V1 remains the production default and V2 the existing comparator. Offline payload and evidence replay precede a separately authorized live gate. See the [C2 specification](phase-6r-source-modality-optimization.md) and [evaluation, examples and reproduction commands](../../evals/phase6r/ATTRIBUTE_SOURCE_MODALITY_EVALUATION.md).
+
 ## 9. Milestone D — Prompt and structured-output efficiency
 
 **Priority:** P2 / proceed based on measured output mix.

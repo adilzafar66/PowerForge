@@ -184,7 +184,7 @@ def test_debugger_partial_attempt_comparison_and_exact_export(
             == []
         )
         detail = client.get(f"/api/attempts/{attempt}").json()
-        assert detail["performance"]["version"] == 1
+        assert detail["performance"]["version"] == 2
         assert detail["performance"]["attempt_total_ms"] >= detail["performance"]["admission_ms"]
         assert detail["performance"]["provider_call_ms"] is None
         assert detail["attempt"]["published"] == 25

@@ -13,8 +13,6 @@ from powerforge_ai.extraction import ErrorCode, ProviderFailure
 from powerforge_document_processing.storage.base import ObjectStorage, StorageError
 from powerforge_document_processing.storage.s3 import S3ObjectStorage
 from powerforge_extraction.attribute_admission import AttributeAdmission
-from powerforge_extraction.extraction_profile import stage_request_hash
-from powerforge_extraction.identities import canonical_json
 from powerforge_extraction.stage_contracts import MAX_RESPONSE_BYTES
 from powerforge_persistence.base import Base
 
@@ -88,8 +86,10 @@ def retain_output(storage: ObjectStorage, unit_id: UUID, days: int, raw: bytes, 
     return RetainedOutput(key, digest, len(raw), now + timedelta(days=days))
 
 
-def record_audit(session, unit, wire, retained: RetainedOutput, admission: AttributeAdmission):
-    from powerforge_extraction.stage_execution import provider_input
+def record_audit(
+    session, unit, wire, retained: RetainedOutput, admission: AttributeAdmission, request=None
+):
+    from powerforge_extraction.stage_execution import publication_request_hash
 
     effort = unit.execution_metadata.get("attribute_reasoning_effort")
     session.add(
@@ -97,7 +97,7 @@ def record_audit(session, unit, wire, retained: RetainedOutput, admission: Attri
             work_unit_id=unit.id,
             run_id=unit.run_id,
             document_page_id=wire.page.owner.document_page_id,
-            request_hash=stage_request_hash(canonical_json(provider_input(wire)), effort),
+            request_hash=publication_request_hash(unit, wire, request),
             attribute_reasoning_effort=effort,
             object_key=retained.key,
             output_sha256=retained.digest,

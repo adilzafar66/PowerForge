@@ -16,6 +16,7 @@ class ErrorCode(StrEnum):
     REFUSAL = "PROVIDER_REFUSAL"
     INVALID = "INVALID_PROVIDER_RESPONSE"
     INPUT = "INVALID_SOURCE_INPUT"
+    NO_TEXT = "NO_READABLE_SOURCE_TEXT"
     SOURCE_UNAVAILABLE = "SOURCE_UNAVAILABLE"
     INTERRUPTED = "WORKER_INTERRUPTED"
     BUDGET = "CALL_BUDGET_EXHAUSTED"
@@ -202,6 +203,7 @@ class ExtractionRequest(BaseModel):
     timeout_seconds: int
     max_output_tokens: int
     text: str | None = None
+    input_version: str = "compact-page-v1"
     image: bytes | None = None
     image_mime_type: str | None = None
     # Selected by trusted execution code; never supplied by a model or import path.

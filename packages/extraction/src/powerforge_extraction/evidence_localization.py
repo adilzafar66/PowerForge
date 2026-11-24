@@ -55,7 +55,19 @@ def _reading_matches(text, quote):
 
 
 class EvidenceLocalizer:
-    def __init__(self, source):
+    def __init__(self, source, input_version=None, page=None):
+        self.input_version = input_version
+        self.exposed_sequences = {}
+        if input_version == "readable-text-v1":
+            from powerforge_extraction.readable_context import readable_page, reading_blocks
+
+            for block in reading_blocks(readable_page(page)):
+                for line in block["lines"]:
+                    for index, (ref, *_rest) in enumerate(line):
+                        self.exposed_sequences[ref] = (line, index)
+        self.token_refs = {
+            (m.representation_ref, m.ref): r.ref for r in source.layout.readings for m in r.members
+        }
         self.bodies = source.bodies
         self.readings = {reading.ref: reading for reading in source.layout.readings}
         self.tokens = {
@@ -111,16 +123,34 @@ class EvidenceLocalizer:
 
     def _locate(self, citation):
         if isinstance(citation, ReadingCitation):
+            if self.input_version == "image-only-v1":
+                return unresolved(citation.role, "READING_NOT_EXPOSED")
             return self._reading(citation)
         if isinstance(citation, QuoteCitation):
             if citation.quote not in self.quote_cache:
                 self.quote_cache[citation.quote] = self._quote(citation.quote)
             location = self.quote_cache[citation.quote]
+            if self.input_version == "readable-text-v1" and not isinstance(location, str):
+                alias, start, end = location
+                tokens = self._span_tokens(alias, start, end)
+                refs = [self.token_refs.get((alias, t.ref)) for t in tokens]
+                line, index = self.exposed_sequences.get(refs[0] if refs else None, ([], 0))
+                segment = line[index : index + len(refs)]
+                if (
+                    not tokens
+                    or [entry[0] for entry in segment] != refs
+                    or start < tokens[0].span.start
+                    or end > tokens[-1].span.end
+                    or citation.quote not in " ".join(t.raw_text for t in tokens)
+                ):
+                    return unresolved(citation.role, "QUOTE_NOT_EXPOSED")
             return (
                 unresolved(citation.role, location)
                 if isinstance(location, str)
                 else self._resolved(citation.role, *location)
             )
+        if self.input_version == "readable-text-v1":
+            return unresolved(citation.role, "IMAGE_NOT_EXPOSED")
         try:
             # Coordinates retain the exact-decimal values admitted by the wire parser.
             with localcontext() as context:
@@ -134,6 +164,19 @@ class EvidenceLocalizer:
             "reported_text": citation.reported_text,
             "region": region.model_dump(mode="json"),
         }
+
+    def _span_tokens(self, alias, start, end):
+        first = bisect_right(self.ends[alias], start)
+        tokens = self.ordered[alias]
+        found = []
+        for index in range(first, len(tokens)):
+            token = tokens[index]
+            if token.span.start >= end:
+                break
+            if len(found) >= MAX_FRAGMENT_REGIONS:
+                return []
+            found.append(token)
+        return found
 
     def _reading(self, citation):
         role = citation.role

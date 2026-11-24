@@ -5,7 +5,10 @@ from typing import Literal, Self
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-AttributeInputVersion = Literal["compact-page-v1", "compact-page-v2"]
+EXPERIMENTAL_INPUTS = ("readable-hybrid-v1", "image-only-v1", "readable-text-v1")
+AttributeInputVersion = Literal[
+    "compact-page-v1", "compact-page-v2", "readable-hybrid-v1", "image-only-v1", "readable-text-v1"
+]
 AttributeReasoningEffort = Literal["none", "low", "medium"]
 
 

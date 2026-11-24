@@ -112,8 +112,12 @@ def _execute_claim(claim, factory, storage, settings, provider_factory, audit_st
                 )
                 with measure("request_build"):
                     if isinstance(wire, AttributeRequest) and (
-                        request.image is None
-                        or sha256(request.image).hexdigest() != wire.page.image_sha256
+                        request.input_version != wire.input_version
+                        or ((request.image is None) != (wire.input_version == "readable-text-v1"))
+                        or (
+                            request.image is not None
+                            and sha256(request.image).hexdigest() != wire.page.image_sha256
+                        )
                         or request.text != canonical_json(provider_input(wire))
                     ):
                         raise ProviderFailure(ErrorCode.INPUT)
@@ -170,7 +174,7 @@ def _execute_claim(claim, factory, storage, settings, provider_factory, audit_st
                             else admit_attributes(wire, raw)
                         )
                         if retained is not None:
-                            audit = (wire, retained, admission)
+                            audit = (wire, retained, admission, request)
                         if admission.result is None:
                             raise ProviderFailure(
                                 ErrorCode.INVALID, usage, diagnostics=admission.fatal
@@ -201,6 +205,7 @@ def _execute_claim(claim, factory, storage, settings, provider_factory, audit_st
                         usage,
                         publication,
                         audit=audit,
+                        request=request,
                         attempt_start=attempt_start,
                     )
             except Exception:

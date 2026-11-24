@@ -427,7 +427,8 @@ class ExtractionCoordinator:
 
             if not live_admission_authorized(self.session, run, profile):
                 raise ProviderFailure(ErrorCode.DISABLED)
-        from powerforge_extraction.extraction_profile import RESPONSES, stage_request_hash
+        from powerforge_extraction.extraction_profile import RESPONSES
+        from powerforge_extraction.provider_body import dispatch_hash
         from powerforge_extraction.stage_contracts import stage_schema_version
 
         if request is None or (
@@ -443,11 +444,12 @@ class ExtractionCoordinator:
         ):
             raise ValueError("Request differs from its pinned extraction stage")
         if request.stage == "ATTRIBUTE_EXTRACTION":
-            if not request.text:
+            if (
+                not request.text
+                or request.input_version != profile.manifest["attribute_input_version"]
+            ):
                 raise ValueError("Stage 2 requires a complete provider input")
-            delivery.provider_request_hash = stage_request_hash(
-                request.text, request.reasoning_effort
-            )
+            delivery.provider_request_hash = dispatch_hash(request)
         delivery.provider_started_at = self.now()
         self.session.flush()
 
@@ -517,6 +519,7 @@ class ExtractionCoordinator:
         publication=None,
         *,
         audit=None,
+        request=None,
         attempt_start=None,
     ):
         from powerforge_extraction.response_audit import record_audit
@@ -536,7 +539,7 @@ class ExtractionCoordinator:
             if audit is not None:
                 record_audit(self.session, unit, *audit)
             unit.output_counts = store_result(
-                self.session, unit, snapshot, wire, result, publication
+                self.session, unit, snapshot, wire, result, publication, request
             )
         self._telemetry(unit, profile, self.now(), "SUCCEEDED", None, usage)
         self._save_performance(unit, attempt_start)

@@ -66,7 +66,9 @@ def _value_source_support(item, definition, evidence, localizer) -> ValueSourceS
 def build_publication(wire, result, source):
     if isinstance(result, NoEligibleAttributes):
         return []
-    localizer = EvidenceLocalizer(source)
+    localizer = EvidenceLocalizer(
+        source, getattr(wire, "input_version", None), getattr(wire, "page", None)
+    )
     if not isinstance(result, AttributeResponse):
         return [
             Observation(
@@ -109,6 +111,12 @@ def build_publication(wire, result, source):
             ]
         else:
             evidence = localizer.locate(item.evidence, "VALUE")
+        eligible = [
+            f
+            for f in evidence
+            if f.get("reason_code")
+            not in {"READING_NOT_EXPOSED", "QUOTE_NOT_EXPOSED", "IMAGE_NOT_EXPOSED"}
+        ]
         owner = owners.get(item.equipment_ref)
         if (
             item.association == "UNASSIGNED"
@@ -129,7 +137,7 @@ def build_publication(wire, result, source):
         elif definition is None:
             status, reason, normalized = "UNMAPPED", "UNKNOWN_ATTRIBUTE_KEY", {}
         else:
-            status, reason, normalized = normalize_proposal(item, definition, evidence)
+            status, reason, normalized = normalize_proposal(item, definition, eligible)
         fields = {
             "kind": "ATTRIBUTE",
             "local_ref": item.local_ref,
@@ -156,7 +164,7 @@ def build_publication(wire, result, source):
                 raw_label=item.raw_label,
                 raw_value=item.raw_value,
                 raw_unit=item.raw_unit,
-                value_source_support=_value_source_support(item, definition, evidence, localizer),
+                value_source_support=_value_source_support(item, definition, eligible, localizer),
                 qualifiers=list(item.qualifiers),
                 value_form=item.value_form,
             )

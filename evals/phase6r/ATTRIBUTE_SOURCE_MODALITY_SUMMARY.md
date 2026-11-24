@@ -1,0 +1,29 @@
+# Phase 6R C2 Source Modality Results
+
+**Keep V1 as the production default.** The readable projection preserved the pinned source readings and reduced request size. In live testing, the new presets each improved some outcomes, but none combined reliable coverage, source evidence, and faster publication across all five inputs. The screening used one observation per page and preset. [Full C2 evaluation](ATTRIBUTE_SOURCE_MODALITY_EVALUATION.md)
+
+## Offline results (C2.1–C2.7)
+
+- **All 25 request projections were verified** across five pinned inputs and five presets. Hybrid and text-only share one readable representation. It preserved all original reading IDs, literal text, alternate transcriptions, uncertainty flags, and available exact coordinates. It retained supported reading order and table relationships. Image-only omitted the page readings from the request while retaining them internally for evidence verification. Every preset received its page's pinned recognition result and applicable registry attributes.
+- **Schneider OCR had the largest reduction from the readable hybrid format.** Its page-source payload fell from **103,919 to 51,944 bytes**, a **50.0%** reduction. The full request, including the high-detail image, fell from **635,517 to 572,748 bytes** (**9.9%**). The V2 comparator was **590,092 bytes**, image-only was **512,648 bytes**, and text-only was **95,526 bytes**. The readable view retained all **445 readings**.
+- **Evidence rules follow the input.** Image-only can resolve unique literal quotations against pinned text. Text-only requires quotations supported by the exposed readings and rejects visual citations. Ineligible citations stay visible as unresolved and cannot verify values or units. Regional replay of **23 historical responses** added **zero** verified occurrences. Regional matching remains experimental and offline.
+- **Verification passed.** The offline backend and PostgreSQL suite passed **395 tests** on a fresh isolated database. Restricted MinIO retrieval, **17 debugger frontend tests**, TypeScript, and the production build also passed. Earlier Docker PostgreSQL runs showed intermittent fixture failures whose exact cause remains unconfirmed. The independent host PostgreSQL integration suite passed twice. [Offline measurements, source examples, and verification](ATTRIBUTE_SOURCE_MODALITY_EVALUATION.md#measured-requests)
+
+## Live results (C2.8)
+
+The November 24, 2026 screen used **20 Stage 2 calls** with GPT-6 Luna, medium reasoning, standard tier, a **180-second diagnostic timeout**, and **zero retries**. The five inputs were Schneider native, Schneider with OCR, Simson Maxwell, Siemens, and REX. V2 served as a historical comparator. **18 attempts published**, including four with quarantined assertions. Seventeen published after a provider call of at most 100 seconds. There were **zero timeouts**, and estimated spend was **US$0.1065**. [Per-call results and methodology](ATTRIBUTE_SOURCE_MODALITY_EVALUATION.md#c28-live-screening)
+
+- **V1** published **4/5**, matched **40/74** checklist items, and had a **39.33-second** median provider time on published attempts. Schneider native exceeded the 16-item raw-unmapped limit and failed admission.
+- **Readable hybrid** published **4/5**, matched **30/74**, and had a **39.85-second** median. On Schneider OCR it used **31,406 input tokens**, down **30.7%** from V1's 45,309. Provider time fell from **64.70 to 63.05 seconds**, with both matching **14/24**. Hybrid missed all 20 breaker checks on Schneider native, and a duplicate assertion ID blocked Siemens publication.
+- **Image-only** published **5/5**, matched **63/74**, and had a **55.21-second** median. It had the strongest checklist coverage and the lowest estimated cost per published page (**US$0.0042**). Schneider native took **102.15 seconds** and matched all 24 checks after nine invalid assertions were quarantined. REX omitted the proposed kVA unit for the apparent-power rating.
+- **Text-only** published **5/5** within 100 seconds, matched **48/74**, and had a **45.24-second** median. It matched just **3/24** on Schneider OCR. On Schneider native it proposed all 20 breaker model and pole-count values correctly, with **zero resolved value citations** for those proposals. It matched **14/14** on Siemens and **5/5** on REX. [Engineering and evidence review](ATTRIBUTE_SOURCE_MODALITY_EVALUATION.md#engineering-and-evidence-review)
+
+On Simson Maxwell, V1, hybrid, and image-only matched **7/7**. Text-only missed armature resistance. On Siemens, the three presets that published matched **14/14**. On REX, V1, hybrid, and text-only matched **5/5**, while image-only matched **4/5**. [Per-page results](ATTRIBUTE_SOURCE_MODALITY_EVALUATION.md#c28-live-screening)
+
+Checklist matches measure the accepted directly extracted proposal's registry key, owner, magnitude, and unit. Mapping, evidence localization, and inferred values were evaluated separately. The historical V2 Schneider OCR run matched **24/24** in **87.02 seconds** using **37,310 input tokens**. That result came from an earlier run. [Milestone C historical results](ATTRIBUTE_CONTEXT_EVALUATION.md#live-comparison)
+
+## Audit and follow-up
+
+The restricted debugger verified **all 20 retained outputs**. Replay reproduced **all 18 publications** and both fatal validation failures. Regional replay added **zero** verified occurrences. Live verification also found a debugger read error when text-only telemetry omitted image detail. The reader now accepts that omission, and **20 focused backend tests** passed after the fix.
+
+Carry raw-unmapped overflow and duplicate assertion IDs into Milestone D's output-contract work. The live evidence supports keeping the experimental presets opt-in and the production timeout at **100 seconds**. [Audit replay and release decision](ATTRIBUTE_SOURCE_MODALITY_EVALUATION.md#audit-replay-and-release-decision)

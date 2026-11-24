@@ -270,6 +270,9 @@ function AttemptView({ id }: { id: string }) {
 function Publication({ assertion }: { assertion: Assertion }) {
   const candidate = assertion.candidate;
   if (!candidate) return null;
+  const citations = object(assertion.validated)?.evidence;
+  const citationKind = (index: number) => Array.isArray(citations)
+    ? object(citations[index])?.kind : undefined;
   return <div className="publication">
     <p>Published <strong>{candidate.mapping_status}</strong>{candidate.reason_code && <> · <code>{candidate.reason_code}</code></>}</p>
     <AssertionFields value={candidate} persisted />
@@ -278,7 +281,7 @@ function Publication({ assertion }: { assertion: Assertion }) {
     }{candidate.normalized_unit && ` ${candidate.normalized_unit}`}</code></p>}
     {candidate.evidence.length > 0 && <details><summary>Evidence localization</summary>
       <ul>{candidate.evidence.map((item, index) => <li key={index}>
-        {item.role} · {item.localization}{item.reason_code && ` · ${item.reason_code}`}
+        {typeof citationKind(index) === "string" && <>{String(citationKind(index))} · </>}{item.role} · {item.localization}{item.reason_code && ` · ${item.reason_code}`}
       </li>)}</ul></details>}
   </div>;
 }
@@ -289,8 +292,9 @@ if (root) createRoot(root).render(<App />);
 function PerformanceSection({ detail }: { detail: Detail }) {
   const { attempt, performance } = detail;
   const request = performance?.request;
+  const flag = (value?: boolean) => value == null ? null : value ? "Yes" : "No";
   const duration = (value?: number) => value == null ? null : `${value.toLocaleString()} ms`;
-  const metadata = (values: Record<string, string | number | null | undefined>) =>
+  const metadata = (values: Record<string, string | number | boolean | null | undefined>) =>
     <dl className="metadata">{Object.entries(values).map(([label, value]) =>
       <div key={label}><dt>{label}</dt><dd>{typeof value === "number" ? value.toLocaleString() : value ?? "Unavailable"}</dd></div>
     )}</dl>;
@@ -308,7 +312,12 @@ function PerformanceSection({ detail }: { detail: Detail }) {
       "Input tokens": attempt.input_tokens, "Cached input tokens": attempt.cached_input_tokens,
       "Output tokens": attempt.output_tokens, "Reasoning tokens": performance?.reasoning_tokens,
       "Visible output tokens": performance?.visible_output_tokens,
-      "OCR selected": performance?.ocr_selected == null ? null : performance.ocr_selected ? "Yes" : "No",
+      "Stage 2 input": performance?.input_configuration, "Source projection": performance?.source_projection,
+      "Available readings": performance?.available_readings,
+      "Exposed readings": typeof request?.native_readings === "number" && typeof request.ocr_readings === "number" ? request.native_readings + request.ocr_readings : null,
+      "Image sent": flag(request?.image_sent), "Page OCR sent": flag(request?.ocr_sent),
+      "Page native text sent": flag(request?.native_sent),
+      [performance?.version === 2 ? "OCR executed locally" : "OCR selected"]: performance?.ocr_selected == null ? null : performance.ocr_selected ? "Yes" : "No",
       "Native readings": request?.native_readings, "OCR readings": request?.ocr_readings,
       "Alternate readings": request?.alternate_readings, "Reading text characters": request?.reading_text_chars,
       "Uncertain readings": request?.uncertain_readings, "Conflicting or ambiguous overlaps": request?.conflicting_overlap_count,
@@ -316,7 +325,7 @@ function PerformanceSection({ detail }: { detail: Detail }) {
       "Line groups": request?.line_count, "Tables": request?.table_count, "Cells": request?.cell_count,
       "Equipment occurrences": request?.equipment_count, "Eligible equipment types": request?.eligible_type_count,
       "Registry definitions": request?.registry_definition_count,
-      "Image dimensions": request ? `${request.image_width} × ${request.image_height} px` : null,
+      "Image dimensions": request?.image_width != null ? `${request.image_width} × ${request.image_height} px` : null,
       "Image detail": request?.image_detail, "Encoded image bytes": request?.encoded_image_bytes,
       "Request body bytes": request?.body_bytes, "Page context bytes": request?.page_bytes,
       "Instructions bytes": request?.instructions_bytes, "Output schema bytes": request?.schema_bytes,

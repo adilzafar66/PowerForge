@@ -224,7 +224,8 @@ def stage_inputs(pinned_source):
     )
     wire = SimpleNamespace(upstream=upstream, attribute_catalog=attribute_catalog(upstream))
 
-    def apply(*attributes, raw_unmapped=()):
+    def apply(*attributes, raw_unmapped=(), input_version=None):
+        wire.input_version = input_version
         result = AttributeResponse(
             version=ATTRIBUTE_VERSION,
             stage="ATTRIBUTE_EXTRACTION",
@@ -1595,3 +1596,111 @@ def test_normalized_text_trims_outer_whitespace_but_preserves_the_proposal(stage
     assert row["proposed_value"] == proposal
     if not inferred:
         assert row["raw_value"] == "PDG3  75"
+
+
+def modality_page(source):
+    tokens = {(alias, t.ref): t.raw_text for alias, b in source.bodies.items() for t in b.tokens}
+    return SimpleNamespace(
+        layout=source.layout,
+        readings=[
+            SimpleNamespace(
+                reading_ref=r.ref,
+                text=tokens[r.preferred.representation_ref, r.preferred.ref],
+                modality=source.bodies[r.preferred.representation_ref].producer.kind,
+                alternate_texts=tuple(
+                    tokens[m.representation_ref, m.ref] for m in r.members if m != r.preferred
+                ),
+            )
+            for r in source.layout.readings
+        ],
+    )
+
+
+def test_modality_eligibility_and_independent_citations(pinned_source):
+    from powerforge_extraction.stage_contracts import VisualCitation
+
+    reading = cite(pinned_source, "TX-1")
+    quote = QuoteCitation(kind="QUOTE", role="LABEL", quote="TX-1")
+    region = {"x": "0", "y": "0", "width": "1", "height": "1"}
+    visual = VisualCitation(kind="VISUAL", role="CONTEXT", reported_text="600", region=region)
+    page = modality_page(pinned_source)
+    hidden, allowed, image = EvidenceLocalizer(pinned_source, "image-only-v1", page).locate(
+        (reading, quote, visual), "VALUE"
+    )
+    assert hidden["reason_code"] == "READING_NOT_EXPOSED"
+    assert allowed["quote"] == "TX-1" and image["localization"] == "VISUAL_REPORTED"
+    text = EvidenceLocalizer(pinned_source, "readable-text-v1", page)
+    read, quoted, disallowed = text.locate((reading, quote, visual), "VALUE")
+    assert read["quote"] == quoted["quote"] == "TX-1"
+    assert disallowed["reason_code"] == "IMAGE_NOT_EXPOSED"
+    # Artifact line breaks can place unrelated cells adjacent in the underlying text.
+    underlying = text.text["native"]
+    start = underlying.index("TX-1")
+    stop = underlying.index("600", start) + 3
+    assembled = QuoteCitation(kind="QUOTE", role="VALUE", quote=underlying[start:stop])
+    assert text.locate([assembled], "VALUE")[0]["reason_code"] == "QUOTE_NOT_EXPOSED"
+
+
+def test_region_replay_requires_unique_complete_literal_occurrence(pinned_source, monkeypatch):
+    from pathlib import Path
+
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "evals" / "phase6r"))
+    from region_replay import RegionalReplay
+
+    from powerforge_extraction.stage_contracts import VisualCitation
+
+    replay = RegionalReplay(pinned_source, modality_page(pinned_source))
+    first = cite(pinned_source, "600")
+    (resolved,) = replay.locate([first], "VALUE")
+    region = resolved["regions"][0]
+
+    def visual(box, text):
+        return VisualCitation(kind="VISUAL", role="VALUE", reported_text=text, region=box)
+
+    result = replay.compare(visual(region, "600"))
+    assert result["outcome"] == "MATCH" and result["reading_refs"] == (first.reading_ref,)
+    assert result["original"]["localization"] == "VISUAL_REPORTED"
+    assert result["derived"]["regions"] == [region]
+    assert replay.compare(visual(region, "60"))["outcome"] == "NO_MATCH"
+    whole = {"x": 0, "y": 0, "width": 1, "height": 1}
+    assert replay.compare(visual(whole, "600"))["outcome"] == "AMBIGUOUS"
+    assert replay.compare(visual(whole, "TX-1"))["outcome"] == "INSUFFICIENT_REGIONAL_SUPPORT"
+    assert replay.compare(visual(region, "different"))["outcome"] == "NO_MATCH"
+    equipment = SimpleNamespace(evidence=[visual(region, None)])
+    crowded = RegionalReplay(pinned_source, modality_page(pinned_source), [equipment, equipment])
+    assert crowded.compare(visual(region, "600"))["outcome"] == "OVERLAPPING_EQUIPMENT"
+
+
+def test_hidden_readings_cannot_verify_a_unit_or_value(stage_inputs, pinned_source):
+    item = assertion(
+        "v",
+        raw_unit="V",
+        proposed_unit="V",
+        evidence=(cite(pinned_source, "(V)", "HEADER"), cite(pinned_source, "600")),
+    )
+    (exposed,) = stage_inputs(item)
+    assert (exposed["mapping_status"], exposed["value_source_support"]) == ("MAPPED", "TEXT_MATCH")
+    (hidden,) = stage_inputs(item, input_version="image-only-v1")
+    assert (hidden["mapping_status"], hidden["value_source_support"]) == ("UNMAPPED", "UNVERIFIED")
+    header = QuoteCitation(kind="QUOTE", role="HEADER", quote="(V)")
+    (recovered,) = stage_inputs(
+        item.model_copy(update={"evidence": (*item.evidence, header)}),
+        input_version="image-only-v1",
+    )
+    assert (recovered["mapping_status"], recovered["value_source_support"]) == (
+        "MAPPED",
+        "UNVERIFIED",
+    )
+
+
+def test_readable_merged_table_keeps_hierarchical_headers():
+    from powerforge_extraction.readable_context import readable_page
+
+    source = fixture_source(prepare_pdf(drawn_table(merged=True)))
+    (table,) = readable_page(modality_page(source))["tables"]
+    cells = [cell for row in table["rows"] for cell in row]
+    assert {tuple(cell.get("span", (1, 1))) for cell in cells} >= {(2, 1), (1, 2)}
+    original = {c.ref: c for c in source.layout.tables[0].cells}
+    assert any(len(cell.get("headers", ())) > 1 for cell in cells)
+    for cell in cells:
+        assert tuple(cell.get("headers", ())) == original[cell["cell"]].headers

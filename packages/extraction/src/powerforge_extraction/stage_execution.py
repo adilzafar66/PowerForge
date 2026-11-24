@@ -10,9 +10,11 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from powerforge_ai.extraction import (
     AttributeOutput,
+    ErrorCode,
     ExecutionUsage,
     ExtractionRequest,
     ExtractionResponse,
+    ProviderFailure,
 )
 from powerforge_extraction.compact_context import compact_page
 from powerforge_extraction.extraction_profile import RESPONSES, STAGES, stage_request_hash
@@ -20,11 +22,14 @@ from powerforge_extraction.identities import canonical_json
 from powerforge_extraction.models import ExtractionWorkUnit
 from powerforge_extraction.performance import active_performance, measure
 from powerforge_extraction.pinned_sources import bound_snapshot, load_bound
+from powerforge_extraction.provider_body import dispatch_hash, encoded_body, responses_body
+from powerforge_extraction.readable_context import readable_page
 from powerforge_extraction.run_planning import metadata
 from powerforge_extraction.stage_contracts import (
     ATTRIBUTE_DESCRIPTION_VERSION,
     ATTRIBUTE_INPUT_VERSION,
     ATTRIBUTE_VERSION,
+    LEGACY_ATTRIBUTE_INPUT_VERSION,
     AttributeRequest,
     NoEligibleAttributes,
     PinnedPageContext,
@@ -39,6 +44,7 @@ from powerforge_extraction.stage_contracts import (
 )
 from powerforge_persistence.base import Base
 from powerforge_provenance.spatial_sources import PageOwner
+from powerforge_shared.config import EXPERIMENTAL_INPUTS
 
 
 class StageResult(Base):
@@ -143,6 +149,13 @@ def project_page(source):
 
 def provider_input(wire: RecognitionRequest | AttributeRequest | NoEligibleAttributes) -> dict:
     """Serialize the provider view of a validated request."""
+    if isinstance(wire, AttributeRequest) and wire.input_version in EXPERIMENTAL_INPUTS:
+        result = wire.model_dump(mode="json", include={"upstream", "attribute_catalog"})
+        del result["upstream"]["page_context_hash"]
+        result["input_version"] = wire.input_version
+        if wire.input_version != "image-only-v1":
+            result["page"] = readable_page(wire.page)
+        return result
     payload = wire.model_dump(mode="json")
     if not isinstance(wire, AttributeRequest):
         return payload
@@ -208,9 +221,21 @@ def provider_input(wire: RecognitionRequest | AttributeRequest | NoEligibleAttri
 
 def request_for(factory, storage, claim):
     profile = claim.profile
+    performance = active_performance.get()
+    if performance is not None:
+        performance.version = 2
+        performance.profile_sha256 = profile.identity_hash
+        performance.input_configuration = profile.manifest["attribute_input_version"]
+        performance.source_projection = profile.manifest.get(
+            "page_projection", performance.input_configuration
+        )
     with measure("source_load"):
         with factory() as session:
             unit = session.get(ExtractionWorkUnit, claim.unit_id)
+            if performance is not None:
+                identity = unit.execution_metadata["stage_identity"]
+                performance.prompt_sha256 = identity["prompt_hash"]
+                performance.schema_sha256 = identity["transport_schema_hash"]
             snapshot = validate_plan(session, unit, profile)
             parent = prerequisite_result(session, unit)
             owner = PageOwner(
@@ -220,15 +245,9 @@ def request_for(factory, storage, claim):
                 page_number=unit.page_numbers[0],
             )
         source = load_bound(snapshot, storage, unit, profile)
-    if (performance := active_performance.get()) is not None:
-        performance.profile_sha256 = profile.identity_hash
-        performance.prompt_sha256 = unit.execution_metadata["stage_identity"]["prompt_hash"]
-        performance.schema_sha256 = unit.execution_metadata["stage_identity"][
-            "transport_schema_hash"
-        ]
-        performance.ocr_selected = any(
-            body.producer.kind == "OCR" for body in source.bodies.values()
-        )
+    if performance is not None:
+        performance.available_readings = len(source.layout.readings)
+        performance.ocr_selected = source.prepared.ocr_decision == "RUN"
     with measure("request_build"):
         return _build_request(unit, parent, owner, source, claim)
 
@@ -276,6 +295,12 @@ def _build_request(unit, parent, owner, source, claim):
             attribute_catalog=definitions,
         )
     validate_request(wire, expected_owner=owner)
+    version = getattr(wire, "input_version", LEGACY_ATTRIBUTE_INPUT_VERSION)
+    send_image = version != "readable-text-v1"
+    if not send_image and not any(
+        r.text.strip() or any(t.strip() for t in r.alternate_texts) for r in page.readings
+    ):
+        raise ProviderFailure(ErrorCode.NO_TEXT)
     payload = canonical_json(provider_input(wire))
     request = ExtractionRequest(
         work_unit_id=claim.unit_id,
@@ -287,8 +312,9 @@ def _build_request(unit, parent, owner, source, claim):
         timeout_seconds=profile.timeout_seconds,
         max_output_tokens=profile.max_output_tokens,
         text=payload,
-        image=source.image,
-        image_mime_type="image/png",
+        input_version=version,
+        image=source.image if send_image else None,
+        image_mime_type="image/png" if send_image else None,
         image_detail="high",
         stage=unit.stage,
         response_model=RESPONSES[unit.stage],
@@ -296,20 +322,37 @@ def _build_request(unit, parent, owner, source, claim):
     )
 
     # Bound the actual encoded text and image envelope, including JSON escaping.
-    envelope = {
-        "instructions": request.instructions,
-        "input": [
-            {"type": "input_text", "text": request.text},
-            {"type": "input_image", "image_url": "data:image/png;base64,", "detail": "high"},
-        ],
-    }
-    encoded_size = len(canonical_json(envelope).encode()) + 4 * ((len(source.image) + 2) // 3)
+    if version in EXPERIMENTAL_INPUTS:
+        encoded_size = len(encoded_body(responses_body(request, request.response_model)))
+    else:
+        envelope = {
+            "instructions": request.instructions,
+            "input": [
+                {"type": "input_text", "text": request.text},
+                {"type": "input_image", "image_url": "data:image/png;base64,", "detail": "high"},
+            ],
+        }
+        encoded_size = len(canonical_json(envelope).encode()) + 4 * ((len(source.image) + 2) // 3)
     if encoded_size > profile.max_transport_bytes:
         raise ValueError("Encoded extraction input exceeds its transport budget")
     return wire, request, source
 
 
-def store_result(session, unit, snapshot, wire, result, observations):
+def publication_request_hash(unit, wire, request):
+    text = canonical_json(provider_input(wire))
+    if isinstance(wire, AttributeRequest) and wire.input_version in EXPERIMENTAL_INPUTS:
+        if (
+            request is None
+            or request.work_unit_id != unit.id
+            or request.input_version != wire.input_version
+            or request.text != text
+        ):
+            raise ValueError("Publication differs from the dispatched input")
+        return dispatch_hash(request)
+    return stage_request_hash(text, unit.execution_metadata.get("attribute_reasoning_effort"))
+
+
+def store_result(session, unit, snapshot, wire, result, observations, request=None):
     from powerforge_extraction.assertion_consistency import redundant_assertions
     from powerforge_extraction.publication import publication_diagnostics
     from powerforge_extraction.publication_records import publish
@@ -348,10 +391,7 @@ def store_result(session, unit, snapshot, wire, result, observations):
         page_context_hash=result.page_context_hash,
         upstream_work_unit_id=parent.work_unit_id if parent else None,
         upstream_hash=parent.result_hash if parent else None,
-        request_hash=stage_request_hash(
-            canonical_json(provider_input(wire)),
-            unit.execution_metadata.get("attribute_reasoning_effort"),
-        ),
+        request_hash=publication_request_hash(unit, wire, request),
         result_hash=contract_hash(result),
         payload=result.model_dump(mode="json"),
         diagnostics=publication_diagnostics(
