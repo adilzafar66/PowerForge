@@ -42,7 +42,9 @@ function typedValue(value: unknown) {
   return <><code>{content}</code> <span className="muted">({type})</span></>;
 }
 
-export function AssertionFields({ value, persisted = false }: { value: unknown; persisted?: boolean }) {
+export function AssertionFields({ value, persisted = false, compact = false }: {
+  value: unknown; persisted?: boolean; compact?: boolean;
+}) {
   const assertion = object(value);
   if (!assertion) return null;
   const fields = [
@@ -55,8 +57,8 @@ export function AssertionFields({ value, persisted = false }: { value: unknown; 
     proposed_unit: "unit", value_form: "form",
   };
   const alternates = Object.hasOwn(assertion, "alternate_representations")
-    ? assertion.alternate_representations : assertion.alternates;
-  const recorded = fields.map(([key, label]) => [Object.hasOwn(assertion, key) ? key : aliases[key], label])
+    ? assertion.alternate_representations : compact ? assertion.alternates : undefined;
+  const recorded = fields.map(([key, label]) => [compact && !Object.hasOwn(assertion, key) ? aliases[key] : key, label])
     .filter(([key]) => key && Object.hasOwn(assertion, key));
   const hasAlternates = Array.isArray(alternates) && alternates.length > 0;
   if (!recorded.length && !hasAlternates) return null;
@@ -120,10 +122,11 @@ export function assertions(detail: Detail, parsed: unknown): Assertion[] {
   const response = object(parsed);
   const fatal = detail.attempt.validation === "fatal";
   const compact = detail.attempt.output_version === "compact-assertions-v1";
+  const serverOwned = compact || detail.attempt.output_version === "server-owned-assertions-v1";
   const overflow = detail.overflow_indices ?? [];
   for (const collection of ["attributes", "raw_unmapped"] as const) {
     const list = response?.[collection];
-    if (Array.isArray(list) && list.length <= (collection === "attributes" ? 512 : compact ? 32 : 16)) {
+    if (Array.isArray(list) && list.length <= (collection === "attributes" ? 512 : serverOwned ? 32 : 16)) {
       list.forEach((original, index) => rows.set(`${collection}:${index}`,
         { collection, index, original, issues: [], state: fatal ? "Fatal response" : "Accepted" }));
     }
@@ -164,7 +167,7 @@ export function assertions(detail: Detail, parsed: unknown): Assertion[] {
           const prior = rows.get(key);
           const ref = object(validated)?.local_ref;
           const candidate = candidates.get(ordinal++);
-          const originalMatches = compact ? ref === `${collection === "attributes" ? "attr" : "raw"}-${index}`
+          const originalMatches = serverOwned ? ref === `${collection === "attributes" ? "attr" : "raw"}-${index}`
             : !prior || object(prior.original)?.local_ref === ref;
           if (shapeMatches && typeof ref === "string" && originalMatches) {
             rows.set(key, { collection, index, issues: [], state: "Accepted", ...prior,

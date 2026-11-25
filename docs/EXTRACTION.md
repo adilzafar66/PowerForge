@@ -72,12 +72,13 @@ The held-out extraction evaluation is documented separately.
 ### Stage 2 output contract
 
 New runs default to `EXTRACTION_ATTRIBUTE_OUTPUT_VERSION=legacy-v7`. After applying
-migration `6r_0014k_attribute_output`, set the same option on the API and
-extraction worker to `compact-assertions-v1` for a controlled comparison. The
+migration `6r_0014l_server_owned_output`, set the same option on the API and
+extraction worker to `server-owned-assertions-v1` for a controlled comparison.
+`compact-assertions-v1` identifies the historical compact-output experiment. The
 output selection is independent of the input and prompt settings. A run and its
 retries retain the output contract selected at admission.
 
-The compact contract keeps the first 16 valid raw-unmapped assertions from a
+Both server-owned output contracts keep the first 16 valid raw-unmapped assertions from a
 response containing at most 32. Run history reports items beyond that limit
 separately from schema-invalid assertions. The restricted audit keeps the exact
 original bytes through the existing retention window and preserves original

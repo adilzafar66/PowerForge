@@ -567,6 +567,7 @@ def test_unified_operation_finishes_with_immutable_page_results(operation_contex
         (False, "legacy-v7"),
         (True, "legacy-v7"),
         (False, "compact-assertions-v1"),
+        (False, "server-owned-assertions-v1"),
     ],
 )
 def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
@@ -1088,7 +1089,8 @@ def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operat
 @pytest.mark.parametrize(
     "input_version,prompt_variant,output_version",
     [
-        (input_version, "core-catalog-v1", "compact-assertions-v1")
+        (input_version, "core-catalog-v1", output_version)
+        for output_version in ("compact-assertions-v1", "server-owned-assertions-v1")
         for input_version in (
             "compact-page-v1",
             "compact-page-v2",
@@ -1132,6 +1134,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
     from spatial_layout_support import drawn_table
 
     compact = output_version == OUTPUT_VERSION
+    server_owned = output_version != "legacy-v7"
     ctx = operation_context
     ctx["settings"].extraction_use_fake_provider = False
     ctx["settings"].extraction_external_enabled = True
@@ -1247,7 +1250,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                         raw_value="second source reading",
                     ),
                 ]
-                if compact:
+                if server_owned:
                     payload["raw_unmapped"].extend(
                         dict(
                             payload["raw_unmapped"][0],
@@ -1257,7 +1260,10 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                         for index in range(15)
                     )
                     payload["raw_unmapped"] = [
-                        compact_assertion(item) for item in payload["raw_unmapped"]
+                        compact_assertion(item)
+                        if compact
+                        else {key: value for key, value in item.items() if key != "local_ref"}
+                        for item in payload["raw_unmapped"]
                     ]
             original = json.dumps(payload, indent=2)
             originals.append(original.encode())
@@ -1281,7 +1287,9 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         "core-catalog-v1" if prompt_variant == "legacy" else "legacy"
     )
     ctx["settings"].extraction_attribute_reasoning_effort = "low"
-    ctx["settings"].extraction_attribute_output_version = "legacy-v7" if compact else OUTPUT_VERSION
+    ctx["settings"].extraction_attribute_output_version = (
+        "legacy-v7" if server_owned else OUTPUT_VERSION
+    )
     ctx["settings"].extraction_attribute_input_version = (
         "compact-page-v1" if input_version == "compact-page-v2" else "compact-page-v2"
     )
@@ -1310,7 +1318,9 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         assert recognition.request_hash == identity_hash(calls[0])
         expected_digest = (
             stage_request_hash(canonical_json(calls[1]), "medium")
-            if input_version.startswith("compact-") and prompt_variant == "legacy" and not compact
+            if input_version.startswith("compact-")
+            and prompt_variant == "legacy"
+            and not server_owned
             else identity_hash(bodies[1])
         )
         assert attribute.request_hash == expected_digest
@@ -1321,7 +1331,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         fragments = session.scalars(
             select(Fragment).where(Fragment.work_unit_id == units["ATTRIBUTE_EXTRACTION"])
         ).all()
-        assert len(fragments) == (16 if compact else 2)
+        assert len(fragments) == (16 if server_owned else 2)
         if input_version == "image-only-v1":
             assert all(
                 item.localization == "UNRESOLVED" and item.reason_code == "READING_NOT_EXPOSED"
@@ -1332,7 +1342,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                 item.localization == "RESOLVED" and item.quote == "TX-1" for item in fragments
             )
         expected_refs = (
-            ["raw-0", *(f"raw-{i}" for i in range(2, 17))] if compact else ["raw-1", "raw-2"]
+            ["raw-0", *(f"raw-{i}" for i in range(2, 17))] if server_owned else ["raw-1", "raw-2"]
         )
         assert [item["local_ref"] for item in attribute.payload["raw_unmapped"]] == expected_refs
         metrics = session.get(ExtractionWorkUnit, units["ATTRIBUTE_EXTRACTION"]).performance
@@ -1352,21 +1362,21 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         assert retained.attribute_reasoning_effort == "medium"
         assert retained.output_sha256 == sha256(originals[1]).hexdigest()
         expected_counts = {
-            "received": 18 if compact else 3,
-            "accepted": 16 if compact else 2,
+            "received": 18 if server_owned else 3,
+            "accepted": 16 if server_owned else 2,
             "quarantined": 1,
-            "overflowed": int(compact),
+            "overflowed": int(server_owned),
         }
         assert retained.received == expected_counts["received"]
         assert retained.accepted == expected_counts["accepted"]
         assert retained.quarantined == 1
-        assert retained.output_version == (OUTPUT_VERSION if compact else None)
-        assert retained.overflow_indices == ([17] if compact else [])
+        assert retained.output_version == (output_version if server_owned else None)
+        assert retained.overflow_indices == ([17] if server_owned else [])
         assert all(metrics[f"assertions_{key}"] == count for key, count in expected_counts.items())
         assert metrics["output_version"] == output_version
         assert (
             retained.rejections[0]["local_ref_sha256"]
-            == sha256(b"raw-1" if compact else b"private-ref").hexdigest()
+            == sha256(b"raw-1" if server_owned else b"private-ref").hexdigest()
         )
         engine = session.get_bind()
         audit = session.scalars(

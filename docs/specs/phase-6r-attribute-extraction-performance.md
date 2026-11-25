@@ -290,7 +290,7 @@ D0 separates the universal Stage 2 prompt, source-format guidance, equipment gui
 
 ## 9. Milestone D — Attribute output optimization and response reliability
 
-The [Milestone D specification](phase-6r-attribute-output-optimization.md) supersedes this section's original prompt and output plan. It defines an opt-in provider output contract, deterministic assertion identities, bounded raw-unmapped admission, and a controlled comparison using the consolidated D0 guidance. The [offline evaluation and proposed live procedure](../../evals/phase6r/ATTRIBUTE_OUTPUT_OPTIMIZATION_EVALUATION.md) document the implementation and evidence required to consider promotion.
+The [Milestone D reliability correction](phase-6r-attribute-output-optimization.md#reliability-only-correction) carries forward server-owned assertion IDs and bounded raw-unmapped admission with the original descriptive provider fields and evidence shapes. The compact-output experiment is retained for historical replay after failing its coverage gate. `legacy-v7` remains the default. The [offline evaluation and proposed live procedure](../../evals/phase6r/ATTRIBUTE_OUTPUT_OPTIMIZATION_EVALUATION.md) document the implementation and evidence required to consider promotion.
 
 ## 10. Milestone E — Parallel page-level execution
 

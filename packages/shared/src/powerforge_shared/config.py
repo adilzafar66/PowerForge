@@ -9,7 +9,7 @@ EXPERIMENTAL_INPUTS = ("readable-hybrid-v1", "image-only-v1", "readable-text-v1"
 AttributeInputVersion = Literal[
     "compact-page-v1", "compact-page-v2", "readable-hybrid-v1", "image-only-v1", "readable-text-v1"
 ]
-AttributeOutputVersion = Literal["legacy-v7", "compact-assertions-v1"]
+AttributeOutputVersion = Literal["legacy-v7", "compact-assertions-v1", "server-owned-assertions-v1"]
 AttributePromptVariant = Literal["legacy", "core-v1", "core-catalog-v1"]
 AttributeReasoningEffort = Literal["none", "low", "medium"]
 

@@ -9,14 +9,17 @@ from powerforge_ai.extraction import ValidationIssue
 from powerforge_extraction.compact_output import (
     OUTPUT_VERSION,
     PROVIDER_NAMES,
-    RAW_RECEIVE_LIMIT,
     CompactExtracted,
     CompactInferred,
     CompactUnmapped,
-    assertion_ref,
     expand_assertion,
 )
 from powerforge_extraction.response_diagnostics import validation_issues
+from powerforge_extraction.server_owned_output import (
+    RAW_RECEIVE_LIMIT,
+    SERVER_OWNED_OUTPUT_VERSION,
+    assertion_ref,
+)
 from powerforge_extraction.stage_contracts import (
     ATTRIBUTE_VERSION,
     MAX_ATTRIBUTE_ASSERTIONS,
@@ -39,7 +42,7 @@ class AttributeEnvelope(Contract):
     raw_unmapped: list[object] = Field(max_length=MAX_RAW_ASSERTIONS)
 
 
-class CompactEnvelope(AttributeEnvelope):
+class BoundedAttributeEnvelope(AttributeEnvelope):
     raw_unmapped: list[object] = Field(max_length=RAW_RECEIVE_LIMIT)
 
 
@@ -120,8 +123,11 @@ def admit_attributes(request: AttributeRequest, raw: bytes) -> AttributeAdmissio
             fatal=(ValidationIssue(category="JSON", error_type="invalid_json_structure"),)
         )
     compact = request.output_version == OUTPUT_VERSION
+    server_owned = compact or request.output_version == SERVER_OWNED_OUTPUT_VERSION
     try:
-        envelope = (CompactEnvelope if compact else AttributeEnvelope).model_validate(value)
+        envelope = (BoundedAttributeEnvelope if server_owned else AttributeEnvelope).model_validate(
+            value
+        )
     except ValidationError as error:
         return AttributeAdmission(fatal=validation_issues(error))
     items = [
@@ -133,7 +139,7 @@ def admit_attributes(request: AttributeRequest, raw: bytes) -> AttributeAdmissio
     refs = set()
     identified = []
     for group, index, item in items:
-        if compact:
+        if server_owned:
             identified.append((group, index, item, assertion_ref(group, index)))
             continue
         try:
@@ -168,6 +174,12 @@ def admit_attributes(request: AttributeRequest, raw: bytes) -> AttributeAdmissio
         try:
             if not isinstance(item, dict):
                 issues = (ValidationIssue(category="SCHEMA", error_type="model_type", path=path),)
+            elif server_owned and not compact and "local_ref" in item:
+                issues = (
+                    ValidationIssue(
+                        category="SCHEMA", error_type="extra_forbidden", path=(*path, "*")
+                    ),
+                )
             elif group == "attributes" and item.get("origin") not in ("INFERRED", "EXTRACTED"):
                 issues = (
                     ValidationIssue(
@@ -192,11 +204,13 @@ def admit_attributes(request: AttributeRequest, raw: bytes) -> AttributeAdmissio
                         json.dumps(item, allow_nan=False)
                     )
                     item = expand_assertion(compact_item, ref)
+                elif server_owned:
+                    item = {"local_ref": ref, **item}
                 # JSON mode preserves strict tuple and exact-decimal wire semantics.
                 assertion = model.model_validate_json(json.dumps(item, allow_nan=False))
                 _validate_persistable_strings(assertion.model_dump(mode="json"))
                 if group == "raw_unmapped":
-                    if compact and len(raw_unmapped) == MAX_RAW_ASSERTIONS:
+                    if server_owned and len(raw_unmapped) == MAX_RAW_ASSERTIONS:
                         overflow.append(index)
                     else:
                         raw_unmapped.append(assertion)

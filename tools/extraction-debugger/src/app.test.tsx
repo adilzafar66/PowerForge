@@ -223,9 +223,10 @@ it("shows performance nulls and large counts without an audit", async () => {
   expect(screen.getByText("Reasoning tokens").parentElement?.textContent).toContain("Unavailable");
 });
 
-it("aligns compact assertions by original index and shows overflow after expiry", async () => {
+it.each(["compact-assertions-v1", "server-owned-assertions-v1"])(
+  "aligns %s assertions by original index and shows overflow after expiry", async (outputVersion) => {
   const record: Detail = {
-    ...detail, attempt: { ...attempt, output_version: "compact-assertions-v1",
+    ...detail, attempt: { ...attempt, output_version: outputVersion,
       validation: "partial", received: 18, accepted: 16, quarantined: 1, overflowed: 1 },
     rejections: [{ collection: "raw_unmapped", index: 0, issues: [] }],
     overflow_indices: [17],
@@ -236,7 +237,8 @@ it("aligns compact assertions by original index and shows overflow after expiry"
       normalized_value: null, normalized_unit: null, evidence: [] }],
   };
   serve(record, JSON.stringify({ attributes: [], raw_unmapped: Array.from({ length: 18 },
-    (_, i) => ({ label: "Source", raw: `Item ${i}` })) }));
+    (_, i) => outputVersion === "compact-assertions-v1" ? { label: "Source", raw: `Item ${i}` }
+      : { raw_label: "Source", raw_value: `Item ${i}` }) }));
   const view = render(<App />);
   fireEvent.click(await screen.findByRole("button", { name: /Siemens fixture/ }));
   fireEvent.click(await screen.findByRole("button", { name: "Reveal original response" }));

@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
+from powerforge_extraction.server_owned_output import RAW_RECEIVE_LIMIT
 from powerforge_extraction.stage_contracts import (
     MAX_ALTERNATE_REPRESENTATIONS,
     MAX_ATTRIBUTE_ASSERTIONS,
@@ -23,7 +24,6 @@ from powerforge_extraction.stage_contracts import (
 )
 
 OUTPUT_VERSION = "compact-assertions-v1"
-RAW_RECEIVE_LIMIT = 32
 
 FIELD_NAMES = {
     "equipment": "equipment_ref",
@@ -109,10 +109,6 @@ class CompactAttributeResponse(Contract):
         tuple[CompactExtracted | CompactInferred, ...], Field(max_length=MAX_ATTRIBUTE_ASSERTIONS)
     ]
     raw_unmapped: Annotated[tuple[CompactUnmapped, ...], Field(max_length=RAW_RECEIVE_LIMIT)]
-
-
-def assertion_ref(collection, index):
-    return f"{'attr' if collection == 'attributes' else 'raw'}-{index}"
 
 
 def expand_assertion(assertion, ref):

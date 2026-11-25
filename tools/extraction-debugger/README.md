@@ -136,9 +136,9 @@ Chrome executable when Playwright's bundled Chromium is unavailable, then run
 
 ### Stage 2 performance
 
-Apply migrations through `6r_0014k_attribute_output` and rerun the operator grant script on the target database before running this debugger version. The attempt details include a **Performance** section. Attempts that reach the provider can appear even when an audit object was never created. Audit retrieval and exports still use the audited access path.
+Apply migrations through `6r_0014l_server_owned_output` and rerun the operator grant script on the target database before running this debugger version. The attempt details include a **Performance** section. Attempts that reach the provider can appear even when an audit object was never created. Audit retrieval and exports still use the audited access path.
 
-Compact Stage 2 attempts show the output contract and overflow separately from
+Server-owned Stage 2 attempts show the output contract and overflow separately from
 quarantine. The comparison uses each assertion's original collection and index
 to align the provider JSON with the expanded result and published candidate.
 Overflow positions remain visible when the original object expires.

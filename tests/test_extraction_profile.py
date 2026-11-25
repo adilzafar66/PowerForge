@@ -280,3 +280,94 @@ def test_compact_output_is_pinned_independently_and_preserves_stage_one(source, 
     assert "Omit local_ref" in prompts[STAGES[1]]
     assert "Use unique local_ref" not in prompts[STAGES[1]]
     assert "Use distinct local_ref" not in prompts[STAGES[1]]
+
+
+def test_reliability_schema_preserves_legacy_fields_order_and_discriminators():
+    from powerforge_extraction.extraction_profile import structured_schema
+    from powerforge_extraction.server_owned_output import ServerOwnedAttributeResponse
+    from powerforge_extraction.stage_contracts import AttributeProviderResponse
+
+    legacy = AttributeProviderResponse.model_json_schema()
+    candidate = ServerOwnedAttributeResponse.model_json_schema()
+    for name in ("RegistryAssertion", "InferredAssertion", "RawUnmappedAssertion"):
+        expected = legacy["$defs"][name]
+        actual = candidate["$defs"][f"Provider{name}"]
+        assert list(actual["properties"]) == [
+            key for key in expected["properties"] if key != "local_ref"
+        ]
+        assert actual["properties"] == {
+            key: value for key, value in expected["properties"].items() if key != "local_ref"
+        }
+        assert actual["required"] == [key for key in expected["required"] if key != "local_ref"]
+    assert list(candidate["properties"]) == list(legacy["properties"])
+    assert candidate["properties"]["attributes"]["maxItems"] == 512
+    assert candidate["properties"]["raw_unmapped"]["maxItems"] == 32
+    for name in ("ReadingCitation", "QuoteCitation", "VisualCitation"):
+        assert structured_schema(candidate["$defs"][name]) == structured_schema(
+            legacy["$defs"][name]
+        )
+
+
+@pytest.mark.parametrize(
+    "input_version",
+    [
+        "compact-page-v1",
+        "compact-page-v2",
+        "readable-hybrid-v1",
+        "image-only-v1",
+        "readable-text-v1",
+    ],
+)
+@pytest.mark.parametrize("variant", ["legacy", "core-v1", "core-catalog-v1"])
+def test_reliability_prompt_and_profile_pins(input_version, variant):
+    from powerforge_extraction.extraction_profile import BODY_DIGEST_VERSION
+
+    settings = Settings(
+        _env_file=None,
+        extraction_attribute_input_version=input_version,
+        extraction_attribute_prompt_variant=variant,
+    )
+    legacy = extraction_profile(settings)
+    candidate = extraction_profile(
+        settings.model_copy(
+            update={"extraction_attribute_output_version": "server-owned-assertions-v1"},
+        )
+    )
+    assert read_profile(candidate.model_dump(mode="json")) == candidate
+    assert candidate.manifest["stages"][0] == legacy.manifest["stages"][0]
+    assert candidate.manifest["catalog_hash"] == legacy.manifest["catalog_hash"]
+    assert candidate.request_digest_for(STAGES[1]) == BODY_DIGEST_VERSION
+    assert (
+        candidate.manifest["stages"][1]["transport_schema_hash"]
+        != (legacy.manifest["stages"][1]["transport_schema_hash"])
+    )
+    candidate_prompt = candidate.instructions_for(STAGES[1])
+    identity = (
+        "PowerForge assigns assertion identifiers. "
+        "Do not include `local_ref` in either response collection."
+    )
+    allowed = (
+        "Return at most 12 evidence citations per assertion and 512 registry-linked assertions.\n"
+    )
+    allowed += (
+        "Return at most 16 raw-unmapped assertions, prioritizing the most meaningful observations."
+    )
+    assert identity in candidate_prompt
+    if variant == "legacy":
+        restored = candidate_prompt.replace(
+            identity, "Use distinct local_ref values across both lists."
+        )
+    else:
+        assert allowed in candidate_prompt
+        restored = candidate_prompt.replace(
+            identity, "Use unique local_ref values across both response collections."
+        )
+        restored = restored.replace(
+            allowed,
+            (
+                "Return at most 12 evidence citations per assertion, "
+                "512 registry-linked assertions and 16\n"
+                "raw-unmapped assertions."
+            ),
+        )
+    assert restored == legacy.instructions_for(STAGES[1])

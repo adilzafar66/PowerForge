@@ -138,3 +138,65 @@ The four pages that matched 60/60 for D0 consolidated scored **59/60** for the f
 The restricted debugger retrieved all ten exact originals and verified their digests and byte lengths. Local replay reproduced all ten immutable stage results and the persisted candidates and evidence, including proposal values, mapping, ownership, source support, and the pinned page identity. No live response exceeded the raw-unmapped allowance. The two historical failure cases remain the evidence for duplicate-reference and overflow recovery.
 
 The next correction should use the retained failures to make reading-ID citations unambiguous and check that the output instructions preserve direct extraction for explicitly reported source values. Preserve the local reference checks. A single sample per input and contract establishes the observed coverage regression in this screen. It does not isolate which prompt or schema change caused the omissions and origin shift. Review a targeted correction offline before requesting another paid comparison.
+
+## Reliability-only correction
+
+The compact experiment remains available for historical replay. The reliability-only candidate, `server-owned-assertions-v1`, restores descriptive field names and explicit evidence citation shapes. PowerForge assigns assertion IDs from original collection positions. Admission retains the first 16 valid raw-unmapped items out of up to 32, records valid overflow, and quarantines invalid entries. The original provider bytes, retry pins, and evidence checks are preserved. The default remains `legacy-v7`.
+
+### Offline replay
+
+The seven originals below were retrieved through the restricted audit path and checked against the reconstructed dispatch digests. The transformation removed only assertion IDs and re-encoded the result. The five successful controls retained all 190 accepted assertions and the single existing quarantine. Full comparisons of typed assertions, ownership, normalization, evidence, source-value support, publication, and diagnostics matched after accounting for generated IDs.
+
+- **Schneider native** `191910ab` — 53 accepted. **Schneider OCR** `74dc9f7c` — 68 accepted.
+- **Simson Maxwell** `a42e9000` — 16 accepted and one quarantined. **Siemens** `59b1b268` — 35 accepted. **REX** `421511b5` — 18 accepted.
+- **Siemens duplicate-reference failure** `c7e6f3b4` — 39 accepted, including seven raw-unmapped.
+- **Schneider native overflow failure** `3b20893d` — 52 registry-linked and 16 raw-unmapped assertions accepted. The remaining valid raw-unmapped item was recorded as overflow at index 16.
+
+The five controls went from 105,019 to 100,047 minified JSON bytes, a **4.7%** reduction at equivalent content. These are transformed legacy responses. Candidate token consumption, latency, and engineering coverage under live generation remain unmeasured. The restricted debugger also retrieved and replayed all ten original legacy and compact Milestone D publications after the additive audit migration.
+
+Run the replay from an authorized operator environment with audit and pinned source access:
+
+```sh
+python evals/phase6r/attribute_output_replay.py \
+  --output-version server-owned-assertions-v1 ATTEMPT_UUID [ATTEMPT_UUID ...]
+```
+
+### Verification
+
+- The replacement audit constraint installed on an empty PostgreSQL 16 database and on the isolated benchmark database with historical records. The application database was untouched.
+- The focused backend and PostgreSQL suites passed 454 tests with no skips. The debugger passed 19 tests and its TypeScript/Vite build. The web app passed 368 tests and its production build. Ruff and `git diff --check` passed.
+- Offline preflight verified all five frozen control request digests. The proposed paired bodies differed only in the approved instruction and response schema sections. No live candidate calls were made.
+
+### Proposed paired screening
+
+On separate approval, use fresh matched control and candidate requests for Schneider native, Schneider OCR, Simson Maxwell, Siemens and REX. Fix the pinned recognition, source artifacts, `compact-page-v1` input, consolidated D0 catalog and guidance, GPT-6 Luna, standard tier, medium reasoning, and 16,384-token ceiling. Alternate order by page. Before send, verify the full body digests, allow at most **10 Stage 2 calls**, disable retries, and reserve cost against a **US$6 ceiling**. A common diagnostic timeout of 180 seconds requires separate authorization. Report completion by the 100-second production window and distinguish lease events from provider or schema errors.
+
+Score the existing 74-item direct-extraction checklist and inspect extra or inferred claims, citations, owner attribution, and mapping. Include failed attempts in the applicable denominators. Report assertion counts, publication, time, usage, and estimated cost per correct match. Coverage and structural reliability determine whether to adopt the candidate. Modest token savings are sufficient.
+
+### Reliability-only live results — November 24, 2026 Pacific
+
+**Keep `server-owned-assertions-v1` opt-in and retain `legacy-v7` as the default.** The candidate matched **64/74** directly extracted checklist items versus **41/74** for the fresh control. It avoided the earlier compact Simson reading-ID failure and the Schneider OCR origin shift in this screen. Both arms published every page, and the candidate's source verification was weaker on shared checklist matches. The single pair per page and the difference between the earlier and fresh control scores support a screening decision.
+
+Ten distinct Stage 2 sends used the isolated benchmark, alternating order by page. Preflight verified the exact request body hashes and identical source, image, and recognition digests per pair. Both arms used the consolidated D0 guidance, `compact-page-v1`, GPT-6 Luna, standard tier, medium reasoning, a 16,384-token ceiling, and the approved 180-second diagnostic timeout. The dispatch ledger reserved **US$5.332668** against the **US$6** cap. All ten requests returned HTTP 200, with zero retries, provider timeouts, or lease failures. All ten published within 100 seconds of claim. The longest attempt took 61.50 seconds. Each attempt recorded a heartbeat after its claim, with zero heartbeat warnings. [OpenAI model rates and limits](https://developers.openai.com/api/docs/models/gpt-6-luna) · [OpenAI default cache duration](https://developers.openai.com/api/docs/guides/prompt-caching)
+
+Results below are control then reliability-only. Each pair shows the provider and total Stage 2 times, followed by input, cached input, reasoning, and visible output tokens.
+
+- **Schneider native** · `7eb50f1b` / `47c5ac62` · 61.10s / 61.50s → 58.07s / 58.49s · 16,647 / 0 / 3,579 / 7,189 → 16,636 / 0 / 3,307 / 7,128 · **13/24 → 14/24**.
+- **Schneider OCR** · `0fac2d23` / `5acf4ee9` · 38.72s / 39.93s → 58.69s / 59.87s · 44,256 / 2,858 / 4,109 / 1,794 → 44,245 / 2,847 / 2,558 / 7,446 · **4/24 → 24/24**.
+- **Simson Maxwell** · `fc67fc65` / `d998e0b5` · 41.33s / 42.08s → 37.83s / 38.66s · 19,264 / 2,858 / 2,785 / 4,440 → 19,253 / 2,847 / 1,733 / 5,032 · **6/7 → 7/7**.
+- **Siemens** · `ae0a064a` / `e776214a` · 55.22s / 55.87s → 58.34s / 59.01s · 23,756 / 2,858 / 2,512 / 7,673 → 23,745 / 2,847 / 4,026 / 5,984 · **13/14 → 14/14**.
+- **REX** · `7b9ee9a5` / `8a9fa40d` · 24.60s / 28.06s → 32.07s / 35.58s · 23,440 / 2,858 / 1,703 / 1,941 → 23,429 / 2,847 / 2,311 / 2,770 · **5/5 → 5/5**.
+
+Median provider time rose from **41.33 to 58.07 seconds**. The median of paired provider-time changes was **+3.12 seconds**. The candidate received 166 assertions, accepted 165, and quarantined one, compared with 108 received, 107 accepted, and one quarantined for control. No live response overflowed the raw-unmapped allowance or failed on duplicate IDs. Historical replay remains the verification for recovery from those failures.
+
+Visible output rose from **23,037 to 28,360 tokens** as more assertions were returned, while visible tokens per accepted assertion fell from **215.3 to 171.9**. Reasoning decreased from 14,688 to 13,935 tokens. Standard list-rate spend was estimated at **US$0.06342** total. The control and candidate cost US$0.00611 and US$0.00657 per attempted or published page. Estimated cost per correct checklist match fell from **US$0.000746 to US$0.000513**. The estimates use reported input, cached input, and output. Cache-write billing details were unavailable. [GPT-6 Luna pricing](https://developers.openai.com/api/docs/models/gpt-6-luna)
+
+#### Evidence and engineering quality
+
+- **Schneider native.** Both fresh arms omitted all ten breaker models, matching 13/24 and 14/24. The candidate recovered one more pole count. Neither arm resolved any checklist VALUE evidence on this page. The earlier byte-identical control scored 24/24, which shows meaningful response-to-response variation on this input.
+- **Schneider OCR.** The candidate returned all 54 assertions as extracted. The original included 39 reading references, all exact pinned IDs. All 24 checklist facts were present. The fresh control omitted ten breaker models and ten pole counts. The earlier compact response had labeled all 33 assertions as inferred. Compound voltage proposals remained unmapped or invalid under the existing policy.
+- **Simson Maxwell.** The candidate's 73 submitted reading references all matched pinned IDs. It published seven registry-linked and 11 raw-unmapped assertions. The missing control checklist item, armature resistance, was quarantined for exceeding the 12-citation limit. The candidate's Siemens quarantine was also a citation-limit violation, on a raw-unmapped assertion. No other assertion was quarantined in the ten-call matrix.
+- **Siemens and REX.** Siemens settled in both arms. The candidate recovered the WL pole count missed by control. Both REX attempts matched its full checklist. Source review still found compound expressions, including Siemens bus voltage and REX secondary voltage and impedance range, for which the current normalization appropriately withheld a scalar value. The candidate published no inferred assertions. The control published three Siemens inferences, which remained separate from direct evidence.
+- **Evidence and association.** Of the 41 checklist items matched by both arms, mapped matches went from 19 to 17, matches with resolved VALUE evidence from 24 to 20, and `TEXT_MATCH` from 14 to eight. Across the full checklist the corresponding counts were 19→28, 24→22, and 14→eight. The candidate generated 47 quote mismatches versus ten for control. Publication recorded zero invalid owner-reference or likely-redundancy diagnostics. The targeted review checked values, origin, owner, and source evidence independently. A valid source ID can still carry an inaccurate quote.
+
+The restricted debugger retrieved all ten exact originals and verified byte lengths and digests. Local replay reproduced all ten immutable publications, including stage identities, candidate values, ownership, normalization, and evidence. The new contract remains a reliability option. The live results support keeping the stronger structural safeguards available while preserving the production default. Milestone E can address page concurrency independently.

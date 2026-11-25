@@ -149,6 +149,7 @@ function AttemptView({ id }: { id: string }) {
   if (error) return <p className="notice" role="alert">{error}</p>;
   if (!detail) return <p className="notice" role="status">Loading attempt…</p>;
   const row = detail.attempt;
+  const compact = row.output_version === "compact-assertions-v1";
   const retained = retention(row);
   const rows = assertions(detail, parsed);
   const filtered = rows.filter(item => {
@@ -157,8 +158,9 @@ function AttemptView({ id }: { id: string }) {
       original?.origin === filter || item.collection === filter || item.candidate?.mapping_status === filter;
     return matches && (!search || [ids(item), original?.local_ref, original?.attribute_key,
       original?.raw_label, original?.raw_value, original?.proposed_value, original?.proposed_enum_value,
-      original?.proposed_unit, original?.alternate_representations, original?.key, original?.label,
-      original?.raw, original?.source_unit, original?.value, original?.unit, original?.alternates]
+      original?.proposed_unit, original?.alternate_representations,
+      ...(compact ? [original?.key, original?.label, original?.raw, original?.source_unit,
+        original?.value, original?.unit, original?.alternates] : [])]
       .some(value => display(value).toLowerCase().includes(search.toLowerCase())));
   });
   const chosen = rows.find(item => ids(item) === selected);
@@ -228,7 +230,7 @@ function AttemptView({ id }: { id: string }) {
           const original = object(item.original ?? item.validated);
           return <li key={ids(item)}><button className="attempt" aria-pressed={ids(item) === selected}
             onClick={() => { setSelected(ids(item)); setMode("assertions"); }}>
-            <code>{ids(item)}</code><strong>{display(original?.attribute_key ?? original?.key ?? original?.raw_label ?? original?.label ?? original?.local_ref ?? item.state)}</strong>
+            <code>{ids(item)}</code><strong>{display(original?.attribute_key ?? (compact ? original?.key : undefined) ?? original?.raw_label ?? (compact ? original?.label : undefined) ?? original?.local_ref ?? item.state)}</strong>
             <span className={item.state === "Quarantined" ? "bad" : "muted"}>{item.state}{item.candidate && ` · ${item.candidate.mapping_status}`}</span>
           </button></li>;
         })}</ul></section>)}
@@ -252,7 +254,7 @@ function AttemptView({ id }: { id: string }) {
       {mode === "compare" && (chosen ? <div className="comparison">
         <section><h3>{chosen.publishedPosition ? "Original position unavailable" : `Original · ${ids(chosen)}`}</h3>{chosen.original === undefined
           ? <p>Original content unavailable. Reveal the retained response when available.</p>
-          : <><AssertionFields value={chosen.original} /><JsonTree value={chosen.original} name="Original assertion" /></>}</section>
+          : <><AssertionFields value={chosen.original} compact={compact} /><JsonTree value={chosen.original} name="Original assertion" /></>}</section>
         <section><h3>Validated and published</h3>{chosen.validated === undefined
           ? <p>{chosen.state === "Quarantined" ? "Quarantined before publication." : chosen.state === "Overflowed"
             ? "Beyond the raw-unmapped publication limit." : "Validated relationship unavailable."}</p>
@@ -261,7 +263,7 @@ function AttemptView({ id }: { id: string }) {
       </div> : <p className="muted">Select an assertion to compare its recorded representations.</p>)}
       {mode === "assertions" && (chosen ? <><h3><code>{ids(chosen)}</code></h3><p>{chosen.state}</p>
         <Diagnostics issues={chosen.issues} />
-        <AssertionFields value={chosen.original ?? chosen.validated} />
+        <AssertionFields value={chosen.original ?? chosen.validated} compact={compact && chosen.original !== undefined} />
         <Publication assertion={chosen} />
         {chosen.original !== undefined ? <JsonTree key={ids(chosen)} value={chosen.original} name="Original assertion" /> :
           <p className="muted">Original assertion content is unavailable.</p>}

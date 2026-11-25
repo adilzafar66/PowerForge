@@ -1,4 +1,4 @@
-"""Measure offline compact Stage 2 replay with verified original response bytes."""
+"""Measure offline Stage 2 replay with verified original response bytes."""
 
 import argparse
 import json
@@ -10,6 +10,7 @@ from powerforge_extraction.assertion_consistency import redundant_assertions
 from powerforge_extraction.attribute_admission import admit_attributes
 from powerforge_extraction.compact_output import OUTPUT_VERSION, compact_assertion
 from powerforge_extraction.publication import build_publication, publication_diagnostics
+from powerforge_extraction.server_owned_output import SERVER_OWNED_OUTPUT_VERSION
 
 
 def encoded(value):
@@ -75,7 +76,7 @@ def measure_original(payload):
     return dict(counts)
 
 
-def replay(wire, source, original):
+def replay(wire, source, original, output_version=OUTPUT_VERSION):
     if wire.output_version != "legacy-v7":
         raise ValueError("Comparison requires a legacy Stage 2 attempt")
     legacy = admit_attributes(wire, original)
@@ -86,17 +87,28 @@ def replay(wire, source, original):
     ):
         raise ValueError("Legacy envelope cannot be transformed")
     payload = json.loads(original)
-    compact_payload = {
-        collection: [compact_assertion(item) for item in payload[collection]]
+
+    def transform(item):
+        if output_version == OUTPUT_VERSION:
+            return compact_assertion(item)
+        if isinstance(item, dict):
+            return {key: value for key, value in item.items() if key != "local_ref"}
+        return item
+
+    projected = {
+        collection: [transform(item) for item in payload[collection]]
         for collection in ("attributes", "raw_unmapped")
     }
-    compact_bytes = encoded(compact_payload)
-    compact_wire = wire.model_copy(update={"output_version": OUTPUT_VERSION})
-    compact = admit_attributes(compact_wire, compact_bytes)
+    candidate_bytes = encoded(projected)
+    candidate_wire = wire.model_copy(update={"output_version": output_version})
+    candidate = admit_attributes(candidate_wire, candidate_bytes)
+    prefix = "compact" if output_version == OUTPUT_VERSION else "reliability"
     semantic_match = None
-    if legacy.result is not None and compact.result is not None:
+    if legacy.result is not None and candidate.result is not None:
         for collection in ("attributes", "raw_unmapped"):
-            if len(getattr(legacy.result, collection)) != len(getattr(compact.result, collection)):
+            if len(getattr(legacy.result, collection)) != len(
+                getattr(candidate.result, collection)
+            ):
                 semantic_match = False
                 break
         else:
@@ -108,7 +120,7 @@ def replay(wire, source, original):
                         item.model_copy(update={"local_ref": expanded.local_ref})
                         for item, expanded in zip(
                             getattr(legacy.result, collection),
-                            getattr(compact.result, collection),
+                            getattr(candidate.result, collection),
                             strict=True,
                         )
                     )
@@ -116,21 +128,21 @@ def replay(wire, source, original):
                 }
             )
             before = build_publication(wire, comparable, source)
-            after = build_publication(compact_wire, compact.result, source)
+            after = build_publication(candidate_wire, candidate.result, source)
             semantic_match = (
-                comparable == compact.result
+                comparable == candidate.result
                 and before == after
                 and publication_diagnostics(
                     before, redundant_assertions(comparable.model_dump(mode="json"))
                 )
                 == publication_diagnostics(
-                    after, redundant_assertions(compact.result.model_dump(mode="json"))
+                    after, redundant_assertions(candidate.result.model_dump(mode="json"))
                 )
             )
     return {
         "original_bytes": len(original),
         "minified_legacy_bytes": len(encoded(payload)),
-        "compact_bytes": len(compact_bytes),
+        f"{prefix}_bytes": len(candidate_bytes),
         "structure": measure_original(payload),
         "legacy_fatal": [issue.error_type for issue in legacy.fatal],
         "legacy_accepted": legacy.accepted,
@@ -139,11 +151,13 @@ def replay(wire, source, original):
             if legacy.result is not None
             else None
         ),
-        "compact_fatal": [issue.error_type for issue in compact.fatal],
-        "compact_accepted_attributes": len(compact.result.attributes) if compact.result else 0,
-        "compact_accepted_raw": len(compact.result.raw_unmapped) if compact.result else 0,
-        "compact_quarantined": len(compact.rejected),
-        "compact_overflowed": len(compact.overflow_indices),
+        f"{prefix}_fatal": [issue.error_type for issue in candidate.fatal],
+        f"{prefix}_accepted_attributes": len(candidate.result.attributes)
+        if candidate.result
+        else 0,
+        f"{prefix}_accepted_raw": len(candidate.result.raw_unmapped) if candidate.result else 0,
+        f"{prefix}_quarantined": len(candidate.rejected),
+        f"{prefix}_overflowed": len(candidate.overflow_indices),
         "semantic_and_publication_match": semantic_match,
     }
 
@@ -160,6 +174,11 @@ def main():
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("attempts", nargs="+", type=UUID)
+    parser.add_argument(
+        "--output-version",
+        choices=(OUTPUT_VERSION, SERVER_OWNED_OUTPUT_VERSION),
+        default=OUTPUT_VERSION,
+    )
     args = parser.parse_args()
     settings = get_settings()
     factory = get_session_factory()
@@ -174,7 +193,11 @@ def main():
         original = read_operator_audit(settings, attempt)
         if sha256(original).hexdigest() != digest:
             raise ValueError("Operator export differs from pinned attempt audit")
-        print(json.dumps({"attempt": str(attempt), **replay(wire, source, original)}))
+        print(
+            json.dumps(
+                {"attempt": str(attempt), **replay(wire, source, original, args.output_version)}
+            )
+        )
 
 
 if __name__ == "__main__":

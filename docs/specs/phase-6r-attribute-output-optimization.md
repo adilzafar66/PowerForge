@@ -1,5 +1,20 @@
 # Milestone D — Attribute Output Optimization and Response Reliability
 
+## Reliability-only correction
+
+The compact contract is a historical experiment. It cut visible tokens by 54.2% and median provider latency from 53.0 to 32.8 seconds, while direct-extraction checklist coverage fell from 73/74 to 25/74. The requirements here supersede the original compact deliverable and live comparison below. Preserve `compact-assertions-v1` and its resources for historical replay. Keep `legacy-v7` as the production default.
+
+- Add `server-owned-assertions-v1` using the original descriptive Stage 2 assertion fields, extracted and inferred variants, and explicit `kind` citation shapes. Only the provider assertion IDs and the raw-unmapped intake limit change. Reuse the internal v7 validators, registry, and publication. Stage 1 remains unchanged.
+- Assign IDs from each item's original collection and zero-based position. Receive up to 32 raw-unmapped assertions, admit the first 16 valid items, quarantine invalid ones, and record valid overflow positions. Preserve existing byte, nesting, citation, and integrity limits. A provider-supplied assertion ID is quarantined. No model response repair is part of admission.
+- Use the consolidated D0 prompt for evaluation. Replace its ID instruction with “PowerForge assigns assertion identifiers. Do not include `local_ref` in either response collection.” Keep the instructed limit of 16 raw-unmapped assertions and prioritize the most meaningful ones. Preserve the source-format instructions, engineering guidance, and evidence requirements.
+- Pin provider schema, prompt, identity, admission, expansion, and complete request digest independently of the input and prompt presets. Extend the audit output-version constraint additively. Preserve exact retained bytes, historical identities, retries, fencing, telemetry, and debugger comparison by original position.
+- Replay the five fresh Milestone D controls and the historical Siemens duplicate-reference and Schneider overflow failures offline before evaluating live. Check typed and inferred values, ownership, evidence and mapping, all five source configurations, and the existing publication and retry safeguards.
+- Subject to separate approval, screen fresh paired controls and candidates on these same five inputs with at most 10 Stage 2 calls, no retries, and a proposed US$6 cap. Pair all settings with the existing 16,384-token ceiling, medium reasoning, standard tier, and the consolidated D0 guidance. A diagnostic 180-second timeout requires separate approval. Track production-window completion, heartbeat and lease outcomes, engineering coverage, evidence and mapping, assertion counts, latency and usage, and cost per correct checklist match. Coverage and structural reliability determine adoption.
+
+See the [offline results and live procedure](../../evals/phase6r/ATTRIBUTE_OUTPUT_OPTIMIZATION_EVALUATION.md#reliability-only-correction). Further output compression is outside this correction. Milestone E addresses concurrent page extraction.
+
+## Original Milestone D specification
+
 ## 1. Objective
 
 Continue development on `codex/phase-6r-extraction-performance`.

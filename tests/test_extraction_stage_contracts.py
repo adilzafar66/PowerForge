@@ -1154,13 +1154,34 @@ def compact_payload(attribute_request, attribute_envelope):
     return wire, compact
 
 
+def provider_payload(envelope, version):
+    from powerforge_extraction.compact_output import OUTPUT_VERSION, compact_assertion
+
+    return {
+        group: [
+            compact_assertion(item)
+            if version == OUTPUT_VERSION
+            else {name: value for name, value in item.items() if name != "local_ref"}
+            for item in items
+        ]
+        for group, items in envelope.items()
+    }
+
+
 @pytest.mark.parametrize("size", [16, 17, 32, 33])
-def test_compact_raw_quota_counts_valid_items_and_preserves_positions(compact_payload, size):
+@pytest.mark.parametrize("output_version", ["compact-assertions-v1", "server-owned-assertions-v1"])
+def test_raw_quota_counts_valid_items_and_preserves_positions(
+    attribute_request, attribute_envelope, size, output_version
+):
     from powerforge_extraction.attribute_admission import admit_attributes
 
-    wire, payload = compact_payload
+    wire = attribute_request.model_copy(update={"output_version": output_version})
+    payload = provider_payload(attribute_envelope, output_version)
     raw = payload["raw_unmapped"][0]
-    payload["raw_unmapped"] = [dict(raw, raw="" if i in {1, 19} else str(i)) for i in range(size)]
+    raw_field = "raw" if output_version == "compact-assertions-v1" else "raw_value"
+    payload["raw_unmapped"] = [
+        dict(raw, **{raw_field: "" if i in {1, 19} else str(i)}) for i in range(size)
+    ]
     data = json.dumps(payload).encode()
     admitted = admit_attributes(wire, data)
     if size > 32:
@@ -1284,10 +1305,14 @@ def test_compact_preserves_envelope_and_resource_guards(compact_payload):
         assert admission.result is None and admission.fatal[0].category == category
 
 
-def test_compact_quarantines_provider_ids_without_leaking_values(compact_payload):
+@pytest.mark.parametrize("output_version", ["compact-assertions-v1", "server-owned-assertions-v1"])
+def test_server_quarantines_provider_ids_without_leaking_values(
+    attribute_request, attribute_envelope, output_version
+):
     from powerforge_extraction.attribute_admission import admit_attributes
 
-    wire, payload = compact_payload
+    wire = attribute_request.model_copy(update={"output_version": output_version})
+    payload = provider_payload(attribute_envelope, output_version)
     valid = payload["attributes"][0]
     supplied_id = "private-provider-ref"
     private_field = "confidential-document-value"
@@ -1303,3 +1328,69 @@ def test_compact_quarantines_provider_ids_without_leaking_values(compact_payload
     diagnostics = repr(admission.rejected)
     assert supplied_id not in diagnostics and private_field not in diagnostics
     assert all(issue.path[-1] == "*" for item in admission.rejected for issue in item.issues)
+
+
+def test_reliability_preserves_literal_evidence_and_rejects_text_as_reading_id(
+    attribute_request,
+    attribute_envelope,
+):
+    from powerforge_extraction.attribute_admission import admit_attributes
+    from powerforge_extraction.server_owned_output import (
+        SERVER_OWNED_OUTPUT_VERSION,
+        ServerOwnedAttributeResponse,
+    )
+
+    first, second = attribute_envelope["attributes"]
+    first.update(
+        raw_value="1 kV (1000 V)",
+        raw_unit="kV",
+        proposed_value="1",
+        proposed_unit="kV",
+        value_form="EQUIVALENT_UNITS",
+        alternate_representations=[{"value": "1000", "unit": "V"}],
+    )
+    second.update(raw_value="208Y/120", raw_unit="V", proposed_value=None, value_form="MULTIPLE")
+    first["evidence"].append(
+        {
+            "kind": "VISUAL",
+            "role": "VALUE",
+            "reported_text": None,
+            "region": {"x": "0.13", "y": 0, "width": "0.24", "height": "0.05"},
+        }
+    )
+    attribute_envelope["attributes"].append(
+        dict(
+            local_ref="inference",
+            origin="INFERRED",
+            equipment_ref=first["equipment_ref"],
+            association="UNCERTAIN",
+            attribute_key="frequency",
+            proposed_value=60,
+            proposed_unit="Hz",
+            inference_explanation="Expected for this equipment",
+            inference_basis=None,
+            source_expression=None,
+            evidence=[],
+        )
+    )
+    legacy = admit_attributes(attribute_request, json.dumps(attribute_envelope).encode())
+    assert legacy.result is not None and not legacy.rejected
+    payload = provider_payload(attribute_envelope, SERVER_OWNED_OUTPUT_VERSION)
+    ServerOwnedAttributeResponse.model_validate_json(json.dumps(payload))
+    bad_citation = dict(first["evidence"][0], reading_ref="Literal source text")
+    payload["attributes"].insert(1, dict(payload["attributes"][0], evidence=[bad_citation]))
+    wire = attribute_request.model_copy(update={"output_version": SERVER_OWNED_OUTPUT_VERSION})
+    admitted = admit_attributes(wire, json.dumps(payload).encode())
+    assert admitted.result is not None and not admitted.fatal
+    assert [item.local_ref for item in admitted.rejected] == ["attr-1"]
+    assert any(
+        issue.error_type == "string_pattern_mismatch" and issue.path[-1] == "reading_ref"
+        for issue in admitted.rejected[0].issues
+    )
+    assert admitted.result.attributes == tuple(
+        item.model_copy(update={"local_ref": f"attr-{index}"})
+        for index, item in zip((0, 2, 3), legacy.result.attributes, strict=True)
+    )
+    assert admitted.result.raw_unmapped[0] == legacy.result.raw_unmapped[0].model_copy(
+        update={"local_ref": "raw-0"}
+    )

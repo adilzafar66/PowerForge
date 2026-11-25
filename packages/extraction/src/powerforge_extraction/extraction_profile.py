@@ -10,6 +10,10 @@ from powerforge_extraction.compact_output import OUTPUT_VERSION, CompactAttribut
 from powerforge_extraction.errors import ExtractionDisabled
 from powerforge_extraction.identities import content_hash, identity_hash
 from powerforge_extraction.profiles import ExecutionProfile
+from powerforge_extraction.server_owned_output import (
+    SERVER_OWNED_OUTPUT_VERSION,
+    ServerOwnedAttributeResponse,
+)
 from powerforge_extraction.stage_contracts import (
     ATTRIBUTE_INPUT_VERSION,
     LEGACY_ATTRIBUTE_INPUT_VERSION,
@@ -34,6 +38,10 @@ KEY = "phase-6r"
 PROFILE_VERSION = "phase-6r-profile-v1"
 STAGES = ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION")
 RESPONSES = dict(zip(STAGES, (RecognitionResponse, AttributeProviderResponse), strict=True))
+SERVER_OWNED_RESPONSES = {
+    OUTPUT_VERSION: (CompactAttributeResponse, "compact-expansion-v1"),
+    SERVER_OWNED_OUTPUT_VERSION: (ServerOwnedAttributeResponse, "insert-assertion-identifier-v1"),
+}
 PROMPT_VERSION = "phase-6r-stages-v10"
 SCHEMA_VERSION = "phase-6r-wire-v7"
 PROMPTS = {
@@ -75,6 +83,26 @@ def prompt_bundle(
     version, prompts = _base_prompt_bundle(input_version, variant)
     if output_version == "legacy-v7":
         return version, prompts
+    if output_version == SERVER_OWNED_OUTPUT_VERSION:
+        identity = (
+            "PowerForge assigns assertion identifiers. "
+            "Do not include `local_ref` in either response collection."
+        )
+        instructions = (
+            prompts[STAGES[1]]
+            .replace("Use unique local_ref values across both response collections.", identity)
+            .replace("Use distinct local_ref values across both lists.", identity)
+            .replace(
+                "Return at most 12 evidence citations per assertion, "
+                "512 registry-linked assertions and 16\n"
+                "raw-unmapped assertions.",
+                "Return at most 12 evidence citations per assertion "
+                "and 512 registry-linked assertions.\n"
+                "Return at most 16 raw-unmapped assertions, "
+                "prioritizing the most meaningful observations.",
+            )
+        )
+        return f"{version}+server-owned-assertions-v1", {**prompts, STAGES[1]: instructions}
     if output_version != OUTPUT_VERSION:
         raise ValueError("Unsupported pinned Stage 2 output version")
     instructions = (
@@ -189,8 +217,8 @@ class ExtractionProfile(ExecutionProfile):
         return self.manifest.get("attribute_output_version", "legacy-v7")
 
     def response_model_for(self, stage: str):
-        if stage == STAGES[1] and self.attribute_output_version == OUTPUT_VERSION:
-            return CompactAttributeResponse
+        if stage == STAGES[1] and self.attribute_output_version in SERVER_OWNED_RESPONSES:
+            return SERVER_OWNED_RESPONSES[self.attribute_output_version][0]
         return RESPONSES.get(stage)
 
     def request_digest_for(self, stage: str) -> str | None:
@@ -302,13 +330,14 @@ def manifest(
         if variant == "core-catalog-v1":
             prompt_resources["equipment_guidance_version"] = EQUIPMENT_EXTRACTION_GUIDANCE_VERSION
     responses = RESPONSES
-    if output_version == OUTPUT_VERSION:
-        responses = {**RESPONSES, STAGES[1]: CompactAttributeResponse}
+    if output_version in SERVER_OWNED_RESPONSES:
+        response, expansion = SERVER_OWNED_RESPONSES[output_version]
+        responses = {**RESPONSES, STAGES[1]: response}
         prompt_resources.update(
-            attribute_output_version=OUTPUT_VERSION,
+            attribute_output_version=output_version,
             assertion_identity_policy="collection-index-zero-v1",
             attribute_admission_policy="compact-admission-v1",
-            attribute_expansion_policy="compact-expansion-v1",
+            attribute_expansion_policy=expansion,
             request_digest_version=BODY_DIGEST_VERSION,
         )
     return {
