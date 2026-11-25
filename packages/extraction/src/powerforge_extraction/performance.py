@@ -12,7 +12,11 @@ from pydantic import BaseModel, ConfigDict, Field
 from powerforge_extraction.compact_context import reading_rows
 from powerforge_extraction.identities import canonical_json
 from powerforge_extraction.readable_context import reading_blocks
-from powerforge_shared.config import EXPERIMENTAL_INPUTS, AttributeInputVersion
+from powerforge_shared.config import (
+    EXPERIMENTAL_INPUTS,
+    AttributeInputVersion,
+    AttributeOutputVersion,
+)
 
 Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 Count = Annotated[int, Field(strict=True, ge=0, le=2**53 - 1)]
@@ -80,6 +84,11 @@ class RequestMetrics(Metrics):
 
 class AttemptPerformance(Metrics):
     version: Literal[1, 2] = 1
+    output_version: AttributeOutputVersion | None = None
+    assertions_received: Count | None = None
+    assertions_accepted: Count | None = None
+    assertions_quarantined: Count | None = None
+    assertions_overflowed: Count | None = None
     input_configuration: AttributeInputVersion | None = None
     source_projection: (
         Literal["compact-page-v1", "compact-page-v2", "readable-page-v1", "none"] | None

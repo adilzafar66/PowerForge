@@ -1068,6 +1068,7 @@ def test_corrected_semantic_fixture_preserves_source_facts_and_inference():
         attribute_catalog=attribute_catalog(upstream),
         page_context_hash=upstream.page_context_hash,
         upstream_hash=contract_hash(upstream),
+        output_version="legacy-v7",
     )
     admitted = admit_attributes(
         wire, response.model_dump_json(include={"attributes", "raw_unmapped"}).encode()

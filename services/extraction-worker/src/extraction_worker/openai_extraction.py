@@ -17,7 +17,6 @@ from powerforge_ai.extraction import (
     ValidationIssue,
 )
 from powerforge_extraction.extraction_profile import (
-    RESPONSES,
     provider_available,
 )
 from powerforge_extraction.identities import canonical_json
@@ -53,7 +52,7 @@ class OpenAIExtractionProvider:
         )
 
     def execute(self, request: ExtractionRequest) -> ExtractionResponse | AttributeOutput:
-        model = RESPONSES.get(request.stage)
+        model = self.profile.response_model_for(request.stage)
         if (
             model is None
             or request.response_model is not model

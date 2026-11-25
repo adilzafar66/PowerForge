@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from powerforge_document_processing.layout_derive import layout_rules_identity
+from powerforge_extraction.compact_output import OUTPUT_VERSION, CompactAttributeResponse
 from powerforge_extraction.errors import ExtractionDisabled
 from powerforge_extraction.identities import content_hash, identity_hash
 from powerforge_extraction.profiles import ExecutionProfile
@@ -24,6 +25,7 @@ from powerforge_extraction.stage_contracts import (
 from powerforge_shared.config import (
     EXPERIMENTAL_INPUTS,
     AttributeInputVersion,
+    AttributeOutputVersion,
     AttributePromptVariant,
     AttributeReasoningEffort,
 )
@@ -65,7 +67,33 @@ def core_resources(input_version: AttributeInputVersion) -> tuple[str, str]:
     )
 
 
-def prompt_bundle(input_version: AttributeInputVersion, variant: AttributePromptVariant = "legacy"):
+def prompt_bundle(
+    input_version: AttributeInputVersion,
+    variant: AttributePromptVariant = "legacy",
+    output_version: AttributeOutputVersion = "legacy-v7",
+):
+    version, prompts = _base_prompt_bundle(input_version, variant)
+    if output_version == "legacy-v7":
+        return version, prompts
+    if output_version != OUTPUT_VERSION:
+        raise ValueError("Unsupported pinned Stage 2 output version")
+    instructions = (
+        prompts[STAGES[1]]
+        .replace("Use unique local_ref values across both response collections. ", "")
+        .replace(" Use distinct local_ref values across both lists.", "")
+    )
+    supplement = (
+        files("powerforge_extraction")
+        .joinpath("prompts/attribute_output_compact_v1.txt")
+        .read_text(encoding="utf-8")
+    )
+    return f"{version}+compact-output-v1", {
+        **prompts,
+        STAGES[1]: instructions.rstrip() + "\n\n" + supplement,
+    }
+
+
+def _base_prompt_bundle(input_version: AttributeInputVersion, variant: AttributePromptVariant):
     if variant in ("core-v1", "core-catalog-v1"):
         core, source = core_resources(input_version)
         return CORE_PROMPT_VERSION, {
@@ -152,8 +180,18 @@ class ExtractionProfile(ExecutionProfile):
         _, prompts = prompt_bundle(
             self.manifest["attribute_input_version"],
             self.manifest.get("attribute_prompt_variant", "legacy"),
+            self.attribute_output_version,
         )
         return prompts[stage]
+
+    @property
+    def attribute_output_version(self) -> AttributeOutputVersion:
+        return self.manifest.get("attribute_output_version", "legacy-v7")
+
+    def response_model_for(self, stage: str):
+        if stage == STAGES[1] and self.attribute_output_version == OUTPUT_VERSION:
+            return CompactAttributeResponse
+        return RESPONSES.get(stage)
 
     def request_digest_for(self, stage: str) -> str | None:
         return self.manifest.get("request_digest_version") if stage == STAGES[1] else None
@@ -203,6 +241,7 @@ def structured_schema(value: dict) -> dict:
 def manifest(
     input_version: AttributeInputVersion = LEGACY_ATTRIBUTE_INPUT_VERSION,
     variant: AttributePromptVariant = "legacy",
+    output_version: AttributeOutputVersion = "legacy-v7",
 ):
     # The registry projection is pinned for both stages, including attribute definitions.
     from powerforge_engineering_model.extraction_descriptions import (
@@ -220,7 +259,7 @@ def manifest(
     )
     from powerforge_extraction.unit_notation import VERSION as UNIT_INTERPRETATION_VERSION
 
-    _, prompts = prompt_bundle(input_version, variant)
+    _, prompts = prompt_bundle(input_version, variant, output_version)
     catalog = equipment_catalog()
     sample = RecognitionResponse(
         version=stage_schema_version(STAGES[0]),
@@ -262,6 +301,16 @@ def manifest(
         }
         if variant == "core-catalog-v1":
             prompt_resources["equipment_guidance_version"] = EQUIPMENT_EXTRACTION_GUIDANCE_VERSION
+    responses = RESPONSES
+    if output_version == OUTPUT_VERSION:
+        responses = {**RESPONSES, STAGES[1]: CompactAttributeResponse}
+        prompt_resources.update(
+            attribute_output_version=OUTPUT_VERSION,
+            assertion_identity_policy="collection-index-zero-v1",
+            attribute_admission_policy="compact-admission-v1",
+            attribute_expansion_policy="compact-expansion-v1",
+            request_digest_version=BODY_DIGEST_VERSION,
+        )
     return {
         "version": SCHEMA_VERSION,
         "registry_version": REGISTRY.registry_version,
@@ -297,7 +346,7 @@ def manifest(
                     structured_schema(model.model_json_schema())
                 ),
             }
-            for stage, model in RESPONSES.items()
+            for stage, model in responses.items()
         ],
     }
 
@@ -308,8 +357,9 @@ def extraction_profile(settings):
         raise ExtractionDisabled("The configured model is unsupported for Stage 2 reasoning effort")
     input_version = settings.extraction_attribute_input_version
     variant = settings.extraction_attribute_prompt_variant
-    record = manifest(input_version, variant)
-    prompt_version, _ = prompt_bundle(input_version, variant)
+    output_version = settings.extraction_attribute_output_version
+    record = manifest(input_version, variant, output_version)
+    prompt_version, _ = prompt_bundle(input_version, variant, output_version)
     return ExtractionProfile(
         provider="fake" if fake else "openai",
         model="deterministic-phase-6r-v1" if fake else settings.extraction_model,
@@ -351,8 +401,8 @@ def require_profile(profile):
         raise ValueError("Pinned extraction resources do not match this installation")
     variant = profile.manifest.get("attribute_prompt_variant", "legacy")
     try:
-        record = manifest(input_version, variant)
-        prompt_version, _ = prompt_bundle(input_version, variant)
+        record = manifest(input_version, variant, profile.attribute_output_version)
+        prompt_version, _ = prompt_bundle(input_version, variant, profile.attribute_output_version)
     except (ValueError, TypeError, FileNotFoundError) as exc:
         raise ValueError("Pinned extraction resources do not match this installation") from exc
     if (

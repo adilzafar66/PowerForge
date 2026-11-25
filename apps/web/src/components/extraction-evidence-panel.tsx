@@ -140,7 +140,8 @@ function CandidateBrowser({ scope, params, browser, update, page, highlighted }:
       received: total.received + (item.assertion_counts?.received ?? 0),
       accepted: total.accepted + (item.assertion_counts?.accepted ?? 0),
       quarantined: total.quarantined + (item.assertion_counts?.quarantined ?? 0),
-    }), { received: 0, accepted: 0, quarantined: 0 });
+      overflowed: total.overflowed + (item.assertion_counts?.overflowed ?? 0),
+    }), { received: 0, accepted: 0, quarantined: 0, overflowed: 0 });
   const filters: EvidenceFilters = {
     search: search.trim() || undefined,
     page_id: currentOnly ? selectedPage?.page_id : undefined,
@@ -192,8 +193,11 @@ function CandidateBrowser({ scope, params, browser, update, page, highlighted }:
       )}
       {statuses.error && <PanelMessage error retry={() => void statuses.refetch()}>{apiErrorOf(statuses.error).detail}</PanelMessage>}
       {assertionCounts.quarantined > 0 && <PanelMessage>
-        Partially validated. {assertionCounts.accepted} of {assertionCounts.received} assertions passed schema validation.
+        Partially validated. {assertionCounts.accepted} of {assertionCounts.received} assertions {assertionCounts.overflowed ? "were accepted" : "passed schema validation"}.
         {" "}{assertionCounts.quarantined} quarantined assertions have no candidates. See Run history for details.
+      </PanelMessage>}
+      {assertionCounts.overflowed > 0 && <PanelMessage>
+        {assertionCounts.overflowed} raw-unmapped {assertionCounts.overflowed === 1 ? "assertion" : "assertions"} exceeded the publication limit. See Run history for counts.
       </PanelMessage>}
       {!runId && !statuses.isPending && <PanelMessage>No published candidates. Check run history for extraction progress.</PanelMessage>}
       {runId && (

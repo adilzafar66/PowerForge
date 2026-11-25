@@ -231,3 +231,52 @@ def test_legacy_catalog_and_prompt_hashes_match_pre_d0_profiles():
         assert record["prompt_hash"] == prompt_hash
         assert record["catalog_hash"] == historical_catalog_hash
         assert "attribute_prompt_variant" not in record
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "compact-page-v1",
+        "compact-page-v2",
+        "readable-hybrid-v1",
+        "image-only-v1",
+        "readable-text-v1",
+    ],
+)
+@pytest.mark.parametrize("variant", ["legacy", "core-v1", "core-catalog-v1"])
+def test_compact_output_is_pinned_independently_and_preserves_stage_one(source, variant):
+    from powerforge_extraction.compact_output import OUTPUT_VERSION
+    from powerforge_extraction.extraction_profile import (
+        BODY_DIGEST_VERSION,
+        prompt_bundle,
+        structured_schema,
+    )
+
+    settings = Settings(
+        _env_file=None,
+        extraction_attribute_input_version=source,
+        extraction_attribute_prompt_variant=variant,
+    )
+    legacy = extraction_profile(settings)
+    candidate = extraction_profile(
+        settings.model_copy(
+            update={"extraction_attribute_output_version": OUTPUT_VERSION},
+        )
+    )
+    assert read_profile(candidate.model_dump(mode="json")) == candidate
+    assert read_profile(legacy.model_dump(mode="json")) == legacy
+    assert candidate.manifest["stages"][0] == legacy.manifest["stages"][0]
+    assert candidate.manifest["catalog_hash"] == legacy.manifest["catalog_hash"]
+    assert candidate.identity_hash != legacy.identity_hash
+    assert candidate.request_digest_for(STAGES[1]) == BODY_DIGEST_VERSION
+    assert (
+        candidate.manifest["stages"][1]["transport_schema_hash"]
+        != (legacy.manifest["stages"][1]["transport_schema_hash"])
+    )
+    schema = structured_schema(candidate.response_model_for(STAGES[1]).model_json_schema())
+    assert "local_ref" not in json.dumps(schema) and '"kind"' not in json.dumps(schema)
+    assert "reading" in json.dumps(schema) and "reported_text" in json.dumps(schema)
+    _, prompts = prompt_bundle(source, variant, OUTPUT_VERSION)
+    assert "Omit local_ref" in prompts[STAGES[1]]
+    assert "Use unique local_ref" not in prompts[STAGES[1]]
+    assert "Use distinct local_ref" not in prompts[STAGES[1]]

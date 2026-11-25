@@ -579,6 +579,7 @@ def test_gold_schedule_replays_v6_against_pinned_native_source():
         upstream_hash=contract_hash(upstream),
         upstream=upstream,
         attribute_catalog=attribute_catalog(upstream),
+        output_version="legacy-v7",
     )
     response = {
         "attributes": [
@@ -1139,3 +1140,166 @@ def test_d0_catalog_uses_one_guidance_entry_per_eligible_type(attribute_request)
     assert "equipment_extraction_guidance" not in consolidated_catalog(
         attribute_catalog(no_guidance, ATTRIBUTE_NOTES_VERSION)
     )
+
+
+@pytest.fixture
+def compact_payload(attribute_request, attribute_envelope):
+    from powerforge_extraction.compact_output import OUTPUT_VERSION, compact_assertion
+
+    wire = attribute_request.model_copy(update={"output_version": OUTPUT_VERSION})
+    compact = {
+        collection: [compact_assertion(item) for item in items]
+        for collection, items in attribute_envelope.items()
+    }
+    return wire, compact
+
+
+@pytest.mark.parametrize("size", [16, 17, 32, 33])
+def test_compact_raw_quota_counts_valid_items_and_preserves_positions(compact_payload, size):
+    from powerforge_extraction.attribute_admission import admit_attributes
+
+    wire, payload = compact_payload
+    raw = payload["raw_unmapped"][0]
+    payload["raw_unmapped"] = [dict(raw, raw="" if i in {1, 19} else str(i)) for i in range(size)]
+    data = json.dumps(payload).encode()
+    admitted = admit_attributes(wire, data)
+    if size > 32:
+        assert admitted.result is None and admitted.fatal[0].path == ("raw_unmapped",)
+        return
+    assert admitted == admit_attributes(wire, data)
+    assert [item.local_ref for item in admitted.result.attributes] == ["attr-0", "attr-1"]
+    valid = [i for i in range(size) if i not in {1, 19}]
+    assert admitted.received == size + 2
+    assert admitted.accepted == 2 + min(len(valid), 16)
+    assert [item.index for item in admitted.rejected] == [i for i in (1, 19) if i < size]
+    assert admitted.overflow_indices == tuple(valid[16:])
+    assert [item.local_ref for item in admitted.result.raw_unmapped] == [
+        f"raw-{i}" for i in valid[:16]
+    ]
+
+
+def test_compact_expands_typed_values_inference_and_citations(
+    attribute_request,
+    attribute_envelope,
+):
+    from powerforge_extraction.attribute_admission import admit_attributes
+    from powerforge_extraction.compact_output import (
+        OUTPUT_VERSION,
+        CompactAttributeResponse,
+        compact_assertion,
+    )
+    from powerforge_extraction.extraction_profile import structured_schema
+
+    first = attribute_envelope["attributes"][0]
+    first.update(
+        raw_value="1 kV (1000 V)",
+        raw_unit="kV",
+        proposed_value="1",
+        proposed_unit="kV",
+        value_form="EQUIVALENT_UNITS",
+        alternate_representations=[{"value": "1000", "unit": "V"}],
+    )
+    first["evidence"] += [
+        dict(first["evidence"][0], quote="Nameplate"),
+        {
+            "kind": "VISUAL",
+            "role": "VALUE",
+            "reported_text": "1 kV",
+            "region": {"x": 0, "y": "0.125", "width": "0.25", "height": "0.05"},
+        },
+    ]
+    attribute_envelope["attributes"].append(
+        dict(
+            local_ref="inference",
+            origin="INFERRED",
+            equipment_ref="equipment-0",
+            association="UNCERTAIN",
+            attribute_key="frequency",
+            proposed_value=60,
+            proposed_unit="Hz",
+            inference_explanation="Expected for the identified equipment.",
+            inference_basis=None,
+            source_expression=None,
+            evidence=[],
+        )
+    )
+    legacy = admit_attributes(attribute_request, json.dumps(attribute_envelope).encode())
+    assert legacy.result is not None and not legacy.rejected
+    payload = {
+        collection: [compact_assertion(item) for item in items]
+        for collection, items in attribute_envelope.items()
+    }
+    schema = structured_schema(CompactAttributeResponse.model_json_schema())
+    CompactAttributeResponse.model_validate_json(json.dumps(payload))
+    for obj in (schema, *schema["$defs"].values()):
+        if obj.get("type") == "object":
+            assert obj["additionalProperties"] is False
+            assert set(obj["required"]) == set(obj["properties"])
+    assert {
+        tuple(sorted(schema["$defs"][name]["required"]))
+        for name in ("Reading", "ReadingQuote", "LiteralQuote", "Visual")
+    } == {
+        ("reading", "role"),
+        ("quote", "reading", "role"),
+        ("quote", "role"),
+        ("region", "reported_text", "role"),
+    }
+    payload["attributes"].insert(0, dict(payload["attributes"][0], raw=" "))
+    payload["attributes"].append(dict(payload["attributes"][3], inference_explanation=""))
+    wire = attribute_request.model_copy(update={"output_version": OUTPUT_VERSION})
+    compact = admit_attributes(wire, json.dumps(payload).encode())
+    assert compact.result is not None and not compact.fatal
+    assert [(item.index, item.issues[0].path[-1]) for item in compact.rejected] == [
+        (0, "raw"),
+        (4, "inference_explanation"),
+    ]
+    assert compact.result.page_context_hash == legacy.result.page_context_hash
+    assert compact.result.upstream_hash == legacy.result.upstream_hash
+    for collection, expected_refs in (
+        ("attributes", ["attr-1", "attr-2", "attr-3"]),
+        ("raw_unmapped", ["raw-0"]),
+    ):
+        for expanded, original, ref in zip(
+            getattr(compact.result, collection),
+            getattr(legacy.result, collection),
+            expected_refs,
+            strict=True,
+        ):
+            assert expanded == original.model_copy(update={"local_ref": ref})
+
+
+def test_compact_preserves_envelope_and_resource_guards(compact_payload):
+    from powerforge_extraction.attribute_admission import admit_attributes
+
+    wire, payload = compact_payload
+    payload["attributes"] = [payload["attributes"][0]] * 513
+    for data, category in [
+        (json.dumps(payload).encode(), "FIELD_CONSTRAINT"),
+        (b'{"attributes":[],"attributes":[],"raw_unmapped":[]}', "JSON"),
+        (b'{"attributes":[],"raw_unmapped":[NaN]}', "JSON"),
+        (b" " * (MAX_RESPONSE_BYTES + 1), "CAPACITY"),
+        (b'{"attributes":[],"raw_unmapped":[],"upstream_hash":"external"}', "SCHEMA"),
+    ]:
+        admission = admit_attributes(wire, data)
+        assert admission.result is None and admission.fatal[0].category == category
+
+
+def test_compact_quarantines_provider_ids_without_leaking_values(compact_payload):
+    from powerforge_extraction.attribute_admission import admit_attributes
+
+    wire, payload = compact_payload
+    valid = payload["attributes"][0]
+    supplied_id = "private-provider-ref"
+    private_field = "confidential-document-value"
+    payload["attributes"] = [
+        dict(valid, local_ref=supplied_id),
+        dict(valid, local_ref=supplied_id, **{private_field: private_field}),
+        valid,
+    ]
+    admission = admit_attributes(wire, json.dumps(payload).encode())
+    assert not admission.fatal
+    assert [item.local_ref for item in admission.result.attributes] == ["attr-2"]
+    assert [item.local_ref for item in admission.rejected] == ["attr-0", "attr-1"]
+    diagnostics = repr(admission.rejected)
+    assert supplied_id not in diagnostics and private_field not in diagnostics
+    assert all(issue.path[-1] == "*" for item in admission.rejected for issue in item.issues)

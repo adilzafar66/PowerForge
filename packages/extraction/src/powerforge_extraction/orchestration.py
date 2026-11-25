@@ -451,7 +451,6 @@ class ExtractionCoordinator:
 
             if not live_admission_authorized(self.session, run, profile):
                 raise ProviderFailure(ErrorCode.DISABLED)
-        from powerforge_extraction.extraction_profile import RESPONSES
         from powerforge_extraction.provider_body import dispatch_hash
         from powerforge_extraction.stage_contracts import stage_schema_version
 
@@ -461,7 +460,7 @@ class ExtractionCoordinator:
             or request.attempt_number != unit.attempt_number
             or request.stage != unit.stage
             or request.instructions != profile.instructions_for(unit.stage)
-            or request.response_model is not RESPONSES[unit.stage]
+            or request.response_model is not profile.response_model_for(unit.stage)
             or request.schema_version != stage_schema_version(unit.stage)
             or request.request_digest_version != profile.request_digest_for(unit.stage)
             or request.reasoning_effort != profile.reasoning_effort_for(unit.stage)

@@ -19,7 +19,6 @@ from powerforge_ai.extraction import (
 from powerforge_extraction.compact_context import compact_page
 from powerforge_extraction.extraction_profile import (
     BODY_DIGEST_VERSION,
-    RESPONSES,
     STAGES,
     stage_request_hash,
 )
@@ -236,6 +235,7 @@ def request_for(factory, storage, claim):
     if performance is not None:
         performance.version = 2
         performance.profile_sha256 = profile.identity_hash
+        performance.output_version = profile.attribute_output_version
         performance.input_configuration = profile.manifest["attribute_input_version"]
         performance.source_projection = profile.manifest.get(
             "page_projection", performance.input_configuration
@@ -300,6 +300,7 @@ def _build_request(unit, parent, owner, source, claim):
             return skip, None, source
         wire = AttributeRequest(
             **common,
+            output_version=profile.attribute_output_version,
             input_version=profile.manifest["attribute_input_version"],
             upstream=upstream,
             attribute_description_version=description_version,
@@ -330,7 +331,7 @@ def _build_request(unit, parent, owner, source, claim):
         image_mime_type="image/png" if send_image else None,
         image_detail="high",
         stage=unit.stage,
-        response_model=RESPONSES[unit.stage],
+        response_model=profile.response_model_for(unit.stage),
         reasoning_effort=profile.reasoning_effort_for(unit.stage),
     )
 

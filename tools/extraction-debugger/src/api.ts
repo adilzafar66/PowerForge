@@ -4,7 +4,7 @@ export type Attempt = {
   attempt_id: string; run_id: string; document: string; page: number; attempt_number: number;
   finished_at: string | null; status: string; provider: string; model: string | null;
   validation: string | null; received: number | null; accepted: number | null;
-  quarantined: number | null; output_bytes: number | null; output_sha256: string | null;
+  quarantined: number | null; overflowed?: number | null; output_version?: string | null; output_bytes: number | null; output_sha256: string | null;
   expires_at: string | null; retained: boolean | null; duration_ms: number | null;
   input_tokens: number | null; output_tokens: number | null; cached_input_tokens: number | null;
   cost: string | null; pricing_basis: string | null; published: number | null; error_code: string | null;
@@ -49,7 +49,7 @@ export type Detail = {
   requested_reasoning_effort?: "none" | "low" | "medium" | null;
   attempt: Attempt; request_sha256: string | null; result_sha256: string | null;
   upstream_sha256: string | null; schema_version: string | null; prompt_version: string | null;
-  rejections: Rejection[]; fatal: Issue[];
+  rejections: Rejection[]; overflow_indices?: number[]; fatal: Issue[];
   validated: Record<string, unknown> | null; candidates: PublishedCandidate[];
 };
 

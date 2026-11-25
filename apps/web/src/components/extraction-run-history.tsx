@@ -183,7 +183,8 @@ function Attempt({ attempt }: { attempt: RunAttempt }) {
       {attempt.stage_outcome === "NO_ELIGIBLE_ATTRIBUTES" && <p>Skipped: no recognized equipment eligible for attributes.</p>}
       {attempt.error_code && <p className="text-warning">{readableKey(attempt.error_code)}</p>}
       {validation?.state === "PARTIALLY_VALIDATED" && <p className="text-warning">Partially validated</p>}
-      {counts && <p>{counts.received} received · {counts.accepted} schema-valid · {counts.quarantined} quarantined</p>}
+      {counts && <p>{counts.received} received · {counts.accepted} {counts.overflowed ? "accepted" : "schema-valid"} · {counts.quarantined} quarantined
+        {!!counts.overflowed && ` · ${counts.overflowed} above the raw-unmapped limit`}</p>}
       {!counts && attempt.stage === "ATTRIBUTE_EXTRACTION" && attempt.provider_calls > 0 &&
         <p>Assertion counts unavailable.</p>}
       {!!validation?.rejections.length && <details>

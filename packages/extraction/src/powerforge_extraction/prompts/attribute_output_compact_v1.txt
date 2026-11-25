@@ -1,0 +1,12 @@
+## Compact response fields
+
+PowerForge assigns assertion IDs. Omit local_ref. Use the following schema names wherever the
+instructions refer to the expanded names: equipment_ref → equipment, attribute_key → key,
+raw_label → label, raw_value → raw, raw_unit → source_unit, proposed_value → value,
+proposed_unit → unit, value_form → form, alternate_representations → alternates.
+Keep origin, association, qualifiers, and the inference fields in their applicable shapes.
+
+In evidence, omit kind. Use role and reading for an exact reading reference. Add quote when a
+literal substring or supported expression is needed to identify the source precisely. Use role
+and quote without reading for a literal quotation. Use role, region, and reported_text for visual
+evidence. The source-format instructions determine which of these shapes are eligible.

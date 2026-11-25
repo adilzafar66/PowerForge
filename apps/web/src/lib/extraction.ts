@@ -113,7 +113,7 @@ export type RunAttempt = {
   } | null;
   stage_diagnostics: { code: string; ref?: string; citation?: number; omitted?: number }[];
 };
-export type AssertionCounts = { received: number; accepted: number; quarantined: number };
+export type AssertionCounts = { received: number; accepted: number; quarantined: number; overflowed?: number };
 export type RunDetail = {
   run: HistoryRun;
   attempts: RunAttempt[];

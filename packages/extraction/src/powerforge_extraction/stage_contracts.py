@@ -36,7 +36,7 @@ from powerforge_extraction.unit_notation import SCALAR
 from powerforge_provenance.layout_observations import SpatialLayout
 from powerforge_provenance.spatial_base import ExactDecimal
 from powerforge_provenance.spatial_sources import PageOwner
-from powerforge_shared.config import AttributeInputVersion
+from powerforge_shared.config import AttributeInputVersion, AttributeOutputVersion
 
 VERSION = "phase-6r-v1"
 ATTRIBUTE_VERSION = "phase-6r-attributes-v7"
@@ -47,6 +47,9 @@ MAX_RESPONSE_BYTES = 512 * 1024
 MAX_IMAGE_BYTES = 12 * 1024 * 1024
 MAX_IMAGE_PIXELS = 24_000_000
 MAX_ALTERNATE_REPRESENTATIONS = 4
+MAX_CITATIONS = 12
+MAX_ATTRIBUTE_ASSERTIONS = 512
+MAX_RAW_ASSERTIONS = 16
 
 Stage = Literal["EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"]
 TagState = Literal["PRESENT", "ABSENT", "UNREADABLE", "AMBIGUOUS"]
@@ -105,7 +108,7 @@ class VisualCitation(Contract):
 
 
 Citations = Annotated[
-    tuple[ReadingCitation | QuoteCitation | VisualCitation, ...], Field(max_length=12)
+    tuple[ReadingCitation | QuoteCitation | VisualCitation, ...], Field(max_length=MAX_CITATIONS)
 ]
 
 
@@ -188,8 +191,11 @@ class RecognitionResponse(Contract):
 
 
 class AttributeProviderResponse(Contract):
-    attributes: Annotated[tuple[RegistryAssertion | InferredAssertion, ...], Field(max_length=512)]
-    raw_unmapped: Annotated[tuple[RawUnmappedAssertion, ...], Field(max_length=16)]
+    attributes: Annotated[
+        tuple[RegistryAssertion | InferredAssertion, ...],
+        Field(max_length=MAX_ATTRIBUTE_ASSERTIONS),
+    ]
+    raw_unmapped: Annotated[tuple[RawUnmappedAssertion, ...], Field(max_length=MAX_RAW_ASSERTIONS)]
 
 
 class AttributeResponse(AttributeProviderResponse):
@@ -250,6 +256,7 @@ class RecognitionRequest(Contract):
 
 
 class AttributeRequest(Contract):
+    output_version: AttributeOutputVersion = Field(default="legacy-v7", exclude=True)
     input_version: AttributeInputVersion = Field(
         default=LEGACY_ATTRIBUTE_INPUT_VERSION, exclude=True
     )

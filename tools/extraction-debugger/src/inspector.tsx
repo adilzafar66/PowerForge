@@ -50,8 +50,14 @@ export function AssertionFields({ value, persisted = false }: { value: unknown; 
     ["proposed_value", "Proposed value"], ["proposed_enum_value", "Historical enum proposal"],
     ["proposed_unit", "Proposed unit"], ["value_form", "Source form"],
   ] as const;
-  const alternates = assertion.alternate_representations;
-  const recorded = fields.filter(([key]) => Object.hasOwn(assertion, key));
+  const aliases: Record<string, string> = {
+    raw_value: "raw", raw_unit: "source_unit", proposed_value: "value",
+    proposed_unit: "unit", value_form: "form",
+  };
+  const alternates = Object.hasOwn(assertion, "alternate_representations")
+    ? assertion.alternate_representations : assertion.alternates;
+  const recorded = fields.map(([key, label]) => [Object.hasOwn(assertion, key) ? key : aliases[key], label])
+    .filter(([key]) => key && Object.hasOwn(assertion, key));
   const hasAlternates = Array.isArray(alternates) && alternates.length > 0;
   if (!recorded.length && !hasAlternates) return null;
   return <dl className="metadata assertion-fields" aria-label={persisted ? "Persisted candidate fields" : "Recorded assertion fields"}>
@@ -113,9 +119,11 @@ export function assertions(detail: Detail, parsed: unknown): Assertion[] {
   const rows = new Map<string, Assertion>();
   const response = object(parsed);
   const fatal = detail.attempt.validation === "fatal";
+  const compact = detail.attempt.output_version === "compact-assertions-v1";
+  const overflow = detail.overflow_indices ?? [];
   for (const collection of ["attributes", "raw_unmapped"] as const) {
     const list = response?.[collection];
-    if (Array.isArray(list) && list.length <= (collection === "attributes" ? 512 : 16)) {
+    if (Array.isArray(list) && list.length <= (collection === "attributes" ? 512 : compact ? 32 : 16)) {
       list.forEach((original, index) => rows.set(`${collection}:${index}`,
         { collection, index, original, issues: [], state: fatal ? "Fatal response" : "Accepted" }));
     }
@@ -124,23 +132,29 @@ export function assertions(detail: Detail, parsed: unknown): Assertion[] {
     const key = `${rejection.collection}:${rejection.index}`;
     rows.set(key, { ...rows.get(key), ...rejection, state: "Quarantined" });
   }
-  // The immutable rejection positions mark the holes left in each original
+  for (const index of overflow) {
+    const key = `raw_unmapped:${index}`;
+    rows.set(key, { ...rows.get(key), collection: "raw_unmapped", index, issues: [], state: "Overflowed" });
+  }
+  // Immutable rejection and overflow positions mark the holes left in each original
   // array. The count checks make this derivation safe even after raw expiry.
   const groups = ["attributes", "raw_unmapped"] as const;
   const lists = groups.map(group => detail.validated?.[group]);
   if (lists.every(Array.isArray) && !fatal && detail.attempt.received !== null) {
     const total = lists.reduce((sum, list) => sum + (list as unknown[]).length, 0);
     const received = detail.attempt.received;
-    if (total === detail.attempt.accepted && total + detail.rejections.length === received) {
+    if (total === detail.attempt.accepted && total + detail.rejections.length + overflow.length === received &&
+        overflow.length === (detail.attempt.overflowed ?? 0)) {
       const candidates = new Map(detail.candidates.map(candidate => [candidate.ordinal, candidate]));
       let ordinal = 0;
       groups.forEach((collection, groupIndex) => {
         const accepted = lists[groupIndex] as unknown[];
         const quarantined = detail.rejections.filter(item => item.collection === collection);
-        const rejected = new Set(quarantined.map(item => item.index));
+        const omitted = [...quarantined.map(item => item.index), ...(collection === "raw_unmapped" ? overflow : [])];
+        const rejected = new Set(omitted);
         const originalCount = accepted.length + rejected.size;
         const original = response?.[collection];
-        const shapeMatches = rejected.size === quarantined.length &&
+        const shapeMatches = rejected.size === omitted.length &&
           [...rejected].every(index => index >= 0 && index < originalCount) &&
           (original === undefined || (Array.isArray(original) && original.length === originalCount));
         let index = 0;
@@ -150,7 +164,9 @@ export function assertions(detail: Detail, parsed: unknown): Assertion[] {
           const prior = rows.get(key);
           const ref = object(validated)?.local_ref;
           const candidate = candidates.get(ordinal++);
-          if (shapeMatches && typeof ref === "string" && (!prior || object(prior.original)?.local_ref === ref)) {
+          const originalMatches = compact ? ref === `${collection === "attributes" ? "attr" : "raw"}-${index}`
+            : !prior || object(prior.original)?.local_ref === ref;
+          if (shapeMatches && typeof ref === "string" && originalMatches) {
             rows.set(key, { collection, index, issues: [], state: "Accepted", ...prior,
               validated, candidate: candidate?.local_ref === ref ? candidate : undefined });
           }

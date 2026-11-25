@@ -106,6 +106,7 @@ def test_historical_attempt_without_model_lists_and_opens():
         schema_version=None,
         prompt_version=None,
         rejections=[],
+        overflow_indices=[],
         fatal=[],
         validated=None,
         performance=None,

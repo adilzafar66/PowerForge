@@ -222,3 +222,33 @@ it("shows performance nulls and large counts without an audit", async () => {
   expect(screen.getByText("Pinned reasoning effort").parentElement?.textContent).toContain("low");
   expect(screen.getByText("Reasoning tokens").parentElement?.textContent).toContain("Unavailable");
 });
+
+it("aligns compact assertions by original index and shows overflow after expiry", async () => {
+  const record: Detail = {
+    ...detail, attempt: { ...attempt, output_version: "compact-assertions-v1",
+      validation: "partial", received: 18, accepted: 16, quarantined: 1, overflowed: 1 },
+    rejections: [{ collection: "raw_unmapped", index: 0, issues: [] }],
+    overflow_indices: [17],
+    validated: { attributes: [], raw_unmapped: Array.from({ length: 16 }, (_, i) =>
+      ({ local_ref: `raw-${i + 1}`, raw_value: `Item ${i + 1}` })) },
+    candidates: [{ ordinal: 15, local_ref: "raw-16", mapping_status: "UNMAPPED", reason_code: null,
+      proposed_value: null, alternate_representations: null, normalized_type: null,
+      normalized_value: null, normalized_unit: null, evidence: [] }],
+  };
+  serve(record, JSON.stringify({ attributes: [], raw_unmapped: Array.from({ length: 18 },
+    (_, i) => ({ label: "Source", raw: `Item ${i}` })) }));
+  const view = render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: /Siemens fixture/ }));
+  fireEvent.click(await screen.findByRole("button", { name: "Reveal original response" }));
+  await screen.findByRole("button", { name: "Original response verified" });
+  fireEvent.click(screen.getByRole("button", { name: /raw_unmapped\[16\].*UNMAPPED/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Compare" }));
+  expect(screen.getAllByText('"Item 16"').length).toBeGreaterThanOrEqual(2);
+  view.unmount();
+  serve({ ...record, attempt: { ...record.attempt, retained: false } });
+  render(<App />);
+  fireEvent.click(await screen.findByRole("button", { name: /Siemens fixture/ }));
+  fireEvent.change(await screen.findByLabelText("Show"), { target: { value: "overflowed" } });
+  expect(screen.getByRole("button", { name: /raw_unmapped\[17\].*Overflowed/ })).toBeTruthy();
+  expect(screen.queryByRole("button", { name: /raw_unmapped\[16\]/ })).toBeNull();
+});

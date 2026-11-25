@@ -9,6 +9,7 @@ EXPERIMENTAL_INPUTS = ("readable-hybrid-v1", "image-only-v1", "readable-text-v1"
 AttributeInputVersion = Literal[
     "compact-page-v1", "compact-page-v2", "readable-hybrid-v1", "image-only-v1", "readable-text-v1"
 ]
+AttributeOutputVersion = Literal["legacy-v7", "compact-assertions-v1"]
 AttributePromptVariant = Literal["legacy", "core-v1", "core-catalog-v1"]
 AttributeReasoningEffort = Literal["none", "low", "medium"]
 
@@ -74,6 +75,7 @@ class Settings(BaseSettings):
     extraction_external_enabled: bool = False
     extraction_model: str = "gpt-6-luna"
     extraction_attribute_input_version: AttributeInputVersion = "compact-page-v1"
+    extraction_attribute_output_version: AttributeOutputVersion = "legacy-v7"
     extraction_attribute_prompt_variant: AttributePromptVariant = "legacy"
     extraction_attribute_reasoning_effort: AttributeReasoningEffort = "medium"
     extraction_max_pages: int = Field(default=50, ge=1, le=1000)

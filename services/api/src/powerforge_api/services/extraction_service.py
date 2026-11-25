@@ -286,11 +286,14 @@ def _assertion_validation(audit):
             "REJECTED"
             if audit.fatal_diagnostics
             else "PARTIALLY_VALIDATED"
-            if audit.quarantined
+            if audit.quarantined or audit.overflow_indices
             else "VALIDATED"
         ),
         "counts": dict(
-            received=audit.received, accepted=audit.accepted, quarantined=audit.quarantined
+            received=audit.received,
+            accepted=audit.accepted,
+            quarantined=audit.quarantined,
+            overflowed=len(audit.overflow_indices),
         )
         if audit.received is not None
         else None,

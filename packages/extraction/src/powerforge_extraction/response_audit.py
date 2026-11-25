@@ -6,7 +6,8 @@ from hashlib import sha256
 from io import BytesIO
 from uuid import UUID
 
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Integer
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from powerforge_ai.extraction import ErrorCode, ProviderFailure
@@ -55,6 +56,8 @@ class ResponseAudit(Base):
     document_page_id: Mapped[UUID]
     request_hash: Mapped[str]
     attribute_reasoning_effort: Mapped[str | None]
+    output_version: Mapped[str | None]
+    overflow_indices: Mapped[list[int]] = mapped_column(ARRAY(Integer), server_default="{}")
     object_key: Mapped[str]
     output_sha256: Mapped[str]
     output_bytes: Mapped[int]
@@ -99,6 +102,8 @@ def record_audit(
             document_page_id=wire.page.owner.document_page_id,
             request_hash=publication_request_hash(unit, wire, request),
             attribute_reasoning_effort=effort,
+            output_version=unit.execution_metadata.get("attribute_output_version"),
+            overflow_indices=list(admission.overflow_indices),
             object_key=retained.key,
             output_sha256=retained.digest,
             output_bytes=retained.size,

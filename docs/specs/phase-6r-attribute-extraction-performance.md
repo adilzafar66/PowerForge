@@ -288,41 +288,9 @@ C2 adds opt-in readable hybrid, image-only and readable text-only configurations
 
 D0 separates the universal Stage 2 prompt, source-format guidance, equipment guidance, and registry notes. New admissions can opt into a prompt-only or consolidated candidate. Historical profiles retain their original prompt, catalog, and request digest. See the [D0 specification](phase-6r-d0-prompt-refactoring.md) and [offline evaluation](../../evals/phase6r/ATTRIBUTE_PROMPT_REFACTORING_EVALUATION.md).
 
-## 9. Milestone D — Prompt and structured-output efficiency
+## 9. Milestone D — Attribute output optimization and response reliability
 
-**Priority:** P2 / proceed based on measured output mix.
-
-### D1. Prompt audit
-
-Inventory duplicated behavioral instructions in the current Stage 2 prompt; preserve rules regarding:
-
-- all relevant required **and optional** registry attributes;
-- exact source transcription, typed values, and source-faithful unresolved proposals;
-- equipment owner and source identity;
-- inferred-vs-extracted provenance;
-- units and explicitly reported equivalences without model calculation;
-- multiple/conflicting ratings, conditional/qualified values, and abstention;
-- minimal but sufficient source evidence;
-- avoiding fabricated citations and redundant assertions.
-
-Consolidate redundant language and examples. Keep model instructions short but complete and test with actual reviewed fixtures. Do not replace this prompt with a generic “extract the important attributes” instruction.
-
-### D2. Output-size optimizations
-
-- Prefer **minimal sufficient evidence** per assertion, not the same fixed citation count for every value. One complete citation may suffice for a clear inline scalar, whereas schedule ownership and conditions may need multiple sources.
-- Keep sparse output: only genuine observed/inferred assertions, no placeholders for missing registry fields.
-- Measure repeated field-name overhead and optional field bloat. Consider a versioned **provider-only** shorter-key encoding **only if** substantial visible-output token savings are established. Decode deterministically into the existing typed internal contract before admission/publication; preserve raw provider output for audit.
-- Protect all required fields, `local_ref`, owners, evidence, value provenance, and alternate representations. Do not drop required nulls merely to shorten JSON if the schema enforces them.
-- Do not lower `max_output_tokens` without evidence from actual reasoning/visible-output distributions. A too-low ceiling can yield incomplete responses before producing usable structured data.
-
-### D3. Version and tests
-
-- Any prompt/schema change is pinned with an explicit version/hash; no silent replacement for active runs.
-- Validate the actual **OpenAI-facing projected JSON Schema**, not only the Pydantic schema, with mock transport tests and optionally authorized live schema-feasibility checks.
-- Regression fixtures for extracted/inferred values, text identifiers, model/condition distinctions, multiple voltage and current ratings, equivalent units, citation fidelity, duplicate detection, and invalid assertions.
-- Compare output tokens, admission success, latency, coverage, and evidence per assertion against the baseline.
-
-**Gate D:** Saved output tokens or latency are demonstrated with no unacceptable omission or wrong mapping and no weakened contract.
+The [Milestone D specification](phase-6r-attribute-output-optimization.md) supersedes this section's original prompt and output plan. It defines an opt-in provider output contract, deterministic assertion identities, bounded raw-unmapped admission, and a controlled comparison using the consolidated D0 guidance. The [offline evaluation and proposed live procedure](../../evals/phase6r/ATTRIBUTE_OUTPUT_OPTIMIZATION_EVALUATION.md) document the implementation and evidence required to consider promotion.
 
 ## 10. Milestone E — Parallel page-level execution
 

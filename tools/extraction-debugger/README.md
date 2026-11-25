@@ -136,7 +136,12 @@ Chrome executable when Playwright's bundled Chromium is unavailable, then run
 
 ### Stage 2 performance
 
-Apply migrations through `6r_0014j_source_modality` and rerun the operator grant script on the target database before running this debugger version. The attempt details include a **Performance** section. Attempts that reach the provider can appear even when an audit object was never created. Audit retrieval and exports still use the audited access path.
+Apply migrations through `6r_0014k_attribute_output` and rerun the operator grant script on the target database before running this debugger version. The attempt details include a **Performance** section. Attempts that reach the provider can appear even when an audit object was never created. Audit retrieval and exports still use the audited access path.
+
+Compact Stage 2 attempts show the output contract and overflow separately from
+quarantine. The comparison uses each assertion's original collection and index
+to align the provider JSON with the expanded result and published candidate.
+Overflow positions remain visible when the original object expires.
 
 Provider duration uses a monotonic timer around the SDK call. Queue wait uses the same PostgreSQL clock for eligibility and claim and excludes backoff and Stage 1 prerequisite time. Database publication covers candidate and audit metadata staging through flush. Attempt total starts after claim and ends at the recorded settlement in the final transaction. The final commit and any subsequent redelivery are outside that measurement. Output storage time includes writer preflight and upload. The database publication time includes audit metadata. A phase can remain unavailable because the attempt did not reach it, no provider response supplied the field, or the worker lost the lease before recording the attempt. Historical records still show their original coarse call duration.
 

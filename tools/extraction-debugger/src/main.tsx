@@ -103,7 +103,7 @@ function Workspace() {
             <strong>{row.document}</strong><span>Page {row.page} · Attempt {row.attempt_number}</span>
             <span className="badge">{validationName(row)}</span><span>{row.status} · {retention(row)}</span>
             <small>{row.provider} · {row.model ?? "Model unavailable"}{row.duration_ms !== null && ` · ${row.duration_ms} ms`}</small>
-            <small>{row.received ?? "—"} received · {row.accepted ?? "—"} accepted · {row.quarantined ?? "—"} quarantined</small>
+            <small>{row.received ?? "—"} received · {row.accepted ?? "—"} accepted · {row.quarantined ?? "—"} quarantined{row.overflowed ? ` · ${row.overflowed} overflowed` : ""}</small>
             <code>Run {row.run_id}</code><code>Attempt {row.attempt_id}</code><small>{date(row.finished_at)}</small>
           </button></li>)}</ul> : <p className="muted">No audited attempts match.</p>}
       <div className="actions"><button disabled={loading || cursors.length === 0} onClick={() => setCursors(cursors.slice(0, -1))}>Previous</button>
@@ -157,7 +157,8 @@ function AttemptView({ id }: { id: string }) {
       original?.origin === filter || item.collection === filter || item.candidate?.mapping_status === filter;
     return matches && (!search || [ids(item), original?.local_ref, original?.attribute_key,
       original?.raw_label, original?.raw_value, original?.proposed_value, original?.proposed_enum_value,
-      original?.proposed_unit, original?.alternate_representations]
+      original?.proposed_unit, original?.alternate_representations, original?.key, original?.label,
+      original?.raw, original?.source_unit, original?.value, original?.unit, original?.alternates]
       .some(value => display(value).toLowerCase().includes(search.toLowerCase())));
   });
   const chosen = rows.find(item => ids(item) === selected);
@@ -189,8 +190,8 @@ function AttemptView({ id }: { id: string }) {
       <h2>{row.document}</h2><p className="muted">Page {row.page} · Attempt {row.attempt_number} · Attribute extraction</p>
       <div className="badges"><span className="badge">{validationName(row)}</span><span className="badge">{row.status}</span>
         <span className="badge">{retained}</span></div>
-      <dl className="metrics">{Object.entries({ Received: row.received, "Schema-valid": row.accepted,
-        Quarantined: row.quarantined, Published: row.published }).map(([label, value]) =>
+      <dl className="metrics">{Object.entries({ Received: row.received, Accepted: row.accepted,
+        Quarantined: row.quarantined, ...(row.output_version && { Overflowed: row.overflowed }), Published: row.published }).map(([label, value]) =>
         <div key={label}><dt>{label}</dt><dd>{value ?? "—"}</dd></div>)}</dl>
       <details><summary>Execution and response metadata</summary>
         <dl className="metadata">{Object.entries({
@@ -201,6 +202,7 @@ function AttemptView({ id }: { id: string }) {
           "Response SHA-256": row.output_sha256, "Expiry": date(row.expires_at), "Stage error": row.error_code,
           "Request SHA-256": detail.request_sha256, "Accepted SHA-256": detail.result_sha256,
           "Recognition SHA-256": detail.upstream_sha256, Schema: detail.schema_version, Prompt: detail.prompt_version,
+          "Output contract": row.output_version ?? "legacy-v7",
         }).map(([label, value]) => <div key={label}><dt>{label}</dt><dd><code>{value ?? "Unavailable"}</code>
           {label.endsWith("UUID") && typeof value === "string" && <Copy value={value} label={`Copy ${label}`} />}</dd></div>)}</dl>
       </details>
@@ -218,7 +220,7 @@ function AttemptView({ id }: { id: string }) {
       <label>Search assertions<input value={search} onChange={event => { setSearch(event.target.value); setLimit(60); }} /></label>
       <label>Show<select value={filter} onChange={event => { setFilter(event.target.value); setLimit(60); }}>
         <option value="all">All assertions</option><option value="accepted">Accepted</option><option value="quarantined">Quarantined</option>
-        <option value="MAPPED">Mapped</option><option value="UNMAPPED">Unmapped</option><option value="INVALID">Invalid</option><option value="EXTRACTED">Extracted</option><option value="INFERRED">Inferred</option><option value="raw_unmapped">Raw unmapped</option>
+        <option value="overflowed">Overflowed</option><option value="MAPPED">Mapped</option><option value="UNMAPPED">Unmapped</option><option value="INVALID">Invalid</option><option value="EXTRACTED">Extracted</option><option value="INFERRED">Inferred</option><option value="raw_unmapped">Raw unmapped</option>
       </select></label>
       {(["attributes", "raw_unmapped"] as const).map(collection => <section key={collection}>
         <h3>{collection === "attributes" ? "Attributes" : "Raw unmapped"}</h3>
@@ -226,7 +228,7 @@ function AttemptView({ id }: { id: string }) {
           const original = object(item.original ?? item.validated);
           return <li key={ids(item)}><button className="attempt" aria-pressed={ids(item) === selected}
             onClick={() => { setSelected(ids(item)); setMode("assertions"); }}>
-            <code>{ids(item)}</code><strong>{display(original?.attribute_key ?? original?.raw_label ?? original?.local_ref ?? item.state)}</strong>
+            <code>{ids(item)}</code><strong>{display(original?.attribute_key ?? original?.key ?? original?.raw_label ?? original?.label ?? original?.local_ref ?? item.state)}</strong>
             <span className={item.state === "Quarantined" ? "bad" : "muted"}>{item.state}{item.candidate && ` · ${item.candidate.mapping_status}`}</span>
           </button></li>;
         })}</ul></section>)}
@@ -252,7 +254,8 @@ function AttemptView({ id }: { id: string }) {
           ? <p>Original content unavailable. Reveal the retained response when available.</p>
           : <><AssertionFields value={chosen.original} /><JsonTree value={chosen.original} name="Original assertion" /></>}</section>
         <section><h3>Validated and published</h3>{chosen.validated === undefined
-          ? <p>{chosen.state === "Quarantined" ? "Quarantined before publication." : "Validated relationship unavailable."}</p>
+          ? <p>{chosen.state === "Quarantined" ? "Quarantined before publication." : chosen.state === "Overflowed"
+            ? "Beyond the raw-unmapped publication limit." : "Validated relationship unavailable."}</p>
           : <><AssertionFields value={chosen.validated} /><JsonTree value={chosen.validated} name="Validated assertion" /></>}
           <Publication assertion={chosen} /></section>
       </div> : <p className="muted">Select an assertion to compare its recorded representations.</p>)}

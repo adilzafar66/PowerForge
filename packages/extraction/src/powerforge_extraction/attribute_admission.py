@@ -6,9 +6,21 @@ from dataclasses import dataclass, replace
 from pydantic import Field, TypeAdapter, ValidationError
 
 from powerforge_ai.extraction import ValidationIssue
+from powerforge_extraction.compact_output import (
+    OUTPUT_VERSION,
+    PROVIDER_NAMES,
+    RAW_RECEIVE_LIMIT,
+    CompactExtracted,
+    CompactInferred,
+    CompactUnmapped,
+    assertion_ref,
+    expand_assertion,
+)
 from powerforge_extraction.response_diagnostics import validation_issues
 from powerforge_extraction.stage_contracts import (
     ATTRIBUTE_VERSION,
+    MAX_ATTRIBUTE_ASSERTIONS,
+    MAX_RAW_ASSERTIONS,
     MAX_RESPONSE_BYTES,
     AttributeRequest,
     AttributeResponse,
@@ -23,8 +35,12 @@ _REF = TypeAdapter(Ref)
 
 
 class AttributeEnvelope(Contract):
-    attributes: list[object] = Field(max_length=512)
-    raw_unmapped: list[object] = Field(max_length=16)
+    attributes: list[object] = Field(max_length=MAX_ATTRIBUTE_ASSERTIONS)
+    raw_unmapped: list[object] = Field(max_length=MAX_RAW_ASSERTIONS)
+
+
+class CompactEnvelope(AttributeEnvelope):
+    raw_unmapped: list[object] = Field(max_length=RAW_RECEIVE_LIMIT)
 
 
 @dataclass(frozen=True)
@@ -41,6 +57,7 @@ class AttributeAdmission:
     result: AttributeResponse | None = None
     rejected: tuple[RejectedAssertion, ...] = ()
     fatal: tuple[ValidationIssue, ...] = ()
+    overflow_indices: tuple[int, ...] = ()
 
     @property
     def accepted(self):
@@ -102,8 +119,9 @@ def admit_attributes(request: AttributeRequest, raw: bytes) -> AttributeAdmissio
         return AttributeAdmission(
             fatal=(ValidationIssue(category="JSON", error_type="invalid_json_structure"),)
         )
+    compact = request.output_version == OUTPUT_VERSION
     try:
-        envelope = AttributeEnvelope.model_validate(value)
+        envelope = (CompactEnvelope if compact else AttributeEnvelope).model_validate(value)
     except ValidationError as error:
         return AttributeAdmission(fatal=validation_issues(error))
     items = [
@@ -115,6 +133,9 @@ def admit_attributes(request: AttributeRequest, raw: bytes) -> AttributeAdmissio
     refs = set()
     identified = []
     for group, index, item in items:
+        if compact:
+            identified.append((group, index, item, assertion_ref(group, index)))
+            continue
         try:
             ref = (
                 _REF.validate_python(item.get("local_ref"), strict=True)
@@ -141,6 +162,7 @@ def admit_attributes(request: AttributeRequest, raw: bytes) -> AttributeAdmissio
     attributes = []
     raw_unmapped = []
     rejected = []
+    overflow = []
     for group, index, item, ref in identified:
         path = (group, index)
         try:
@@ -160,23 +182,49 @@ def admit_attributes(request: AttributeRequest, raw: bytes) -> AttributeAdmissio
                     if item["origin"] == "INFERRED"
                     else RegistryAssertion
                 )
+                if compact:
+                    compact_model = {
+                        RawUnmappedAssertion: CompactUnmapped,
+                        InferredAssertion: CompactInferred,
+                        RegistryAssertion: CompactExtracted,
+                    }[model]
+                    compact_item = compact_model.model_validate_json(
+                        json.dumps(item, allow_nan=False)
+                    )
+                    item = expand_assertion(compact_item, ref)
                 # JSON mode preserves strict tuple and exact-decimal wire semantics.
                 assertion = model.model_validate_json(json.dumps(item, allow_nan=False))
                 _validate_persistable_strings(assertion.model_dump(mode="json"))
                 if group == "raw_unmapped":
-                    raw_unmapped.append(assertion)
+                    if compact and len(raw_unmapped) == MAX_RAW_ASSERTIONS:
+                        overflow.append(index)
+                    else:
+                        raw_unmapped.append(assertion)
                 else:
                     attributes.append(assertion)
                 continue
         except ValidationError as error:
             issues = tuple(
-                issue.model_copy(update={"path": (*path, *issue.path)[:8]})
+                issue.model_copy(
+                    update={
+                        "path": (
+                            *path,
+                            *(
+                                tuple(PROVIDER_NAMES.get(part, part) for part in issue.path)
+                                if compact
+                                else issue.path
+                            ),
+                        )[:8]
+                    }
+                )
                 for issue in validation_issues(error)
             )
         except ValueError:
             issues = (ValidationIssue(category="SCHEMA", error_type="schema_invalid", path=path),)
         rejected.append(RejectedAssertion(group, index, ref, issues))
-    admission = AttributeAdmission(received=len(items), rejected=tuple(rejected))
+    admission = AttributeAdmission(
+        received=received, rejected=tuple(rejected), overflow_indices=tuple(overflow)
+    )
     if items and len(rejected) == len(items):
         return replace(
             admission,

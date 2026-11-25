@@ -459,13 +459,19 @@ def sources(reader, run_id):
         .order_by(DocumentPage.page_number)
     )
     counts = {
-        page_id: dict(received=received, accepted=accepted, quarantined=quarantined)
-        for page_id, received, accepted, quarantined in reader.session.execute(
+        page_id: dict(
+            received=received,
+            accepted=accepted,
+            quarantined=quarantined,
+            overflowed=overflowed,
+        )
+        for page_id, received, accepted, quarantined, overflowed in reader.session.execute(
             select(
                 ResponseAudit.document_page_id,
                 ResponseAudit.received,
                 ResponseAudit.accepted,
                 ResponseAudit.quarantined,
+                func.cardinality(ResponseAudit.overflow_indices),
             )
             .join(StageResult, StageResult.work_unit_id == ResponseAudit.work_unit_id)
             .where(ResponseAudit.run_id == run_id)

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, StrictBool, StrictInt, StrictStr
+from pydantic import BaseModel, Field, StrictBool, StrictInt, StrictStr
 from sqlalchemy import text
 
 from powerforge_extraction.performance import AttemptPerformance
@@ -27,6 +27,8 @@ class Attempt(BaseModel):
     received: int | None
     accepted: int | None
     quarantined: int | None
+    overflowed: int | None = None
+    output_version: str | None = None
     output_bytes: int | None
     output_sha256: str | None
     expires_at: datetime | None
@@ -67,6 +69,7 @@ class AttemptDetail(BaseModel):
     schema_version: str | None
     prompt_version: str | None
     rejections: list[dict]
+    overflow_indices: list[int] = Field(default_factory=list)
     fatal: list[dict]
     validated: dict | None
     candidates: list[PublishedCandidate]
@@ -81,10 +84,12 @@ r.provider, r.model, CASE
     WHEN a.work_unit_id IS NULL THEN NULL
     WHEN a.received > 0 AND a.received = a.quarantined THEN 'all_quarantined'
     WHEN jsonb_array_length(a.fatal_diagnostics) > 0 THEN 'fatal'
-    WHEN a.quarantined > 0 THEN 'partial'
+    WHEN a.quarantined > 0 OR cardinality(a.overflow_indices) > 0 THEN 'partial'
     WHEN a.received = 0 THEN 'empty'
     ELSE 'validated' END AS validation,
-a.received, a.accepted, a.quarantined, a.output_bytes, a.output_sha256, a.expires_at,
+a.received, a.accepted, a.quarantined, cardinality(a.overflow_indices) AS overflowed,
+coalesce(a.output_version,u.execution_metadata->>'attribute_output_version') AS output_version,
+a.output_bytes, a.output_sha256, a.expires_at,
 (a.expires_at > statement_timestamp()) AS retained,
 c.duration_ms, c.input_tokens, c.output_tokens, c.cached_input_tokens,
 c.estimated_cost_usd::text AS cost, c.pricing_basis,
@@ -141,6 +146,7 @@ def attempt_detail(engine, attempt_id):
     c.schema_version, c.prompt_version, s.payload AS validated, u.performance,
     coalesce(a.attribute_reasoning_effort, u.execution_metadata->>'attribute_reasoning_effort')
         AS requested_reasoning_effort,
+    coalesce(a.overflow_indices,ARRAY[]::integer[]) AS overflow_indices,
     coalesce(a.rejections,'[]'::jsonb) AS rejections,
     coalesce(a.fatal_diagnostics,c.validation_diagnostics,'[]'::jsonb) AS fatal
     {_JOINS} LEFT JOIN extraction_stage_results s ON s.work_unit_id=u.id
@@ -181,6 +187,7 @@ def attempt_detail(engine, attempt_id):
         schema_version=row["schema_version"],
         prompt_version=row["prompt_version"],
         fatal=row["fatal"],
+        overflow_indices=row["overflow_indices"],
         rejections=[
             {k: item[k] for k in ("collection", "index", "issues")} for item in row["rejections"]
         ],

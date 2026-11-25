@@ -87,6 +87,7 @@ class AssertionCounts(BaseModel):
     received: int
     accepted: int
     quarantined: int
+    overflowed: int = 0
 
 
 class AssertionValidation(BaseModel):

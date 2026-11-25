@@ -619,7 +619,7 @@ describe("DocumentViewer", () => {
     expect(nav.push.mock.lastCall?.[0]).toContain(`candidate=${valueId}`);
   });
 
-  it("keeps a selected historical run fixed after current results arrive", async () => {
+  it.each([0, 1])("keeps a selected historical run fixed with %i overflowed", async (overflowed) => {
     const historical = "10000000-0000-4000-8000-000000000001";
     const latest = "20000000-0000-4000-8000-000000000002";
     const run = { id: latest, status: "COMPLETED" as const, processing_run_id: "processing", profile_key: "phase-6r", created_at: "2026-01-20T12:00:00Z" };
@@ -632,16 +632,18 @@ describe("DocumentViewer", () => {
       page_id: "page-one", page_number: 1, page_image_id: "pinned-image",
       prepared_result_id: "prep", spatial_result_id: "layout", layout_producer_run_id: "producer",
       prepared_manifest_hash: "hash", spatial_manifest_hash: "hash", page_context_hash: "page-hash",
-      assertion_counts: { received: 5, accepted: 3, quarantined: 2 },
+      assertion_counts: { received: 5 + overflowed, accepted: 3, quarantined: 2, overflowed },
     }] });
     nav.search = `mode=evidence&extractionRun=${historical}`;
     renderViewer();
     expect(await screen.findByText("No candidates match these filters.")).toBeVisible();
     expect(getGroups).toHaveBeenCalledWith(expect.anything(), historical, expect.anything(), null, expect.anything());
-    expect(await screen.findByText(/3 of 5 assertions passed schema validation/)).toHaveTextContent("2 quarantined assertions");
+    const summary = overflowed ? /3 of 6 assertions were accepted/ : /3 of 5 assertions passed schema validation/;
+    expect(await screen.findByText(summary)).toHaveTextContent("2 quarantined assertions");
+    if (overflowed) expect(screen.getByText(/1 raw-unmapped assertion exceeded/)).toBeVisible();
   });
 
-  it("opens run details while candidate publication is unavailable", async () => {
+  it.each([0, 1])("opens run details with %i overflowed and candidates unavailable", async (overflowed) => {
     const user = userEvent.setup();
     const historical = "10000000-0000-4000-8000-000000000001";
     const run = {
@@ -661,7 +663,7 @@ describe("DocumentViewer", () => {
         latency_ms: 2000, stage_outcome: "RESULT", result_sha256: "hash", usage: null,
         estimated_cost: null, validation_diagnostics: [], stage_diagnostics: [],
         assertion_validation: {
-          state: "PARTIALLY_VALIDATED", counts: { received: 2, accepted: 1, quarantined: 1 },
+          state: "PARTIALLY_VALIDATED", counts: { received: 2 + overflowed, accepted: 1, quarantined: 1, overflowed },
           rejections: [{ category: "FIELD_CONSTRAINT", error_type: "string_too_short", path: ["attributes", 0, "raw_value"] }],
         },
       }], coverage: { required_units: 1, completed_required_units: 1 },
@@ -676,7 +678,9 @@ describe("DocumentViewer", () => {
     expect(await screen.findByRole("region", { name: "Selected extraction run" })).toBeVisible();
     expect(screen.queryByRole("button", { name: "Browse candidates" })).toBeNull();
     expect(screen.getByText("Partially validated")).toBeVisible();
-    expect(screen.getByText("2 received · 1 schema-valid · 1 quarantined")).toBeVisible();
+    expect(screen.getByText(overflowed
+      ? "3 received · 1 accepted · 1 quarantined · 1 above the raw-unmapped limit"
+      : "2 received · 1 schema-valid · 1 quarantined")).toBeVisible();
     await user.click(screen.getByText("Quarantined assertions"));
     expect(screen.getByText(/attributes.0.raw_value/)).toBeVisible();
   });

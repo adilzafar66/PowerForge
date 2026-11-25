@@ -561,15 +561,23 @@ def test_unified_operation_finishes_with_immutable_page_results(operation_contex
     assert status["extraction"]["effective_result"]["id"] == str(run_id)
 
 
-@pytest.mark.parametrize("cancel", [False, True])
+@pytest.mark.parametrize(
+    "cancel,output_version",
+    [
+        (False, "legacy-v7"),
+        (True, "legacy-v7"),
+        (False, "compact-assertions-v1"),
+    ],
+)
 def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
-    operation_context, cancel
+    operation_context, cancel, output_version
 ):
     from powerforge_ai.extraction import ErrorCode, ProviderFailure
     from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
 
     ctx = operation_context
     ctx["settings"].extraction_attribute_prompt_variant = "core-catalog-v1"
+    ctx["settings"].extraction_attribute_output_version = output_version
     source = new_source(ctx, "retry.pdf")
     preparation(ctx, source)
     _, body = reviewed(ctx, [source])
@@ -630,6 +638,9 @@ def test_attribute_retry_reuses_recognition_and_cancellation_fences_result(
     if cancel:
         return
     ctx["settings"].extraction_attribute_prompt_variant = "legacy"
+    ctx["settings"].extraction_attribute_output_version = (
+        "compact-assertions-v1" if output_version == "legacy-v7" else "legacy-v7"
+    )
     (target,) = detail_operation(ctx, operation_id)["items"][0]["extraction"]["retry_targets"]
     target.pop("page_number")
     target.pop("unknown_provider_outcome")
@@ -1075,20 +1086,30 @@ def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operat
 
 
 @pytest.mark.parametrize(
-    "input_version,prompt_variant",
+    "input_version,prompt_variant,output_version",
     [
-        ("compact-page-v1", "legacy"),
-        ("compact-page-v2", "legacy"),
-        ("readable-hybrid-v1", "legacy"),
-        ("image-only-v1", "legacy"),
-        ("readable-text-v1", "legacy"),
-        ("compact-page-v1", "core-v1"),
-        ("compact-page-v1", "core-catalog-v1"),
-        ("readable-text-v1", "core-catalog-v1"),
+        (input_version, "core-catalog-v1", "compact-assertions-v1")
+        for input_version in (
+            "compact-page-v1",
+            "compact-page-v2",
+            "readable-hybrid-v1",
+            "image-only-v1",
+            "readable-text-v1",
+        )
+    ]
+    + [
+        ("compact-page-v1", "legacy", "legacy-v7"),
+        ("compact-page-v2", "legacy", "legacy-v7"),
+        ("readable-hybrid-v1", "legacy", "legacy-v7"),
+        ("image-only-v1", "legacy", "legacy-v7"),
+        ("readable-text-v1", "legacy", "legacy-v7"),
+        ("compact-page-v1", "core-v1", "legacy-v7"),
+        ("compact-page-v1", "core-catalog-v1", "legacy-v7"),
+        ("readable-text-v1", "core-catalog-v1", "legacy-v7"),
     ],
 )
 def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
-    operation_context, monkeypatch, input_version, prompt_variant
+    operation_context, monkeypatch, input_version, prompt_variant, output_version
 ):
     from datetime import UTC, datetime, timedelta
     from hashlib import sha256
@@ -1099,6 +1120,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
     from extraction_worker.read_response_audit import read_audit
     from powerforge_document_processing.storage import InMemoryObjectStorage
     from powerforge_extraction.compact_context import reading_rows
+    from powerforge_extraction.compact_output import OUTPUT_VERSION, compact_assertion
     from powerforge_extraction.controls import UnitExecution
     from powerforge_extraction.extraction_profile import stage_request_hash
     from powerforge_extraction.identities import canonical_json, identity_hash
@@ -1109,11 +1131,13 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
     from powerforge_extraction.stage_execution import StageResult
     from spatial_layout_support import drawn_table
 
+    compact = output_version == OUTPUT_VERSION
     ctx = operation_context
     ctx["settings"].extraction_use_fake_provider = False
     ctx["settings"].extraction_external_enabled = True
     ctx["settings"].extraction_attribute_input_version = input_version
     ctx["settings"].extraction_attribute_prompt_variant = prompt_variant
+    ctx["settings"].extraction_attribute_output_version = output_version
     source = new_source(ctx, "mocked-live-schedule.pdf", drawn_table(nearby=True))
     _, run_id, units = admitted_page(ctx, source)
     calls = []
@@ -1223,6 +1247,18 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                         raw_value="second source reading",
                     ),
                 ]
+                if compact:
+                    payload["raw_unmapped"].extend(
+                        dict(
+                            payload["raw_unmapped"][0],
+                            local_ref=f"extra-{index}",
+                            raw_value=f"additional source reading {index}",
+                        )
+                        for index in range(15)
+                    )
+                    payload["raw_unmapped"] = [
+                        compact_assertion(item) for item in payload["raw_unmapped"]
+                    ]
             original = json.dumps(payload, indent=2)
             originals.append(original.encode())
             return SimpleNamespace(
@@ -1245,6 +1281,7 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         "core-catalog-v1" if prompt_variant == "legacy" else "legacy"
     )
     ctx["settings"].extraction_attribute_reasoning_effort = "low"
+    ctx["settings"].extraction_attribute_output_version = "legacy-v7" if compact else OUTPUT_VERSION
     ctx["settings"].extraction_attribute_input_version = (
         "compact-page-v1" if input_version == "compact-page-v2" else "compact-page-v2"
     )
@@ -1273,18 +1310,18 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         assert recognition.request_hash == identity_hash(calls[0])
         expected_digest = (
             stage_request_hash(canonical_json(calls[1]), "medium")
-            if input_version.startswith("compact-") and prompt_variant == "legacy"
+            if input_version.startswith("compact-") and prompt_variant == "legacy" and not compact
             else identity_hash(bodies[1])
         )
         assert attribute.request_hash == expected_digest
         assert attribute.request_hash != identity_hash(calls[1])
         assert recognition.diagnostics[0]["code"] == "UNKNOWN_READING"
-        assert attribute.diagnostics[0]["code"] == "INVALID_OWNER_REFERENCE"
+        assert any(item["code"] == "INVALID_OWNER_REFERENCE" for item in attribute.diagnostics)
         assert attribute.payload["raw_unmapped"][0]["equipment_ref"] == "foreign-owner"
         fragments = session.scalars(
             select(Fragment).where(Fragment.work_unit_id == units["ATTRIBUTE_EXTRACTION"])
         ).all()
-        assert len(fragments) == 2
+        assert len(fragments) == (16 if compact else 2)
         if input_version == "image-only-v1":
             assert all(
                 item.localization == "UNRESOLVED" and item.reason_code == "READING_NOT_EXPOSED"
@@ -1294,10 +1331,10 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
             assert all(
                 item.localization == "RESOLVED" and item.quote == "TX-1" for item in fragments
             )
-        assert [item["local_ref"] for item in attribute.payload["raw_unmapped"]] == [
-            "raw-1",
-            "raw-2",
-        ]
+        expected_refs = (
+            ["raw-0", *(f"raw-{i}" for i in range(2, 17))] if compact else ["raw-1", "raw-2"]
+        )
+        assert [item["local_ref"] for item in attribute.payload["raw_unmapped"]] == expected_refs
         metrics = session.get(ExtractionWorkUnit, units["ATTRIBUTE_EXTRACTION"]).performance
         assert metrics["provider_call_ms"] <= metrics["attempt_total_ms"]
         assert metrics["input_configuration"] == input_version
@@ -1314,8 +1351,23 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         assert delivery.provider_request_hash == retained.request_hash == attribute.request_hash
         assert retained.attribute_reasoning_effort == "medium"
         assert retained.output_sha256 == sha256(originals[1]).hexdigest()
-        assert (retained.received, retained.accepted, retained.quarantined) == (3, 2, 1)
-        assert retained.rejections[0]["local_ref_sha256"] == sha256(b"private-ref").hexdigest()
+        expected_counts = {
+            "received": 18 if compact else 3,
+            "accepted": 16 if compact else 2,
+            "quarantined": 1,
+            "overflowed": int(compact),
+        }
+        assert retained.received == expected_counts["received"]
+        assert retained.accepted == expected_counts["accepted"]
+        assert retained.quarantined == 1
+        assert retained.output_version == (OUTPUT_VERSION if compact else None)
+        assert retained.overflow_indices == ([17] if compact else [])
+        assert all(metrics[f"assertions_{key}"] == count for key, count in expected_counts.items())
+        assert metrics["output_version"] == output_version
+        assert (
+            retained.rejections[0]["local_ref_sha256"]
+            == sha256(b"raw-1" if compact else b"private-ref").hexdigest()
+        )
         engine = session.get_bind()
         audit = session.scalars(
             select(ExtractionAICall).where(ExtractionAICall.run_id == run_id)
@@ -1356,18 +1408,18 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
     assert attributes["status"] == "COMPLETED" and not attributes["retryable"]
     assert attributes["assertion_validation"] == {
         "state": "PARTIALLY_VALIDATED",
-        "counts": {"received": 3, "accepted": 2, "quarantined": 1},
+        "counts": expected_counts,
         "rejections": [
             {
                 "category": "FIELD_CONSTRAINT",
                 "error_type": "string_too_short",
-                "path": ["raw_unmapped", 1, "raw_value"],
+                "path": ["raw_unmapped", 1, "raw" if compact else "raw_value"],
             }
         ],
     }
     assert "private-ref" not in detail.text and "object_key" not in detail.text
     source_counts = client.get(f"{run_url}/sources").json()["items"][0]["assertion_counts"]
-    assert source_counts == {"received": 3, "accepted": 2, "quarantined": 1}
+    assert source_counts == expected_counts
     assert all(
         attempt["usage"] == {"input_tokens": 100, "output_tokens": 30} for attempt in attempts
     )
@@ -1833,6 +1885,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
         "wrong-dispatch-hash",
         "wrong-upstream-binding",
         "wrong-audit-effort",
+        "wrong-audit-output-version",
     ],
 )
 def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch, breakage):
@@ -1844,9 +1897,11 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
     from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
 
     ctx = operation_context
-    if breakage in {"missing-audit", "wrong-audit-effort"}:
+    if breakage in {"missing-audit", "wrong-audit-effort", "wrong-audit-output-version"}:
         ctx["settings"].extraction_use_fake_provider = False
         ctx["settings"].extraction_external_enabled = True
+    if breakage == "wrong-audit-output-version":
+        ctx["settings"].extraction_attribute_output_version = "compact-assertions-v1"
     audit_storage = InMemoryObjectStorage()
     with pymupdf.open(stream=native_pdf(), filetype="pdf") as page, pymupdf.open() as document:
         document.insert_pdf(page)
@@ -1911,6 +1966,10 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
             payload["attributes"].append(
                 dict(payload["attributes"][0], local_ref="invalid", raw_value="")
             )
+            if breakage == "wrong-audit-output-version":
+                from powerforge_extraction.compact_output import compact_assertion
+
+                payload["attributes"] = [compact_assertion(item) for item in payload["attributes"]]
             previous_output = AttributeOutput(
                 json.dumps(payload).encode(), ExecutionUsage(), request
             )
@@ -2021,17 +2080,21 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
 
     engine = ctx["factory"].kw["bind"]
 
-    if breakage == "wrong-audit-effort":
-        # Simulate an audit row with the correct dispatch digest but a different effort.
+    if breakage in {"wrong-audit-effort", "wrong-audit-output-version"}:
+        # The dispatch digest remains valid while another pinned identity is tampered with.
         from powerforge_extraction import response_audit
 
         real_add = response_audit.ResponseAudit
         seen = []
 
+        audit_field = (
+            "attribute_reasoning_effort" if breakage == "wrong-audit-effort" else "output_version"
+        )
+
         def build_audit(**metadata):
             if not seen:
-                metadata["attribute_reasoning_effort"] = "low"
-            seen.append(metadata["attribute_reasoning_effort"])
+                metadata[audit_field] = "low" if breakage == "wrong-audit-effort" else None
+            seen.append(metadata[audit_field])
             return real_add(**metadata)
 
         monkeypatch.setattr(response_audit, "ResponseAudit", build_audit)
@@ -2050,6 +2113,9 @@ def test_stage_publication_rolls_back_atomically(operation_context, monkeypatch,
     if breakage == "wrong-audit-effort":
         assert errors == ["Response audit differs from its pinned reasoning effort"]
         assert seen == ["low", "medium"]
+    if breakage == "wrong-audit-output-version":
+        assert errors == ["Response audit differs from its pinned output version"]
+        assert seen == [None, "compact-assertions-v1"]
     attempt_id = units[("ATTRIBUTE_EXTRACTION", 1)]
     if breakage == "missing-audit":
         # Commit rejected the result. The fenced failure transaction retained

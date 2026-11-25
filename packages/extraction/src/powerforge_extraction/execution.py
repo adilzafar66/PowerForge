@@ -150,6 +150,7 @@ def _execute_claim(claim, factory, storage, settings, provider_factory, audit_st
                     if isinstance(wire, AttributeRequest) and (
                         wire.attribute_description_version
                         != claim.profile.manifest["attribute_descriptions"]
+                        or wire.output_version != claim.profile.attribute_output_version
                         or request.input_version != wire.input_version
                         or ((request.image is None) != (wire.input_version == "readable-text-v1"))
                         or (
@@ -211,6 +212,11 @@ def _execute_claim(claim, factory, storage, settings, provider_factory, audit_st
                             if over_budget
                             else admit_attributes(wire, raw)
                         )
+                        if (performance := active_performance.get()) is not None:
+                            performance.assertions_received = admission.received
+                            performance.assertions_accepted = admission.accepted
+                            performance.assertions_quarantined = len(admission.rejected)
+                            performance.assertions_overflowed = len(admission.overflow_indices)
                         if retained is not None:
                             audit = (wire, retained, admission, request)
                         if admission.result is None:
