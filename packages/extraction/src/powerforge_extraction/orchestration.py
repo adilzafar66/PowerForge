@@ -369,24 +369,48 @@ class ExtractionCoordinator:
             queue_wait_ms,
         )
 
-    def _authorized(self, unit_id: UUID, token: UUID):
+    def _authorized(self, unit_id: UUID, token: UUID, *, action: str = "execution"):
         unit = self.session.get(ExtractionWorkUnit, unit_id)
         if unit is None:
+            logger.warning(
+                "extraction lease denied",
+                extra={
+                    "work_unit_id": str(unit_id),
+                    "lease_action": action,
+                    "lease_reason": "UNIT_MISSING",
+                },
+            )
             raise LeaseLost("Execution lease no longer owns this attempt")
         run = self._run(unit.run_id)
         unit = self.session.get(ExtractionWorkUnit, unit_id, populate_existing=True)
         delivery = self.session.get(UnitExecution, unit_id, populate_existing=True)
         control = self._execution(run.id)
         now = self.now()
-        if (
-            run.status != RS.RUNNING
-            or control.cancel_requested_at
-            or unit.status != US.RUNNING
-            or delivery is None
-            or delivery.token != token
-            or unit.lease_expires_at <= now
-            or delivery.hard_deadline_at <= now
-        ):
+        reason = None
+        if control.cancel_requested_at:
+            reason = "CANCELLED"
+        elif run.status != RS.RUNNING or unit.status != US.RUNNING:
+            reason = "INACTIVE"
+        elif delivery is None or delivery.token != token:
+            reason = "TOKEN_MISMATCH"
+        elif delivery.hard_deadline_at <= now:
+            reason = "HARD_DEADLINE"
+        elif unit.lease_expires_at <= now:
+            reason = "LEASE_EXPIRED"
+        if reason:
+            logger.warning(
+                "extraction lease denied",
+                extra={
+                    "work_unit_id": str(unit_id),
+                    "lease_action": action,
+                    "lease_reason": reason,
+                    "db_now": now.isoformat(),
+                    "heartbeat_at": unit.heartbeat_at.isoformat() if unit.heartbeat_at else None,
+                    "lease_expires_at": (
+                        unit.lease_expires_at.isoformat() if unit.lease_expires_at else None
+                    ),
+                },
+            )
             raise LeaseLost("Execution lease no longer owns this attempt")
         self.session.execute(
             text("SELECT set_config('powerforge.extraction_lease_token', :token, true)"),
@@ -396,7 +420,7 @@ class ExtractionCoordinator:
 
     def heartbeat(self, unit_id: UUID, token: UUID) -> bool:
         try:
-            run, unit, delivery = self._authorized(unit_id, token)
+            run, unit, delivery = self._authorized(unit_id, token, action="heartbeat")
         except LeaseLost:
             return False
         profile = read_profile(self._execution(run.id).configuration)
@@ -412,7 +436,7 @@ class ExtractionCoordinator:
         self, unit_id: UUID, token: UUID, request: ExtractionRequest | None = None
     ) -> None:
         """Persist the external-call boundary, with no transaction held over the call."""
-        run, unit, delivery = self._authorized(unit_id, token)
+        run, unit, delivery = self._authorized(unit_id, token, action="dispatch")
         if delivery.provider_started_at is not None:
             raise LeaseLost("This attempt already crossed the provider-call boundary")
         profile = read_profile(self._execution(run.id).configuration)
@@ -528,7 +552,7 @@ class ExtractionCoordinator:
         from powerforge_extraction.stage_execution import store_result, validate_plan
 
         with measure("db_publish"):
-            run, unit, delivery = self._authorized(unit_id, token)
+            run, unit, delivery = self._authorized(unit_id, token, action="publication")
             if isinstance(result, NoEligibleAttributes) != (delivery.provider_started_at is None):
                 raise ValueError("Stage outcome differs from the provider call boundary")
             if run.execution_purpose != "EXTRACTION":
@@ -602,7 +626,7 @@ class ExtractionCoordinator:
     ) -> None:
         from powerforge_extraction.response_audit import record_audit
 
-        run, unit, _ = self._authorized(unit_id, token)
+        run, unit, _ = self._authorized(unit_id, token, action="failure_settlement")
         profile = read_profile(self._execution(run.id).configuration)
         if audit is not None:
             record_audit(self.session, unit, *audit)

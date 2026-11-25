@@ -2398,3 +2398,123 @@ def test_diagnostic_timeout_uses_pinned_lease_and_worker_deadlines(operation_con
         assert coordinator.heartbeat(key, claim.token)
         assert unit.started_at < unit.lease_expires_at <= deadline
         assert 195 < execute_work_unit.soft_time_limit < execute_work_unit.time_limit
+
+
+@pytest.mark.parametrize("scenario", ["connection-recovers", "lease-expires", "run-lock"])
+def test_stage_two_heartbeat_during_provider_io(operation_context, monkeypatch, caplog, scenario):
+    from sqlalchemy.exc import OperationalError
+
+    from powerforge_document_processing.storage import InMemoryObjectStorage
+    from powerforge_extraction.response_audit import ResponseAudit
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
+
+    ctx = operation_context
+    settings = ctx["settings"]
+    settings.extraction_use_fake_provider = False
+    settings.extraction_lease_seconds = 3 if scenario == "run-lock" else 6
+    settings.extraction_max_attempts = 1
+    _, run_id, units = admitted_page(ctx, new_source(ctx, "heartbeat.pdf"))
+    attr_id = units["ATTRIBUTE_EXTRACTION"]
+    provider = FakeExtractionProvider("success")
+    audit_storage = InMemoryObjectStorage()
+
+    def execute(unit, adapter):
+        return execute_unit(
+            unit,
+            ctx["factory"],
+            ctx["storage"],
+            settings,
+            lambda _: adapter,
+            audit_storage=audit_storage,
+        )
+
+    assert execute(units["EQUIPMENT_RECOGNITION"], provider)
+
+    first_renewal = Event()
+    advance_clock = Event()
+    real_heartbeat = ExtractionCoordinator.heartbeat
+    real_now = ExtractionCoordinator.now
+
+    def heartbeat(self, unit_id, token):
+        if scenario == "connection-recovers" and unit_id == attr_id and not first_renewal.is_set():
+            first_renewal.set()
+            raise OperationalError("sensitive SQL", {}, ConnectionError("sensitive credential"))
+        return real_heartbeat(self, unit_id, token)
+
+    def db_now(self):
+        observed = real_now(self)
+        return observed + timedelta(seconds=7) if advance_clock.is_set() else observed
+
+    monkeypatch.setattr(ExtractionCoordinator, "heartbeat", heartbeat)
+    monkeypatch.setattr(ExtractionCoordinator, "now", db_now)
+
+    class Adapter:
+        def execute(self, request):
+            if scenario == "lease-expires":
+                advance_clock.set()
+            elif scenario == "run-lock":
+                with ctx["factory"]() as session:
+                    session.execute(
+                        select(ExtractionRun.id).where(ExtractionRun.id == run_id).with_for_update()
+                    )
+                    work = session.get(ExtractionWorkUnit, attr_id)
+                    deadline = monotonic() + 8
+                    while now(session) <= work.lease_expires_at:
+                        assert monotonic() < deadline
+                        sleep(0.05)
+            else:
+                assert first_renewal.wait(10)
+                deadline = monotonic() + 12
+                while monotonic() < deadline:
+                    with ctx["factory"]() as session:
+                        work = session.get(ExtractionWorkUnit, attr_id)
+                        if now(session) > work.started_at + timedelta(seconds=6):
+                            assert work.heartbeat_at > work.started_at
+                            assert work.lease_expires_at > now(session)
+                            break
+                    sleep(0.05)
+                else:
+                    pytest.fail("The initial lease period did not elapse during provider I/O")
+            return provider.execute(request)
+
+    completed = execute(attr_id, Adapter())
+    if scenario in {"lease-expires", "run-lock"}:
+        assert not completed
+        with ctx["factory"].begin() as session:
+            coordinator = ExtractionCoordinator(session, settings)
+            assert coordinator.reconcile() >= 1
+        assert any(
+            getattr(record, "lease_action", None) == "publication"
+            and getattr(record, "lease_reason", None) == "LEASE_EXPIRED"
+            and record.work_unit_id == str(attr_id)
+            for record in caplog.records
+        )
+    else:
+        assert completed
+        assert any(
+            record.message == "extraction heartbeat unavailable"
+            and record.work_unit_id == str(attr_id)
+            and record.error_class == "OperationalError"
+            for record in caplog.records
+        )
+        assert "sensitive" not in caplog.text
+    with ctx["factory"]() as session:
+        attempt = session.get(ExtractionWorkUnit, attr_id)
+        assert (session.get(StageResult, attr_id) is not None) is completed
+        assert (session.get(ResponseAudit, attr_id) is not None) is completed
+        if completed:
+            assert attempt.status == "COMPLETED"
+        else:
+            assert attempt.error_code == "EXTRACTION_PROVIDER_OUTCOME_UNKNOWN"
+            assert attempt.heartbeat_at == attempt.started_at
+            assert (
+                len(
+                    session.scalars(
+                        select(ExtractionWorkUnit).where(
+                            ExtractionWorkUnit.run_id == run_id,
+                            ExtractionWorkUnit.stage == "ATTRIBUTE_EXTRACTION",
+                        )
+                    ).all()
+                )
+                == 1
+            )

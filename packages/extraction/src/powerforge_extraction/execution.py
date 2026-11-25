@@ -39,8 +39,23 @@ logger = logging.getLogger(__name__)
 def heartbeats(factory: sessionmaker[Session], claim: Claim, settings: Settings) -> Iterator[None]:
     stop = Event()
 
+    interval = max(1, claim.profile.lease_seconds / 3)
+
     def maintain() -> None:
-        while not stop.wait(max(1, claim.profile.lease_seconds / 3)):
+        while True:
+            waiting_at = perf_counter_ns()
+            if stop.wait(interval):
+                return
+            started_at = perf_counter_ns()
+            scheduling_delay_ms = max(
+                0, (started_at - waiting_at) // 1_000_000 - int(interval * 1000)
+            )
+            details = {
+                "work_unit_id": str(claim.unit_id),
+                "heartbeat_schedule_delay_ms": scheduling_delay_ms,
+            }
+            if scheduling_delay_ms >= interval * 1000:
+                logger.warning("extraction heartbeat woke late", extra=details)
             try:
                 with factory.begin() as session:
                     if not ExtractionCoordinator(session, settings).heartbeat(
@@ -48,9 +63,30 @@ def heartbeats(factory: sessionmaker[Session], claim: Claim, settings: Settings)
                     ):
                         return
             except Exception as exc:
+                sqlstate = getattr(getattr(exc, "orig", None), "sqlstate", None)
                 logger.warning(
-                    "extraction heartbeat unavailable", extra={"error_class": type(exc).__name__}
+                    "extraction heartbeat unavailable",
+                    extra={
+                        **details,
+                        "error_class": type(exc).__name__,
+                        "sqlstate": (
+                            sqlstate
+                            if isinstance(sqlstate, str)
+                            and len(sqlstate) == 5
+                            and sqlstate.isascii()
+                            and sqlstate.isalnum()
+                            else None
+                        ),
+                        "heartbeat_db_ms": (perf_counter_ns() - started_at) // 1_000_000,
+                    },
                 )
+            else:
+                db_ms = (perf_counter_ns() - started_at) // 1_000_000
+                if db_ms >= interval * 1000:
+                    logger.warning(
+                        "extraction heartbeat database renewal was slow",
+                        extra={**details, "heartbeat_db_ms": db_ms},
+                    )
 
     thread = Thread(target=maintain, name="extraction-lease-heartbeat", daemon=True)
     thread.start()
