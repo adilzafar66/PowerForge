@@ -225,6 +225,7 @@ class ExtractionResponse[Result: BaseModel](BaseModel):
     model_config = ConfigDict(extra="forbid")
     result: Result
     usage: ExecutionUsage
+    request: ExtractionRequest | None = Field(default=None, exclude=True, repr=False)
 
 
 @dataclass(frozen=True)

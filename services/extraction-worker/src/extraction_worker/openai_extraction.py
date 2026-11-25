@@ -250,4 +250,4 @@ class OpenAIExtractionProvider:
                 usage,
                 diagnostics=validation_issues(exc),
             ) from None
-        return ExtractionResponse[model](result=result, usage=usage)
+        return ExtractionResponse[model](result=result, usage=usage, request=request)

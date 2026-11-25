@@ -1,6 +1,5 @@
 """Build requests from exact source artifacts and persist immutable stage results."""
 
-import json
 from typing import Literal
 from uuid import UUID
 
@@ -17,6 +16,7 @@ from powerforge_ai.extraction import (
     ProviderFailure,
 )
 from powerforge_extraction.compact_context import compact_page
+from powerforge_extraction.controls import UnitExecution
 from powerforge_extraction.extraction_profile import (
     BODY_DIGEST_VERSION,
     STAGES,
@@ -164,6 +164,12 @@ def provider_input(wire: RecognitionRequest | AttributeRequest | NoEligibleAttri
             result.update(consolidated_catalog(wire.attribute_catalog))
         return result
     payload = wire.model_dump(mode="json")
+    if isinstance(wire, RecognitionRequest):
+        for key in ("version", "stage", "page_context_hash"):
+            del payload[key]
+        for key in ("source_sha256", "image_sha256", "preparation_sha256", "layout_sha256"):
+            del payload["page"][key]
+        return payload
     if not isinstance(wire, AttributeRequest):
         return payload
 
@@ -354,14 +360,18 @@ def _build_request(unit, parent, owner, source, claim):
 
 def publication_request_hash(unit, wire, request):
     text = canonical_json(provider_input(wire))
-    if isinstance(wire, AttributeRequest) and (
-        wire.input_version in EXPERIMENTAL_INPUTS
-        or unit.execution_metadata.get("request_digest_version") == BODY_DIGEST_VERSION
+    if isinstance(wire, RecognitionRequest) or (
+        isinstance(wire, AttributeRequest)
+        and (
+            wire.input_version in EXPERIMENTAL_INPUTS
+            or unit.execution_metadata.get("request_digest_version") == BODY_DIGEST_VERSION
+        )
     ):
         if (
             request is None
             or request.work_unit_id != unit.id
-            or request.input_version != wire.input_version
+            or request.input_version
+            != getattr(wire, "input_version", LEGACY_ATTRIBUTE_INPUT_VERSION)
             or request.request_digest_version != BODY_DIGEST_VERSION
             or request.text != text
         ):
@@ -400,6 +410,11 @@ def store_result(session, unit, snapshot, wire, result, observations, request=No
         or skip != (not attribute_catalog(recognition_result(parent)))
     ):
         raise ValueError("Result differs from its committed recognition prerequisite")
+    request_hash = publication_request_hash(unit, wire, request)
+    if unit.stage == STAGES[0]:
+        delivery = session.get(UnitExecution, unit.id)
+        if delivery is None or delivery.provider_request_hash != request_hash:
+            raise ValueError("Recognition publication differs from the dispatched request")
     stage = StageResult(
         work_unit_id=unit.id,
         run_id=unit.run_id,
@@ -409,7 +424,7 @@ def store_result(session, unit, snapshot, wire, result, observations, request=No
         page_context_hash=result.page_context_hash,
         upstream_work_unit_id=parent.work_unit_id if parent else None,
         upstream_hash=parent.result_hash if parent else None,
-        request_hash=publication_request_hash(unit, wire, request),
+        request_hash=request_hash,
         result_hash=contract_hash(result),
         payload=result.model_dump(mode="json"),
         diagnostics=publication_diagnostics(
@@ -438,13 +453,7 @@ class FakeExtractionProvider:
             return AttributeOutput(
                 b'{"attributes":[],"raw_unmapped":[]}', ExecutionUsage(), request
             )
-        payload = {
-            "version": request.schema_version,
-            "stage": request.stage,
-        }
-        wire = json.loads(request.text)
-        payload["page_context_hash"] = wire["page_context_hash"]
-        payload["equipment"] = (
+        equipment = (
             [
                 dict(
                     local_ref="equipment-1",
@@ -461,6 +470,9 @@ class FakeExtractionProvider:
             else []
         )
         return ExtractionResponse[request.response_model](
-            result=request.response_model.model_validate_json(canonical_json(payload)),
+            result=request.response_model.model_validate_json(
+                canonical_json({"equipment": equipment})
+            ),
             usage=ExecutionUsage(),
+            request=request,
         )

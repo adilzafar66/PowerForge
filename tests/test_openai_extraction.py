@@ -27,7 +27,7 @@ from powerforge_shared.config import Settings
         ("envelope", "ENVELOPE", "invalid_envelope"),
         ("provider_schema", "ENVELOPE", "invalid_json_schema"),
         ("schema", "SCHEMA", "extra_forbidden"),
-        ("pattern", "FIELD_CONSTRAINT", "string_pattern_mismatch"),
+        ("pattern", "SCHEMA", "extra_forbidden"),
         ("cardinality", "FIELD_CONSTRAINT", "too_long"),
     ],
 )
@@ -36,21 +36,7 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
 ):
     settings = Settings(_env_file=None, extraction_external_enabled=True)
     profile = extraction_profile(settings)
-    payload = {
-        "version": stage_schema_version(stage),
-        "stage": stage,
-        "page_context_hash": "a" * 64,
-        **(
-            {"equipment": []}
-            if stage == STAGES[0]
-            else {
-                "attributes": [],
-                "raw_unmapped": [],
-            }
-        ),
-    }
-    if stage == STAGES[1]:
-        payload = {key: payload[key] for key in ("attributes", "raw_unmapped")}
+    payload = {"equipment": []} if stage == STAGES[0] else {"attributes": [], "raw_unmapped": []}
     secret = "CONFIDENTIAL SOURCE STRING"
     if outcome == "success" and stage == STAGES[1]:
         payload["attributes"] = [
@@ -132,7 +118,7 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
         if stage == STAGES[1]:
             assert set(schema_fields) == {"attributes", "raw_unmapped"}
         else:
-            assert "pattern" not in schema_fields["page_context_hash"]
+            assert set(schema_fields) == {"equipment"}
         if outcome == "timeout":
             raise httpx.ReadTimeout(secret, request=http_request)
         if outcome == "provider_schema":
@@ -192,6 +178,7 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
         stage=stage,
         response_model=RESPONSES[stage],
         reasoning_effort=profile.reasoning_effort_for(stage),
+        request_digest_version=profile.request_digest_for(stage),
     )
     with httpx.Client(transport=httpx.MockTransport(respond)) as http:
         sdk = openai.OpenAI(api_key="test", max_retries=0, http_client=http)
@@ -226,6 +213,7 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
         elif outcome == "success":
             response = provider.execute(request)
             assert response.result.model_dump(mode="json") == payload
+            assert response.request is request
             assert response.usage.output_tokens == 45
         else:
             with pytest.raises(ProviderFailure) as error:

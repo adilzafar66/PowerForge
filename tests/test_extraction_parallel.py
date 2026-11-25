@@ -54,7 +54,7 @@ class ProviderFixture:
         wire = json.loads(body["input"][0]["content"][0]["text"])
         owner = wire["page"]["owner"]
         page = owner["page_number"]
-        stage = wire["stage"]
+        stage = body["text"]["format"]["name"].upper()
         with self.lock:
             call = {
                 "id": unit_id,
@@ -68,9 +68,6 @@ class ProviderFixture:
         if status == 200:
             if stage == RECOGNITION:
                 output = {
-                    "stage": stage,
-                    "version": wire["version"],
-                    "page_context_hash": wire["page_context_hash"],
                     "equipment": [
                         {
                             "local_ref": f"equipment-{page}",

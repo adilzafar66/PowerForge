@@ -473,7 +473,7 @@ class ExtractionCoordinator:
                 or request.input_version != profile.manifest["attribute_input_version"]
             ):
                 raise ValueError("Stage 2 requires a complete provider input")
-            delivery.provider_request_hash = dispatch_hash(request)
+        delivery.provider_request_hash = dispatch_hash(request)
         delivery.provider_started_at = self.now()
         self.session.flush()
 

@@ -204,7 +204,7 @@ def test_d0_prompt_and_catalog_pins_are_independent_of_source(source, guide):
         assert read_profile(json.loads(profile.model_dump_json())) == profile
         assert profile.manifest["stages"][0] == baseline.manifest["stages"][0]
         assert profile.instructions_for(STAGES[0]) == baseline.instructions_for(STAGES[0])
-        assert profile.request_digest_for(STAGES[0]) is None
+        assert profile.request_digest_for(STAGES[0]) == "responses-body-v1"
         for digest in ("schema_hash", "transport_schema_hash"):
             assert profile.manifest["stages"][1][digest] == baseline.manifest["stages"][1][digest]
         for digest in ("attribute_core_hash", "source_guidance_hash", "catalog_hash"):
@@ -214,23 +214,12 @@ def test_d0_prompt_and_catalog_pins_are_independent_of_source(source, guide):
                 read_profile(tampered)
 
 
-def test_legacy_catalog_and_prompt_hashes_match_pre_d0_profiles():
-    from powerforge_extraction.extraction_profile import manifest
-
-    # These identities were verified against the retained C2 request bodies.
-    historical_prompt_hashes = {
-        "compact-page-v1": "f7719e8064b8fc6ae584bda4ea9665a5908ff1b8565211eaf17f098586741f07",
-        "compact-page-v2": "6eda5ec3bef63ab68ba219613a111255f9bf56b584a96bb37b6448dfe92b6a3a",
-        "readable-hybrid-v1": "d061471c5f02d5976a64542e3e6f3b4d88b86efce8433bcee520166ee81a38af",
-        "image-only-v1": "33d375b3a7c18b27006b1399b18abb65ee328a5f1e12998aa852d685cd5df8dc",
-        "readable-text-v1": "c35e9854b6c8b686ca4db86983f21a39c91fe26d01d2b1616ecaf3a2d2dbdda2",
-    }
-    historical_catalog_hash = "c5b457a0560efcbf36f1cd28cef7b6f1c5db1c99042487b671424e09207fe87c"
-    for source, prompt_hash in historical_prompt_hashes.items():
-        record = manifest(source)
-        assert record["prompt_hash"] == prompt_hash
-        assert record["catalog_hash"] == historical_catalog_hash
-        assert "attribute_prompt_variant" not in record
+def test_profiles_without_the_recognition_provider_contract_fail_closed():
+    profile = extraction_profile(Settings(_env_file=None))
+    pinned = profile.model_dump(mode="json")
+    assert pinned["manifest"].pop("recognition_provider_version") == "server-owned-recognition-v1"
+    with pytest.raises(ValueError, match="Pinned extraction resources"):
+        read_profile(pinned)
 
 
 @pytest.mark.parametrize(

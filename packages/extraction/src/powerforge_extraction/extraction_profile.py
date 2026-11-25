@@ -20,7 +20,7 @@ from powerforge_extraction.stage_contracts import (
     MAX_IMAGE_BYTES,
     MAX_IMAGE_PIXELS,
     AttributeProviderResponse,
-    RecognitionResponse,
+    RecognitionProviderResponse,
     attribute_catalog,
     consolidated_catalog,
     equipment_catalog,
@@ -37,7 +37,7 @@ from powerforge_shared.config import (
 KEY = "phase-6r"
 PROFILE_VERSION = "phase-6r-profile-v1"
 STAGES = ("EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION")
-RESPONSES = dict(zip(STAGES, (RecognitionResponse, AttributeProviderResponse), strict=True))
+RESPONSES = dict(zip(STAGES, (RecognitionProviderResponse, AttributeProviderResponse), strict=True))
 SERVER_OWNED_RESPONSES = {
     OUTPUT_VERSION: (CompactAttributeResponse, "compact-expansion-v1"),
     SERVER_OWNED_OUTPUT_VERSION: (ServerOwnedAttributeResponse, "insert-assertion-identifier-v1"),
@@ -49,7 +49,7 @@ PROMPTS = {
     .joinpath(f"prompts/{filename}")
     .read_text(encoding="utf-8")
     for stage, filename in zip(
-        STAGES, ("equipment_recognition_v3.txt", "attribute_extraction_v9.txt"), strict=True
+        STAGES, ("equipment_recognition_v4.txt", "attribute_extraction_v9.txt"), strict=True
     )
 }
 
@@ -222,7 +222,11 @@ class ExtractionProfile(ExecutionProfile):
         return RESPONSES.get(stage)
 
     def request_digest_for(self, stage: str) -> str | None:
-        return self.manifest.get("request_digest_version") if stage == STAGES[1] else None
+        return (
+            self.manifest.get("request_digest_version")
+            if stage == STAGES[1]
+            else BODY_DIGEST_VERSION
+        )
 
     @property
     def identity_hash(self):
@@ -343,6 +347,7 @@ def manifest(
     return {
         "version": SCHEMA_VERSION,
         "registry_version": REGISTRY.registry_version,
+        "recognition_provider_version": "server-owned-recognition-v1",
         "publication_version": PUBLICATION_VERSION,
         "unit_interpretation_version": UNIT_INTERPRETATION_VERSION,
         "consistency_version": CONSISTENCY_VERSION,

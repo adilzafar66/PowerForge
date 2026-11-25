@@ -1070,7 +1070,7 @@ def test_provider_projection_preserves_pinned_prose_and_schedule_readings(operat
     first, second = calls
     assert {"upstream_hash", "page_context_hash"}.isdisjoint(second)
     assert first["page"]["owner"] == second["page"]["owner"]
-    assert first["page"]["layout_sha256"] == second["page"]["layout_sha256"]
+    assert "layout_sha256" not in first["page"]
     page = second["page"]
     table_refs = {
         ref
@@ -1156,11 +1156,8 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
                 {k: v for k, v in kwargs.items() if k not in ("timeout", "extra_headers")}
             )
             payload = {}
-            if wire.get("stage") == "EQUIPMENT_RECOGNITION":
+            if kwargs["text"]["format"]["name"] == "equipment_recognition":
                 assert "reasoning" not in kwargs
-                payload.update(
-                    {key: wire[key] for key in ("version", "stage", "page_context_hash")}
-                )
                 payload["equipment"] = [
                     {
                         "local_ref": "local-1",
@@ -1315,7 +1312,11 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
         }
         assert attribute.page_context_hash == recognition.page_context_hash
         assert attribute.upstream_hash == recognition.result_hash
-        assert recognition.request_hash == identity_hash(calls[0])
+        assert {"version", "stage", "page_context_hash"}.isdisjoint(calls[0])
+        assert {"source_sha256", "image_sha256", "preparation_sha256", "layout_sha256"}.isdisjoint(
+            calls[0]["page"]
+        )
+        assert recognition.request_hash == identity_hash(bodies[0])
         expected_digest = (
             stage_request_hash(canonical_json(calls[1]), "medium")
             if input_version.startswith("compact-")
@@ -1453,8 +1454,7 @@ def test_invalid_response_audit_is_fenced_and_redacted(operation_context, caplog
     recognition = units["EQUIPMENT_RECOGNITION"]
 
     def create(**kwargs):
-        wire = json.loads(kwargs["input"][0]["content"][0]["text"])
-        payload = {key: wire[key] for key in ("version", "stage", "page_context_hash")}
+        payload = {}
         item = dict(
             local_ref="valid-ref",
             source_description=private,
@@ -1514,6 +1514,37 @@ def test_invalid_response_audit_is_fenced_and_redacted(operation_context, caplog
     assert private not in detail.text and private not in caplog.text
 
 
+def test_recognition_rejects_response_bound_to_a_different_work_unit(operation_context):
+    from powerforge_extraction.models import ExtractionAICall
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
+
+    class ForeignResponseProvider:
+        def execute(self, request):
+            foreign_request = request.model_copy(update={"work_unit_id": uuid4()})
+            return FakeExtractionProvider("success").execute(foreign_request)
+
+    ctx = operation_context
+    _, _, units = admitted_page(ctx, new_source(ctx, "recognition-binding.pdf"))
+    recognition = units["EQUIPMENT_RECOGNITION"]
+    assert execute_unit(
+        recognition,
+        ctx["factory"],
+        ctx["storage"],
+        ctx["settings"],
+        lambda _: ForeignResponseProvider(),
+    )
+    with ctx["factory"]() as session:
+        assert session.get(UnitExecution, recognition).provider_request_hash is not None
+        assert session.get(StageResult, recognition) is None
+        call = session.scalar(
+            select(ExtractionAICall).where(ExtractionAICall.work_unit_id == recognition)
+        )
+        assert call.validation_diagnostics[0]["error_type"] == "request_binding_mismatch"
+        assert session.get(ExtractionWorkUnit, units["ATTRIBUTE_EXTRACTION"]).error_code == (
+            "PREREQUISITE_FAILED"
+        )
+
+
 def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
     from powerforge_ai.extraction import AttributeOutput, ExecutionUsage, ExtractionResponse
     from powerforge_extraction.publication_records import Candidate, Fragment
@@ -1536,7 +1567,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
         def execute(self, request):
             wire = json.loads(request.text)
             readings = wire["page"]["readings"]
-            if wire["stage"] == "ATTRIBUTE_EXTRACTION":
+            if request.stage == "ATTRIBUTE_EXTRACTION":
                 readings = [
                     dict(zip(readings["columns"], row, strict=True)) for row in readings["rows"]
                 ]
@@ -1544,10 +1575,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
             header = next(item["reading_ref"] for item in readings if item["text"] == "(KV)")
             value = next(item["reading_ref"] for item in readings if item["text"] == "600")
             response = {}
-            if wire["stage"] == "EQUIPMENT_RECOGNITION":
-                response.update(
-                    {key: wire[key] for key in ("version", "stage", "page_context_hash")}
-                )
+            if request.stage == "EQUIPMENT_RECOGNITION":
                 response["equipment"] = [
                     dict(
                         local_ref=f"e{index}",
@@ -1658,6 +1686,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
             return ExtractionResponse[request.response_model](
                 result=request.response_model.model_validate_json(json.dumps(response)),
                 usage=ExecutionUsage(),
+                request=request,
             )
 
     def browse(**params):
@@ -2385,6 +2414,7 @@ def test_typed_proposals_survive_publication_read_and_search(operation_context):
             return ExtractionResponse[request.response_model](
                 result=request.response_model.model_validate_json(json.dumps(payload)),
                 usage=ExecutionUsage(),
+                request=request,
             )
 
     for unit_id in (units["EQUIPMENT_RECOGNITION"], units["ATTRIBUTE_EXTRACTION"]):

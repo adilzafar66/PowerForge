@@ -386,6 +386,21 @@ The local admission accepted 286 control assertions and 241 two-slot assertions,
 
 **Live gate status:** The run demonstrated real two-slot overlap, higher completed-page throughput and intact publication fencing. The partial two-slot outcome leaves the live gate open and the four-slot arm pending. The recognition validation failure and recovery queue delay are separate findings. This benchmark made no change to the extraction pipeline, concurrency defaults, prompts, evidence rules or timeout policies.
 
+### Stage 1 server-owned response metadata
+
+The new `server-owned-recognition-v1` profile uses `equipment_recognition_v4.txt` and an equipment-only provider response. The prompt drops the instruction to copy execution metadata. PowerForge verifies the pinned source and response-to-request binding, then constructs the existing internal recognition result with the server-owned version, stage and page-context hash. Publication compares the complete request digest to the dispatch receipt within the existing lease-fenced transaction. Equipment observations and their identifiers, Stage 2 prerequisite semantics and evidence handling retain their existing contracts.
+
+Previously pinned profiles fail validation when resumed under this implementation. Completed records retain their original identities and payloads. Raw Stage 1 output retention remains a separate decision. Verification for this correction is offline, and the four-slot live arm remains pending.
+
+The focused suite passed **268 tests** on fresh disposable PostgreSQL after `alembic -c database/alembic.ini upgrade head`, with Redis and MinIO for the prefork integration cases. The opt-in repeated throughput benchmark was skipped. The suite covered malformed and duplicate observations, server-owned envelope construction, request identity, source binding, the Stage 2 prerequisite, and lease-fenced publication. Ruff and `git diff --check` passed.
+
+```sh
+RUN_INTEGRATION=1 pytest -q -rs tests/test_extraction_stage_contracts.py \
+  tests/test_openai_extraction.py tests/test_extraction_profile.py \
+  tests/test_engineering_execution_profiles.py tests/test_extraction_operations.py \
+  tests/test_extraction_schema.py tests/test_extraction_parallel.py
+```
+
 
 ## 11. Milestone F — Timeouts, failure economics, and performance debugger
 

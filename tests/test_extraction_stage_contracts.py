@@ -86,11 +86,8 @@ def recognition_request(request):
     )
 
 
-def recognition_envelope(request):
+def recognition_envelope():
     return {
-        "version": VERSION,
-        "stage": "EQUIPMENT_RECOGNITION",
-        "page_context_hash": request.page_context_hash,
         "equipment": [
             {
                 "local_ref": f"equipment-{index}",
@@ -117,7 +114,7 @@ def recognition_envelope(request):
 @pytest.fixture
 def attribute_request(recognition_request):
     request = recognition_request
-    upstream = parse_response(request, json.dumps(recognition_envelope(request)).encode())
+    upstream = parse_response(request, json.dumps(recognition_envelope()).encode())
     return AttributeRequest(
         version=ATTRIBUTE_VERSION,
         stage="ATTRIBUTE_EXTRACTION",
@@ -353,14 +350,18 @@ def test_inference_wire_has_no_transcription_and_allows_empty_evidence(
             parse_response(attribute_request, json.dumps(attribute_envelope).encode())
 
 
-@pytest.mark.parametrize("violation", ["duplicate", "page", "tag", "truncated", "capacity"])
+@pytest.mark.parametrize(
+    "violation", ["duplicate", "page", "reference", "tag", "truncated", "capacity"]
+)
 def test_bad_envelopes_fail_closed(recognition_request, violation):
     request = recognition_request
-    envelope = recognition_envelope(request)
+    envelope = recognition_envelope()
     if violation == "duplicate":
         envelope["equipment"].append(envelope["equipment"][0])
     elif violation == "page":
         envelope["page_context_hash"] = "8" * 64
+    elif violation == "reference":
+        envelope["equipment"][0]["local_ref"] = "bad reference"
     elif violation == "tag":
         envelope["equipment"][0]["tag"] = None
     payload = json.dumps(envelope).encode()
@@ -370,21 +371,36 @@ def test_bad_envelopes_fail_closed(recognition_request, violation):
         payload = b" " * (MAX_RESPONSE_BYTES + 1)
     with pytest.raises(ValueError) as error:
         parse_response(request, payload)
-    if violation != "truncated":
+    if violation == "page":
+        assert error.value.errors()[0]["type"] == "extra_forbidden"
+    elif violation == "reference":
+        assert error.value.errors()[0]["loc"] == ("equipment", 0, "local_ref")
+    elif violation != "truncated":
         assert (
             error.value.issue.error_type
             == {
                 "duplicate": "duplicate_reference",
-                "page": "page_identity_mismatch",
                 "tag": "invalid_tag_state",
                 "capacity": "response_byte_limit",
             }[violation]
         )
 
 
+def test_recognition_adds_server_metadata_without_changing_equipment(recognition_request):
+    request = recognition_request
+    envelope = recognition_envelope()
+    result = parse_response(request, json.dumps(envelope).encode())
+    assert result.model_dump(mode="json") == {
+        **envelope,
+        "version": request.version,
+        "stage": request.stage,
+        "page_context_hash": request.page_context_hash,
+    }
+
+
 def test_legend_only_and_unmapped_equipment_leave_no_eligible_catalog(recognition_request):
     request = recognition_request
-    envelope = recognition_envelope(request)
+    envelope = recognition_envelope()
     envelope["equipment"][0]["qualification"] = "LEGEND_ONLY"
     upstream = parse_response(request, json.dumps(envelope).encode())
     assert attribute_catalog(upstream) == ()
@@ -393,7 +409,7 @@ def test_legend_only_and_unmapped_equipment_leave_no_eligible_catalog(recognitio
 
 def test_invalid_visual_bounds_are_recoverable_at_localization(recognition_request):
     request = recognition_request
-    envelope = recognition_envelope(request)
+    envelope = recognition_envelope()
     envelope["equipment"][0]["evidence"] = [
         {
             "kind": "VISUAL",
@@ -466,7 +482,7 @@ def test_duplicate_attribute_refs_reject_entire_response(
 
 
 def test_unsupported_equipment_type_rejects_enum_outside_catalog(recognition_request):
-    envelope = recognition_envelope(recognition_request)
+    envelope = recognition_envelope()
     envelope["equipment"][0]["registry_type"] = "UNSUPPORTED_ASSEMBLY"
     with pytest.raises(ValueError, match="registry_type"):
         parse_response(recognition_request, json.dumps(envelope).encode())
@@ -627,7 +643,7 @@ def test_validation_diagnostics_bound_and_redact_nested_errors(recognition_reque
     from powerforge_extraction.response_diagnostics import validation_issues
 
     private = "PRIVATE-PANEL-IDENTIFIER"
-    payload = recognition_envelope(recognition_request)
+    payload = recognition_envelope()
     payload["equipment"][0].update(
         source_description=private * 256,
         registry_type=private,
@@ -700,7 +716,7 @@ def test_visual_coordinates_keep_exact_wire_validation(attribute_request, attrib
 
 
 def test_assembly_tag_response_preserves_distinct_device_ownership(recognition_request):
-    envelope = recognition_envelope(recognition_request)
+    envelope = recognition_envelope()
     envelope["equipment"][0].update(
         local_ref="assembly",
         registry_type="BUS",
@@ -726,7 +742,7 @@ def test_registry_guidance_explains_distinct_ratings_and_retains_registry_keys(r
     from powerforge_extraction.extraction_profile import extraction_profile
     from powerforge_shared.config import Settings
 
-    envelope = recognition_envelope(recognition_request)
+    envelope = recognition_envelope()
     envelope["equipment"][0]["registry_type"] = "BUS"
     envelope["equipment"][1]["registry_type"] = "LV_BREAKER"
     upstream = parse_response(recognition_request, json.dumps(envelope).encode())

@@ -151,6 +151,12 @@ def _execute_claim(claim, factory, storage, settings, provider_factory, audit_st
                     isinstance(wire, AttributeRequest) and claim.profile.provider == "openai"
                 )
                 with measure("request_build"):
+                    if not isinstance(wire, AttributeRequest) and (
+                        request.image is None
+                        or sha256(request.image).hexdigest() != wire.page.image_sha256
+                        or request.text != canonical_json(provider_input(wire))
+                    ):
+                        raise ProviderFailure(ErrorCode.INPUT)
                     if isinstance(wire, AttributeRequest) and (
                         wire.attribute_description_version
                         != claim.profile.manifest["attribute_descriptions"]
@@ -229,6 +235,16 @@ def _execute_claim(claim, factory, storage, settings, provider_factory, audit_st
                             )
                         result = admission.result
                 else:
+                    if getattr(response, "request", None) is not request:
+                        raise ProviderFailure(
+                            ErrorCode.INVALID,
+                            usage,
+                            diagnostics=(
+                                ValidationIssue(
+                                    category="ENVELOPE", error_type="request_binding_mismatch"
+                                ),
+                            ),
+                        )
                     if over_budget:
                         raise ProviderFailure(ErrorCode.INVALID, usage, diagnostics=(budget_issue,))
                     try:

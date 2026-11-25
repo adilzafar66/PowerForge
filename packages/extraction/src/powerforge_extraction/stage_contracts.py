@@ -183,11 +183,14 @@ class RawUnmappedAssertion(AttributeAssertion):
     display_label: Short | None
 
 
-class RecognitionResponse(Contract):
+class RecognitionProviderResponse(Contract):
+    equipment: Annotated[tuple[EquipmentObservation, ...], Field(max_length=128)]
+
+
+class RecognitionResponse(RecognitionProviderResponse):
     version: Literal["phase-6r-v1"]
     stage: Literal["EQUIPMENT_RECOGNITION"]
     page_context_hash: Hash
-    equipment: Annotated[tuple[EquipmentObservation, ...], Field(max_length=128)]
 
 
 class AttributeProviderResponse(Contract):
@@ -394,7 +397,13 @@ def parse_response(
             "Response capacity exceeded",
         )
     if isinstance(request, RecognitionRequest):
-        result = RecognitionResponse.model_validate_json(payload)
+        observations = RecognitionProviderResponse.model_validate_json(payload)
+        result = RecognitionResponse(
+            version=request.version,
+            stage=request.stage,
+            page_context_hash=request.page_context_hash,
+            equipment=observations.equipment,
+        )
         collections = (("equipment", result.equipment),)
         for index, item in enumerate(result.equipment):
             if (
