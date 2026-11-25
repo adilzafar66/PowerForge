@@ -82,6 +82,10 @@ def heartbeats(factory: sessionmaker[Session], claim: Claim, settings: Settings)
                 )
             else:
                 db_ms = (perf_counter_ns() - started_at) // 1_000_000
+                logger.debug(
+                    "extraction heartbeat renewed",
+                    extra={**details, "heartbeat_db_ms": db_ms},
+                )
                 if db_ms >= interval * 1000:
                     logger.warning(
                         "extraction heartbeat database renewal was slow",

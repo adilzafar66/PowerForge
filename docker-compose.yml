@@ -162,8 +162,19 @@ services:
         WORKER_PACKAGE: extraction-worker
         CELERY_APP: extraction_worker.celery_app
         CELERY_QUEUE: document_classification,document_extraction
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        case "$${EXTRACTION_WORKER_CONCURRENCY}" in
+          [1-4]) ;;
+          *) echo "EXTRACTION_WORKER_CONCURRENCY must be between 1 and 4" >&2; exit 2 ;;
+        esac
+        exec celery -A "$${CELERY_APP}" worker --loglevel=INFO --pool=prefork \
+          --concurrency="$${EXTRACTION_WORKER_CONCURRENCY}" -Q "$${CELERY_QUEUE}"
     environment:
       <<: *extraction-settings
+      EXTRACTION_WORKER_CONCURRENCY: ${EXTRACTION_WORKER_CONCURRENCY:-1}
       REDIS_URL: redis://redis:6379/0
       DATABASE_URL: postgresql+psycopg://powerforge:powerforge@postgres:5432/powerforge
       S3_ENDPOINT_URL: http://minio:9000

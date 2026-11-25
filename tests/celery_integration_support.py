@@ -40,6 +40,9 @@ def live_worker(
     app_module="extraction_worker.celery_app",
     extra_env=None,
     queue="document_extraction",
+    pool="solo",
+    slots=1,
+    broker_prefix=None,
 ):
     directory.mkdir(exist_ok=True)
     name = f"extraction-{uuid4().hex[:8]}@localhost"
@@ -60,6 +63,8 @@ def live_worker(
         "EXTRACTION_REDISPATCH_SECONDS": "1",
         **(extra_env or {}),
     }
+    if broker_prefix:
+        env["EXTRACTION_TEST_QUEUE_PREFIX"] = broker_prefix
     worker_log = (directory / "worker.log").open("w+")
     scheduler_log = (directory / "beat.log").open("w+")
     worker = subprocess.Popen(
@@ -70,8 +75,8 @@ def live_worker(
             "-A",
             app_module,
             "worker",
-            "--pool=solo",
-            "--concurrency=1",
+            f"--pool={pool}",
+            f"--concurrency={slots}",
             "-Q",
             queue,
             "--hostname",
@@ -88,6 +93,8 @@ def live_worker(
     scheduler = None
     try:
         broker = Celery("extraction-integration-control", broker=ctx["settings"].redis_url)
+        if broker_prefix:
+            broker.conf.broker_transport_options = {"global_keyprefix": broker_prefix}
         wait_for(lambda: broker.control.ping(destination=[name], timeout=0.5))
         if beat:
             scheduler = subprocess.Popen(
@@ -120,6 +127,7 @@ def live_worker(
         scheduler_log.close()
 
 
-def copy_source(ctx, storage):
+def copy_source(ctx, storage, *, skip=()):
     for key, obj in ctx["storage"].objects.items():
-        storage.put(key, BytesIO(obj.data), len(obj.data), obj.content_type)
+        if key not in skip:
+            storage.put(key, BytesIO(obj.data), len(obj.data), obj.content_type)

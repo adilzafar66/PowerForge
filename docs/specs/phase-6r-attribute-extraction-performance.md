@@ -326,6 +326,45 @@ Test on disposable PostgreSQL/Redis/MinIO:
 
 **Gate E:** No duplicate publication, source mixing, or budget violation; measured multi-page throughput improvement with controlled failure and provider-rate-limit behavior.
 
+### Implementation and verification
+
+The extraction service alone reads `EXTRACTION_WORKER_CONCURRENCY` from Compose. It starts a prefork worker with one slot by default and accepts explicit settings from one through four. Source enrichment, classification routing, the scheduler, and other workers keep their current deployment configuration. The extraction worker still consumes both classification and extraction queues. The per-run limit remains part of each admitted run's profile, and the global coordinator default remains four.
+
+Use real Celery subprocesses, Redis, PostgreSQL, and MinIO with a loopback-only test Responses endpoint. The test entrypoint injects a dummy API credential, disables proxy and redirect handling, and checks every destination before sending. It exercises the real transport, admission, database settlement, and audit byte storage. The isolated scratch bucket stands in for the restricted audit bucket so this test can focus on execution and publication. Existing audit access and retention tests remain separate.
+
+Run the two-slot correctness and failure gates before measuring four slots. The three benchmark configurations are one prefork slot with per-run/global limits of 2/4, two slots with 2/4, and four slots with 4/4. Use fresh runs in every arm, with the applicable pinned limit. Keep the source snapshots, provider inputs, model settings, and response timing identical. The benchmark profile uses `compact-page-v1`, `core-catalog-v1`, `server-owned-assertions-v1`, and medium reasoning.
+
+Measure document extraction from operation admission to terminal run, including the queue and settlement. Measure source preparation separately and reuse the prepared snapshot across all trials. Define queue wait from readiness to claim, using the page's committed recognition result to establish Stage 2 readiness. Report prefork task busy time as a share of available slot time and use request intervals recorded at the HTTP endpoint to verify actual provider overlap. Count PostgreSQL wait samples and observe per-process backend connections, heartbeat wake-up and renewal times, and the longest gap between completed reconciliation tasks. Keep existing production leases, timeouts, budgets, and routing.
+
+On disposable services with `RUN_INTEGRATION=1`, run the gates, then run the opt-in benchmark:
+
+```sh
+pytest tests/test_extraction_parallel.py -k 'not matched_prefork_benchmark'
+RUN_EXTRACTION_BENCHMARK=1 pytest -s tests/test_extraction_parallel.py -k matched_prefork_benchmark
+```
+
+
+### Offline benchmark results — November 25, 2026 Pacific
+
+Three repetitions per configuration used a synthetic ten-page engineering PDF, one prefork worker replica, and a fresh Redis queue namespace per trial. Source preparation took 1.2 seconds once. Each run reused that snapshot and used the same local HTTP delays of 1.15 seconds for recognition and 2.35 seconds for attributes. All page/stage request digests matched across arms. For measurement, all arms used a six-second lease and one-second reconciliation and redispatch intervals. Production settings were untouched.
+
+Times below are medians unless noted. Worker utilization is mean task busy time across repetitions, including reconciliation and duplicate-delivery handling. Efficiency is the speedup divided by the number of slots. Queue values are the medians of the per-trial medians.
+
+- **One slot, per-run 2, global 4.** Three runs took 40.91, 40.90, and 40.95 seconds. Median throughput was **14.67 pages/min** at **1.00×** baseline and **100%** scaling efficiency. Peak overlap was one call and worker utilization was **95.8%**. Recognition and attribute queue waits were **5.92s** and **17.59s**. Thirty heartbeats renewed successfully. Maximum wake-up delay was 5 ms, with renewal transaction time of 21 ms typical and 73 ms maximum. The sampler observed one worker connection at peak and zero samples with a database lock wait. The longest measured reconciliation gap was 12.90s.
+- **Two slots, per-run 2, global 4.** Three runs took 21.66, 21.42, and 21.47 seconds. Median throughput was **27.95 pages/min**, **1.91×** baseline at **95.3%** scaling efficiency. Peak overlap was two calls and worker utilization was **91.5%**. Recognition and attribute waits were **2.84s** and **7.82s**. Thirty heartbeats renewed successfully. Maximum wake-up delay was 5 ms, with renewal transaction time of 24 ms typical and 48 ms maximum. The sampler observed two worker connections at peak and 11 samples with a database lock wait. The longest reconciliation gap was 6.76s.
+- **Four slots, per-run 4, global 4.** Three runs took 12.74, 12.67, and 12.70 seconds. Median throughput was **47.24 pages/min**, **3.22×** baseline at **80.5%** scaling efficiency. Peak overlap was four calls and worker utilization was **79.0%**. Recognition and attribute waits were **1.64s** and **2.77s**. Thirty heartbeats renewed successfully. Maximum wake-up delay was 5 ms, with renewal transaction time of 18.5 ms typical and 32 ms maximum. The sampler observed four worker connections at peak and 20 samples with a database lock wait. The longest reconciliation gap was 3.12s.
+
+The typical renewal times above are medians of the per-trial medians. Lock counts are 100 ms PostgreSQL samples with an observed wait. The sampler also saw transient worker transactions between statements. Provider calls ran outside the claim and settlement transactions. Every observed worker connection was checked out in its originating process.
+
+All nine runs completed, with **90 pages, 180 successful stage publications and 90 matching retained Stage 2 response digests**. There were no retries, lease denials, duplicate publications, or page/prerequisite mismatches in the timed runs. In the two-slot fault tests, Stage 2 entered the HTTP endpoint while another page was still in Stage 1, a fifth claim was refused while four units from multiple runs were active, and a 429 was retried within budget while the document made progress. The timeout and killed-worker cases preserved unknown-outcome protection. An induced short run-row lock delayed a renewal and recovered. A lock held through expiry denied stale publication, and reconciliation settled the affected attempts without a second provider dispatch.
+
+The mixed-queue probe published a document while a test classification task held one of the two worker slots. That verifies progress with one slot free. At full occupancy, reconciliation still shares the consumer pool and waits for a slot to open. The timings above are the observed reconciliation gaps for this workload, with a one-second test cadence. The results do not require queue separation, additional database connections, or longer leases.
+
+Verification passed 462 focused backend and integration tests on PostgreSQL, Redis, and MinIO. The nine-trial benchmark ran separately and passed. Docker smoke checks observed one and two actual worker children with both configured queues. Three additional existing OCR worker tests stopped during fixture setup on this host because the expected Linux Tesseract installation was unavailable.
+
+**Initial deployment recommendation:** Opt in to two prefork slots with per-run/global limits of 2/4. This keeps the existing coordinator limits and uses a configuration with measured overlap, near-linear local scaling, and successful recovery under fault injection. Keep the production default at one slot. Four slots improved local throughput and lowered slot utilization. Actual provider latency, rate limits, and mixed-queue load will determine live throughput and recovery delay. Use a separately authorized live comparison before drawing a production scaling conclusion.
+
+
 ## 11. Milestone F — Timeouts, failure economics, and performance debugger
 
 **Priority:** P2 / reliability integration.
