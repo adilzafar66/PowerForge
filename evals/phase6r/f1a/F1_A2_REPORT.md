@@ -2,6 +2,8 @@
 
 This offline evaluation uses the approved ground truth for the same seven pages across Delta, Eaton, REX, Schneider 800a MDB, Siemens, and Simson. Source and fixture SHA-256 values are included in the machine results. The original F1-A report and results remain the historical baseline. [F1-A report](REPORT.md)
 
+A follow-up holds the text inputs fixed and measures the independent cost and value of optional table reconstruction. [Deterministic table ablation](TABLE_ABLATION_REPORT.md)
+
 ## Revised scoring
 
 - **Preferred** uses the text PowerForge marks as preferred at each reading position. **Available** additionally tests complete, coherent views of each alternate's source representation. A transcript can use the ordinary preferred view or a single alternate witness stream. The scorer cannot select individual alternatives across streams to manufacture a match. Two different variants in one witness slot block that stream at the slot. Exact and display-equivalent hits are counted separately. The latter keeps digits and case and folds the same display glyphs and whitespace conventions as F1-A.
