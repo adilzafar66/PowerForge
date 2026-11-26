@@ -130,8 +130,11 @@ def test_native_pdf_reaches_the_production_request_builder_without_ocr(tmp_path)
         provider,
         extraction_profile(settings),
         "existing",
+        reading_details=True,
     )
     assert result["failure"] is None
     assert result["metadata"]["ocr"]["ocr_invocations"] == 0
     assert [word.text for word in streams["packed"]] == ["Panel", "rating", "800A"]
+    assert result["metadata"]["representation_tokens_absent_from_readings"] == 0
+    assert set(result["metadata"]["reading_details"]) == {word.ref for word in streams["packed"]}
     assert result["metadata"]["packing"]["encoded_body_bytes"] > 0

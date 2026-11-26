@@ -4,6 +4,8 @@
 
 Status **ground truth approved**. The fixtures cover every page in the six supplied PDFs, seven PDF pages in total. [Offline comparison and findings](REPORT.md)
 
+F1-A2 replays the original modes with alternate-witness and geometric association scoring, then compares additional local OCR recipes under the same approved fixtures. [F1-A2 methods and findings](F1_A2_REPORT.md)
+
 The baseline investigation found missing Panel B engineering literals, absent table structure and unresolved text evidence in the nine-page live Schneider benchmark. The Schneider file in this corpus is the single-page `schneider-panel-drawing.pdf` labeled 800a MDB. Siemens and Simson also have footer page numbers from larger documents. The fixture uses the actual PDF page index for all source bindings and retains those printed numbers for review. [Baseline investigation](../EXTRACTION_QUALITY_INVESTIGATION.md)
 
 ### How the draft was produced

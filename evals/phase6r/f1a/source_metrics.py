@@ -74,7 +74,7 @@ def find_words(views, target, relaxed):
     return None
 
 
-def local_score(words, annotation, gold_frame, page_views):
+def local_score(words, annotation, gold_frame, page_views, extra_views=()):
     box = normalized_box(annotation.box, gold_frame)
     near = [w for w in words if contains_center(box, w.box)]
     streams = defaultdict(list)
@@ -83,6 +83,7 @@ def local_score(words, annotation, gold_frame, page_views):
     # Try the combined view and each engine independently, so overlapping
     # duplicate readings do not hide a complete transcription in one engine.
     views = [reading_order(near), *(reading_order(items) for items in streams.values())]
+    views.extend([w for w in view if contains_center(box, w.box)] for view in extra_views)
     target = annotation.text
     exact = find_words(views, target, False)
     match = exact or find_words(views, target, True)
@@ -207,7 +208,7 @@ def structure_metrics(gold, scores, layout):
     return dict(counts)
 
 
-def score(gold, words, layout=None):
+def score(gold, words, layout=None, *, extra_views=(), detail_hook=None):
     streams = defaultdict(list)
     for word in words:
         streams[word.stream].append(word)
@@ -215,12 +216,13 @@ def score(gold, words, layout=None):
         *streams.values(),
         *(reading_order([w for w in items if w.box]) for items in streams.values()),
     ]
+    global_views.extend(extra_views)
     detail = {
-        key: local_score(words, annotation, gold.frame, global_views)
+        key: local_score(words, annotation, gold.frame, global_views, extra_views)
         for key, annotation in gold.annotations()
         if annotation.legibility == "LEGIBLE" and annotation.text is not None
     }
-    return {
+    result = {
         "status": dict(Counter(item["status"] for item in detail.values())),
         "totals": {
             metric: sum(d[metric] for d in detail.values())
@@ -246,6 +248,9 @@ def score(gold, words, layout=None):
             for key, value in detail.items()
         },
     }
+    if detail_hook is not None:
+        result.update(detail_hook(detail))
+    return result
 
 
 def normalized_region(region):

@@ -214,7 +214,19 @@ def confidence_stats(bodies):
     )
 
 
-def run_arm(path, data, rendered, page_number, native, profile, provider, extraction, arm):
+def run_arm(
+    path,
+    data,
+    rendered,
+    page_number,
+    native,
+    profile,
+    provider,
+    extraction,
+    arm,
+    *,
+    reading_details=False,
+):
     timings, metadata, streams = {}, {}, {}
     layout, error = None, None
     storage = MeteredStorage(None)
@@ -222,7 +234,7 @@ def run_arm(path, data, rendered, page_number, native, profile, provider, extrac
         page=page_number,
         sha256=sha(data),
         size_bytes=len(data),
-        force_ocr=arm in ("full_ocr", "regional_ocr", "hybrid"),
+        force_ocr=arm not in ("existing", "native_only"),
     )
     stage = "prepare"
     try:
@@ -240,7 +252,7 @@ def run_arm(path, data, rendered, page_number, native, profile, provider, extrac
             representation_counts={d.ref: d.token_count for d in output.manifest.representations},
             same_location_identical_prepared_pairs=duplicates(streams["prepared"]),
         )
-        if arm == "regional_ocr":
+        if hasattr(provider, "receipts"):
             metadata["regional_crops"] = provider.receipts
             metadata["ocr"]["engine_invocations"] = len(provider.receipts)
         stage = "layout"
@@ -264,6 +276,35 @@ def run_arm(path, data, rendered, page_number, native, profile, provider, extrac
                 Word(item.reading_ref, item.text, normalized_region(r.region), item.modality)
                 for r, item in zip(layout.readings, context.readings, strict=True)
             ]
+            if reading_details:
+                tokens = {
+                    (alias, token.ref): token.raw_text
+                    for alias, body in pinned.bodies.items()
+                    for token in body.tokens
+                }
+                metadata["reading_details"] = {
+                    reading.ref: (
+                        reading.preferred.representation_ref,
+                        tuple(
+                            (
+                                member.representation_ref,
+                                tokens[member.representation_ref, member.ref],
+                            )
+                            for member in reading.members
+                            if member != reading.preferred
+                        ),
+                        reading.issues,
+                    )
+                    for reading in layout.readings
+                }
+                selected = {
+                    (member.representation_ref, member.ref)
+                    for reading in layout.readings
+                    for member in reading.members
+                }
+                metadata["representation_tokens_absent_from_readings"] = len(
+                    tokens.keys() - selected
+                )
         metadata["same_location_identical_reading_pairs"] = duplicates(streams["readings"])
         stage = "pack"
         with measure(timings, stage):
