@@ -1,0 +1,350 @@
+[
+  {
+    "split": "development",
+    "pdf": "delta-transformer-drawing.pdf",
+    "page": 1,
+    "source_sha256": "4cad19142b1ef1042b7d3d2bf89e4b4ea25b66989643dfd7c9df600aaa941267",
+    "preparation": "native",
+    "arms": {
+      "existing_tables": {
+        "body_bytes": 590751,
+        "user_json_bytes": 136449,
+        "table_count": 0,
+        "reading_count": 348,
+        "image_sha256": "8bb1f73c77cefdbf17edf15aa5572a73a53f344ac2a853443c29ac857023e4c0",
+        "rules_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      },
+      "positioned_only": {
+        "body_bytes": 590673,
+        "user_json_bytes": 136379,
+        "table_count": 0,
+        "reading_count": 348,
+        "image_sha256": "8bb1f73c77cefdbf17edf15aa5572a73a53f344ac2a853443c29ac857023e4c0",
+        "rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      }
+    }
+  },
+  {
+    "split": "development",
+    "pdf": "eaton-panel-drawing.pdf",
+    "page": 1,
+    "source_sha256": "c75de25c8b64e06eac1a28396c807a2b0aadc5bfde33b9e9d83e223be15f38d0",
+    "preparation": "native",
+    "arms": {
+      "existing_tables": {
+        "body_bytes": 568475,
+        "user_json_bytes": 139375,
+        "table_count": 1,
+        "reading_count": 317,
+        "image_sha256": "f96b94ed7ef79d12b9008c0192752097a388d9ca76739507730e53a6e6047100",
+        "rules_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      },
+      "positioned_only": {
+        "body_bytes": 553105,
+        "user_json_bytes": 126319,
+        "table_count": 0,
+        "reading_count": 317,
+        "image_sha256": "f96b94ed7ef79d12b9008c0192752097a388d9ca76739507730e53a6e6047100",
+        "rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      }
+    }
+  },
+  {
+    "split": "development",
+    "pdf": "rex-transformer-drawing.pdf",
+    "page": 1,
+    "source_sha256": "90485de2ae1a19245d198e3e060bd96feef9b2ae7e46866253b398dc5b0f2af5",
+    "preparation": "native",
+    "arms": {
+      "existing_tables": {
+        "body_bytes": 1076447,
+        "user_json_bytes": 121659,
+        "table_count": 0,
+        "reading_count": 304,
+        "image_sha256": "6011e08dc32866c19aeb129e019193056f3b7144e323fd7c86b4d7cbe8fe4843",
+        "rules_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "EXPLICIT_SELECTION_REQUIRED"
+      },
+      "positioned_only": {
+        "body_bytes": 1076372,
+        "user_json_bytes": 121592,
+        "table_count": 0,
+        "reading_count": 304,
+        "image_sha256": "6011e08dc32866c19aeb129e019193056f3b7144e323fd7c86b4d7cbe8fe4843",
+        "rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "EXPLICIT_SELECTION_REQUIRED"
+      }
+    }
+  },
+  {
+    "split": "development",
+    "pdf": "schneider-panel-drawing.pdf",
+    "page": 1,
+    "source_sha256": "513a14ed1df6ca88b1ba03808021527e3bf1cd2fed2657f00ddefef15f6299d9",
+    "preparation": "hybrid_300_line_removal",
+    "arms": {
+      "existing_tables": {
+        "body_bytes": 739471,
+        "user_json_bytes": 214107,
+        "table_count": 0,
+        "reading_count": 500,
+        "image_sha256": "143e4f6d36473578726297f2b2f1e35e81bd6421c3c5543214546c427ce8cd30",
+        "rules_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+        "ocr_producer_sha256": "4a8a8a4e62cdcc8b31e3e2ecacc0798cc33aacc7593d8ce6dc9384130f30a44b",
+        "ocr_decision": "RUN"
+      },
+      "positioned_only": {
+        "body_bytes": 739393,
+        "user_json_bytes": 214037,
+        "table_count": 0,
+        "reading_count": 500,
+        "image_sha256": "143e4f6d36473578726297f2b2f1e35e81bd6421c3c5543214546c427ce8cd30",
+        "rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+        "ocr_producer_sha256": "4a8a8a4e62cdcc8b31e3e2ecacc0798cc33aacc7593d8ce6dc9384130f30a44b",
+        "ocr_decision": "RUN"
+      }
+    }
+  },
+  {
+    "split": "development",
+    "pdf": "siemens-panel-drawing.pdf",
+    "page": 1,
+    "source_sha256": "ef70737c70a64667e65214888c39f4981c09e6b99c160021b9004e17f6cc8499",
+    "preparation": "native",
+    "arms": {
+      "existing_tables": {
+        "body_bytes": 514917,
+        "user_json_bytes": 105717,
+        "table_count": 0,
+        "reading_count": 252,
+        "image_sha256": "f9cddd041da232cb4d5c807d5b893430978f47f95e27a18fd1300b3622d85b9d",
+        "rules_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      },
+      "positioned_only": {
+        "body_bytes": 513240,
+        "user_json_bytes": 104280,
+        "table_count": 0,
+        "reading_count": 252,
+        "image_sha256": "f9cddd041da232cb4d5c807d5b893430978f47f95e27a18fd1300b3622d85b9d",
+        "rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      }
+    }
+  },
+  {
+    "split": "development",
+    "pdf": "simson-generator-drawing.pdf",
+    "page": 1,
+    "source_sha256": "ef79bd306d3fcdfbf20183a91845f13cbe5d9396528b49881666a5f95c35b534",
+    "preparation": "native",
+    "arms": {
+      "existing_tables": {
+        "body_bytes": 512112,
+        "user_json_bytes": 85160,
+        "table_count": 0,
+        "reading_count": 207,
+        "image_sha256": "3d6be168908f322517027c385230ac4a242403d17f404d584a58de0af703ab63",
+        "rules_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "EXPLICIT_SELECTION_REQUIRED"
+      },
+      "positioned_only": {
+        "body_bytes": 512043,
+        "user_json_bytes": 85099,
+        "table_count": 0,
+        "reading_count": 207,
+        "image_sha256": "3d6be168908f322517027c385230ac4a242403d17f404d584a58de0af703ab63",
+        "rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "EXPLICIT_SELECTION_REQUIRED"
+      }
+    }
+  },
+  {
+    "split": "development",
+    "pdf": "simson-generator-drawing.pdf",
+    "page": 2,
+    "source_sha256": "ef79bd306d3fcdfbf20183a91845f13cbe5d9396528b49881666a5f95c35b534",
+    "preparation": "native",
+    "arms": {
+      "existing_tables": {
+        "body_bytes": 503186,
+        "user_json_bytes": 85178,
+        "table_count": 0,
+        "reading_count": 207,
+        "image_sha256": "d178c076f8de6156c8ba72717c7a7ccd1556111992232c5ecb744955b317754b",
+        "rules_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "EXPLICIT_SELECTION_REQUIRED"
+      },
+      "positioned_only": {
+        "body_bytes": 503117,
+        "user_json_bytes": 85117,
+        "table_count": 0,
+        "reading_count": 207,
+        "image_sha256": "d178c076f8de6156c8ba72717c7a7ccd1556111992232c5ecb744955b317754b",
+        "rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "EXPLICIT_SELECTION_REQUIRED"
+      }
+    }
+  },
+  {
+    "split": "structural_control",
+    "pdf": "tables/v1/sources/positioned_schedule.pdf",
+    "page": 1,
+    "source_sha256": "bd21efd868337a72d5e3eeb8d8f5621635de5a22c851a6aa6eacd14776adc26a",
+    "preparation": "native",
+    "arms": {
+      "existing_tables": {
+        "body_bytes": 52103,
+        "user_json_bytes": 9711,
+        "table_count": 1,
+        "reading_count": 8,
+        "image_sha256": "332802d6d161e3d00dbf01bae84839ca45809c5efda41a31693b6f02121f15fe",
+        "rules_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      },
+      "positioned_only": {
+        "body_bytes": 48947,
+        "user_json_bytes": 7033,
+        "table_count": 0,
+        "reading_count": 8,
+        "image_sha256": "332802d6d161e3d00dbf01bae84839ca45809c5efda41a31693b6f02121f15fe",
+        "rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      }
+    }
+  },
+  {
+    "split": "synthetic_holdout",
+    "pdf": "spatial/v1/sources/electrical-fixtures.pdf",
+    "page": 1,
+    "source_sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+    "preparation": "native",
+    "arms": {
+      "existing_tables": {
+        "body_bytes": 67873,
+        "user_json_bytes": 11439,
+        "table_count": 1,
+        "reading_count": 12,
+        "image_sha256": "33245ff627f635f27b6ef1fcc6de49daab77f9889c68f03e31e9223101121cf4",
+        "rules_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      },
+      "positioned_only": {
+        "body_bytes": 64322,
+        "user_json_bytes": 8436,
+        "table_count": 0,
+        "reading_count": 12,
+        "image_sha256": "33245ff627f635f27b6ef1fcc6de49daab77f9889c68f03e31e9223101121cf4",
+        "rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      }
+    }
+  },
+  {
+    "split": "synthetic_holdout",
+    "pdf": "spatial/v1/sources/electrical-fixtures.pdf",
+    "page": 3,
+    "source_sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+    "preparation": "native",
+    "arms": {
+      "existing_tables": {
+        "body_bytes": 81626,
+        "user_json_bytes": 16046,
+        "table_count": 1,
+        "reading_count": 15,
+        "image_sha256": "83d480ca939b9c5613d865a4e3b391a0c4f2c46431e3f8f191f1e292642c17a4",
+        "rules_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      },
+      "positioned_only": {
+        "body_bytes": 73968,
+        "user_json_bytes": 9556,
+        "table_count": 0,
+        "reading_count": 15,
+        "image_sha256": "83d480ca939b9c5613d865a4e3b391a0c4f2c46431e3f8f191f1e292642c17a4",
+        "rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      }
+    }
+  },
+  {
+    "split": "synthetic_holdout",
+    "pdf": "spatial/v1/sources/electrical-fixtures.pdf",
+    "page": 8,
+    "source_sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+    "preparation": "hybrid_300",
+    "arms": {
+      "existing_tables": {
+        "body_bytes": 64690,
+        "user_json_bytes": 9890,
+        "table_count": 1,
+        "reading_count": 10,
+        "image_sha256": "f0e77fa6f1ce476b59fa978b4cb991851a59f739bd6b506edbc09a989be94df6",
+        "rules_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+        "ocr_producer_sha256": "a7deec99f960d467ca000cbd41cf71ce62b44cb152e4bc12c373bbdf325eceac",
+        "ocr_decision": "RUN"
+      },
+      "positioned_only": {
+        "body_bytes": 61982,
+        "user_json_bytes": 7600,
+        "table_count": 0,
+        "reading_count": 10,
+        "image_sha256": "f0e77fa6f1ce476b59fa978b4cb991851a59f739bd6b506edbc09a989be94df6",
+        "rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+        "ocr_producer_sha256": "a7deec99f960d467ca000cbd41cf71ce62b44cb152e4bc12c373bbdf325eceac",
+        "ocr_decision": "RUN"
+      }
+    }
+  },
+  {
+    "split": "synthetic_holdout",
+    "pdf": "spatial/v1/sources/electrical-fixtures.pdf",
+    "page": 10,
+    "source_sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+    "preparation": "native",
+    "arms": {
+      "existing_tables": {
+        "body_bytes": 49450,
+        "user_json_bytes": 7886,
+        "table_count": 0,
+        "reading_count": 9,
+        "image_sha256": "fcff5f9cad39d28246e541aae22d00b92137a51263fb35a274f0ec15e5f0d078",
+        "rules_sha256": "1e36f486c1234d927821a905979b15b3ec42f83dd030fe260df526633ab012eb",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      },
+      "positioned_only": {
+        "body_bytes": 49032,
+        "user_json_bytes": 7528,
+        "table_count": 0,
+        "reading_count": 9,
+        "image_sha256": "fcff5f9cad39d28246e541aae22d00b92137a51263fb35a274f0ec15e5f0d078",
+        "rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+        "ocr_producer_sha256": null,
+        "ocr_decision": "SKIP_NATIVE_SUFFICIENT"
+      }
+    }
+  }
+]

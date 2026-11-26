@@ -1,0 +1,1552 @@
+{
+  "version": "f1b-occurrence-gold-v1",
+  "development": [
+    {
+      "pdf": "delta-transformer-drawing.pdf",
+      "sha256": "4cad19142b1ef1042b7d3d2bf89e4b4ea25b66989643dfd7c9df600aaa941267",
+      "source_fixture_sha256": "4035963371b655edc1483c2563b57e0d9c3d8673c6488624e86bdb8024ba53b4",
+      "pages": [
+        {
+          "pdf_page": 1,
+          "preparation": "native",
+          "occurrences": [
+            {
+              "id": "transformer",
+              "registry_type": "TWO_WINDING_TRANSFORMER",
+              "qualification": "UNKNOWN",
+              "tag_state": "PRESENT",
+              "tag": "80T1",
+              "position": null,
+              "box": [
+                207,
+                174,
+                514,
+                294
+              ],
+              "source_refs": [
+                "nameplate",
+                "model",
+                "tag"
+              ],
+              "tag_ref": "tag",
+              "note": "One tagged transformer described by the nameplate drawing. Installation status is unstated.",
+              "alternate_boxes": [
+                [
+                  92,
+                  650,
+                  169,
+                  670
+                ]
+              ]
+            }
+          ],
+          "exceptions": [
+            {
+              "id": "cooling-ratings",
+              "kind": "COMPONENT_OR_CONTEXT",
+              "box": [
+                235,
+                302,
+                493,
+                345
+              ],
+              "source_refs": [
+                "rated",
+                "provisional"
+              ],
+              "quantity": null,
+              "position": null,
+              "note": "Standard and provisional ratings describe the same transformer."
+            },
+            {
+              "id": "tap-positions",
+              "kind": "COMPONENT_OR_CONTEXT",
+              "box": [
+                570,
+                379,
+                886,
+                529
+              ],
+              "source_refs": [
+                "tap-table/3/tap"
+              ],
+              "quantity": null,
+              "position": null,
+              "note": "Tap positions belong to windings."
+            }
+          ],
+          "frame": [
+            1100,
+            850
+          ]
+        }
+      ]
+    },
+    {
+      "pdf": "eaton-panel-drawing.pdf",
+      "sha256": "c75de25c8b64e06eac1a28396c807a2b0aadc5bfde33b9e9d83e223be15f38d0",
+      "source_fixture_sha256": "29f28f68883416b1fca84eeb1e62b34b40bd1407aaa8f1b77b0f35e39d109442",
+      "pages": [
+        {
+          "pdf_page": 1,
+          "preparation": "native",
+          "occurrences": [
+            {
+              "id": "panel",
+              "registry_type": "BUS",
+              "qualification": "PROPOSED",
+              "tag_state": "PRESENT",
+              "tag": "CDP-6C",
+              "position": null,
+              "box": [
+                191,
+                160,
+                381,
+                226
+              ],
+              "source_refs": [
+                "mlo",
+                "bus",
+                "designation"
+              ],
+              "tag_ref": "designation",
+              "note": "The designation is in the assembly title block of a Customer Approval drawing. Main lugs are part of the assembly.",
+              "alternate_boxes": [
+                [
+                  469,
+                  141,
+                  740,
+                  157
+                ],
+                [
+                  549,
+                  1258,
+                  778,
+                  1277
+                ]
+              ]
+            },
+            {
+              "id": "branch-1-3-5",
+              "registry_type": "LV_BREAKER",
+              "qualification": "PROPOSED",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "1/3/5",
+              "box": [
+                132,
+                250,
+                279,
+                338
+              ],
+              "source_refs": [
+                "left-device",
+                "branch-summary/1/frame"
+              ],
+              "tag_ref": null,
+              "note": "One GBH3020 spans the upper left three positions."
+            },
+            {
+              "id": "branch-2-4-6",
+              "registry_type": "LV_BREAKER",
+              "qualification": "PROPOSED",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "2/4/6",
+              "box": [
+                283,
+                250,
+                429,
+                338
+              ],
+              "source_refs": [
+                "right-device",
+                "branch-summary/1/frame"
+              ],
+              "tag_ref": null,
+              "note": "A second GBH3020 spans the upper right three positions."
+            },
+            {
+              "id": "upstream-reference",
+              "registry_type": "LV_BREAKER",
+              "qualification": "REFERENCE",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": null,
+              "box": [
+                469,
+                204,
+                913,
+                222
+              ],
+              "source_refs": [
+                "main"
+              ],
+              "tag_ref": null,
+              "note": "PDG23G-LFD is explicitly upstream of the main-lug assembly and is a source reference."
+            }
+          ],
+          "exceptions": [
+            {
+              "id": "provision-7",
+              "kind": "PROVISION",
+              "box": [
+                133,
+                339,
+                281,
+                369
+              ],
+              "source_refs": [
+                "provisions/0/left-position",
+                "provisions/0/left"
+              ],
+              "quantity": null,
+              "position": "7",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-8",
+              "kind": "PROVISION",
+              "box": [
+                281,
+                339,
+                431,
+                369
+              ],
+              "source_refs": [
+                "provisions/0/right-position",
+                "provisions/0/right"
+              ],
+              "quantity": null,
+              "position": "8",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-9",
+              "kind": "PROVISION",
+              "box": [
+                133,
+                369,
+                281,
+                400
+              ],
+              "source_refs": [
+                "provisions/1/left-position",
+                "provisions/1/left"
+              ],
+              "quantity": null,
+              "position": "9",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-10",
+              "kind": "PROVISION",
+              "box": [
+                281,
+                369,
+                431,
+                400
+              ],
+              "source_refs": [
+                "provisions/1/right-position",
+                "provisions/1/right"
+              ],
+              "quantity": null,
+              "position": "10",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-11",
+              "kind": "PROVISION",
+              "box": [
+                133,
+                400,
+                281,
+                430
+              ],
+              "source_refs": [
+                "provisions/2/left-position",
+                "provisions/2/left"
+              ],
+              "quantity": null,
+              "position": "11",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-12",
+              "kind": "PROVISION",
+              "box": [
+                281,
+                400,
+                431,
+                430
+              ],
+              "source_refs": [
+                "provisions/2/right-position",
+                "provisions/2/right"
+              ],
+              "quantity": null,
+              "position": "12",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-13",
+              "kind": "PROVISION",
+              "box": [
+                133,
+                430,
+                281,
+                460
+              ],
+              "source_refs": [
+                "provisions/3/left-position",
+                "provisions/3/left"
+              ],
+              "quantity": null,
+              "position": "13",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-14",
+              "kind": "PROVISION",
+              "box": [
+                281,
+                430,
+                431,
+                460
+              ],
+              "source_refs": [
+                "provisions/3/right-position",
+                "provisions/3/right"
+              ],
+              "quantity": null,
+              "position": "14",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-15",
+              "kind": "PROVISION",
+              "box": [
+                133,
+                460,
+                281,
+                491
+              ],
+              "source_refs": [
+                "provisions/4/left-position",
+                "provisions/4/left"
+              ],
+              "quantity": null,
+              "position": "15",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-16",
+              "kind": "PROVISION",
+              "box": [
+                281,
+                460,
+                431,
+                491
+              ],
+              "source_refs": [
+                "provisions/4/right-position",
+                "provisions/4/right"
+              ],
+              "quantity": null,
+              "position": "16",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-17",
+              "kind": "PROVISION",
+              "box": [
+                133,
+                491,
+                281,
+                522
+              ],
+              "source_refs": [
+                "provisions/5/left-position",
+                "provisions/5/left"
+              ],
+              "quantity": null,
+              "position": "17",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-18",
+              "kind": "PROVISION",
+              "box": [
+                281,
+                491,
+                431,
+                522
+              ],
+              "source_refs": [
+                "provisions/5/right-position",
+                "provisions/5/right"
+              ],
+              "quantity": null,
+              "position": "18",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-19",
+              "kind": "PROVISION",
+              "box": [
+                133,
+                522,
+                281,
+                551
+              ],
+              "source_refs": [
+                "provisions/6/left-position",
+                "provisions/6/left"
+              ],
+              "quantity": null,
+              "position": "19",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-20",
+              "kind": "PROVISION",
+              "box": [
+                281,
+                522,
+                431,
+                551
+              ],
+              "source_refs": [
+                "provisions/6/right-position",
+                "provisions/6/right"
+              ],
+              "quantity": null,
+              "position": "20",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-21",
+              "kind": "PROVISION",
+              "box": [
+                133,
+                551,
+                281,
+                582
+              ],
+              "source_refs": [
+                "provisions/7/left-position",
+                "provisions/7/left"
+              ],
+              "quantity": null,
+              "position": "21",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-22",
+              "kind": "PROVISION",
+              "box": [
+                281,
+                551,
+                431,
+                582
+              ],
+              "source_refs": [
+                "provisions/7/right-position",
+                "provisions/7/right"
+              ],
+              "quantity": null,
+              "position": "22",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-23",
+              "kind": "PROVISION",
+              "box": [
+                133,
+                582,
+                281,
+                612
+              ],
+              "source_refs": [
+                "provisions/8/left-position",
+                "provisions/8/left"
+              ],
+              "quantity": null,
+              "position": "23",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "provision-24",
+              "kind": "PROVISION",
+              "box": [
+                281,
+                582,
+                431,
+                612
+              ],
+              "source_refs": [
+                "provisions/8/right-position",
+                "provisions/8/right"
+              ],
+              "quantity": null,
+              "position": "24",
+              "note": "PROV position is an empty equipment provision."
+            },
+            {
+              "id": "branch-total",
+              "kind": "AGGREGATE",
+              "box": [
+                469,
+                828,
+                983,
+                844
+              ],
+              "source_refs": [
+                "branch-summary/1/quantity",
+                "branch-summary/1/frame"
+              ],
+              "quantity": 2,
+              "position": null,
+              "note": "Two devices are accounted for by the individual position blocks."
+            },
+            {
+              "id": "provision-total",
+              "kind": "AGGREGATE",
+              "box": [
+                469,
+                844,
+                983,
+                860
+              ],
+              "source_refs": [
+                "branch-summary/2/quantity",
+                "branch-summary/2/frame"
+              ],
+              "quantity": 18,
+              "position": null,
+              "note": "Aggregate of the provision positions."
+            },
+            {
+              "id": "mlo-total",
+              "kind": "AGGREGATE",
+              "box": [
+                469,
+                893,
+                983,
+                909
+              ],
+              "source_refs": [
+                "main-summary/1/quantity",
+                "main-summary/1/poles"
+              ],
+              "quantity": 1,
+              "position": null,
+              "note": "The 0-pole summary does not identify another breaker."
+            },
+            {
+              "id": "blank-cover",
+              "kind": "COMPONENT_OR_CONTEXT",
+              "box": [
+                210,
+                618,
+                359,
+                680
+              ],
+              "source_refs": [
+                "cover"
+              ],
+              "quantity": null,
+              "position": null,
+              "note": "Blank cover is a mechanical feature."
+            }
+          ],
+          "frame": [
+            1100,
+            1424
+          ]
+        }
+      ]
+    },
+    {
+      "pdf": "rex-transformer-drawing.pdf",
+      "sha256": "90485de2ae1a19245d198e3e060bd96feef9b2ae7e46866253b398dc5b0f2af5",
+      "source_fixture_sha256": "c2a6cac841a0473b755922e48057014055e20801cd7442ef6e476cfd85442bcf",
+      "pages": [
+        {
+          "pdf_page": 1,
+          "preparation": "native",
+          "occurrences": [
+            {
+              "id": "transformer",
+              "registry_type": "TWO_WINDING_TRANSFORMER",
+              "qualification": "PROPOSED",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": null,
+              "box": [
+                38,
+                220,
+                325,
+                302
+              ],
+              "source_refs": [
+                "catalog",
+                "rating",
+                "primary",
+                "secondary",
+                "title",
+                "qty"
+              ],
+              "tag_ref": null,
+              "note": "Approval drawing for one BA350J-M/Y1/Z3 transformer. The catalog number identifies the model.",
+              "alternate_boxes": [
+                [
+                  337,
+                  37,
+                  607,
+                  98
+                ]
+              ]
+            }
+          ],
+          "exceptions": [
+            {
+              "id": "winding-options",
+              "kind": "COMPONENT_OR_CONTEXT",
+              "box": [
+                334,
+                301,
+                704,
+                478
+              ],
+              "source_refs": [
+                "primary-wiring",
+                "secondary-wiring"
+              ],
+              "quantity": null,
+              "position": null,
+              "note": "Winding and load connection configurations belong to the transformer."
+            }
+          ],
+          "frame": [
+            1100,
+            850
+          ]
+        }
+      ]
+    },
+    {
+      "pdf": "schneider-panel-drawing.pdf",
+      "sha256": "513a14ed1df6ca88b1ba03808021527e3bf1cd2fed2657f00ddefef15f6299d9",
+      "source_fixture_sha256": "cc7dce6580049429af4edbe5d54bf62228edb8e60f92c93e57e2fd7f3264c132",
+      "pages": [
+        {
+          "pdf_page": 1,
+          "preparation": "hybrid_300_line_removal",
+          "occurrences": [
+            {
+              "id": "panel",
+              "registry_type": "BUS",
+              "qualification": "PROPOSED",
+              "tag_state": "PRESENT",
+              "tag": "800a MDB",
+              "position": null,
+              "box": [
+                112,
+                958,
+                430,
+                998
+              ],
+              "source_refs": [
+                "designation",
+                "equipment-type",
+                "bus",
+                "main"
+              ],
+              "tag_ref": "designation",
+              "note": "One assembly identified by the equipment designation on the quote drawing. The main lugs and phase bus belong to it.",
+              "alternate_boxes": [
+                [
+                  528,
+                  1270,
+                  806,
+                  1292
+                ],
+                [
+                  481,
+                  441,
+                  585,
+                  474
+                ]
+              ]
+            },
+            {
+              "id": "breaker-1",
+              "registry_type": "LV_BREAKER",
+              "qualification": "PROPOSED",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "1",
+              "box": [
+                41,
+                170,
+                438,
+                223
+              ],
+              "source_refs": [
+                "odd-circuits/1/circuit",
+                "odd-circuits/1/type",
+                "odd-circuits/1/rating"
+              ],
+              "tag_ref": null,
+              "note": "One branch breaker at the numbered schedule position. Circuit number is recorded as a position."
+            },
+            {
+              "id": "breaker-2",
+              "registry_type": "LV_BREAKER",
+              "qualification": "PROPOSED",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "2",
+              "box": [
+                659,
+                170,
+                1057,
+                223
+              ],
+              "source_refs": [
+                "even-circuits/1/circuit",
+                "even-circuits/1/type",
+                "even-circuits/1/rating"
+              ],
+              "tag_ref": null,
+              "note": "One branch breaker at the numbered schedule position. Circuit number is recorded as a position."
+            },
+            {
+              "id": "breaker-3",
+              "registry_type": "LV_BREAKER",
+              "qualification": "PROPOSED",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "3",
+              "box": [
+                41,
+                223,
+                438,
+                276
+              ],
+              "source_refs": [
+                "odd-circuits/2/circuit",
+                "odd-circuits/2/type",
+                "odd-circuits/2/rating"
+              ],
+              "tag_ref": null,
+              "note": "One branch breaker at the numbered schedule position. Circuit number is recorded as a position."
+            },
+            {
+              "id": "breaker-4",
+              "registry_type": "LV_BREAKER",
+              "qualification": "PROPOSED",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "4",
+              "box": [
+                659,
+                223,
+                1057,
+                276
+              ],
+              "source_refs": [
+                "even-circuits/2/circuit",
+                "even-circuits/2/type",
+                "even-circuits/2/rating"
+              ],
+              "tag_ref": null,
+              "note": "One branch breaker at the numbered schedule position. Circuit number is recorded as a position."
+            },
+            {
+              "id": "breaker-5",
+              "registry_type": "LV_BREAKER",
+              "qualification": "PROPOSED",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "5",
+              "box": [
+                41,
+                276,
+                438,
+                329
+              ],
+              "source_refs": [
+                "odd-circuits/3/circuit",
+                "odd-circuits/3/type",
+                "odd-circuits/3/rating"
+              ],
+              "tag_ref": null,
+              "note": "One branch breaker at the numbered schedule position. Circuit number is recorded as a position."
+            },
+            {
+              "id": "breaker-6",
+              "registry_type": "LV_BREAKER",
+              "qualification": "PROPOSED",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "6",
+              "box": [
+                659,
+                276,
+                1057,
+                329
+              ],
+              "source_refs": [
+                "even-circuits/3/circuit",
+                "even-circuits/3/type",
+                "even-circuits/3/rating"
+              ],
+              "tag_ref": null,
+              "note": "One branch breaker at the numbered schedule position. Circuit number is recorded as a position."
+            },
+            {
+              "id": "breaker-8",
+              "registry_type": "LV_BREAKER",
+              "qualification": "PROPOSED",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "8",
+              "box": [
+                659,
+                329,
+                1057,
+                382
+              ],
+              "source_refs": [
+                "even-circuits/4/circuit",
+                "even-circuits/4/type",
+                "even-circuits/4/rating"
+              ],
+              "tag_ref": null,
+              "note": "One branch breaker at the numbered schedule position. Circuit number is recorded as a position."
+            },
+            {
+              "id": "breaker-9",
+              "registry_type": "LV_BREAKER",
+              "qualification": "PROPOSED",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "9",
+              "box": [
+                41,
+                382,
+                438,
+                436
+              ],
+              "source_refs": [
+                "odd-circuits/5/circuit",
+                "odd-circuits/5/type",
+                "odd-circuits/5/rating",
+                "trip-markup"
+              ],
+              "tag_ref": null,
+              "note": "One branch breaker at the numbered schedule position. Circuit number is recorded as a position."
+            }
+          ],
+          "exceptions": [
+            {
+              "id": "ps-7",
+              "kind": "PROVISION",
+              "box": [
+                41,
+                329,
+                438,
+                382
+              ],
+              "source_refs": [
+                "odd-circuits/4/circuit",
+                "odd-circuits/4/type",
+                "odd-circuits/4/rating",
+                "odd-circuits/4/accessories",
+                "dashed-odd"
+              ],
+              "quantity": null,
+              "position": "7",
+              "note": "PS accessory and dashed symbols describe a prepared space. The listed frame and rating describe the position."
+            },
+            {
+              "id": "ps-10",
+              "kind": "PROVISION",
+              "box": [
+                659,
+                382,
+                1057,
+                436
+              ],
+              "source_refs": [
+                "even-circuits/5/circuit",
+                "even-circuits/5/type",
+                "even-circuits/5/rating",
+                "even-circuits/5/accessories",
+                "dashed-even"
+              ],
+              "quantity": null,
+              "position": "10",
+              "note": "PS accessory and dashed symbols describe a prepared space. The listed frame and rating describe the position."
+            },
+            {
+              "id": "summary-0-left",
+              "kind": "AGGREGATE",
+              "box": [
+                540,
+                1042,
+                804,
+                1063
+              ],
+              "source_refs": [
+                "branch-summation/0/left"
+              ],
+              "quantity": 2,
+              "position": null,
+              "note": "Summary corroborates schedule positions or provisions. It is not another equipment occurrence."
+            },
+            {
+              "id": "summary-0-right",
+              "kind": "AGGREGATE",
+              "box": [
+                804,
+                1042,
+                1036,
+                1063
+              ],
+              "source_refs": [
+                "branch-summation/0/right"
+              ],
+              "quantity": 3,
+              "position": null,
+              "note": "Summary corroborates schedule positions or provisions. It is not another equipment occurrence."
+            },
+            {
+              "id": "summary-1-left",
+              "kind": "AGGREGATE",
+              "box": [
+                540,
+                1063,
+                804,
+                1084
+              ],
+              "source_refs": [
+                "branch-summation/1/left"
+              ],
+              "quantity": 2,
+              "position": null,
+              "note": "Summary corroborates schedule positions or provisions. It is not another equipment occurrence."
+            },
+            {
+              "id": "summary-1-right",
+              "kind": "AGGREGATE",
+              "box": [
+                804,
+                1063,
+                1036,
+                1084
+              ],
+              "source_refs": [
+                "branch-summation/1/right"
+              ],
+              "quantity": 1,
+              "position": null,
+              "note": "Summary corroborates schedule positions or provisions. It is not another equipment occurrence."
+            },
+            {
+              "id": "summary-2-left",
+              "kind": "AGGREGATE",
+              "box": [
+                540,
+                1084,
+                804,
+                1105
+              ],
+              "source_refs": [
+                "branch-summation/2/left"
+              ],
+              "quantity": 1,
+              "position": null,
+              "note": "Summary corroborates schedule positions or provisions. It is not another equipment occurrence."
+            },
+            {
+              "id": "summary-2-right",
+              "kind": "AGGREGATE",
+              "box": [
+                804,
+                1084,
+                1036,
+                1105
+              ],
+              "source_refs": [
+                "branch-summation/2/right"
+              ],
+              "quantity": 1,
+              "position": null,
+              "note": "Summary corroborates schedule positions or provisions. It is not another equipment occurrence."
+            },
+            {
+              "id": "bus-frame-notes",
+              "kind": "COMPONENT_OR_CONTEXT",
+              "box": [
+                514,
+                169,
+                584,
+                436
+              ],
+              "source_refs": [
+                "diagram-bus"
+              ],
+              "quantity": null,
+              "position": null,
+              "note": "Maximum frame, phase letters, and mounting terms describe the assembly."
+            }
+          ],
+          "frame": [
+            1100,
+            1424
+          ]
+        }
+      ]
+    },
+    {
+      "pdf": "siemens-panel-drawing.pdf",
+      "sha256": "ef70737c70a64667e65214888c39f4981c09e6b99c160021b9004e17f6cc8499",
+      "source_fixture_sha256": "0d50506f79ade8a23226deaf8095b13c85c1d20cc86855546fbb7959a4cf6c29",
+      "pages": [
+        {
+          "pdf_page": 1,
+          "preparation": "native",
+          "occurrences": [
+            {
+              "id": "lineup",
+              "registry_type": "BUS",
+              "qualification": "UNKNOWN",
+              "tag_state": "PRESENT",
+              "tag": "DMR-MAIN",
+              "position": null,
+              "box": [
+                96,
+                222,
+                619,
+                299
+              ],
+              "source_refs": [
+                "tag",
+                "lineup",
+                "specs"
+              ],
+              "tag_ref": "tag",
+              "note": "The BOM places TAG(S) over the lineup. Installation is unstated.",
+              "alternate_boxes": [
+                [
+                  95,
+                  848,
+                  923,
+                  884
+                ]
+              ]
+            },
+            {
+              "id": "main-wl",
+              "registry_type": "LV_BREAKER",
+              "qualification": "UNKNOWN",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "Section #1 main",
+              "box": [
+                94,
+                352,
+                832,
+                383
+              ],
+              "source_refs": [
+                "section-1",
+                "main",
+                "trip",
+                "catalog"
+              ],
+              "tag_ref": null,
+              "note": "WL is the main breaker. Its trip unit and catalog number are subordinate fields."
+            },
+            {
+              "id": "branch-cmd6",
+              "registry_type": "LV_BREAKER",
+              "qualification": "UNKNOWN",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "Section #2 CMD6 row",
+              "box": [
+                260,
+                637,
+                492,
+                656
+              ],
+              "source_refs": [
+                "branch-devices/0/model",
+                "branch-devices/0/rating",
+                "branch-label"
+              ],
+              "tag_ref": null,
+              "note": "One explicitly listed branch device and its source row."
+            },
+            {
+              "id": "branch-cjd6",
+              "registry_type": "LV_BREAKER",
+              "qualification": "UNKNOWN",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "Section #2 CJD6 row",
+              "box": [
+                260,
+                675,
+                492,
+                694
+              ],
+              "source_refs": [
+                "branch-devices/2/model",
+                "branch-devices/2/rating",
+                "branch-label"
+              ],
+              "tag_ref": null,
+              "note": "One explicitly listed branch device and its source row."
+            },
+            {
+              "id": "branch-cnd6",
+              "registry_type": "LV_BREAKER",
+              "qualification": "UNKNOWN",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": "Section #2 CND6 row",
+              "box": [
+                260,
+                713,
+                492,
+                732
+              ],
+              "source_refs": [
+                "branch-devices/4/model",
+                "branch-devices/4/rating",
+                "branch-label"
+              ],
+              "tag_ref": null,
+              "note": "One explicitly listed branch device and its source row."
+            }
+          ],
+          "exceptions": [
+            {
+              "id": "trip-unit",
+              "kind": "COMPONENT_OR_CONTEXT",
+              "box": [
+                250,
+                395,
+                798,
+                430
+              ],
+              "source_refs": [
+                "trip"
+              ],
+              "quantity": null,
+              "position": null,
+              "note": "ETU745 is the trip unit on WL."
+            },
+            {
+              "id": "utility-provision",
+              "kind": "PROVISION",
+              "box": [
+                165,
+                487,
+                639,
+                506
+              ],
+              "source_refs": [
+                "utility"
+              ],
+              "quantity": null,
+              "position": null,
+              "note": "Provision for CT and PT is not installed instrumentation."
+            },
+            {
+              "id": "transformer-connection",
+              "kind": "AMBIGUOUS",
+              "box": [
+                250,
+                940,
+                799,
+                963
+              ],
+              "source_refs": [
+                "modifications"
+              ],
+              "quantity": null,
+              "position": null,
+              "note": "Dry-type transformer connection is stated. The BOM does not resolve a separate source occurrence or qualification for a transformer."
+            },
+            {
+              "id": "utility-context",
+              "kind": "AMBIGUOUS",
+              "box": [
+                250,
+                510,
+                532,
+                529
+              ],
+              "source_refs": [
+                "utility"
+              ],
+              "quantity": null,
+              "position": null,
+              "note": "BC Hydro names the utility in an option. A specific utility-source occurrence is not identified."
+            },
+            {
+              "id": "fillers",
+              "kind": "COMPONENT_OR_CONTEXT",
+              "box": [
+                175,
+                754,
+                424,
+                789
+              ],
+              "source_refs": [
+                "filler"
+              ],
+              "quantity": null,
+              "position": null,
+              "note": "Mechanical fillers."
+            },
+            {
+              "id": "future-extension",
+              "kind": "PROVISION",
+              "box": [
+                96,
+                1185,
+                537,
+                1206
+              ],
+              "source_refs": [
+                "future"
+              ],
+              "quantity": null,
+              "position": null,
+              "note": "A future extension provision is not a device."
+            }
+          ],
+          "frame": [
+            1100,
+            1424
+          ]
+        }
+      ]
+    },
+    {
+      "pdf": "simson-generator-drawing.pdf",
+      "sha256": "ef79bd306d3fcdfbf20183a91845f13cbe5d9396528b49881666a5f95c35b534",
+      "source_fixture_sha256": "6ea00b9d276debdec43b6e9036f5f18a984a5759599d146df7538517c40d8b6a",
+      "pages": [
+        {
+          "pdf_page": 1,
+          "preparation": "native",
+          "occurrences": [
+            {
+              "id": "generator",
+              "registry_type": "SYNCHRONOUS_GENERATOR",
+              "qualification": "REFERENCE",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": null,
+              "box": [
+                434,
+                104,
+                723,
+                181
+              ],
+              "source_refs": [
+                "brand",
+                "model"
+              ],
+              "tag_ref": null,
+              "note": "The manufacturer datasheet references a synchronous alternator model/configuration. This is a page-local observation, with no unit tag or asset reconciliation."
+            }
+          ],
+          "exceptions": [],
+          "frame": [
+            1100,
+            1557
+          ]
+        },
+        {
+          "pdf_page": 2,
+          "preparation": "native",
+          "occurrences": [
+            {
+              "id": "generator",
+              "registry_type": "SYNCHRONOUS_GENERATOR",
+              "qualification": "REFERENCE",
+              "tag_state": "ABSENT",
+              "tag": null,
+              "position": null,
+              "box": [
+                418,
+                103,
+                693,
+                182
+              ],
+              "source_refs": [
+                "brand",
+                "model"
+              ],
+              "tag_ref": null,
+              "note": "The manufacturer datasheet references a synchronous alternator model/configuration. This is a page-local observation, with no unit tag or asset reconciliation."
+            }
+          ],
+          "exceptions": [
+            {
+              "id": "alternatives",
+              "kind": "COMPONENT_OR_CONTEXT",
+              "box": [
+                119,
+                885,
+                1036,
+                1187
+              ],
+              "source_refs": [
+                "mechanical-heading"
+              ],
+              "quantity": null,
+              "position": null,
+              "note": "Bearing alternatives and overspeed information describe the same model; exciter and PMG are described as internal systems."
+            }
+          ],
+          "frame": [
+            1100,
+            1557
+          ]
+        }
+      ]
+    }
+  ],
+  "structural_control": [
+    {
+      "pdf": "tables/v1/sources/positioned_schedule.pdf",
+      "sha256": "bd21efd868337a72d5e3eeb8d8f5621635de5a22c851a6aa6eacd14776adc26a",
+      "pages": [
+        {
+          "pdf_page": 1,
+          "preparation": "native",
+          "occurrences": [
+            {
+              "id": "tx-1",
+              "registry_type": "TWO_WINDING_TRANSFORMER",
+              "qualification": "UNKNOWN",
+              "tag_state": "PRESENT",
+              "tag": "TX-1",
+              "position": null,
+              "box": [
+                43,
+                217,
+                111,
+                239
+              ],
+              "source_refs": [],
+              "tag_ref": null,
+              "note": "The equipment column identifies one transformer at this schedule row."
+            }
+          ],
+          "exceptions": [],
+          "frame": [
+            900,
+            432
+          ]
+        }
+      ]
+    }
+  ],
+  "synthetic_holdout": [
+    {
+      "pdf": "spatial/v1/sources/electrical-fixtures.pdf",
+      "sha256": "59564a586eafbd5ad4126d848140b335728a4f093a02d33bf323f00abd7141f1",
+      "pages": [
+        {
+          "pdf_page": 1,
+          "preparation": "native",
+          "occurrences": [
+            {
+              "id": "tx-1",
+              "registry_type": "TWO_WINDING_TRANSFORMER",
+              "qualification": "UNKNOWN",
+              "tag_state": "PRESENT",
+              "tag": "TX-1",
+              "position": null,
+              "box": [
+                47,
+                131,
+                109,
+                153
+              ],
+              "source_refs": [],
+              "tag_ref": null,
+              "note": "The equipment column identifies one transformer at this schedule row."
+            },
+            {
+              "id": "tx-2",
+              "registry_type": "TWO_WINDING_TRANSFORMER",
+              "qualification": "UNKNOWN",
+              "tag_state": "PRESENT",
+              "tag": "TX-2",
+              "position": null,
+              "box": [
+                47,
+                182,
+                109,
+                204
+              ],
+              "source_refs": [],
+              "tag_ref": null,
+              "note": "The equipment column identifies one transformer at this schedule row."
+            },
+            {
+              "id": "tx-3",
+              "registry_type": "TWO_WINDING_TRANSFORMER",
+              "qualification": "UNKNOWN",
+              "tag_state": "PRESENT",
+              "tag": "TX-3",
+              "position": null,
+              "box": [
+                47,
+                233,
+                109,
+                255
+              ],
+              "source_refs": [],
+              "tag_ref": null,
+              "note": "The equipment column identifies one transformer at this schedule row."
+            }
+          ],
+          "exceptions": [],
+          "frame": [
+            900,
+            600
+          ]
+        },
+        {
+          "pdf_page": 3,
+          "preparation": "native",
+          "occurrences": [
+            {
+              "id": "tx-4",
+              "registry_type": "TWO_WINDING_TRANSFORMER",
+              "qualification": "UNKNOWN",
+              "tag_state": "PRESENT",
+              "tag": "TX-4",
+              "position": null,
+              "box": [
+                55,
+                217,
+                117,
+                241
+              ],
+              "source_refs": [],
+              "tag_ref": null,
+              "note": "The equipment column identifies one transformer at this schedule row."
+            },
+            {
+              "id": "tx-5",
+              "registry_type": "TWO_WINDING_TRANSFORMER",
+              "qualification": "UNKNOWN",
+              "tag_state": "PRESENT",
+              "tag": "TX-5",
+              "position": null,
+              "box": [
+                55,
+                283,
+                117,
+                305
+              ],
+              "source_refs": [],
+              "tag_ref": null,
+              "note": "The equipment column identifies one transformer at this schedule row."
+            }
+          ],
+          "exceptions": [],
+          "frame": [
+            900,
+            600
+          ]
+        },
+        {
+          "pdf_page": 8,
+          "preparation": "hybrid_300",
+          "occurrences": [
+            {
+              "id": "tx-1",
+              "registry_type": "TWO_WINDING_TRANSFORMER",
+              "qualification": "UNKNOWN",
+              "tag_state": "PRESENT",
+              "tag": "TX-1",
+              "position": null,
+              "box": [
+                25,
+                143,
+                93,
+                168
+              ],
+              "source_refs": [],
+              "tag_ref": null,
+              "note": "The equipment column identifies one transformer at this schedule row."
+            },
+            {
+              "id": "tx-2",
+              "registry_type": "TWO_WINDING_TRANSFORMER",
+              "qualification": "UNKNOWN",
+              "tag_state": "PRESENT",
+              "tag": "TX-2",
+              "position": null,
+              "box": [
+                25,
+                220,
+                93,
+                245
+              ],
+              "source_refs": [],
+              "tag_ref": null,
+              "note": "The equipment column identifies one transformer at this schedule row."
+            }
+          ],
+          "exceptions": [],
+          "frame": [
+            900,
+            315
+          ]
+        },
+        {
+          "pdf_page": 10,
+          "preparation": "native",
+          "occurrences": [],
+          "exceptions": [
+            {
+              "id": "drawing-context",
+              "kind": "COMPONENT_OR_CONTEXT",
+              "box": [
+                66,
+                42,
+                776,
+                330
+              ],
+              "source_refs": [],
+              "quantity": null,
+              "position": null,
+              "note": "Drawing title, notes and bare lines contain no identifiable equipment occurrence."
+            }
+          ],
+          "frame": [
+            900,
+            600
+          ]
+        }
+      ]
+    }
+  ]
+}
