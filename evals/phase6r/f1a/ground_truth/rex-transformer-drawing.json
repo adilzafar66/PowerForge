@@ -1,0 +1,141 @@
+{
+  "version": "f1a-source-gold-v1",
+  "pdf": "rex-transformer-drawing.pdf",
+  "sha256": "90485de2ae1a19245d198e3e060bd96feef9b2ae7e46866253b398dc5b0f2af5",
+  "pages": [
+    {
+      "pdf_page": 1,
+      "frame": [
+        1100,
+        850
+      ],
+      "regions": [
+        {"id": "title", "kind": "identifier", "box": [337, 37, 607, 97], "legibility": "LEGIBLE", "text": "ENERGY EFFICIENT TRANSFORMER\n- 3 Phase Isolation\n- Dry Type\n- ANN Self Cooled"},
+        {"id": "brand", "kind": "identifier", "box": [154, 82, 313, 97], "legibility": "LEGIBLE", "text": "REX POWER MAGNETICS"},
+        {"id": "qty", "kind": "value", "box": [337, 170, 453, 186], "legibility": "LEGIBLE", "text": "Qty: 1"},
+        {"id": "coils", "kind": "value", "box": [40, 221, 264, 236], "legibility": "LEGIBLE", "text": "Coils: Aluminum"},
+        {"id": "catalog", "kind": "identifier", "box": [40, 236, 263, 251], "legibility": "LEGIBLE", "text": "Cat. No.: BA350J-M/Y1/Z3"},
+        {"id": "rating", "kind": "value", "box": [40, 260, 265, 274], "legibility": "LEGIBLE", "text": "kVA: 350"},
+        {"id": "primary", "kind": "value", "box": [40, 273, 322, 287], "legibility": "LEGIBLE", "text": "Primary: 600 Delta Volts"},
+        {"id": "secondary", "kind": "value", "box": [40, 286, 322, 300], "legibility": "LEGIBLE", "text": "Secondary: 208 Y/120 Volts"},
+        {"id": "tap-qualifiers", "kind": "value", "box": [40, 299, 280, 341], "legibility": "LEGIBLE", "text": "Primary Taps: 2.5 %\n-Taps FCAN 2\n-Taps FCBN 2"},
+        {"id": "frequency", "kind": "value", "box": [40, 350, 280, 366], "legibility": "LEGIBLE", "text": "Frequency: 60 Hz"},
+        {"id": "insulation", "kind": "value", "box": [40, 376, 282, 416], "legibility": "LEGIBLE", "text": "BIL: 10 kV\nInsulation Class: 220 °C\nTemperature Rise: 150 °C"},
+        {"id": "impedance", "kind": "value", "box": [40, 415, 280, 431], "legibility": "LEGIBLE", "text": "Impedance: 4.0 - 6.0 %"},
+        {"id": "efficiency", "kind": "value", "box": [40, 440, 279, 467], "legibility": "LEGIBLE", "text": "Min. Efficiency: 99.05 %\n( Calculated @ 35% Loaded )"},
+        {"id": "weight", "kind": "value", "box": [40, 479, 286, 494], "legibility": "LEGIBLE", "text": "Weight: App.2595 Lbs"},
+        {"id": "terminal-note", "kind": "note", "box": [337, 275, 590, 288], "legibility": "LEGIBLE", "text": "*NEMA terminal connector dimensions ( CC 1-2009 Annex C )"},
+        {"id": "wiring", "kind": "label", "box": [336, 299, 438, 314], "legibility": "LEGIBLE", "text": "Wiring Connection:"},
+        {"id": "primary-wiring", "kind": "label", "box": [336, 312, 530, 326], "legibility": "LEGIBLE", "text": "Primary: H1-H2-H3"},
+        {"id": "secondary-wiring", "kind": "label", "box": [336, 416, 536, 430], "legibility": "LEGIBLE", "text": "Secondary: X0-X1-X2-X3"},
+        {"id": "standards", "kind": "note", "box": [713, 221, 845, 263], "legibility": "LEGIBLE", "text": "Standards:\n1)- CSA Certified\n2)- UL Listed"},
+        {"id": "features", "kind": "note", "box": [713, 274, 1020, 352], "legibility": "LEGIBLE", "text": "Standard Features:\n1)- Anti-vibration pads installed between the enclosure base and the core & coil assembly\n2)- Lug for Earth grounding provided\n3)- Transformer meets NRCan 2019 & DOE 2016 minimum efficiency level"},
+        {"id": "special", "kind": "note", "box": [713, 363, 979, 391], "legibility": "LEGIBLE", "text": "Special Features:\nY1 = C/W external anti-vibration pads ( Shipped Loose )"},
+        {"id": "primary-schematic", "kind": "diagram", "box": [734, 437, 880, 552], "legibility": "LEGIBLE", "text": "H2 H1 H3"},
+        {"id": "tap-upper-left", "kind": "diagram", "box": [773, 469, 802, 493], "legibility": "LEGIBLE", "text": "6 4 2"},
+        {"id": "tap-upper-right", "kind": "diagram", "box": [827, 469, 858, 493], "legibility": "LEGIBLE", "text": "5 3 1"},
+        {"id": "tap-lower-left", "kind": "diagram", "box": [766, 490, 784, 515], "legibility": "LEGIBLE", "text": "1 3 5"},
+        {"id": "tap-lower-right", "kind": "diagram", "box": [841, 491, 862, 517], "legibility": "LEGIBLE", "text": "2 4 6"},
+        {"id": "tap-bottom-left", "kind": "diagram", "box": [784, 531, 801, 547], "legibility": "LEGIBLE", "text": "6 4 2"},
+        {"id": "tap-bottom-right", "kind": "diagram", "box": [806, 531, 831, 547], "legibility": "LEGIBLE", "text": "1 3 5"},
+        {"id": "tap-order", "kind": "diagram", "box": [762, 467, 864, 550], "legibility": "AMBIGUOUS", "text": null, "note": "Tap numerals are legible. The arrows are visible, but their full spatial ordering is not adjudicated."},
+        {"id": "secondary-schematic", "kind": "diagram", "box": [903, 439, 1037, 548], "legibility": "LEGIBLE", "text": "X2 X0 X1 X3"},
+        {"id": "enclosure", "kind": "note", "box": [713, 580, 1015, 687], "legibility": "LEGIBLE", "text": "CSA Enclosure:\n1)- Type 3R (NEMA 3R)\n- Sprinklerproof when the angle between sprinkler heads and opening in the enclosure does not exceed 45 degree from the vertical.\n2)- Ventilated\n3)- ASA 61 grey\n4)- Floor mounting"},
+        {"id": "front-width", "kind": "dimension", "box": [64, 531, 218, 553], "legibility": "LEGIBLE", "text": "46", "note": "No explicit unit adjacent to this numeral."},
+        {"id": "front-height", "kind": "dimension", "box": [36, 552, 54, 750], "legibility": "LEGIBLE", "text": "66"},
+        {"id": "front-base", "kind": "dimension", "box": [92, 747, 196, 766], "legibility": "LEGIBLE", "text": "30"},
+        {"id": "front-holes", "kind": "dimension", "box": [218, 757, 300, 776], "legibility": "LEGIBLE", "text": "4 X Ø⅝ MTG. HOLES"},
+        {"id": "side-width", "kind": "dimension", "box": [401, 508, 566, 527], "legibility": "LEGIBLE", "text": "50"},
+        {"id": "side-inner", "kind": "dimension", "box": [417, 526, 550, 549], "legibility": "LEGIBLE", "text": "39½"},
+        {"id": "side-base", "kind": "dimension", "box": [423, 746, 548, 769], "legibility": "LEGIBLE", "text": "36"},
+        {"id": "side-clearance", "kind": "dimension", "box": [381, 685, 424, 749], "legibility": "LEGIBLE", "text": "4\n10"},
+        {"id": "front-caption", "kind": "label", "box": [112, 764, 173, 779], "legibility": "LEGIBLE", "text": "FRONT VIEW"},
+        {"id": "side-caption", "kind": "label", "box": [459, 765, 508, 779], "legibility": "LEGIBLE", "text": "SIDE VIEW"},
+        {"id": "removable", "kind": "note", "box": [64, 513, 304, 529], "legibility": "LEGIBLE", "text": "① - REMOVABLE PANELS FOR EASY ACCESS TO TERMINALS"},
+        {"id": "entry", "kind": "note", "box": [234, 577, 428, 605], "legibility": "LEGIBLE", "text": "RECOMMENDED AREA FOR CABLE ENTRY\n( 7 X 44 ) ON EITHER SIDE ( BY OTHERS )"}
+      ],
+      "tables": [
+        {
+          "id": "terminations",
+          "columns": [
+            "winding",
+            "cable",
+            "terminal"
+          ],
+          "cells": [
+            {"row": 0, "column": "winding", "box": [335, 223, 440, 236], "text": "Windings"},
+            {"row": 0, "column": "cable", "box": [440, 223, 563, 236], "text": "For Cable Size"},
+            {"row": 0, "column": "terminal", "box": [563, 223, 700, 236], "text": "Terminations"},
+            {"row": 1, "column": "winding", "box": [335, 236, 440, 249], "text": "Primary @ Front"},
+            {"row": 1, "column": "cable", "box": [440, 236, 563, 249], "text": "#6 AWG up to 300MCM"},
+            {"row": 1, "column": "terminal", "box": [563, 236, 700, 249], "text": "300MCM-6 (2/Ph)"},
+            {"row": 2, "column": "winding", "box": [335, 249, 440, 262], "text": "Secondary @ Front"},
+            {"row": 2, "column": "cable", "box": [440, 249, 563, 262], "text": "#2 AWG up to 600MCM"},
+            {"row": 2, "column": "terminal", "box": [563, 249, 700, 262], "text": "600MCM-2 (4/Ph)"},
+            {"row": 3, "column": "winding", "column_span": ["winding", "cable", "terminal"], "box": [335, 262, 700, 274], "text": "Ground lugs @ the base of enclosure: 1X 300MCM-6 + 4 ports 2/0-14 AWG"}
+          ],
+          "header_rows": [
+            0
+          ]
+        },
+        {
+          "id": "primary-taps",
+          "columns": [
+            "volts",
+            "percent",
+            "links"
+          ],
+          "cells": [
+            {"row": 0, "column": "volts", "box": [337, 325, 474, 339], "text": "Voltage"},
+            {"row": 0, "column": "percent", "box": [474, 325, 604, 339], "text": "% Tap"},
+            {"row": 0, "column": "links", "box": [604, 325, 658, 339], "text": "Links:"},
+            {"row": 1, "column": "volts", "box": [337, 339, 474, 352], "text": "630"},
+            {"row": 1, "column": "percent", "box": [474, 339, 604, 352], "text": "105.0"},
+            {"row": 1, "column": "links", "box": [604, 339, 658, 352], "text": "1-2"},
+            {"row": 2, "column": "volts", "box": [337, 352, 474, 365], "text": "615"},
+            {"row": 2, "column": "percent", "box": [474, 352, 604, 365], "text": "102.5"},
+            {"row": 2, "column": "links", "box": [604, 352, 658, 365], "text": "2-3"},
+            {"row": 3, "column": "volts", "box": [337, 365, 474, 378], "text": "600"},
+            {"row": 3, "column": "percent", "box": [474, 365, 604, 378], "text": "100.0"},
+            {"row": 3, "column": "links", "box": [604, 365, 658, 378], "text": "3-4"},
+            {"row": 4, "column": "volts", "box": [337, 378, 474, 391], "text": "585"},
+            {"row": 4, "column": "percent", "box": [474, 378, 604, 391], "text": "97.5"},
+            {"row": 4, "column": "links", "box": [604, 378, 658, 391], "text": "4-5"},
+            {"row": 5, "column": "volts", "box": [337, 391, 474, 405], "text": "570"},
+            {"row": 5, "column": "percent", "box": [474, 391, 604, 405], "text": "95.0"},
+            {"row": 5, "column": "links", "box": [604, 391, 658, 405], "text": "5-6"}
+          ],
+          "header_rows": [
+            0
+          ]
+        },
+        {
+          "id": "secondary-load",
+          "columns": [
+            "volts",
+            "phase",
+            "loads"
+          ],
+          "cells": [
+            {"row": 0, "column": "volts", "box": [337, 428, 474, 441], "text": "Voltage"},
+            {"row": 0, "column": "phase", "box": [474, 428, 571, 441], "text": "Phase"},
+            {"row": 0, "column": "loads", "box": [571, 428, 680, 441], "text": "Connect Loads To:"},
+            {"row": 1, "column": "volts", "box": [337, 441, 474, 454], "text": "208"},
+            {"row": 1, "column": "phase", "box": [474, 441, 571, 454], "text": "3"},
+            {"row": 1, "column": "loads", "box": [571, 441, 680, 454], "text": "X1-X2-X3"},
+            {"row": 2, "column": "volts", "box": [337, 454, 474, 479], "text": "120"},
+            {"row": 2, "column": "phase", "box": [474, 454, 571, 479], "text": "1"},
+            {"row": 2, "column": "loads", "box": [571, 454, 680, 479], "text": "X0-X1, X0-X2,\nand/or X0-X3"}
+          ],
+          "header_rows": [
+            0
+          ]
+        }
+      ],
+      "relations": [
+        {"source": "primary-wiring", "target": "primary-taps", "observation": "Primary heading scopes the voltage/tap/link table."},
+        {"source": "secondary-wiring", "target": "secondary-load", "observation": "Secondary heading scopes the load connection options."}
+      ]
+    }
+  ]
+}

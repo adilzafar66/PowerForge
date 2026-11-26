@@ -1,0 +1,265 @@
+{
+  "version": "f1a-source-gold-v1",
+  "pdf": "simson-generator-drawing.pdf",
+  "sha256": "ef79bd306d3fcdfbf20183a91845f13cbe5d9396528b49881666a5f95c35b534",
+  "pages": [
+    {
+      "pdf_page": 1,
+      "frame": [
+        1100,
+        1557
+      ],
+      "regions": [
+        {"id": "brand", "kind": "identifier", "box": [440, 107, 722, 147], "legibility": "LEGIBLE", "text": "STAMFORD"},
+        {"id": "model", "kind": "identifier", "box": [467, 153, 666, 180], "legibility": "LEGIBLE", "text": "S7L1D-G4 Wdg.07"},
+        {"id": "electrical-heading", "kind": "label", "box": [139, 278, 288, 306], "legibility": "LEGIBLE", "text": "Electrical Data"},
+        {"id": "frequency", "kind": "label", "box": [691, 646, 746, 669], "legibility": "LEGIBLE", "text": "60 Hz"},
+        {"id": "saturated-heading", "kind": "label", "box": [137, 866, 657, 890], "legibility": "LEGIBLE", "text": "Saturated Values in Per Unit at Base Ratings and Voltages"},
+        {"id": "unsaturated-heading", "kind": "label", "box": [137, 1114, 682, 1139], "legibility": "LEGIBLE", "text": "Unsaturated Values in Per Unit at Base Ratings and Voltages"}
+      ],
+      "tables": [
+        {
+          "id": "electrical-data",
+          "columns": [
+            "label",
+            "value"
+          ],
+          "cells": [
+            {"row": 0, "column": "label", "box": [125, 321, 396, 348], "text": "Insulation System"},
+            {"row": 0, "column": "value", "box": [396, 321, 1035, 348], "text": "H"},
+            {"row": 1, "column": "label", "box": [125, 348, 396, 374], "text": "Stator Winding"},
+            {"row": 1, "column": "value", "box": [396, 348, 1035, 374], "text": "Double Layer Concentric"},
+            {"row": 2, "column": "label", "box": [125, 374, 396, 401], "text": "Winding Pitch"},
+            {"row": 2, "column": "value", "box": [396, 374, 1035, 401], "text": "2/3"},
+            {"row": 3, "column": "label", "box": [125, 401, 396, 428], "text": "Winding Leads"},
+            {"row": 3, "column": "value", "box": [396, 401, 1035, 428], "text": "6"},
+            {"row": 4, "column": "label", "box": [125, 428, 396, 455], "text": "Winding Number"},
+            {"row": 4, "column": "value", "box": [396, 428, 1035, 455], "text": "07"},
+            {"row": 5, "column": "label", "box": [125, 455, 396, 482], "text": "Number of Poles"},
+            {"row": 5, "column": "value", "box": [396, 455, 1035, 482], "text": "4"},
+            {"row": 6, "column": "label", "box": [125, 482, 396, 509], "text": "IP Rating"},
+            {"row": 6, "column": "value", "box": [396, 482, 1035, 509], "text": "IP23"},
+            {"row": 7, "column": "label", "box": [125, 509, 396, 562], "text": "RFI Suppression"},
+            {"row": 7, "column": "value", "box": [396, 509, 1035, 562], "text": "BS EN 61000-6-2 & BS EN 61000-6-4,VDE 0875G, VDE 0875N.\nRefer to factory for others"},
+            {"row": 8, "column": "label", "box": [125, 562, 396, 589], "text": "Waveform Distortion"},
+            {"row": 8, "column": "value", "box": [396, 562, 1035, 589], "text": "NO LOAD < 1.5% NON-DISTORTING BALANCED LINEAR LOAD < 5.0%"},
+            {"row": 9, "column": "label", "box": [125, 589, 396, 616], "text": "Short Circuit Ratio"},
+            {"row": 9, "column": "value", "box": [396, 589, 1035, 616], "text": "1/Xd"},
+            {"row": 10, "column": "label", "box": [125, 616, 396, 644], "text": "Steady State X/R Ratio"},
+            {"row": 10, "column": "value", "box": [396, 616, 1035, 644], "text": "32.02"}
+          ]
+        },
+        {
+          "id": "frequency-entries",
+          "columns": [
+            "label",
+            "value"
+          ],
+          "cells": [
+            {"row": 0, "column": "label", "box": [125, 672, 396, 698], "text": "Telephone Interference"},
+            {"row": 0, "column": "value", "box": [396, 672, 1035, 698], "text": "TIF<50"},
+            {"row": 1, "column": "label", "box": [125, 698, 396, 726], "text": "Cooling Air Flow"},
+            {"row": 1, "column": "value", "box": [396, 698, 1035, 726], "text": "2.87 m³/sec"},
+            {"row": 2, "column": "label", "box": [125, 726, 396, 754], "text": "Voltage Star (V)"},
+            {"row": 2, "column": "value", "box": [396, 726, 1035, 754], "text": "600"},
+            {"row": 3, "column": "label", "box": [125, 754, 396, 782], "text": "Voltage Parallel Star (V)"},
+            {"row": 3, "column": "value", "box": [396, 754, 1035, 782], "text": "-"},
+            {"row": 4, "column": "label", "box": [125, 782, 396, 810], "text": "Voltage Delta (V)"},
+            {"row": 4, "column": "value", "box": [396, 782, 1035, 810], "text": "-"},
+            {"row": 5, "column": "label", "box": [125, 810, 396, 863], "text": "kVA Base Rating (Class H) for\nReactance Values (kVA)"},
+            {"row": 5, "column": "value", "box": [396, 810, 1035, 863], "text": "2600"}
+          ]
+        },
+        {
+          "id": "saturated",
+          "columns": [
+            "label",
+            "value"
+          ],
+          "cells": [
+            {"row": 0, "column": "label", "box": [125, 892, 396, 922], "text": "Xd Dir. Axis Synchronous"},
+            {"row": 0, "column": "value", "box": [396, 892, 1035, 922], "text": "2.82"},
+            {"row": 1, "column": "label", "box": [125, 922, 396, 949], "text": "X'd Dir. Axis Transient"},
+            {"row": 1, "column": "value", "box": [396, 922, 1035, 949], "text": "0.19"},
+            {"row": 2, "column": "label", "box": [125, 949, 396, 975], "text": "X\"d Dir. Axis Subtransient"},
+            {"row": 2, "column": "value", "box": [396, 949, 1035, 975], "text": "0.14"},
+            {"row": 3, "column": "label", "box": [125, 975, 396, 1002], "text": "Xq Quad. Axis Reactance"},
+            {"row": 3, "column": "value", "box": [396, 975, 1035, 1002], "text": "1.94"},
+            {"row": 4, "column": "label", "box": [125, 1002, 396, 1030], "text": "X\"q Quad. Axis Subtransient"},
+            {"row": 4, "column": "value", "box": [396, 1002, 1035, 1030], "text": "0.22"},
+            {"row": 5, "column": "label", "box": [125, 1030, 396, 1057], "text": "XL Stator Leakage Reactance"},
+            {"row": 5, "column": "value", "box": [396, 1030, 1035, 1057], "text": "0.08"},
+            {"row": 6, "column": "label", "box": [125, 1057, 396, 1083], "text": "X2 Negative Sequence Reactance"},
+            {"row": 6, "column": "value", "box": [396, 1057, 1035, 1083], "text": "0.16"},
+            {"row": 7, "column": "label", "box": [125, 1083, 396, 1111], "text": "X0 Zero Sequence Reactance"},
+            {"row": 7, "column": "value", "box": [396, 1083, 1035, 1111], "text": "0.03"}
+          ]
+        },
+        {
+          "id": "unsaturated",
+          "columns": [
+            "label",
+            "value"
+          ],
+          "cells": [
+            {"row": 0, "column": "label", "box": [125, 1140, 396, 1173], "text": "Xd Dir. Axis Synchronous"},
+            {"row": 0, "column": "value", "box": [396, 1140, 1035, 1173], "text": "3.38"},
+            {"row": 1, "column": "label", "box": [125, 1173, 396, 1200], "text": "X'd Dir. Axis Transient"},
+            {"row": 1, "column": "value", "box": [396, 1173, 1035, 1200], "text": "0.22"},
+            {"row": 2, "column": "label", "box": [125, 1200, 396, 1227], "text": "X\"d Dir. Axis Subtransient"},
+            {"row": 2, "column": "value", "box": [396, 1200, 1035, 1227], "text": "0.16"},
+            {"row": 3, "column": "label", "box": [125, 1227, 396, 1253], "text": "Xq Quad. Axis Reactance"},
+            {"row": 3, "column": "value", "box": [396, 1227, 1035, 1253], "text": "2.00"},
+            {"row": 4, "column": "label", "box": [125, 1253, 396, 1280], "text": "X\"q Quad. Axis Subtransient"},
+            {"row": 4, "column": "value", "box": [396, 1253, 1035, 1280], "text": "0.26"},
+            {"row": 5, "column": "label", "box": [125, 1280, 396, 1307], "text": "XL Stator Leakage Reactance"},
+            {"row": 5, "column": "value", "box": [396, 1280, 1035, 1307], "text": "0.10"},
+            {"row": 6, "column": "label", "box": [125, 1307, 396, 1334], "text": "Xlr Rotor Leakage Reactance"},
+            {"row": 6, "column": "value", "box": [396, 1307, 1035, 1334], "text": "0.21"},
+            {"row": 7, "column": "label", "box": [125, 1334, 396, 1361], "text": "X2 Negative Sequence Reactance"},
+            {"row": 7, "column": "value", "box": [396, 1334, 1035, 1361], "text": "0.19"},
+            {"row": 8, "column": "label", "box": [125, 1361, 396, 1389], "text": "X0 Zero Sequence Reactance"},
+            {"row": 8, "column": "value", "box": [396, 1361, 1035, 1389], "text": "0.04"}
+          ]
+        }
+      ],
+      "printed_page": "Page 2",
+      "relations": [
+        {"source": "frequency", "target": "frequency-entries", "observation": "Frequency heading scopes the listed electrical data rows."},
+        {"source": "saturated-heading", "target": "saturated", "observation": "The repeated reactance labels apply to saturated per-unit values here."},
+        {"source": "unsaturated-heading", "target": "unsaturated", "observation": "The repeated reactance labels apply to unsaturated per-unit values here."}
+      ]
+    },
+    {
+      "pdf_page": 2,
+      "frame": [
+        1100,
+        1557
+      ],
+      "regions": [
+        {"id": "brand", "kind": "identifier", "box": [421, 105, 691, 146], "legibility": "LEGIBLE", "text": "STAMFORD"},
+        {"id": "model", "kind": "identifier", "box": [477, 153, 677, 180], "legibility": "LEGIBLE", "text": "S7L1D-G4 Wdg.07"},
+        {"id": "time-heading", "kind": "label", "box": [133, 240, 375, 261], "legibility": "LEGIBLE", "text": "Time Constants (Seconds)"},
+        {"id": "resistance-heading", "kind": "label", "box": [132, 402, 423, 425], "legibility": "LEGIBLE", "text": "Resistances in Ohms (Ω) at 22⁰C"},
+        {"id": "saturation-heading", "kind": "label", "box": [132, 692, 301, 714], "legibility": "LEGIBLE", "text": "Saturation Factors"},
+        {"id": "mechanical-heading", "kind": "label", "box": [132, 775, 305, 800], "legibility": "LEGIBLE", "text": "Mechanical Data"}
+      ],
+      "tables": [
+        {
+          "id": "time-constants",
+          "columns": [
+            "label",
+            "value"
+          ],
+          "cells": [
+            {"row": 0, "column": "label", "box": [120, 263, 391, 290], "text": "T’d Transient Time Const."},
+            {"row": 0, "column": "value", "box": [391, 263, 1031, 290], "text": "0.185"},
+            {"row": 1, "column": "label", "box": [120, 290, 391, 317], "text": "T’’d Sub-Transient Time Const."},
+            {"row": 1, "column": "value", "box": [391, 290, 1031, 317], "text": "0.016"},
+            {"row": 2, "column": "label", "box": [120, 317, 391, 344], "text": "T’do O.C. Field Time Const."},
+            {"row": 2, "column": "value", "box": [391, 317, 1031, 344], "text": "4.290"},
+            {"row": 3, "column": "label", "box": [120, 344, 391, 371], "text": "Ta Armature Time Const."},
+            {"row": 3, "column": "value", "box": [391, 344, 1031, 371], "text": "0.032"},
+            {"row": 4, "column": "label", "box": [120, 371, 391, 399], "text": "T’’q Sub-Transient Time Const."},
+            {"row": 4, "column": "value", "box": [391, 371, 1031, 399], "text": "0.0106"}
+          ]
+        },
+        {
+          "id": "resistances",
+          "columns": [
+            "label",
+            "value"
+          ],
+          "cells": [
+            {"row": 0, "column": "label", "box": [120, 428, 391, 470], "text": "Stator Winding Resistance (Ra),\nper phase for series connected"},
+            {"row": 0, "column": "value", "box": [391, 428, 1031, 470], "text": "0.00131"},
+            {"row": 1, "column": "label", "box": [120, 470, 391, 497], "text": "Rotor Winding Resistance (Rf)"},
+            {"row": 1, "column": "value", "box": [391, 470, 1031, 497], "text": "2.15"},
+            {"row": 2, "column": "label", "box": [120, 497, 391, 524], "text": "Exciter Stator Winding Resistance"},
+            {"row": 2, "column": "value", "box": [391, 497, 1031, 524], "text": "22.3"},
+            {"row": 3, "column": "label", "box": [120, 524, 391, 567], "text": "Exciter Rotor Winding Resistance per\nphase"},
+            {"row": 3, "column": "value", "box": [391, 524, 1031, 567], "text": "0.065"},
+            {"row": 4, "column": "label", "box": [120, 567, 391, 608], "text": "PMG Phase Resistance (Rpmg) per\nphase"},
+            {"row": 4, "column": "value", "box": [391, 567, 1031, 608], "text": "1.91"},
+            {"row": 5, "column": "label", "box": [120, 608, 391, 635], "text": "Positive Sequence Resistance (R1)"},
+            {"row": 5, "column": "value", "box": [391, 608, 1031, 635], "text": "0.0016"},
+            {"row": 6, "column": "label", "box": [120, 635, 391, 662], "text": "Negative Sequence Resistance (R2)"},
+            {"row": 6, "column": "value", "box": [391, 635, 1031, 662], "text": "0.0019"},
+            {"row": 7, "column": "label", "box": [120, 662, 391, 690], "text": "Zero Sequence Resistance (R0)"},
+            {"row": 7, "column": "value", "box": [391, 662, 1031, 690], "text": "0.0016"}
+          ]
+        },
+        {
+          "id": "saturation",
+          "columns": [
+            "label",
+            "value"
+          ],
+          "cells": [
+            {"row": 0, "column": "value", "box": [391, 690, 1031, 717], "text": "600V"},
+            {"row": 1, "column": "label", "box": [120, 717, 391, 745], "text": "SG1.0"},
+            {"row": 1, "column": "value", "box": [391, 717, 1031, 745], "text": "0.173"},
+            {"row": 2, "column": "label", "box": [120, 745, 391, 772], "text": "SG1.2"},
+            {"row": 2, "column": "value", "box": [391, 745, 1031, 772], "text": "1.175"}
+          ],
+          "header_rows": [
+            0
+          ]
+        },
+        {
+          "id": "mechanical",
+          "columns": [
+            "label",
+            "one-bearing",
+            "two-bearing"
+          ],
+          "cells": [
+            {"row": 0, "column": "label", "box": [120, 809, 391, 888], "text": "Shaft and Keys"},
+            {"row": 1, "column": "one-bearing", "box": [391, 888, 711, 915], "text": "1 Bearing"},
+            {"row": 1, "column": "two-bearing", "box": [711, 888, 1031, 915], "text": "2 Bearing"},
+            {"row": 2, "column": "label", "box": [120, 915, 391, 942], "text": "SAE Adaptor"},
+            {"row": 2, "column": "one-bearing", "box": [391, 915, 711, 942], "text": "SAE0, SAE00"},
+            {"row": 2, "column": "two-bearing", "box": [711, 915, 1031, 942], "text": "SAE0, SAE00"},
+            {"row": 3, "column": "label", "box": [120, 942, 391, 969], "text": "Moment of Inertia"},
+            {"row": 3, "column": "one-bearing", "box": [391, 942, 711, 969], "text": "45.47 kgm²"},
+            {"row": 3, "column": "two-bearing", "box": [711, 942, 1031, 969], "text": "44.44 kgm²"},
+            {"row": 4, "column": "label", "box": [120, 969, 391, 996], "text": "Weight Wound Stator"},
+            {"row": 4, "column": "one-bearing", "box": [391, 969, 711, 996], "text": "1725kg"},
+            {"row": 4, "column": "two-bearing", "box": [711, 969, 1031, 996], "text": "1725kg"},
+            {"row": 5, "column": "label", "box": [120, 996, 391, 1023], "text": "Weight Wound Rotor"},
+            {"row": 5, "column": "one-bearing", "box": [391, 996, 711, 1023], "text": "1488kg"},
+            {"row": 5, "column": "two-bearing", "box": [711, 996, 1031, 1023], "text": "1445kg"},
+            {"row": 6, "column": "label", "box": [120, 1023, 391, 1050], "text": "Weight Complete Alternator"},
+            {"row": 6, "column": "one-bearing", "box": [391, 1023, 711, 1050], "text": "3637kg"},
+            {"row": 6, "column": "two-bearing", "box": [711, 1023, 1031, 1050], "text": "3604kg"},
+            {"row": 7, "column": "label", "box": [120, 1050, 391, 1077], "text": "Shipping weight in a Crate"},
+            {"row": 7, "column": "one-bearing", "box": [391, 1050, 711, 1077], "text": "3689kg"},
+            {"row": 7, "column": "two-bearing", "box": [711, 1050, 1031, 1077], "text": "3656kg"},
+            {"row": 8, "column": "label", "box": [120, 1077, 391, 1104], "text": "Packing Crate Size"},
+            {"row": 8, "column": "one-bearing", "box": [391, 1077, 711, 1104], "text": "220 x 105 x 155(cm)"},
+            {"row": 8, "column": "two-bearing", "box": [711, 1077, 1031, 1104], "text": "220 x 105 x 155(cm)"},
+            {"row": 9, "column": "label", "box": [120, 1104, 391, 1131], "text": "Maximum Over Speed"},
+            {"row": 10, "column": "label", "box": [120, 1131, 391, 1158], "text": "Bearing Drive End"},
+            {"row": 10, "column": "one-bearing", "box": [391, 1131, 711, 1158], "text": "-"},
+            {"row": 10, "column": "two-bearing", "box": [711, 1131, 1031, 1158], "text": "BALL. 6232 C3"},
+            {"row": 11, "column": "label", "box": [120, 1158, 391, 1185], "text": "Bearing Non-Drive End"},
+            {"row": 11, "column": "one-bearing", "box": [391, 1158, 711, 1185], "text": "BALL. 6319 C3"},
+            {"row": 11, "column": "two-bearing", "box": [711, 1158, 1031, 1185], "text": "BALL. 6319 C3"},
+            {"row": 0, "column": "one-bearing", "column_span": ["one-bearing", "two-bearing"], "box": [391, 809, 1031, 888], "text": "All alternator rotors are dynamically balanced to better than BS6861: Part 1 Grade 2.5 for minimum vibration in operation. Two bearing generators are balanced with a half key."},
+            {"row": 9, "column": "one-bearing", "column_span": ["one-bearing", "two-bearing"], "box": [391, 1104, 1031, 1131], "text": "2250 RPM for two minutes"}
+          ],
+          "header_rows": [
+            1
+          ]
+        }
+      ],
+      "printed_page": "Page 3",
+      "relations": [
+        {"source": "time-heading", "target": "time-constants", "observation": "The units are printed in the shared heading."},
+        {"source": "resistance-heading", "target": "resistances", "observation": "The Ohms and temperature qualifiers apply to these rows."},
+        {"source": "saturation-heading", "target": "saturation", "observation": "The 600V column heading scopes the two values."},
+        {"source": "mechanical-heading", "target": "mechanical", "observation": "Bearing columns are alternative configurations. The overspeed cell spans both."}
+      ]
+    }
+  ]
+}

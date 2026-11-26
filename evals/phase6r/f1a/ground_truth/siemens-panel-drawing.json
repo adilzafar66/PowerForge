@@ -1,0 +1,86 @@
+{
+  "version": "f1a-source-gold-v1",
+  "pdf": "siemens-panel-drawing.pdf",
+  "sha256": "ef70737c70a64667e65214888c39f4981c09e6b99c160021b9004e17f6cc8499",
+  "pages": [
+    {
+      "pdf_page": 1,
+      "frame": [
+        1100,
+        1424
+      ],
+      "regions": [
+        {"id": "heading", "kind": "label", "box": [108, 133, 609, 156], "legibility": "LEGIBLE", "text": "Bill of Material per FC2 (2000A-5000A) (WL Breaker)"},
+        {"id": "tag", "kind": "identifier", "box": [98, 223, 266, 242], "legibility": "LEGIBLE", "text": "TAG(S):[DMR-MAIN]"},
+        {"id": "lineup", "kind": "value", "box": [98, 261, 609, 301], "legibility": "LEGIBLE", "text": "QTY 1 Line-up FCII 2 Sections Top Entry L.H.S\n347/600V 3PH 4W 4000A Tin Plated Aluminum SC=65KA"},
+        {"id": "section-1", "kind": "label", "box": [98, 317, 500, 339], "legibility": "LEGIBLE", "text": "Section #1 Main Device/Hydro Utility"},
+        {"id": "main", "kind": "value", "box": [97, 354, 831, 374], "legibility": "LEGIBLE", "text": "Main device: WL Breaker, 3 Pole, 4000A, Fixed Mount, CSA 22.2 #5 (UL489)"},
+        {"id": "rating-plug", "kind": "value", "box": [252, 374, 436, 393], "legibility": "LEGIBLE", "text": "Rating Plug: 4000A"},
+        {"id": "trip", "kind": "value", "box": [252, 393, 794, 431], "legibility": "LEGIBLE", "text": "Trip Unit: ETU745 LSIG with Ground Fault Alarm and Trip\nc/w Neutral Sensor"},
+        {"id": "catalog", "kind": "identifier", "box": [252, 449, 679, 468], "legibility": "LEGIBLE", "text": "WL Breaker Catalog Number : L3F340ZGXXXXXXN"},
+        {"id": "connector", "kind": "value", "box": [252, 468, 763, 487], "legibility": "LEGIBLE", "text": "Connector Size: (11)-#250-500MCM Per Phase & Neutral"},
+        {"id": "utility", "kind": "note", "box": [164, 487, 633, 581], "legibility": "LEGIBLE", "text": "Options: Hydro Utility (Prov. for CT R6MC & PT)\nHydro Utility Company: BC Hydro\nDrawing Number: 4S-7503-18\nCompartment's Height: 35\"\nService Entrance"},
+        {"id": "section-2", "kind": "label", "box": [98, 598, 499, 622], "legibility": "LEGIBLE", "text": "Section #2 Distribution 65.00\",2000A"},
+        {"id": "branch-label", "kind": "label", "box": [107, 637, 246, 657], "legibility": "LEGIBLE", "text": "Branch device:"},
+        {"id": "filler", "kind": "note", "box": [175, 752, 426, 788], "legibility": "LEGIBLE", "text": "Filler: 2 Fillers 15.00\"\n1 Filler 6.25\""},
+        {"id": "specs", "kind": "note", "box": [97, 809, 917, 887], "legibility": "LEGIBLE", "text": "Specifications:\nEnclosure Type 1 (Standard with dripshield)\n4000A Aluminum cross bus and bus link to connect to adjacent section"},
+        {"id": "modifications", "kind": "note", "box": [97, 903, 803, 1054], "legibility": "LEGIBLE", "text": "Modifications:\nDry-Type Power X-Former Connection c/w Flex (Main Entry)\nSide Connection\nBus Bracing 65KA\nBus Phase Identification (Color code phasing)\nChannel Base (Height 4 Inches)\nDripshield"},
+        {"id": "dimensions-heading", "kind": "label", "box": [98, 1072, 316, 1091], "legibility": "LEGIBLE", "text": "Switchboard dimension:"},
+        {"id": "overall-width", "kind": "dimension", "box": [98, 1166, 529, 1187], "legibility": "LEGIBLE", "text": "Overall Width: WIDTH: 76\""},
+        {"id": "future", "kind": "note", "box": [98, 1186, 533, 1205], "legibility": "LEGIBLE", "text": "Provision for future extension in section #2"},
+        {"id": "split", "kind": "note", "box": [98, 1205, 385, 1224], "legibility": "LEGIBLE", "text": "Shipping Split: Section 1 & 2"},
+        {"id": "legend", "kind": "note", "box": [98, 1224, 500, 1243], "legibility": "LEGIBLE", "text": "SC : Abbreviation for Short Circuit Level"}
+      ],
+      "tables": [
+        {
+          "id": "branch-devices",
+          "columns": [
+            "quantity",
+            "model",
+            "rating"
+          ],
+          "cells": [
+            {"row": 0, "column": "quantity", "box": [262, 637, 282, 656], "text": "1"},
+            {"row": 0, "column": "model", "box": [282, 637, 349, 656], "text": "CMD6"},
+            {"row": 0, "column": "rating", "box": [349, 637, 493, 656], "text": "3 Pole 600A"},
+            {"row": 2, "column": "quantity", "box": [262, 675, 282, 694], "text": "1"},
+            {"row": 2, "column": "model", "box": [282, 675, 349, 694], "text": "CJD6"},
+            {"row": 2, "column": "rating", "box": [349, 675, 493, 694], "text": "3 Pole 400A"},
+            {"row": 4, "column": "quantity", "box": [262, 713, 282, 732], "text": "1"},
+            {"row": 4, "column": "model", "box": [282, 713, 349, 732], "text": "CND6"},
+            {"row": 4, "column": "rating", "box": [349, 713, 493, 732], "text": "3 Pole 1000A"},
+            {"row": 1, "column": "model", "column_span": ["model", "rating"], "box": [282, 656, 493, 675], "text": "c/w Padlocking device"},
+            {"row": 3, "column": "model", "column_span": ["model", "rating"], "box": [282, 694, 493, 713], "text": "c/w Padlocking device"},
+            {"row": 5, "column": "model", "column_span": ["model", "rating"], "box": [282, 732, 493, 751], "text": "c/w Padlocking device"}
+          ],
+          "note": "Each padlocking line continues the immediately preceding device row."
+        },
+        {
+          "id": "section-dimensions",
+          "columns": [
+            "section",
+            "height",
+            "width",
+            "depth"
+          ],
+          "cells": [
+            {"row": 0, "column": "section", "box": [98, 1109, 301, 1128], "text": "Section#1:"},
+            {"row": 0, "column": "height", "box": [301, 1109, 427, 1128], "text": "HEIGHT: 90\""},
+            {"row": 0, "column": "width", "box": [427, 1109, 544, 1128], "text": "WIDTH: 38\""},
+            {"row": 0, "column": "depth", "box": [544, 1109, 649, 1128], "text": "DEPTH: 58\""},
+            {"row": 1, "column": "section", "box": [98, 1128, 301, 1147], "text": "Section#2:"},
+            {"row": 1, "column": "height", "box": [301, 1128, 427, 1147], "text": "HEIGHT: 90\""},
+            {"row": 1, "column": "width", "box": [427, 1128, 544, 1147], "text": "WIDTH: 38\""},
+            {"row": 1, "column": "depth", "box": [544, 1128, 649, 1147], "text": "DEPTH: 58\""}
+          ]
+        }
+      ],
+      "printed_page": "Page 2 of 25",
+      "relations": [
+        {"source": "section-1", "target": "main", "observation": "Main device is within Section #1."},
+        {"source": "trip", "target": "main", "observation": "Trip-unit line is indented under the Section #1 main device."},
+        {"source": "section-2", "target": "branch-devices", "observation": "Three branch lines are within Section #2."}
+      ]
+    }
+  ]
+}

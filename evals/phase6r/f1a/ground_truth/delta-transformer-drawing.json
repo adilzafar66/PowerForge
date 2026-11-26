@@ -1,0 +1,103 @@
+{
+  "version": "f1a-source-gold-v1",
+  "pdf": "delta-transformer-drawing.pdf",
+  "sha256": "4cad19142b1ef1042b7d3d2bf89e4b4ea25b66989643dfd7c9df600aaa941267",
+  "pages": [
+    {
+      "pdf_page": 1,
+      "frame": [
+        1100,
+        850
+      ],
+      "regions": [
+        {"id": "nameplate", "kind": "identifier", "box": [233, 175, 510, 191], "legibility": "LEGIBLE", "text": "DRY-TYPE TRANSFORMER / TRANSFORMATEUR TYPE SEC"},
+        {"id": "tag", "kind": "identifier", "box": [91, 652, 168, 670], "legibility": "LEGIBLE", "text": "TAG: 80T1"},
+        {"id": "model", "kind": "identifier", "box": [210, 230, 430, 252], "legibility": "LEGIBLE", "text": "GENERAL MOD. #\nE-CX6C2000 S028037-001"},
+        {"id": "distinct-model", "kind": "identifier", "box": [221, 272, 429, 293], "legibility": "LEGIBLE", "text": "Distinct Mod. #\nCX6C2000 S028037"},
+        {"id": "rated", "kind": "value", "box": [239, 303, 498, 325], "legibility": "LEGIBLE", "text": "kVA 2000 ANN at/à 150 °C Temp. Rise\nÉlév. Temp."},
+        {"id": "provisional", "kind": "value", "box": [239, 324, 446, 344], "legibility": "LEGIBLE", "text": "kVA PROV. 2667 AFN at/à 150 °C"},
+        {"id": "primary", "kind": "value", "box": [238, 373, 466, 394], "legibility": "LEGIBLE", "text": "PRI. 12470 X 24940 95 X 125 kV BIL"},
+        {"id": "secondary", "kind": "value", "box": [234, 394, 465, 414], "legibility": "LEGIBLE", "text": "SEC. 600Y/346 10 kV BIL"},
+        {"id": "impedance", "kind": "value", "box": [247, 413, 491, 434], "legibility": "LEGIBLE", "text": "IZ 6.70 % at/à 170 °C at/à 2000 kVA"},
+        {"id": "phase-frequency-class", "kind": "value", "box": [228, 435, 466, 455], "legibility": "LEGIBLE", "text": "Phase 3 Hz 60 Class 220"},
+        {"id": "reference", "kind": "identifier", "box": [211, 460, 367, 483], "legibility": "LEGIBLE", "text": "Reference\nRéférence\n028037"},
+        {"id": "enclosure", "kind": "value", "box": [379, 460, 467, 482], "legibility": "LEGIBLE", "text": "Enclosure\nBoîtier\n2"},
+        {"id": "weights", "kind": "value", "box": [397, 484, 541, 526], "legibility": "LEGIBLE", "text": "Weight\nPoids\nC&C 13250 lbs\nTotal 14500 lbs"},
+        {"id": "year", "kind": "value", "box": [228, 504, 366, 526], "legibility": "LEGIBLE", "text": "Year\nAnnée\n2023"},
+        {"id": "nameplate-size", "kind": "value", "box": [184, 587, 443, 603], "legibility": "LEGIBLE", "text": "Dimensions H x L, in.po. [mm] : 7.25 x 10.00 [184 x 254]"},
+        {"id": "impedance-note", "kind": "note", "box": [459, 588, 1011, 613], "legibility": "LEGIBLE", "text": "Impedance between drawing and nameplate may differ. Measured impedance value will be indicated on nameplate according to production test results. Regarding this measurement impedance value, no revised drawing will be sent."},
+        {"id": "impedance-note-fr", "kind": "note", "box": [459, 624, 1011, 661], "legibility": "LEGIBLE", "text": "La valeur de l'impédance indiquée sur ce dessin est estimée. La valeur réelle qui sera indiquée sur la plaque signalétique sera la valeur réelle de l'impédance calculée à partir des mesures prises lors des essais électriques effectués sur le transformateur. Aucune révision de dessin ne sera envoyée ultérieurement pour indiquer la valeur réelle de l'impédance."},
+        {"id": "winding-diagram", "kind": "diagram", "box": [568, 106, 883, 203], "legibility": "LEGIBLE", "text": "H₁ H₂ H₃\nX₀ X₁ X₂ X₃"},
+        {"id": "winding-1-taps", "kind": "diagram", "box": [582, 135, 670, 160], "legibility": "LEGIBLE", "text": "14 13 12 11 10 9 7 8 6 5 4 3 2 1", "note": "Tap numerals in left-to-right order of this winding group."},
+        {"id": "winding-2-taps", "kind": "diagram", "box": [684, 135, 772, 160], "legibility": "LEGIBLE", "text": "14 13 12 11 10 9 7 8 6 5 4 3 2 1", "note": "Tap numerals in left-to-right order of this winding group."},
+        {"id": "winding-3-taps", "kind": "diagram", "box": [786, 135, 875, 160], "legibility": "LEGIBLE", "text": "14 13 12 11 10 9 7 8 6 5 4 3 2 1", "note": "Tap numerals in left-to-right order of this winding group."},
+        {"id": "terminal-diagram", "kind": "diagram", "box": [641, 240, 811, 309], "legibility": "LEGIBLE", "text": "H₂ H₁ H₃\nX₁ X₂ X₀ X₃"}
+      ],
+      "tables": [
+        {
+          "id": "tap-table",
+          "columns": [
+            "section",
+            "tap",
+            "voltage",
+            "low-pos",
+            "low-amps",
+            "high-pos",
+            "high-amps"
+          ],
+          "cells": [
+            {"row": 0, "column": "section", "box": [572, 382, 610, 398], "text": "2000 kVA"},
+            {"row": 0, "column": "tap", "box": [610, 382, 683, 398], "text": "Pos."},
+            {"row": 0, "column": "voltage", "box": [683, 382, 737, 398], "text": "Volts"},
+            {"row": 1, "column": "low-pos", "box": [737, 398, 774, 414], "text": "Pos."},
+            {"row": 1, "column": "low-amps", "box": [774, 398, 810, 414], "text": "Amps"},
+            {"row": 1, "column": "high-pos", "box": [810, 398, 846, 414], "text": "Pos."},
+            {"row": 1, "column": "high-amps", "box": [846, 398, 883, 414], "text": "Amps"},
+            {"row": 2, "column": "tap", "box": [610, 414, 683, 430], "text": "---"},
+            {"row": 2, "column": "voltage", "box": [683, 414, 737, 430], "text": "---"},
+            {"row": 2, "column": "low-amps", "box": [774, 414, 810, 430], "text": "---"},
+            {"row": 2, "column": "high-amps", "box": [846, 414, 883, 430], "text": "---"},
+            {"row": 3, "column": "tap", "box": [610, 430, 683, 446], "text": "4-5 / 11-12"},
+            {"row": 3, "column": "voltage", "box": [683, 430, 737, 446], "text": "105%"},
+            {"row": 3, "column": "low-amps", "box": [774, 430, 810, 446], "text": "88.2"},
+            {"row": 3, "column": "high-amps", "box": [846, 430, 883, 446], "text": "44.1"},
+            {"row": 4, "column": "tap", "box": [610, 446, 683, 462], "text": "3-5 / 10-12"},
+            {"row": 4, "column": "voltage", "box": [683, 446, 737, 462], "text": "102.5%"},
+            {"row": 4, "column": "low-amps", "box": [774, 446, 810, 462], "text": "90.3"},
+            {"row": 4, "column": "high-amps", "box": [846, 446, 883, 462], "text": "45.2"},
+            {"row": 5, "column": "tap", "box": [610, 462, 683, 478], "text": "4-6 / 11-13"},
+            {"row": 5, "column": "voltage", "box": [683, 462, 737, 478], "text": "100%"},
+            {"row": 5, "column": "low-amps", "box": [774, 462, 810, 478], "text": "92.6"},
+            {"row": 5, "column": "high-amps", "box": [846, 462, 883, 478], "text": "46.3"},
+            {"row": 6, "column": "tap", "box": [610, 478, 683, 494], "text": "3-6 / 10-13"},
+            {"row": 6, "column": "voltage", "box": [683, 478, 737, 494], "text": "97.5%"},
+            {"row": 6, "column": "low-amps", "box": [774, 478, 810, 494], "text": "95.0"},
+            {"row": 6, "column": "high-amps", "box": [846, 478, 883, 494], "text": "47.5"},
+            {"row": 7, "column": "tap", "box": [610, 494, 683, 510], "text": "2-6 / 9-13"},
+            {"row": 7, "column": "voltage", "box": [683, 494, 737, 510], "text": "95%"},
+            {"row": 7, "column": "low-amps", "box": [774, 494, 810, 510], "text": "97.5"},
+            {"row": 7, "column": "high-amps", "box": [846, 494, 883, 510], "text": "48.7"},
+            {"row": 8, "column": "section", "box": [572, 510, 610, 526], "text": "SEC."},
+            {"row": 8, "column": "voltage", "box": [683, 510, 737, 526], "text": "600Y/346"},
+            {"row": 8, "column": "low-amps", "box": [774, 510, 810, 526], "text": "1925"},
+            {"row": 8, "column": "high-amps", "box": [846, 510, 883, 526], "text": "1925"},
+            {"row": 0, "column": "low-pos", "column_span": ["low-pos", "low-amps"], "box": [737, 382, 810, 398], "text": "12470 V"},
+            {"row": 0, "column": "high-pos", "column_span": ["high-pos", "high-amps"], "box": [810, 382, 883, 398], "text": "24940 V"},
+            {"row": 2, "row_end": 7, "column": "section", "box": [573, 414, 609, 510], "text": "PRI."},
+            {"row": 2, "row_end": 4, "column": "low-pos", "box": [737, 414, 774, 462], "text": "1 - 8"},
+            {"row": 5, "row_end": 7, "column": "low-pos", "box": [737, 462, 774, 510], "text": "7 - 14"},
+            {"row": 2, "row_end": 7, "column": "high-pos", "box": [810, 414, 846, 510], "text": "7 - 8"}
+          ],
+          "header_rows": [
+            0,
+            1
+          ],
+          "note": "PRI. spans rows 2–7. 1 - 8 applies to low-voltage rows 2–4, 7 - 14 to low-voltage rows 5–7, and 7 - 8 to high-voltage rows 2–7."
+        }
+      ],
+      "relations": [
+        {"source": "impedance-note", "target": "impedance", "observation": "The note qualifies the drawing impedance. The table and nameplate do not report a measured value."}
+      ]
+    }
+  ]
+}

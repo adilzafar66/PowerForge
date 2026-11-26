@@ -1,0 +1,150 @@
+{
+  "version": "f1a-source-gold-v1",
+  "pdf": "eaton-panel-drawing.pdf",
+  "sha256": "c75de25c8b64e06eac1a28396c807a2b0aadc5bfde33b9e9d83e223be15f38d0",
+  "pages": [
+    {
+      "pdf_page": 1,
+      "frame": [
+        1100,
+        1424
+      ],
+      "regions": [
+        {"id": "mlo", "kind": "diagram", "box": [196, 162, 375, 223], "legibility": "LEGIBLE", "text": "Main Lugs Only\n225A"},
+        {"id": "left-device", "kind": "diagram", "box": [134, 248, 279, 338], "legibility": "LEGIBLE", "text": "1\n3\n5\nGBH3020"},
+        {"id": "right-device", "kind": "diagram", "box": [284, 248, 428, 338], "legibility": "LEGIBLE", "text": "GBH3020\n2\n4\n6"},
+        {"id": "cover", "kind": "diagram", "box": [214, 618, 352, 679], "legibility": "LEGIBLE", "text": "Blank Cover\n5 inches"},
+        {"id": "service", "kind": "value", "box": [469, 123, 747, 142], "legibility": "LEGIBLE", "text": "Service Voltage: 600Y/347V 3Ph 4W"},
+        {"id": "bus", "kind": "value", "box": [469, 141, 740, 157], "legibility": "LEGIBLE", "text": "Bus Rating & Type: 225A Aluminum"},
+        {"id": "ground", "kind": "value", "box": [469, 157, 844, 174], "legibility": "LEGIBLE", "text": "Ground Bar: Std. Bolted Aluminum, Al or Cu cable"},
+        {"id": "sccr", "kind": "value", "box": [469, 173, 762, 190], "legibility": "LEGIBLE", "text": "S.C. Rating: 50k A.I.C. Series Rated"},
+        {"id": "enclosure", "kind": "value", "box": [794, 123, 1026, 140], "legibility": "LEGIBLE", "text": "Enclosure: SPRINKLERPROOF"},
+        {"id": "neutral", "kind": "value", "box": [794, 140, 950, 157], "legibility": "LEGIBLE", "text": "Neutral Rating: 225A"},
+        {"id": "main", "kind": "value", "box": [469, 204, 913, 222], "legibility": "LEGIBLE", "text": "Main Device Type: MLO-Upstream PDG23G-LFD - Top Cable Entry"},
+        {"id": "terminals", "kind": "value", "box": [469, 221, 846, 253], "legibility": "LEGIBLE", "text": "Main Terminals: Mechanical - (1) #6-300 kcmil (Cu/Al)\nNeutral Terminals: Mechanical - (1) #6-300 kcmil (Cu/Al)"},
+        {"id": "catalog", "kind": "identifier", "box": [469, 253, 719, 269], "legibility": "LEGIBLE", "text": "Box Catalog No.: EZB2036RCSP"},
+        {"id": "trim", "kind": "value", "box": [469, 271, 965, 317], "legibility": "LEGIBLE", "text": "Trim: EZ Trim, Door in Door, Concealed Hardware (EZT2036S)\nASA61\nSurface Mounted"},
+        {"id": "box-dimensions", "kind": "value", "box": [469, 335, 995, 352], "legibility": "LEGIBLE", "text": "Box Dimensions: 36.00\" [914.4mm]H x 20.00\" [508.0mm]W x 5.75\" [146.1mm]D"},
+        {"id": "gutter", "kind": "value", "box": [469, 351, 907, 383], "legibility": "LEGIBLE", "text": "Min. Gutter Size: Top = 5.5\" [139.7mm] Bottom = 5.5\" [139.7mm]\nLeft = 5.75\" [146.1mm] Right = 5.75\" [146.1mm]"},
+        {"id": "device-note", "kind": "note", "box": [698, 462, 953, 481], "legibility": "LEGIBLE", "text": "***Non-Interchangeable Main Device***"},
+        {"id": "construction", "kind": "note", "box": [469, 494, 1010, 594], "legibility": "LEGIBLE", "text": "Trim Lock: Standard Lock & Key (Keyed WEM2)\nCircuit Directory: Plastic Sleeve with Card\nEntry Plate: No Plate\nHeat Loss - Watts (Est.) = 76\nWeight - lbs (Est.) = 54\nWire shall be based on the ampacity of 75°C rated conductors unless otherwise indicated."},
+        {"id": "designation", "kind": "identifier", "box": [551, 1256, 777, 1277], "legibility": "LEGIBLE", "text": "DESIGNATION CDP-6C"},
+        {"id": "type", "kind": "identifier", "box": [551, 1278, 628, 1317], "legibility": "LEGIBLE", "text": "TYPE\nPRL2X"},
+        {"id": "branch-heading", "kind": "label", "box": [468, 793, 578, 813], "legibility": "LEGIBLE", "text": "Branch Devices"},
+        {"id": "main-heading", "kind": "label", "box": [468, 858, 566, 878], "legibility": "LEGIBLE", "text": "Main Devices"}
+      ],
+      "tables": [
+        {
+          "id": "provisions",
+          "columns": [
+            "left-position",
+            "left",
+            "right",
+            "right-position"
+          ],
+          "cells": [
+            {"row": 0, "column": "left-position", "box": [133, 339, 156, 369], "text": "7"},
+            {"row": 0, "column": "left", "box": [156, 339, 281, 369], "text": "PROV"},
+            {"row": 0, "column": "right", "box": [281, 339, 404, 369], "text": "PROV"},
+            {"row": 0, "column": "right-position", "box": [404, 339, 431, 369], "text": "8"},
+            {"row": 1, "column": "left-position", "box": [133, 369, 156, 400], "text": "9"},
+            {"row": 1, "column": "left", "box": [156, 369, 281, 400], "text": "PROV"},
+            {"row": 1, "column": "right", "box": [281, 369, 404, 400], "text": "PROV"},
+            {"row": 1, "column": "right-position", "box": [404, 369, 431, 400], "text": "10"},
+            {"row": 2, "column": "left-position", "box": [133, 400, 156, 430], "text": "11"},
+            {"row": 2, "column": "left", "box": [156, 400, 281, 430], "text": "PROV"},
+            {"row": 2, "column": "right", "box": [281, 400, 404, 430], "text": "PROV"},
+            {"row": 2, "column": "right-position", "box": [404, 400, 431, 430], "text": "12"},
+            {"row": 3, "column": "left-position", "box": [133, 430, 156, 460], "text": "13"},
+            {"row": 3, "column": "left", "box": [156, 430, 281, 460], "text": "PROV"},
+            {"row": 3, "column": "right", "box": [281, 430, 404, 460], "text": "PROV"},
+            {"row": 3, "column": "right-position", "box": [404, 430, 431, 460], "text": "14"},
+            {"row": 4, "column": "left-position", "box": [133, 460, 156, 491], "text": "15"},
+            {"row": 4, "column": "left", "box": [156, 460, 281, 491], "text": "PROV"},
+            {"row": 4, "column": "right", "box": [281, 460, 404, 491], "text": "PROV"},
+            {"row": 4, "column": "right-position", "box": [404, 460, 431, 491], "text": "16"},
+            {"row": 5, "column": "left-position", "box": [133, 491, 156, 522], "text": "17"},
+            {"row": 5, "column": "left", "box": [156, 491, 281, 522], "text": "PROV"},
+            {"row": 5, "column": "right", "box": [281, 491, 404, 522], "text": "PROV"},
+            {"row": 5, "column": "right-position", "box": [404, 491, 431, 522], "text": "18"},
+            {"row": 6, "column": "left-position", "box": [133, 522, 156, 551], "text": "19"},
+            {"row": 6, "column": "left", "box": [156, 522, 281, 551], "text": "PROV"},
+            {"row": 6, "column": "right", "box": [281, 522, 404, 551], "text": "PROV"},
+            {"row": 6, "column": "right-position", "box": [404, 522, 431, 551], "text": "20"},
+            {"row": 7, "column": "left-position", "box": [133, 551, 156, 582], "text": "21"},
+            {"row": 7, "column": "left", "box": [156, 551, 281, 582], "text": "PROV"},
+            {"row": 7, "column": "right", "box": [281, 551, 404, 582], "text": "PROV"},
+            {"row": 7, "column": "right-position", "box": [404, 551, 431, 582], "text": "22"},
+            {"row": 8, "column": "left-position", "box": [133, 582, 156, 612], "text": "23"},
+            {"row": 8, "column": "left", "box": [156, 582, 281, 612], "text": "PROV"},
+            {"row": 8, "column": "right", "box": [281, 582, 404, 612], "text": "PROV"},
+            {"row": 8, "column": "right-position", "box": [404, 582, 431, 612], "text": "24"}
+          ]
+        },
+        {
+          "id": "branch-summary",
+          "columns": [
+            "quantity",
+            "poles",
+            "trip",
+            "frame",
+            "amps",
+            "kaic"
+          ],
+          "cells": [
+            {"row": 0, "column": "quantity", "box": [469, 811, 524, 828], "text": "Qty"},
+            {"row": 0, "column": "poles", "box": [524, 811, 578, 828], "text": "Poles"},
+            {"row": 0, "column": "trip", "box": [578, 811, 685, 828], "text": "Trip"},
+            {"row": 0, "column": "frame", "box": [685, 811, 814, 828], "text": "Frame"},
+            {"row": 0, "column": "amps", "box": [814, 811, 943, 828], "text": "Amps"},
+            {"row": 0, "column": "kaic", "box": [943, 811, 983, 828], "text": "kAIC"},
+            {"row": 1, "column": "quantity", "box": [469, 828, 524, 844], "text": "2"},
+            {"row": 1, "column": "poles", "box": [524, 828, 578, 844], "text": "3"},
+            {"row": 1, "column": "trip", "box": [578, 828, 685, 844], "text": "20"},
+            {"row": 1, "column": "frame", "box": [685, 828, 814, 844], "text": "GBH"},
+            {"row": 1, "column": "amps", "box": [814, 828, 943, 844], "text": "100"},
+            {"row": 1, "column": "kaic", "box": [943, 828, 983, 844], "text": "50"},
+            {"row": 2, "column": "quantity", "box": [469, 844, 524, 860], "text": "18"},
+            {"row": 2, "column": "poles", "box": [524, 844, 578, 860], "text": "1"},
+            {"row": 2, "column": "frame", "box": [685, 844, 814, 860], "text": "PROV"}
+          ],
+          "header_rows": [
+            0
+          ]
+        },
+        {
+          "id": "main-summary",
+          "columns": [
+            "quantity",
+            "poles",
+            "trip",
+            "frame",
+            "amps",
+            "kaic"
+          ],
+          "cells": [
+            {"row": 0, "column": "quantity", "box": [469, 877, 524, 893], "text": "Qty"},
+            {"row": 0, "column": "poles", "box": [524, 877, 578, 893], "text": "Poles"},
+            {"row": 0, "column": "trip", "box": [578, 877, 685, 893], "text": "Trip"},
+            {"row": 0, "column": "frame", "box": [685, 877, 814, 893], "text": "Frame"},
+            {"row": 0, "column": "amps", "box": [814, 877, 943, 893], "text": "Amps"},
+            {"row": 0, "column": "kaic", "box": [943, 877, 983, 893], "text": "kAIC"},
+            {"row": 1, "column": "quantity", "box": [469, 893, 524, 909], "text": "1"},
+            {"row": 1, "column": "poles", "box": [524, 893, 578, 909], "text": "0"},
+            {"row": 1, "column": "trip", "box": [578, 893, 685, 909], "text": "N/A"},
+            {"row": 1, "column": "kaic", "box": [943, 893, 983, 909], "text": "50"}
+          ],
+          "header_rows": [
+            0
+          ]
+        }
+      ],
+      "printed_page": "1 of 1",
+      "relations": [
+        {"source": "left-device", "target": "right-device", "observation": "Separate left/right diagram blocks share the same printed device string."},
+        {"source": "branch-summary", "target": "provisions", "observation": "The 18 PROV quantity is a schedule aggregate; 18 positions are separately shown as PROV."},
+        {"source": "main", "target": "mlo", "observation": "The main-information text references an upstream model and the positional diagram labels the local main section Main Lugs Only."}
+      ]
+    }
+  ]
+}
