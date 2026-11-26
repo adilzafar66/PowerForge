@@ -473,6 +473,12 @@ npm --prefix tools/extraction-debugger test
 npm --prefix tools/extraction-debugger run build
 ```
 
+### Deadline and queue-wait follow-up
+
+Both stages passed simulated-clock PostgreSQL tests with a 100-second provider timeout and a 115-second deadline from claim. A valid mock response at roughly 100 seconds completed exact-output auditing, validation, evidence localization and publication before the deadline. At roughly 116 seconds the publication fence reported `HARD_DEADLINE` and committed neither an audit row nor a result or evidence. The tests renew the lease through the real coordinator and advance its clock without waiting on a provider. They verify deadline behavior rather than live latency.
+
+Stage 1 now measures queue wait from the work unit's eligibility timestamp. Stage 2 still uses the later of eligibility and the committed recognition prerequisite. The PostgreSQL tests verify both calculations and persistence. The debugger API and frontend tests verify recognition telemetry retrieval and display. Ten focused integration cases and all 20 debugger frontend tests passed. The TypeScript and Vite production build passed.
+
 ## 12. Milestone G — Benchmark corpus, regression gate, and release
 
 **Priority:** Mandatory final release gate.

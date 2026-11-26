@@ -147,6 +147,7 @@ def test_debugger_partial_attempt_comparison_and_exact_export(
             assert recognition_detail["attempt"]["received"] is None
             assert recognition_detail["validated"]["equipment"]
             assert recognition_detail["request_sha256"]
+            assert recognition_detail["performance"]["queue_wait_ms"] >= 0
             assert (
                 client.post(f"/api/attempts/{recognition}/original", headers=headers).content
                 == recognition_original

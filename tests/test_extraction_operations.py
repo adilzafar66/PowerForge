@@ -2687,3 +2687,114 @@ def test_recognition_audit_is_atomic(operation_context, monkeypatch, fault):
         assert session.get(ExtractionWorkUnit, recognition).status == (
             "CANCELLED" if fault == "stale-lease" else "FAILED"
         )
+
+
+@pytest.mark.parametrize("stage", ["EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"])
+@pytest.mark.parametrize("late", [False, True])
+def test_publication_near_and_past_coordinator_deadline(
+    operation_context, monkeypatch, caplog, stage, late
+):
+    from dataclasses import replace
+
+    from powerforge_document_processing.storage import InMemoryObjectStorage
+    from powerforge_extraction.publication_records import Fragment
+    from powerforge_extraction.response_audit import ResponseAudit
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
+
+    ctx = operation_context
+    settings = ctx["settings"]
+    settings.extraction_use_fake_provider = False
+    settings.extraction_timeout_seconds = 100
+    settings.extraction_lease_seconds = 30
+    _, _, units = admitted_page(ctx, new_source(ctx, "publication-deadline.pdf"))
+    store = InMemoryObjectStorage()
+    provider = FakeExtractionProvider("success")
+
+    def execute(unit_id, factory):
+        return execute_unit(
+            unit_id, ctx["factory"], ctx["storage"], settings, factory, audit_storage=store
+        )
+
+    if stage == "ATTRIBUTE_EXTRACTION":
+        assert execute(units["EQUIPMENT_RECOGNITION"], lambda _: provider)
+
+    unit_id = units[stage]
+    offset = 3
+    original_now = ExtractionCoordinator.now
+    monkeypatch.setattr(
+        ExtractionCoordinator,
+        "now",
+        lambda coordinator: original_now(coordinator) + timedelta(seconds=offset),
+    )
+
+    class SlowProvider:
+        def __init__(self, claim):
+            self.claim = claim
+
+        def execute(self, request):
+            nonlocal offset
+            for heartbeat_offset in range(13, 104, 10):
+                offset = heartbeat_offset
+                with ctx["factory"].begin() as session:
+                    assert ExtractionCoordinator(session, settings).heartbeat(
+                        unit_id, self.claim.token
+                    )
+            offset = 119 if late else 103
+            result = provider.execute(request)
+            if stage == "ATTRIBUTE_EXTRACTION":
+                result = replace(
+                    result,
+                    output_text=json.dumps(
+                        {
+                            "attributes": [],
+                            "raw_unmapped": [
+                                {
+                                    "local_ref": "raw-1",
+                                    "equipment_ref": "equipment-1",
+                                    "association": "ASSERTED",
+                                    "raw_label": "Nameplate",
+                                    "display_label": None,
+                                    "raw_value": "400 AF",
+                                    "raw_unit": None,
+                                    "qualifiers": [],
+                                    "value_form": "SINGLE",
+                                    "evidence": [
+                                        {"kind": "QUOTE", "role": "VALUE", "quote": "400 AF"}
+                                    ],
+                                }
+                            ],
+                        }
+                    ).encode(),
+                )
+            else:
+                payload = json.loads(result.output_text)
+                payload["equipment"][0]["evidence"] = [
+                    {"kind": "QUOTE", "role": "EQUIPMENT", "quote": "TX-1"}
+                ]
+                result = replace(result, output_text=json.dumps(payload).encode())
+            return result
+
+    assert execute(unit_id, SlowProvider) is not late
+    if late:
+        assert any(
+            getattr(record, "lease_reason", None) == "HARD_DEADLINE" for record in caplog.records
+        )
+    with ctx["factory"]() as session:
+        attempt = session.get(ExtractionWorkUnit, unit_id)
+        delivery = session.get(UnitExecution, unit_id)
+        assert delivery.hard_deadline_at - attempt.started_at == timedelta(seconds=115)
+        assert (session.get(ResponseAudit, unit_id) is not None) is not late
+        assert (session.get(StageResult, unit_id) is not None) is not late
+        fragment = session.scalar(select(Fragment).where(Fragment.work_unit_id == unit_id))
+        assert (fragment is not None) is not late
+        if not late:
+            assert fragment.localization == "RESOLVED"
+            assert attempt.finished_at < delivery.hard_deadline_at
+            assert attempt.output_counts["candidates"] == 1
+            expected_ready = delivery.available_at
+            if stage == "ATTRIBUTE_EXTRACTION":
+                parent = session.get(ExtractionWorkUnit, units["EQUIPMENT_RECOGNITION"])
+                expected_ready = max(expected_ready, parent.finished_at)
+            assert attempt.performance["queue_wait_ms"] == (
+                (attempt.started_at - expected_ready) // timedelta(milliseconds=1)
+            )

@@ -276,6 +276,7 @@ class ExtractionCoordinator:
         if isinstance(profile, ExtractionProfile):
             try:
                 validate_plan(self.session, unit, profile)
+                ready_at = delivery.available_at
                 if unit.stage == "ATTRIBUTE_EXTRACTION":
                     from powerforge_extraction.stage_contracts import attribute_catalog
                     from powerforge_extraction.stage_execution import recognition_result
@@ -288,8 +289,8 @@ class ExtractionCoordinator:
                         delivery.available_at,
                         self.session.get(ExtractionWorkUnit, parent.work_unit_id).finished_at,
                     )
-                    # Use the same PostgreSQL clock for eligibility and claim.
-                    queue_wait_ms = max(0, (now - ready_at) // timedelta(milliseconds=1))
+                # Use the same PostgreSQL clock for eligibility and claim.
+                queue_wait_ms = max(0, (now - ready_at) // timedelta(milliseconds=1))
             except (ValueError, KeyError, StopIteration):
                 unit.status, unit.error_code, unit.finished_at = (
                     US.FAILED,

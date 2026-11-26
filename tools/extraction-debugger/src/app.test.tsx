@@ -264,7 +264,7 @@ it("filters and inspects recognition without assertion metrics", async () => {
     },
     rejections: [],
     validated: { equipment: [{ local_ref: "equipment-1" }] },
-    performance: { version: 2, source_projection: "recognition-page-v1", provider_call_ms: 35_000 },
+    performance: { version: 2, source_projection: "recognition-page-v1", provider_call_ms: 35_000, queue_wait_ms: 4321 },
   }, '{"equipment":[]}');
   render(<App />);
   await screen.findByRole("button", { name: /Siemens fixture.*Equipment recognition/ });
@@ -275,6 +275,7 @@ it("filters and inspects recognition without assertion metrics", async () => {
   expect(screen.queryByText("Quarantined")).toBeNull();
   expect(screen.queryByText("Stage 2 input")).toBeNull();
   expect(screen.getByText("35,000 ms")).toBeTruthy();
+  expect(screen.getByText("Queue wait").parentElement?.textContent).toContain("4,321 ms");
   fireEvent.click(screen.getByRole("button", { name: "Reveal original response" }));
   await screen.findByRole("button", { name: "Original response verified" });
   expect(screen.getByText("Original response")).toBeTruthy();
