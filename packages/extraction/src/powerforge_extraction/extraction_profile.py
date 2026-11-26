@@ -79,6 +79,28 @@ def prompt_bundle(
     input_version: AttributeInputVersion,
     variant: AttributePromptVariant = "legacy",
     output_version: AttributeOutputVersion = "legacy-v7",
+    recognition_variant: str = "legacy",
+):
+    version, prompts = _output_prompt_bundle(input_version, variant, output_version)
+    if recognition_variant == "legacy":
+        return version, prompts
+    if recognition_variant != "occurrence-evidence-v1":
+        raise ValueError("Unsupported pinned Stage 1 prompt variant")
+    guide = (
+        files("powerforge_extraction")
+        .joinpath("prompts/equipment_recognition_occurrence_evidence_v1.txt")
+        .read_text(encoding="utf-8")
+    )
+    return f"{version}+{recognition_variant}", {
+        **prompts,
+        STAGES[0]: prompts[STAGES[0]].rstrip() + "\n\n" + guide,
+    }
+
+
+def _output_prompt_bundle(
+    input_version: AttributeInputVersion,
+    variant: AttributePromptVariant,
+    output_version: AttributeOutputVersion,
 ):
     version, prompts = _base_prompt_bundle(input_version, variant)
     if output_version == "legacy-v7":
@@ -209,6 +231,7 @@ class ExtractionProfile(ExecutionProfile):
             self.manifest["attribute_input_version"],
             self.manifest.get("attribute_prompt_variant", "legacy"),
             self.attribute_output_version,
+            self.manifest.get("recognition_prompt_variant", "legacy"),
         )
         return prompts[stage]
 
@@ -274,6 +297,7 @@ def manifest(
     input_version: AttributeInputVersion = LEGACY_ATTRIBUTE_INPUT_VERSION,
     variant: AttributePromptVariant = "legacy",
     output_version: AttributeOutputVersion = "legacy-v7",
+    recognition_variant: str = "legacy",
 ):
     # The registry projection is pinned for both stages, including attribute definitions.
     from powerforge_engineering_model.extraction_descriptions import (
@@ -291,7 +315,7 @@ def manifest(
     )
     from powerforge_extraction.unit_notation import VERSION as UNIT_INTERPRETATION_VERSION
 
-    _, prompts = prompt_bundle(input_version, variant, output_version)
+    _, prompts = prompt_bundle(input_version, variant, output_version, recognition_variant)
     catalog = equipment_catalog()
     sample = RecognitionResponse(
         version=stage_schema_version(STAGES[0]),
@@ -321,16 +345,20 @@ def manifest(
         else [item.model_dump(mode="json") for item in definitions]
     )
     prompt_resources = {}
+    if recognition_variant != "legacy":
+        prompt_resources["recognition_prompt_variant"] = recognition_variant
     if variant != "legacy":
         core, guide = core_resources(input_version)
-        prompt_resources = {
-            "attribute_prompt_variant": variant,
-            "attribute_core_version": CORE_PROMPT_VERSION,
-            "attribute_core_hash": content_hash(core),
-            "source_guidance_version": SOURCE_GUIDANCE_VERSION,
-            "source_guidance_hash": content_hash(guide),
-            "request_digest_version": BODY_DIGEST_VERSION,
-        }
+        prompt_resources.update(
+            {
+                "attribute_prompt_variant": variant,
+                "attribute_core_version": CORE_PROMPT_VERSION,
+                "attribute_core_hash": content_hash(core),
+                "source_guidance_version": SOURCE_GUIDANCE_VERSION,
+                "source_guidance_hash": content_hash(guide),
+                "request_digest_version": BODY_DIGEST_VERSION,
+            }
+        )
         if variant == "core-catalog-v1":
             prompt_resources["equipment_guidance_version"] = EQUIPMENT_EXTRACTION_GUIDANCE_VERSION
     responses = RESPONSES
@@ -392,8 +420,9 @@ def extraction_profile(settings):
     input_version = settings.extraction_attribute_input_version
     variant = settings.extraction_attribute_prompt_variant
     output_version = settings.extraction_attribute_output_version
-    record = manifest(input_version, variant, output_version)
-    prompt_version, _ = prompt_bundle(input_version, variant, output_version)
+    recognition_variant = settings.extraction_recognition_prompt_variant
+    record = manifest(input_version, variant, output_version, recognition_variant)
+    prompt_version, _ = prompt_bundle(input_version, variant, output_version, recognition_variant)
     return ExtractionProfile(
         provider="fake" if fake else "openai",
         model="deterministic-phase-6r-v1" if fake else settings.extraction_model,
@@ -434,9 +463,14 @@ def require_profile(profile):
     }:
         raise ValueError("Pinned extraction resources do not match this installation")
     variant = profile.manifest.get("attribute_prompt_variant", "legacy")
+    recognition_variant = profile.manifest.get("recognition_prompt_variant", "legacy")
     try:
-        record = manifest(input_version, variant, profile.attribute_output_version)
-        prompt_version, _ = prompt_bundle(input_version, variant, profile.attribute_output_version)
+        record = manifest(
+            input_version, variant, profile.attribute_output_version, recognition_variant
+        )
+        prompt_version, _ = prompt_bundle(
+            input_version, variant, profile.attribute_output_version, recognition_variant
+        )
     except (ValueError, TypeError, FileNotFoundError) as exc:
         raise ValueError("Pinned extraction resources do not match this installation") from exc
     if (

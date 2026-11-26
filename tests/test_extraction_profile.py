@@ -363,3 +363,34 @@ def test_reliability_prompt_and_profile_pins(input_version, variant):
             ),
         )
     assert restored == legacy.instructions_for(STAGES[1])
+
+
+def test_occurrence_evidence_recognition_variant_is_opt_in_and_pinned():
+    config = Settings(
+        _env_file=None,
+        extraction_use_fake_provider=True,
+        extraction_attribute_prompt_variant="core-catalog-v1",
+        extraction_attribute_output_version="server-owned-assertions-v1",
+    )
+    baseline = extraction_profile(config)
+    candidate = extraction_profile(
+        config.model_copy(
+            update={"extraction_recognition_prompt_variant": "occurrence-evidence-v1"}
+        )
+    )
+    assert "recognition_prompt_variant" not in baseline.manifest
+    assert candidate.manifest["recognition_prompt_variant"] == "occurrence-evidence-v1"
+    assert candidate.identity_hash != baseline.identity_hash
+    assert "one pinned reading" in candidate.instructions_for(STAGES[0])
+    assert candidate.instructions_for(STAGES[1]) == baseline.instructions_for(STAGES[1])
+    assert candidate.manifest["stages"][1] == baseline.manifest["stages"][1]
+    assert (
+        candidate.manifest["stages"][0]["transport_schema_hash"]
+        == baseline.manifest["stages"][0]["transport_schema_hash"]
+    )
+    assert candidate.schema_hash != baseline.schema_hash  # The stage manifest also pins the prompt.
+    assert read_profile(json.loads(candidate.model_dump_json())) == candidate
+    changed = candidate.model_dump(mode="json")
+    changed["manifest"]["recognition_prompt_variant"] = "unavailable"
+    with pytest.raises(ValueError, match="Pinned extraction resources"):
+        read_profile(changed)

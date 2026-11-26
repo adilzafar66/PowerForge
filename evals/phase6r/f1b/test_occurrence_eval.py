@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 from occurrence_eval import EVALS, Observation, Page, read_gold, score
-from stage1_preflight import as_request, observations_from_output
+from stage1_preflight import as_request, comparable, observations_from_output
 
 from extraction_worker.spatial_evaluation import render
 from extraction_worker.tesseract import configuration
@@ -173,6 +173,19 @@ def test_production_response_replay_localizes_exact_reading_and_rejects_foreign_
         recognize=Mock(side_effect=AssertionError("unexpected OCR")),
     )
     wire, request, pinned = as_request(path, pdf, image, 1, "native", fake, "existing_tables")
+    candidate_wire, candidate_request, _ = as_request(
+        path,
+        pdf,
+        image,
+        1,
+        "native",
+        fake,
+        "existing_tables",
+        recognition_variant="occurrence-evidence-v1",
+    )
+    assert comparable(candidate_wire) == comparable(wire)
+    assert candidate_request.instructions != request.instructions
+    assert candidate_request.response_model is request.response_model
     reading = next(item for item in wire.page.readings if item.text == "TX-1")
     raw = json.dumps(
         {

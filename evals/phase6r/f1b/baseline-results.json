@@ -1,0 +1,3211 @@
+{
+  "version": "f1b-baseline-v1",
+  "total_reserved_usd": 17.0645376,
+  "summaries": {
+    "development/existing_tables": {
+      "attempted": 14,
+      "admitted": 12,
+      "expected_in_all_attempts": 44,
+      "expected_in_admitted_attempts": 35,
+      "observed": 38,
+      "matched": 23,
+      "precision_over_resolved_claims": 0.6052631578947368,
+      "recall_over_attempted_pages": 0.5227272727272727,
+      "f1": 0.5609756097560976,
+      "field_grades": {
+        "correct_type": {
+          "correct": 23
+        },
+        "correct_tag_state": {
+          "correct": 23
+        },
+        "correct_tag": {
+          "correct": 23
+        },
+        "correct_qualification": {
+          "incorrect": 16,
+          "correct": 7
+        }
+      },
+      "admitted_usage": {
+        "input_tokens": 505543,
+        "cached_input_tokens": 219008,
+        "output_tokens": 13598
+      },
+      "estimated_standard_token_spend_usd": 0.037643,
+      "median_admitted_latency_seconds": 5.4785
+    },
+    "development/positioned_only": {
+      "attempted": 14,
+      "admitted": 13,
+      "expected_in_all_attempts": 44,
+      "expected_in_admitted_attempts": 35,
+      "observed": 37,
+      "matched": 30,
+      "precision_over_resolved_claims": 0.8108108108108109,
+      "recall_over_attempted_pages": 0.6818181818181818,
+      "f1": 0.7407407407407407,
+      "field_grades": {
+        "correct_type": {
+          "correct": 30
+        },
+        "correct_tag_state": {
+          "correct": 30
+        },
+        "correct_tag": {
+          "correct": 30
+        },
+        "correct_qualification": {
+          "correct": 8,
+          "incorrect": 22
+        }
+      },
+      "admitted_usage": {
+        "input_tokens": 510832,
+        "cached_input_tokens": 190938,
+        "output_tokens": 15746
+      },
+      "estimated_standard_token_spend_usd": 0.041772,
+      "median_admitted_latency_seconds": 5.05
+    },
+    "structural_control/positioned_only": {
+      "attempted": 2,
+      "admitted": 2,
+      "expected_in_all_attempts": 2,
+      "expected_in_admitted_attempts": 2,
+      "observed": 2,
+      "matched": 0,
+      "precision_over_resolved_claims": 0.0,
+      "recall_over_attempted_pages": 0.0,
+      "f1": 0.0,
+      "field_grades": {},
+      "admitted_usage": {
+        "input_tokens": 9172,
+        "cached_input_tokens": 5966,
+        "output_tokens": 629
+      },
+      "estimated_standard_token_spend_usd": 0.000695,
+      "median_admitted_latency_seconds": 2.912
+    },
+    "structural_control/existing_tables": {
+      "attempted": 2,
+      "admitted": 2,
+      "expected_in_all_attempts": 2,
+      "expected_in_admitted_attempts": 2,
+      "observed": 2,
+      "matched": 0,
+      "precision_over_resolved_claims": 0.0,
+      "recall_over_attempted_pages": 0.0,
+      "f1": 0.0,
+      "field_grades": {},
+      "admitted_usage": {
+        "input_tokens": 10788,
+        "cached_input_tokens": 6774,
+        "output_tokens": 768
+      },
+      "estimated_standard_token_spend_usd": 0.000853,
+      "median_admitted_latency_seconds": 3.171
+    }
+  },
+  "complete_development_pairs": {
+    "existing_tables": {
+      "attempted": 11,
+      "admitted": 11,
+      "expected_in_all_attempts": 26,
+      "expected_in_admitted_attempts": 26,
+      "observed": 27,
+      "matched": 15,
+      "precision_over_resolved_claims": 0.5555555555555556,
+      "recall_over_attempted_pages": 0.5769230769230769,
+      "f1": 0.5660377358490566,
+      "field_grades": {
+        "correct_type": {
+          "correct": 15
+        },
+        "correct_tag_state": {
+          "correct": 15
+        },
+        "correct_tag": {
+          "correct": 15
+        },
+        "correct_qualification": {
+          "incorrect": 8,
+          "correct": 7
+        }
+      },
+      "admitted_usage": {
+        "input_tokens": 438069,
+        "cached_input_tokens": 217625,
+        "output_tokens": 9776
+      },
+      "estimated_standard_token_spend_usd": 0.029109,
+      "median_admitted_latency_seconds": 5.311
+    },
+    "positioned_only": {
+      "attempted": 11,
+      "admitted": 11,
+      "expected_in_all_attempts": 26,
+      "expected_in_admitted_attempts": 26,
+      "observed": 28,
+      "matched": 22,
+      "precision_over_resolved_claims": 0.7857142857142857,
+      "recall_over_attempted_pages": 0.8461538461538461,
+      "f1": 0.8148148148148148,
+      "field_grades": {
+        "correct_type": {
+          "correct": 22
+        },
+        "correct_tag_state": {
+          "correct": 22
+        },
+        "correct_tag": {
+          "correct": 22
+        },
+        "correct_qualification": {
+          "correct": 5,
+          "incorrect": 17
+        }
+      },
+      "admitted_usage": {
+        "input_tokens": 433785,
+        "cached_input_tokens": 188172,
+        "output_tokens": 12038
+      },
+      "estimated_standard_token_spend_usd": 0.032462,
+      "median_admitted_latency_seconds": 5.05
+    }
+  },
+  "attempts": [
+    {
+      "slot": "baseline/development/4cad19142b1e/p1/1/existing_tables",
+      "request_sha256": "cefdc033574513c8f9f7044914e8024b43ca83170f4128b5dc218a44fd4b950e",
+      "request_bytes": 590751,
+      "expected_occurrences": 1,
+      "provider_seconds": 5.043,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 44849,
+        "cached_input_tokens": 0,
+        "output_tokens": 410
+      },
+      "audit": {
+        "sha256": "46cffd2ffc1ff7901210b9eddbe94e0ecaeca6f6a35a563550bfce04514d7b9f",
+        "size": 555,
+        "expires_at": "2026-12-26T21:58:19.259889+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 4,
+      "elapsed_seconds": 5.056,
+      "split": "development",
+      "pdf": "delta-transformer-drawing.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "transformer": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "transformer"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "transformer",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/4cad19142b1e/p1/1/positioned_only",
+      "request_sha256": "28fb4bd792ace0267e3f409a158a955d5c2008066b0bebf57429a2cdec359099",
+      "request_bytes": 590673,
+      "expected_occurrences": 1,
+      "provider_seconds": 7.467,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 44812,
+        "cached_input_tokens": 1383,
+        "output_tokens": 566
+      },
+      "audit": {
+        "sha256": "538150f30aed7981088124943fcfb0894d37b0d299e762bd5caf8dedfb8503fe",
+        "size": 801,
+        "expires_at": "2026-12-26T21:58:26.746636+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 6,
+      "elapsed_seconds": 7.5,
+      "split": "development",
+      "pdf": "delta-transformer-drawing.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "transformer": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "transformer"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "transformer",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/4cad19142b1e/p1/2/positioned_only",
+      "request_sha256": "28fb4bd792ace0267e3f409a158a955d5c2008066b0bebf57429a2cdec359099",
+      "request_bytes": 590673,
+      "expected_occurrences": 1,
+      "provider_seconds": 4.418,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 44812,
+        "cached_input_tokens": 44809,
+        "output_tokens": 552
+      },
+      "audit": {
+        "sha256": "3f7e4d3a7eaef871fd0658f3db8743f5c4fd3ecca356fc464f05ee7edf25f936",
+        "size": 796,
+        "expires_at": "2026-12-26T21:58:31.204797+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 7,
+      "elapsed_seconds": 4.438,
+      "split": "development",
+      "pdf": "delta-transformer-drawing.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "transformer": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "transformer"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "transformer",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/4cad19142b1e/p1/2/existing_tables",
+      "request_sha256": "cefdc033574513c8f9f7044914e8024b43ca83170f4128b5dc218a44fd4b950e",
+      "request_bytes": 590751,
+      "expected_occurrences": 1,
+      "provider_seconds": 5.311,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 44849,
+        "cached_input_tokens": 44846,
+        "output_tokens": 531
+      },
+      "audit": {
+        "sha256": "3b1ee976b16286c7339407f969c3f60ba529d871ed2bc2f2af845bc3d012a344",
+        "size": 633,
+        "expires_at": "2026-12-26T21:58:36.541198+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 4,
+      "elapsed_seconds": 5.324,
+      "split": "development",
+      "pdf": "delta-transformer-drawing.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "transformer": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "transformer"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "transformer",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/c75de25c8b64/p1/1/positioned_only",
+      "request_sha256": "4349865774cb46a08de02447c1320ebb7ca08c9a7a3184be096c5dcef20ebf6c",
+      "request_bytes": 553105,
+      "expected_occurrences": 4,
+      "provider_seconds": 3.795,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 41803,
+        "cached_input_tokens": 1383,
+        "output_tokens": 1864
+      },
+      "audit": {
+        "sha256": "cc5504ff86d969646801aae74c644af837195cfe0b11b2f7697611ff77a30fc3",
+        "size": 2429,
+        "expires_at": "2026-12-26T22:16:40.806976+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 4,
+      "projected_candidates": 4,
+      "projected_evidence_fragments": 18,
+      "elapsed_seconds": 3.893,
+      "split": "development",
+      "pdf": "eaton-panel-drawing.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 4,
+        "observed": 4,
+        "matched": 3,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 0.75,
+        "strict_recall": 0.75,
+        "strict_f1": 0.75,
+        "outcomes": {
+          "MATCHED": 3,
+          "UNVERIFIED_OBSERVATION": 1
+        },
+        "missing": [
+          "upstream-reference"
+        ],
+        "field_accuracy_by_occurrence": {
+          "panel": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          },
+          "branch-1-3-5": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          },
+          "branch-2-4-6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "panel"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "panel",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          },
+          "observation-2": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-1-3-5"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-1-3-5",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          },
+          "observation-3": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-2-4-6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-2-4-6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          },
+          "observation-4": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/c75de25c8b64/p1/1/existing_tables",
+      "request_sha256": "e9423f1a7ff77e845771fe9ce5d5be65ce11ee626f21a9ef1055a30dedcfbdff",
+      "request_bytes": 568475,
+      "expected_occurrences": 4,
+      "state": "PROVIDER_FAILURE",
+      "error_code": "PROVIDER_UNAVAILABLE",
+      "http_status": null,
+      "diagnostics": [
+        {
+          "category": "TRANSPORT",
+          "error_type": "connection_error",
+          "path": []
+        }
+      ],
+      "elapsed_seconds": 60.521,
+      "split": "development",
+      "pdf": "eaton-panel-drawing.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 1,
+      "reserved_usd": 0.5332668
+    },
+    {
+      "slot": "baseline/development/c75de25c8b64/p1/2/existing_tables",
+      "request_sha256": "bbb9cb1e0a81e2d7f86fdcc66d91959698f665175bd321cd2284e3b806b66041",
+      "request_bytes": 568475,
+      "expected_occurrences": 4,
+      "provider_seconds": 10.977,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 45639,
+        "cached_input_tokens": 0,
+        "output_tokens": 1396
+      },
+      "audit": {
+        "sha256": "afecbc5e1ed0fbed3fa402e84b8b72d329a04a8e187eac602359da66f3290278",
+        "size": 1487,
+        "expires_at": "2026-12-26T23:44:37.651622+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 3,
+      "projected_candidates": 3,
+      "projected_evidence_fragments": 10,
+      "elapsed_seconds": 10.992,
+      "split": "development",
+      "pdf": "eaton-panel-drawing.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 4,
+        "observed": 3,
+        "matched": 3,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 0.75,
+        "strict_f1": 0.8571428571428571,
+        "outcomes": {
+          "MATCHED": 3
+        },
+        "missing": [
+          "upstream-reference"
+        ],
+        "field_accuracy_by_occurrence": {
+          "panel": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          },
+          "branch-1-3-5": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          },
+          "branch-2-4-6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "panel"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "panel",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          },
+          "observation-2": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-1-3-5"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-1-3-5",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          },
+          "observation-3": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-2-4-6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-2-4-6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/c75de25c8b64/p1/2/positioned_only",
+      "request_sha256": "2a6c5e3f71077fb63de147407ff2e82fa3a35cf78a7ccd93e203315ed0243ea8",
+      "request_bytes": 553105,
+      "expected_occurrences": 4,
+      "provider_seconds": 15.319,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 41799,
+        "cached_input_tokens": 1383,
+        "output_tokens": 2296
+      },
+      "audit": {
+        "sha256": "ba930b3ab4f47c65b920788a37ff9a160f3ef6733009a38312ab436ad3633a0d",
+        "size": 2050,
+        "expires_at": "2026-12-26T23:44:52.991498+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 4,
+      "projected_candidates": 4,
+      "projected_evidence_fragments": 14,
+      "elapsed_seconds": 15.355,
+      "split": "development",
+      "pdf": "eaton-panel-drawing.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 4,
+        "observed": 4,
+        "matched": 3,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 0.75,
+        "strict_recall": 0.75,
+        "strict_f1": 0.75,
+        "outcomes": {
+          "UNVERIFIED_OBSERVATION": 1,
+          "MATCHED": 3
+        },
+        "missing": [
+          "panel"
+        ],
+        "field_accuracy_by_occurrence": {
+          "branch-1-3-5": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "branch-2-4-6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "upstream-reference": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-2": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-1-3-5"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-1-3-5",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-3": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-2-4-6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-2-4-6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-4": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "upstream-reference"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "upstream-reference",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/90485de2ae1a/p1/1/existing_tables",
+      "request_sha256": "e857cec49dc3a9f2c15164c6c7b1b8ab62c4bc5d15cab6e15fc41a233c950d81",
+      "request_bytes": 1076447,
+      "expected_occurrences": 1,
+      "provider_seconds": 8.653,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 40430,
+        "cached_input_tokens": 1383,
+        "output_tokens": 576
+      },
+      "audit": {
+        "sha256": "ab21534219004308c2d1fd8eabfdc9c2dd1f50f724fc3a0b585bb6c880216e96",
+        "size": 800,
+        "expires_at": "2026-12-26T22:16:45.668934+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 7,
+      "elapsed_seconds": 8.687,
+      "split": "development",
+      "pdf": "rex-transformer-drawing.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "transformer": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "transformer"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 5,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "transformer",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/90485de2ae1a/p1/1/positioned_only",
+      "request_sha256": "fc0cda77ef71cbd7f0846fef9d961cf6f17461c72d8af31631ba3d953f823760",
+      "request_bytes": 1076372,
+      "expected_occurrences": 1,
+      "provider_seconds": 1.2,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 40444,
+        "cached_input_tokens": 1383,
+        "output_tokens": 445
+      },
+      "audit": {
+        "sha256": "93943cc6cd3e0c20fd98b9ec5bc45fa9a8741fc5031a9d373dbb72a11d439045",
+        "size": 831,
+        "expires_at": "2026-12-26T22:16:58.681625+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 6,
+      "elapsed_seconds": 1.232,
+      "split": "development",
+      "pdf": "rex-transformer-drawing.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "transformer": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "transformer"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "transformer",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/90485de2ae1a/p1/2/positioned_only",
+      "request_sha256": "fc0cda77ef71cbd7f0846fef9d961cf6f17461c72d8af31631ba3d953f823760",
+      "request_bytes": 1076372,
+      "expected_occurrences": 1,
+      "provider_seconds": 5.05,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 40444,
+        "cached_input_tokens": 40441,
+        "output_tokens": 535
+      },
+      "audit": {
+        "sha256": "e36f2a5373bfb76b022c37d057bf88eaca149f816bb00d06b11897e23cb4ca61",
+        "size": 693,
+        "expires_at": "2026-12-26T22:17:14.850459+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 5,
+      "elapsed_seconds": 5.092,
+      "split": "development",
+      "pdf": "rex-transformer-drawing.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "transformer": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "transformer"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 3,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "transformer",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/90485de2ae1a/p1/2/existing_tables",
+      "request_sha256": "e857cec49dc3a9f2c15164c6c7b1b8ab62c4bc5d15cab6e15fc41a233c950d81",
+      "request_bytes": 1076447,
+      "expected_occurrences": 1,
+      "provider_seconds": 5.646,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 40430,
+        "cached_input_tokens": 40427,
+        "output_tokens": 561
+      },
+      "audit": {
+        "sha256": "c2b218cf35e271492a169bd58c20f3bc33b722720490d81dc939c70b247da540",
+        "size": 852,
+        "expires_at": "2026-12-26T22:17:43.135940+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 6,
+      "elapsed_seconds": 5.678,
+      "split": "development",
+      "pdf": "rex-transformer-drawing.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "transformer": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "transformer"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "transformer",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/513a14ed1df6/p1/1/positioned_only",
+      "request_sha256": "4fc252a9e14b5f8316b9555689985bf889df302c4859cced023bfddd372378b1",
+      "request_bytes": 739393,
+      "expected_occurrences": 9,
+      "state": "PROVIDER_FAILURE",
+      "error_code": "PROVIDER_UNAVAILABLE",
+      "http_status": null,
+      "diagnostics": [
+        {
+          "category": "TRANSPORT",
+          "error_type": "connection_error",
+          "path": []
+        }
+      ],
+      "elapsed_seconds": 61.008,
+      "split": "development",
+      "pdf": "schneider-panel-drawing.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 1,
+      "reserved_usd": 0.5332668
+    },
+    {
+      "slot": "baseline/development/513a14ed1df6/p1/1/existing_tables",
+      "request_sha256": "1db2c8d4f1b53f40f6a6447c37113a80ae605a29afcf8bf81159d66b0e81b392",
+      "request_bytes": 739471,
+      "expected_occurrences": 9,
+      "provider_seconds": 25.65,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 67474,
+        "cached_input_tokens": 1383,
+        "output_tokens": 3822
+      },
+      "audit": {
+        "sha256": "46556902a4a514b816a176d9ba824f00aaa1ca1495be5b1c687d5a5b82b71e54",
+        "size": 4377,
+        "expires_at": "2026-12-26T23:44:52.331816+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 11,
+      "projected_candidates": 11,
+      "projected_evidence_fragments": 15,
+      "elapsed_seconds": 25.69,
+      "split": "development",
+      "pdf": "schneider-panel-drawing.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 9,
+        "observed": 11,
+        "matched": 8,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 0.7272727272727273,
+        "strict_recall": 0.8888888888888888,
+        "strict_f1": 0.7999999999999999,
+        "outcomes": {
+          "UNVERIFIED_OBSERVATION": 1,
+          "MATCHED": 8,
+          "PROVISION": 2
+        },
+        "missing": [
+          "panel"
+        ],
+        "field_accuracy_by_occurrence": {
+          "breaker-1": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "breaker-2": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "breaker-3": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "breaker-4": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "breaker-5": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "breaker-6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "breaker-8": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "breaker-9": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 2,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-2": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-1"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-1",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-3": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-2"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-2",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-4": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-3"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-3",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-5": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-4"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-4",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-6": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-5"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-5",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-7": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-8": {
+            "outcome": "PROVISION",
+            "candidates": [],
+            "exclusions": [
+              "ps-7"
+            ],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "provision_asserted_installed": true
+          },
+          "observation-9": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-8"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-8",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-10": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-9"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-9",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-11": {
+            "outcome": "PROVISION",
+            "candidates": [],
+            "exclusions": [
+              "ps-10"
+            ],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "provision_asserted_installed": true
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/513a14ed1df6/p1/2/existing_tables",
+      "request_sha256": "1db2c8d4f1b53f40f6a6447c37113a80ae605a29afcf8bf81159d66b0e81b392",
+      "request_bytes": 739471,
+      "expected_occurrences": 9,
+      "provider_seconds": 16.358,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 67474,
+        "cached_input_tokens": 67471,
+        "output_tokens": 2716
+      },
+      "audit": {
+        "sha256": "882a084e1fe7bcd3f9cc87fea52c8fc352aa056af5d656bd1bff1227382777a5",
+        "size": 3580,
+        "expires_at": "2026-12-26T23:45:08.736697+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 11,
+      "projected_candidates": 11,
+      "projected_evidence_fragments": 15,
+      "elapsed_seconds": 16.399,
+      "split": "development",
+      "pdf": "schneider-panel-drawing.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 9,
+        "observed": 11,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 0.09090909090909091,
+        "strict_recall": 0.1111111111111111,
+        "strict_f1": 0.09999999999999999,
+        "outcomes": {
+          "MATCHED": 1,
+          "UNVERIFIED_OBSERVATION": 10
+        },
+        "missing": [
+          "breaker-1",
+          "breaker-2",
+          "breaker-3",
+          "breaker-4",
+          "breaker-5",
+          "breaker-6",
+          "breaker-8",
+          "breaker-9"
+        ],
+        "field_accuracy_by_occurrence": {
+          "panel": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "panel"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 2,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "panel",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": true
+          },
+          "observation-2": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-3": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-4": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-5": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-6": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-7": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-8": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-9": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-10": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-11": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/513a14ed1df6/p1/2/positioned_only",
+      "request_sha256": "28fbb957db9458ff54aa2b761b12145f01f335e81e9c2150f4744fe1764d52ce",
+      "request_bytes": 739393,
+      "expected_occurrences": 9,
+      "provider_seconds": 26.202,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 67452,
+        "cached_input_tokens": 1383,
+        "output_tokens": 4094
+      },
+      "audit": {
+        "sha256": "bf2484502968099e914582457884737671199b4e2eccbc1038fa17dfb3681157",
+        "size": 4294,
+        "expires_at": "2026-12-26T23:45:34.988783+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 11,
+      "projected_candidates": 11,
+      "projected_evidence_fragments": 15,
+      "elapsed_seconds": 26.246,
+      "split": "development",
+      "pdf": "schneider-panel-drawing.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 9,
+        "observed": 11,
+        "matched": 6,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 0.5454545454545454,
+        "strict_recall": 0.6666666666666666,
+        "strict_f1": 0.6,
+        "outcomes": {
+          "MATCHED": 6,
+          "UNVERIFIED_OBSERVATION": 5
+        },
+        "missing": [
+          "breaker-6",
+          "breaker-8",
+          "breaker-9"
+        ],
+        "field_accuracy_by_occurrence": {
+          "panel": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "breaker-1": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "breaker-2": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "breaker-3": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "breaker-4": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "breaker-5": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "panel"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 2,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "panel",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-2": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-3": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-4": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-1"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-1",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-5": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-2"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-2",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-6": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-3"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-3",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-7": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-4"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-4",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-8": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "breaker-5"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "breaker-5",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-9": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-10": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-11": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 1,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/ef70737c70a6/p1/1/existing_tables",
+      "request_sha256": "a6663aece0f4616c16d1162a6268864082db2c2703defd3607ea015f56ccfa45",
+      "request_bytes": 514917,
+      "expected_occurrences": 5,
+      "state": "PROVIDER_FAILURE",
+      "error_code": "PROVIDER_UNAVAILABLE",
+      "http_status": null,
+      "diagnostics": [
+        {
+          "category": "TRANSPORT",
+          "error_type": "connection_error",
+          "path": []
+        }
+      ],
+      "elapsed_seconds": 61.535,
+      "split": "development",
+      "pdf": "siemens-panel-drawing.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 1,
+      "reserved_usd": 0.5332668
+    },
+    {
+      "slot": "baseline/development/ef70737c70a6/p1/1/positioned_only",
+      "request_sha256": "07986130d2e8dd7c5f2867792c75ce17ecea9dffcab21d44c764abeec4329359",
+      "request_bytes": 513240,
+      "expected_occurrences": 5,
+      "provider_seconds": 11.546,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 35244,
+        "cached_input_tokens": 1383,
+        "output_tokens": 1844
+      },
+      "audit": {
+        "sha256": "d79631c64951b840969a8ed4e94c8d80e690ed952fe8b773a08ead41f792edf6",
+        "size": 3505,
+        "expires_at": "2026-12-26T23:45:04.581129+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 5,
+      "projected_candidates": 5,
+      "projected_evidence_fragments": 31,
+      "elapsed_seconds": 11.575,
+      "split": "development",
+      "pdf": "siemens-panel-drawing.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 5,
+        "observed": 5,
+        "matched": 5,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 5
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "lineup": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "main-wl": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "branch-cmd6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "branch-cjd6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "branch-cnd6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "lineup"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "lineup",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-2": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "main-wl"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "main-wl",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-3": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-cmd6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-cmd6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-4": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-cjd6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-cjd6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-5": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-cnd6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-cnd6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/ef70737c70a6/p1/2/positioned_only",
+      "request_sha256": "07986130d2e8dd7c5f2867792c75ce17ecea9dffcab21d44c764abeec4329359",
+      "request_bytes": 513240,
+      "expected_occurrences": 5,
+      "provider_seconds": 11.246,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 35244,
+        "cached_input_tokens": 35241,
+        "output_tokens": 1703
+      },
+      "audit": {
+        "sha256": "388b9360adcceb34aed6c91661aae38fef5d829d7612747f28aeef8d2839a66e",
+        "size": 3638,
+        "expires_at": "2026-12-26T23:45:15.860616+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 5,
+      "projected_candidates": 5,
+      "projected_evidence_fragments": 31,
+      "elapsed_seconds": 11.281,
+      "split": "development",
+      "pdf": "siemens-panel-drawing.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 5,
+        "observed": 5,
+        "matched": 5,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 5
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "lineup": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "main-wl": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "branch-cmd6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "branch-cjd6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "branch-cnd6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "lineup"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "lineup",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-2": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "main-wl"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "main-wl",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-3": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-cmd6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-cmd6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-4": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-cjd6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-cjd6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-5": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-cnd6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-cnd6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/ef70737c70a6/p1/2/existing_tables",
+      "request_sha256": "bc53f538d1cd99fef61ee242fc46cd0a058abd3f93d83ea7414cfc39711af0d9",
+      "request_bytes": 514917,
+      "expected_occurrences": 5,
+      "provider_seconds": 10.515,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 35688,
+        "cached_input_tokens": 1383,
+        "output_tokens": 1598
+      },
+      "audit": {
+        "sha256": "fd16f9b71dd31f9fd7d6eac30c7e847bd85204629512a404823040f691a8e135",
+        "size": 3117,
+        "expires_at": "2026-12-26T23:45:26.417967+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 5,
+      "projected_candidates": 5,
+      "projected_evidence_fragments": 24,
+      "elapsed_seconds": 10.545,
+      "split": "development",
+      "pdf": "siemens-panel-drawing.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 5,
+        "observed": 5,
+        "matched": 3,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 0.6,
+        "strict_recall": 0.6,
+        "strict_f1": 0.6,
+        "outcomes": {
+          "UNVERIFIED_OBSERVATION": 2,
+          "MATCHED": 3
+        },
+        "missing": [
+          "lineup",
+          "main-wl"
+        ],
+        "field_accuracy_by_occurrence": {
+          "branch-cmd6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "branch-cjd6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "branch-cnd6": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-2": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 0,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 2,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          },
+          "observation-3": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-cmd6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 1,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-cmd6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-4": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-cjd6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-cjd6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          },
+          "observation-5": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "branch-cnd6"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "branch-cnd6",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/ef79bd306d3f/p1/1/positioned_only",
+      "request_sha256": "a5b95d86814e1aaad30fc2b6ec5d0e9bbc751339fa64a314139288fe9daf94d9",
+      "request_bytes": 512043,
+      "expected_occurrences": 1,
+      "provider_seconds": 3.996,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 29687,
+        "cached_input_tokens": 1383,
+        "output_tokens": 353
+      },
+      "audit": {
+        "sha256": "8aeee32c83d75b16012396c56c66f6d4d3c98eceeec01a5fc64faf40e49b4d7d",
+        "size": 435,
+        "expires_at": "2026-12-26T23:45:30.451670+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 2,
+      "elapsed_seconds": 4.022,
+      "split": "development",
+      "pdf": "simson-generator-drawing.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "generator": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "generator"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "generator",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/ef79bd306d3f/p1/1/existing_tables",
+      "request_sha256": "47ceb829f4a268e2e4380b10461746bd62557452ae4cf18c12e3350c2ef56e2d",
+      "request_bytes": 512112,
+      "expected_occurrences": 1,
+      "provider_seconds": 4.257,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 29688,
+        "cached_input_tokens": 1383,
+        "output_tokens": 446
+      },
+      "audit": {
+        "sha256": "f7ea9c2611c77961de3b30dcad0d0a4d109f12671a267072131732e0b3b9cfab",
+        "size": 483,
+        "expires_at": "2026-12-26T23:45:34.744303+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 3,
+      "elapsed_seconds": 4.278,
+      "split": "development",
+      "pdf": "simson-generator-drawing.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "generator": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "generator"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "generator",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/ef79bd306d3f/p1/2/existing_tables",
+      "request_sha256": "47ceb829f4a268e2e4380b10461746bd62557452ae4cf18c12e3350c2ef56e2d",
+      "request_bytes": 512112,
+      "expected_occurrences": 1,
+      "provider_seconds": 4.757,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 29688,
+        "cached_input_tokens": 29685,
+        "output_tokens": 493
+      },
+      "audit": {
+        "sha256": "b38451eb6e6e9801510ba93e48d40893b85a30215212d0f5a15166d6ac313c8a",
+        "size": 573,
+        "expires_at": "2026-12-26T23:45:39.529418+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 4,
+      "elapsed_seconds": 4.782,
+      "split": "development",
+      "pdf": "simson-generator-drawing.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "generator": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "generator"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "generator",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/ef79bd306d3f/p1/2/positioned_only",
+      "request_sha256": "a5b95d86814e1aaad30fc2b6ec5d0e9bbc751339fa64a314139288fe9daf94d9",
+      "request_bytes": 512043,
+      "expected_occurrences": 1,
+      "provider_seconds": 3.509,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 29687,
+        "cached_input_tokens": 29684,
+        "output_tokens": 338
+      },
+      "audit": {
+        "sha256": "817b887f14ee92185430f1f201a6c43b25440b2b4ed7de5a588b9abb0fffd5ae",
+        "size": 490,
+        "expires_at": "2026-12-26T23:45:43.071353+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 3,
+      "elapsed_seconds": 3.518,
+      "split": "development",
+      "pdf": "simson-generator-drawing.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "generator": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "generator"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "generator",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/ef79bd306d3f/p2/1/existing_tables",
+      "request_sha256": "4e59569fe574e2115d4bf832494ae631662eaaaf4477fbab412ce52ec27669fe",
+      "request_bytes": 503186,
+      "expected_occurrences": 1,
+      "provider_seconds": 4.689,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 29667,
+        "cached_input_tokens": 1383,
+        "output_tokens": 537
+      },
+      "audit": {
+        "sha256": "cf564da9d4d1faa234ef99cdbbe956d02310e98a58070b565c638f9b2b34cd92",
+        "size": 482,
+        "expires_at": "2026-12-26T23:45:39.727846+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 3,
+      "elapsed_seconds": 4.71,
+      "split": "development",
+      "pdf": "simson-generator-drawing.pdf",
+      "page": 2,
+      "arm": "existing_tables",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "generator": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "generator"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "generator",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/ef79bd306d3f/p2/1/positioned_only",
+      "request_sha256": "e2850f8238de36bccb87e1720ad889397f5c9eb3aa147c25154bf54f95599a09",
+      "request_bytes": 503117,
+      "expected_occurrences": 1,
+      "provider_seconds": 5.384,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 29702,
+        "cached_input_tokens": 1383,
+        "output_tokens": 596
+      },
+      "audit": {
+        "sha256": "a6d6ff79e2d0b70fab625ed8b335002f7f0d27f86d0e12c3121db979b87b7a2f",
+        "size": 466,
+        "expires_at": "2026-12-26T23:45:45.140456+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 3,
+      "elapsed_seconds": 5.393,
+      "split": "development",
+      "pdf": "simson-generator-drawing.pdf",
+      "page": 2,
+      "arm": "positioned_only",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "generator": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "generator"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "generator",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/ef79bd306d3f/p2/2/positioned_only",
+      "request_sha256": "e2850f8238de36bccb87e1720ad889397f5c9eb3aa147c25154bf54f95599a09",
+      "request_bytes": 503117,
+      "expected_occurrences": 1,
+      "provider_seconds": 4.515,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 29702,
+        "cached_input_tokens": 29699,
+        "output_tokens": 560
+      },
+      "audit": {
+        "sha256": "539d0ae855d461fdbbdf8b139f08682c5897e4e00c8c3898e7d264615d5fd6cb",
+        "size": 410,
+        "expires_at": "2026-12-26T23:45:49.669224+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 2,
+      "elapsed_seconds": 4.541,
+      "split": "development",
+      "pdf": "simson-generator-drawing.pdf",
+      "page": 2,
+      "arm": "positioned_only",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "generator": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "generator"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 1,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "generator",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/development/ef79bd306d3f/p2/2/existing_tables",
+      "request_sha256": "4e59569fe574e2115d4bf832494ae631662eaaaf4477fbab412ce52ec27669fe",
+      "request_bytes": 503186,
+      "expected_occurrences": 1,
+      "provider_seconds": 4.658,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 29667,
+        "cached_input_tokens": 29664,
+        "output_tokens": 512
+      },
+      "audit": {
+        "sha256": "f5ead3b4f6e5409e23b3047142a4e4a02114816424cc8715dbf3520e1c388aae",
+        "size": 491,
+        "expires_at": "2026-12-26T23:45:54.362598+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 3,
+      "elapsed_seconds": 4.685,
+      "split": "development",
+      "pdf": "simson-generator-drawing.pdf",
+      "page": 2,
+      "arm": "existing_tables",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 1,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 1.0,
+        "strict_recall": 1.0,
+        "strict_f1": 1.0,
+        "outcomes": {
+          "MATCHED": 1
+        },
+        "missing": [],
+        "field_accuracy_by_occurrence": {
+          "generator": {
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        },
+        "observations": {
+          "observation-1": {
+            "outcome": "MATCHED",
+            "candidates": [
+              "generator"
+            ],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 0,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false,
+            "occurrence": "generator",
+            "correct_type": true,
+            "correct_tag_state": true,
+            "correct_tag": true,
+            "correct_qualification": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/structural_control/bd21efd86833/p1/1/positioned_only",
+      "request_sha256": "d2fcdd83a7b444ce295b30563b65a37acaafd17deeb36ff5e6d5af872f5441bc",
+      "request_bytes": 48947,
+      "expected_occurrences": 1,
+      "provider_seconds": 2.672,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 4586,
+        "cached_input_tokens": 1383,
+        "output_tokens": 305
+      },
+      "audit": {
+        "sha256": "93883bd52220b9f5cfec442e9f725d24215b20f7229ff9d90651194b8f18937c",
+        "size": 529,
+        "expires_at": "2026-12-26T23:45:45.755904+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 4,
+      "elapsed_seconds": 2.676,
+      "split": "structural_control",
+      "pdf": "tables/v1/sources/positioned_schedule.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 0,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 0.0,
+        "strict_recall": 0.0,
+        "strict_f1": 0.0,
+        "outcomes": {
+          "UNVERIFIED_OBSERVATION": 1
+        },
+        "missing": [
+          "tx-1"
+        ],
+        "field_accuracy_by_occurrence": {},
+        "observations": {
+          "observation-1": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/structural_control/bd21efd86833/p1/1/existing_tables",
+      "request_sha256": "e63b5b7a2b4cde4405a479822ce200acd8a25f0cee961591158b53cd3a1b60a7",
+      "request_bytes": 52103,
+      "expected_occurrences": 1,
+      "provider_seconds": 3.167,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 5394,
+        "cached_input_tokens": 1383,
+        "output_tokens": 395
+      },
+      "audit": {
+        "sha256": "bbaa9e76007353917758044a00a4ebb4028c65b10ec37f43c87ba4520a1a5392",
+        "size": 788,
+        "expires_at": "2026-12-26T23:45:48.928465+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 7,
+      "elapsed_seconds": 3.171,
+      "split": "structural_control",
+      "pdf": "tables/v1/sources/positioned_schedule.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 1,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 0,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 0.0,
+        "strict_recall": 0.0,
+        "strict_f1": 0.0,
+        "outcomes": {
+          "UNVERIFIED_OBSERVATION": 1
+        },
+        "missing": [
+          "tx-1"
+        ],
+        "field_accuracy_by_occurrence": {},
+        "observations": {
+          "observation-1": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/structural_control/bd21efd86833/p1/2/existing_tables",
+      "request_sha256": "e63b5b7a2b4cde4405a479822ce200acd8a25f0cee961591158b53cd3a1b60a7",
+      "request_bytes": 52103,
+      "expected_occurrences": 1,
+      "provider_seconds": 3.175,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 5394,
+        "cached_input_tokens": 5391,
+        "output_tokens": 373
+      },
+      "audit": {
+        "sha256": "d34b5dd42de08c31c3bd80fd754ae3287bad3d728425052bc757d96652b87121",
+        "size": 744,
+        "expires_at": "2026-12-26T23:45:52.111426+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 7,
+      "elapsed_seconds": 3.187,
+      "split": "structural_control",
+      "pdf": "tables/v1/sources/positioned_schedule.pdf",
+      "page": 1,
+      "arm": "existing_tables",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 0,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 0.0,
+        "strict_recall": 0.0,
+        "strict_f1": 0.0,
+        "outcomes": {
+          "UNVERIFIED_OBSERVATION": 1
+        },
+        "missing": [
+          "tx-1"
+        ],
+        "field_accuracy_by_occurrence": {},
+        "observations": {
+          "observation-1": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          }
+        }
+      }
+    },
+    {
+      "slot": "baseline/structural_control/bd21efd86833/p1/2/positioned_only",
+      "request_sha256": "d2fcdd83a7b444ce295b30563b65a37acaafd17deeb36ff5e6d5af872f5441bc",
+      "request_bytes": 48947,
+      "expected_occurrences": 1,
+      "provider_seconds": 3.152,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 4586,
+        "cached_input_tokens": 4583,
+        "output_tokens": 324
+      },
+      "audit": {
+        "sha256": "2d59392d53c8adaac71389f27085b6df47261e361efa7c89fb169d6ad331f8f2",
+        "size": 453,
+        "expires_at": "2026-12-26T23:45:55.283379+00:00"
+      },
+      "state": "ADMITTED",
+      "admitted_count": 1,
+      "projected_candidates": 1,
+      "projected_evidence_fragments": 3,
+      "elapsed_seconds": 3.162,
+      "split": "structural_control",
+      "pdf": "tables/v1/sources/positioned_schedule.pdf",
+      "page": 1,
+      "arm": "positioned_only",
+      "repeat": 2,
+      "reserved_usd": 0.5332668,
+      "score": {
+        "expected": 1,
+        "observed": 1,
+        "matched": 0,
+        "duplicate_extras": 0,
+        "pending_adjudication": 0,
+        "strict_precision": 0.0,
+        "strict_recall": 0.0,
+        "strict_f1": 0.0,
+        "outcomes": {
+          "UNVERIFIED_OBSERVATION": 1
+        },
+        "missing": [
+          "tx-1"
+        ],
+        "field_accuracy_by_occurrence": {},
+        "observations": {
+          "observation-1": {
+            "outcome": "UNVERIFIED_OBSERVATION",
+            "candidates": [],
+            "exclusions": [],
+            "resolved_equipment_fragments": 2,
+            "approximate_equipment_fragments": 0,
+            "unresolved_equipment_fragments": 0,
+            "resolved_tag_fragments": 1,
+            "approximate_tag_fragments": 0,
+            "assembly_tag_on_branch": false
+          }
+        }
+      }
+    }
+  ]
+}

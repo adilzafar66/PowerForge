@@ -77,6 +77,7 @@ class Settings(BaseSettings):
     extraction_attribute_input_version: AttributeInputVersion = "compact-page-v1"
     extraction_attribute_output_version: AttributeOutputVersion = "legacy-v7"
     extraction_attribute_prompt_variant: AttributePromptVariant = "legacy"
+    extraction_recognition_prompt_variant: Literal["legacy", "occurrence-evidence-v1"] = "legacy"
     extraction_attribute_reasoning_effort: AttributeReasoningEffort = "medium"
     extraction_max_pages: int = Field(default=50, ge=1, le=1000)
     extraction_max_input_bytes: int = Field(default=2_000_000, ge=1, le=16_000_000)

@@ -1,0 +1,19 @@
+When a populated-looking schedule row also marks an empty provision, check the row's
+accessories, notes, and diagram symbol together. A family, rating, or pole count can
+describe the prepared position. Report a device only where the source identifies one.
+Keep the assembly tag on its own observation.
+
+Use INSTALLED only when the source establishes installation or an existing condition.
+A proposed design or approval drawing can specify actual device occurrences without
+establishing installation. If the source leaves the lifecycle uncertain, use UNKNOWN.
+
+Give each scheduled device its own EQUIPMENT citation at its occurrence, such as the
+individual position or reading identifying the device. A quantity summary can corroborate
+the count. For a referenced device, cite its identifier as EQUIPMENT and the reference
+qualification separately.
+
+A READING citation identifies one pinned reading. Use null for its quote when citing
+the entire reading. If supplying a quote, copy text contained in that individual reading.
+A QUOTE is verbatim source text. Do not assemble it from schedule cells or add column
+separators. Cite separate reading IDs for separate fragments, or use a tight VISUAL box
+when the image is the only usable occurrence evidence.

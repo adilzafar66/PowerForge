@@ -79,8 +79,12 @@ def observations_from_output(source, wire, raw, *, dispatched_digest, request):
     return tuple(output)
 
 
-def as_request(path, data, rendered, number, selection, engine, arm):
-    settings = harness.settings_for(engine)
+def as_request(
+    path, data, rendered, number, selection, engine, arm, *, recognition_variant="legacy"
+):
+    settings = harness.settings_for(engine).model_copy(
+        update={"extraction_recognition_prompt_variant": recognition_variant}
+    )
     prep = preparation_profile(settings)
     extraction = extraction_profile(settings)
     storage = MeteredStorage(None)
