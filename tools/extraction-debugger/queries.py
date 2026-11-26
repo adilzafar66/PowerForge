@@ -13,7 +13,11 @@ from powerforge_extraction.stage_contracts import AlternateRepresentation
 Validation = Literal["validated", "partial", "fatal", "all_quarantined", "empty"]
 
 
+Stage = Literal["EQUIPMENT_RECOGNITION", "ATTRIBUTE_EXTRACTION"]
+
+
 class Attempt(BaseModel):
+    stage: Stage
     attempt_id: UUID
     run_id: UUID
     document: str
@@ -78,13 +82,14 @@ class AttemptDetail(BaseModel):
 
 
 _FIELDS = """
-u.id AS attempt_id, u.run_id, d.original_filename AS document,
+u.id AS attempt_id, u.run_id, u.stage, d.original_filename AS document,
 p.page_number AS page, u.attempt_number, u.finished_at, u.status::text AS status,
 r.provider, r.model, CASE
     WHEN a.work_unit_id IS NULL THEN NULL
     WHEN a.received > 0 AND a.received = a.quarantined THEN 'all_quarantined'
     WHEN jsonb_array_length(a.fatal_diagnostics) > 0 THEN 'fatal'
     WHEN a.quarantined > 0 OR cardinality(a.overflow_indices) > 0 THEN 'partial'
+    WHEN u.stage='EQUIPMENT_RECOGNITION' AND u.status='FAILED' THEN 'fatal'
     WHEN a.received = 0 THEN 'empty'
     ELSE 'validated' END AS validation,
 a.received, a.accepted, a.quarantined, cardinality(a.overflow_indices) AS overflowed,
@@ -105,12 +110,14 @@ LEFT JOIN extraction_ai_calls c ON c.work_unit_id=u.id
 """
 
 
-def list_attempts(engine, *, identity, validation, status, retention, cursor, limit):
+def list_attempts(engine, *, identity, validation, status, retention, cursor, limit, stage=None):
     # UUID ordering is stable across inserts and independent of mutable run state.
     query = f"""
     SELECT * FROM (SELECT {_FIELDS} {_JOINS}
-      WHERE u.stage='ATTRIBUTE_EXTRACTION'
-        AND (a.work_unit_id IS NOT NULL OR u.performance IS NOT NULL OR c.work_unit_id IS NOT NULL)
+      WHERE u.stage IN ('ATTRIBUTE_EXTRACTION', 'EQUIPMENT_RECOGNITION')
+        AND (CAST(:stage AS text) IS NULL OR u.stage=:stage)
+        AND (a.work_unit_id IS NOT NULL OR u.performance IS NOT NULL
+             OR c.work_unit_id IS NOT NULL OR u.status IN ('FAILED', 'CANCELLED'))
         AND (CAST(:identity AS uuid) IS NULL
              OR u.id=:identity OR u.run_id=:identity)
         AND (CAST(:cursor AS uuid) IS NULL OR u.id<:cursor)
@@ -125,6 +132,7 @@ def list_attempts(engine, *, identity, validation, status, retention, cursor, li
                 text(query),
                 dict(
                     identity=identity,
+                    stage=stage,
                     validation=validation,
                     status=status,
                     retention=retention,
@@ -141,7 +149,8 @@ def list_attempts(engine, *, identity, validation, status, retention, cursor, li
 
 def attempt_detail(engine, attempt_id):
     query = f"""
-    SELECT {_FIELDS}, coalesce(a.request_hash,s.request_hash) AS request_sha256,
+    SELECT {_FIELDS},
+    coalesce(a.request_hash,s.request_hash,e.provider_request_hash) AS request_sha256,
     s.result_hash AS result_sha256, s.upstream_hash AS upstream_sha256,
     c.schema_version, c.prompt_version, s.payload AS validated, u.performance,
     coalesce(a.attribute_reasoning_effort, u.execution_metadata->>'attribute_reasoning_effort')
@@ -150,7 +159,8 @@ def attempt_detail(engine, attempt_id):
     coalesce(a.rejections,'[]'::jsonb) AS rejections,
     coalesce(a.fatal_diagnostics,c.validation_diagnostics,'[]'::jsonb) AS fatal
     {_JOINS} LEFT JOIN extraction_stage_results s ON s.work_unit_id=u.id
-    WHERE u.id=:id AND u.stage='ATTRIBUTE_EXTRACTION'
+    LEFT JOIN extraction_unit_execution e ON e.work_unit_id=u.id
+    WHERE u.id=:id AND u.stage IN ('ATTRIBUTE_EXTRACTION', 'EQUIPMENT_RECOGNITION')
     LIMIT 1
     """
     with engine.connect() as conn:

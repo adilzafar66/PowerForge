@@ -12,7 +12,7 @@ from celery.signals import after_setup_logger, task_postrun, task_prerun
 from openai import OpenAI
 from sqlalchemy import event
 
-from extraction_worker import extraction_tasks
+from extraction_worker import control, extraction_tasks
 from extraction_worker.celery_app import _engine
 from extraction_worker.celery_app import celery_app as celery_app
 from extraction_worker.openai_extraction import OpenAIExtractionProvider
@@ -21,6 +21,23 @@ from powerforge_document_processing.storage.factory import build_s3_storage
 from powerforge_extraction.enqueue import RECOVER_TASK, UNIT_TASK
 from powerforge_shared.config import get_settings
 from powerforge_shared.logging import JsonFormatter
+
+# The shared-queue baseline is confined to the offline comparison fixture.
+if os.getenv("EXTRACTION_TEST_CONTROL_ONLY") == "1":
+    celery_app = control.celery_app
+else:
+
+    @celery_app.task(name=RECOVER_TASK, shared=False, ignore_result=True)
+    def reconcile_fixture():
+        control.reconcile(celery_app)
+
+    celery_app.conf.beat_schedule = {
+        "shared-reconcile": {
+            "task": RECOVER_TASK,
+            "schedule": get_settings().extraction_recovery_interval_seconds,
+            "options": {"queue": "document_extraction"},
+        }
+    }
 
 logger = logging.getLogger(__name__)
 if prefix := os.getenv("EXTRACTION_TEST_QUEUE_PREFIX"):
@@ -145,3 +162,12 @@ if release_path := os.getenv("EXTRACTION_TEST_CLASSIFICATION_RELEASE"):
             sleep(0.05)
 
     import_module("extraction_worker.celery_app").execute_classification_run = classification_slot
+
+
+if source_marker := os.getenv("EXTRACTION_TEST_SOURCE_OCCUPIED"):
+
+    def hold_source_slot(*_):
+        Path(source_marker).touch()
+        sleep(16)
+
+    import_module("powerforge_extraction.layout_execution").execute_enrichment = hold_source_slot

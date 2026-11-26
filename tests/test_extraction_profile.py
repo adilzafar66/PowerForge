@@ -217,7 +217,10 @@ def test_d0_prompt_and_catalog_pins_are_independent_of_source(source, guide):
 def test_profiles_without_the_recognition_provider_contract_fail_closed():
     profile = extraction_profile(Settings(_env_file=None))
     pinned = profile.model_dump(mode="json")
-    assert pinned["manifest"].pop("recognition_provider_version") == "server-owned-recognition-v1"
+    assert (
+        pinned["manifest"].pop("recognition_provider_version")
+        == "server-owned-recognition-audit-v1"
+    )
     with pytest.raises(ValueError, match="Pinned extraction resources"):
         read_profile(pinned)
 

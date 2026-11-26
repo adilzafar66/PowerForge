@@ -9,6 +9,7 @@ from powerforge_shared.config import get_settings
 UNIT_TASK = "document_extraction.execute_unit"
 RECOVER_TASK = "document_extraction.reconcile"
 QUEUE = "document_extraction"
+CONTROL_QUEUE = "extraction_control"
 SOURCE_QUEUE = "source_enrichment"
 SOURCE_TASK = "source_enrichment.execute_unit"
 

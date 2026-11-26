@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from extraction_worker.celery_app import _engine, celery_app
 from powerforge_ai.extraction import ErrorCode, ExtractionProvider, ProviderFailure
 from powerforge_document_processing.storage.factory import build_s3_storage
-from powerforge_extraction.enqueue import QUEUE, RECOVER_TASK, UNIT_TASK, CeleryExtractionEnqueue
+from powerforge_extraction.enqueue import UNIT_TASK, CeleryExtractionEnqueue
 from powerforge_extraction.execution import execute_unit
 from powerforge_extraction.extraction_profile import provider_available
 from powerforge_extraction.orchestration import Claim, ExtractionCoordinator
@@ -28,6 +28,7 @@ def provider_for(claim: Claim) -> ExtractionProvider:
 
 
 @celery_app.task(
+    shared=False,
     name=UNIT_TASK,
     acks_late=True,
     reject_on_worker_lost=True,
@@ -45,33 +46,8 @@ def execute_work_unit(unit_id: str) -> None:
         )
 
 
-@celery_app.task(name=RECOVER_TASK, ignore_result=True, soft_time_limit=60, time_limit=90)
-def reconcile_extraction() -> None:
-    settings = get_settings()
-    factory = sessionmaker(bind=_engine(), autoflush=False, expire_on_commit=False)
-    with factory.begin() as session:
-        ExtractionCoordinator(session, settings).reconcile()
-    if not settings.enrichment_worker_only:
-        from powerforge_extraction.operations import reconcile_operations
-
-        reconcile_operations(factory, settings, build_s3_storage(settings))
-    with factory.begin() as session:
-        ExtractionCoordinator(session, settings).dispatch(
-            CeleryExtractionEnqueue(celery_app), purpose=None
-        )
-
-
-celery_app.conf.beat_schedule = {
-    **(celery_app.conf.beat_schedule or {}),
-    "reconcile-document-extraction": {
-        "task": RECOVER_TASK,
-        "schedule": get_settings().extraction_recovery_interval_seconds,
-        "options": {"queue": QUEUE},
-    },
-}
-
-
 @celery_app.task(
+    shared=False,
     name="source_enrichment.execute_unit",
     acks_late=True,
     reject_on_worker_lost=True,
@@ -98,14 +74,3 @@ def execute_source_unit(unit_id: str) -> None:
         ExtractionCoordinator(session, settings).dispatch(
             CeleryExtractionEnqueue(celery_app), purpose=None
         )
-
-
-if get_settings().enrichment_enabled:
-    celery_app.conf.beat_schedule = {
-        **celery_app.conf.beat_schedule,
-        "reconcile-local-source-enrichment": {
-            "task": RECOVER_TASK,
-            "schedule": get_settings().extraction_recovery_interval_seconds,
-            "options": {"queue": "source_enrichment"},
-        },
-    }

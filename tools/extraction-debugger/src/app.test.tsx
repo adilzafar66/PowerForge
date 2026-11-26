@@ -254,3 +254,28 @@ it.each(["compact-assertions-v1", "server-owned-assertions-v1"])(
   expect(screen.getByRole("button", { name: /raw_unmapped\[17\].*Overflowed/ })).toBeTruthy();
   expect(screen.queryByRole("button", { name: /raw_unmapped\[16\]/ })).toBeNull();
 });
+
+it("filters and inspects recognition without assertion metrics", async () => {
+  const fetch = serve({
+    ...detail,
+    attempt: {
+      ...attempt, stage: "EQUIPMENT_RECOGNITION", validation: "validated",
+      received: null, accepted: null, quarantined: 0,
+    },
+    rejections: [],
+    validated: { equipment: [{ local_ref: "equipment-1" }] },
+    performance: { version: 2, source_projection: "recognition-page-v1", provider_call_ms: 35_000 },
+  }, '{"equipment":[]}');
+  render(<App />);
+  await screen.findByRole("button", { name: /Siemens fixture.*Equipment recognition/ });
+  fireEvent.change(screen.getByLabelText("Stage"), { target: { value: "EQUIPMENT_RECOGNITION" } });
+  expect(fetch.mock.calls.some(([url]) => url.includes("stage=EQUIPMENT_RECOGNITION"))).toBe(true);
+  fireEvent.click(await screen.findByRole("button", { name: /Siemens fixture/ }));
+  expect(await screen.findByText("Published equipment")).toBeTruthy();
+  expect(screen.queryByText("Quarantined")).toBeNull();
+  expect(screen.queryByText("Stage 2 input")).toBeNull();
+  expect(screen.getByText("35,000 ms")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Reveal original response" }));
+  await screen.findByRole("button", { name: "Original response verified" });
+  expect(screen.getByText("Original response")).toBeTruthy();
+});

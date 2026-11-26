@@ -10,6 +10,7 @@ const validationNames: Record<string, string> = {
 };
 const validationName = (attempt: Attempt) =>
   attempt.validation ? validationNames[attempt.validation] : "Original not captured";
+const stageName = (row: Attempt) => row.stage === "EQUIPMENT_RECOGNITION" ? "Equipment recognition" : "Attribute extraction";
 const date = (value: string | null) => value ? new Date(value).toLocaleString() : "Unavailable";
 const retention = (row: Attempt) => row.retained === null ? "Not captured" :
   row.retained && row.expires_at && Date.parse(row.expires_at) > Date.now() ? "Within retention" : "Expired";
@@ -56,6 +57,7 @@ function Workspace() {
   const [identity, setIdentity] = useState("");
   const [query, setQuery] = useState("");
   const [validation, setValidation] = useState("");
+  const [stage, setStage] = useState("");
   const [status, setStatus] = useState("");
   const [retained, setRetained] = useState("");
   const [cursors, setCursors] = useState<string[]>([]);
@@ -70,6 +72,7 @@ function Workspace() {
     const params = new URLSearchParams();
     if (query) params.set("identity", query);
     if (validation) params.set("validation", validation);
+    if (stage) params.set("stage", stage);
     if (status) params.set("status", status);
     if (retained) params.set("retention", retained);
     if (cursor) params.set("cursor", cursor);
@@ -78,7 +81,7 @@ function Workspace() {
       setAttempts(data.items); setNext(data.next_cursor); setLoading(false);
     }).catch(failure => { if (!controller.signal.aborted) { setError(errorText(failure)); setLoading(false); } });
     return () => controller.abort();
-  }, [query, validation, retained, status, cursor]);
+  }, [query, validation, retained, stage, status, cursor]);
   return <main className="workspace">
     <aside className="explorer"><h1>Attempts</h1>
       <form onSubmit={event => { event.preventDefault(); setQuery(identity.trim()); setCursors([]); }}>
@@ -87,6 +90,10 @@ function Workspace() {
           disabled={!identity.trim()} onClick={() => setSelected(identity.trim())}>Open attempt</button></div>
       </form>
       <div className="filters">
+        <label>Stage<select value={stage} onChange={event => { setStage(event.target.value); setCursors([]); }}>
+          <option value="">Any</option><option value="EQUIPMENT_RECOGNITION">Equipment recognition</option>
+          <option value="ATTRIBUTE_EXTRACTION">Attribute extraction</option>
+        </select></label>
         <label>Validation<select value={validation} onChange={event => { setValidation(event.target.value); setCursors([]); }}>
           <option value="">Any</option>{Object.entries(validationNames).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
         </select></label>
@@ -100,17 +107,17 @@ function Workspace() {
       {loading ? <p role="status">Loading attempts…</p> : error ? <p role="alert">{error}</p> :
         attempts.length ? <ul className="attempts">{attempts.map(row => <li key={row.attempt_id}>
           <button className="attempt" aria-pressed={row.attempt_id === selected} onClick={() => setSelected(row.attempt_id)}>
-            <strong>{row.document}</strong><span>Page {row.page} · Attempt {row.attempt_number}</span>
+            <strong>{row.document}</strong><span>Page {row.page} · Attempt {row.attempt_number} · {stageName(row)}</span>
             <span className="badge">{validationName(row)}</span><span>{row.status} · {retention(row)}</span>
             <small>{row.provider} · {row.model ?? "Model unavailable"}{row.duration_ms !== null && ` · ${row.duration_ms} ms`}</small>
-            <small>{row.received ?? "—"} received · {row.accepted ?? "—"} accepted · {row.quarantined ?? "—"} quarantined{row.overflowed ? ` · ${row.overflowed} overflowed` : ""}</small>
+            {row.stage !== "EQUIPMENT_RECOGNITION" && <small>{row.received ?? "—"} received · {row.accepted ?? "—"} accepted · {row.quarantined ?? "—"} quarantined{row.overflowed ? ` · ${row.overflowed} overflowed` : ""}</small>}
             <code>Run {row.run_id}</code><code>Attempt {row.attempt_id}</code><small>{date(row.finished_at)}</small>
-          </button></li>)}</ul> : <p className="muted">No audited attempts match.</p>}
+          </button></li>)}</ul> : <p className="muted">No attempts match.</p>}
       <div className="actions"><button disabled={loading || cursors.length === 0} onClick={() => setCursors(cursors.slice(0, -1))}>Previous</button>
         <button disabled={loading || !next} onClick={() => next && setCursors([...cursors, next])}>Next</button></div>
     </aside>
     {selected ? <AttemptView key={selected} id={selected} /> :
-      <div className="notice"><h2>Choose an attempt</h2><p>Search by run UUID or open a Stage 2 attempt directly.</p></div>}
+      <div className="notice"><h2>Choose an attempt</h2><p>Search by run UUID or open an extraction attempt directly.</p></div>}
   </main>;
 }
 
@@ -149,6 +156,7 @@ function AttemptView({ id }: { id: string }) {
   if (error) return <p className="notice" role="alert">{error}</p>;
   if (!detail) return <p className="notice" role="status">Loading attempt…</p>;
   const row = detail.attempt;
+  const recognition = row.stage === "EQUIPMENT_RECOGNITION";
   const compact = row.output_version === "compact-assertions-v1";
   const retained = retention(row);
   const rows = assertions(detail, parsed);
@@ -181,7 +189,7 @@ function AttemptView({ id }: { id: string }) {
       const url = URL.createObjectURL(await response.blob());
       const link = document.createElement("a");
       link.href = url;
-      link.download = `stage2-${row.attempt_id}.json`;
+      link.download = `extraction-${row.attempt_id}.json`;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (failure) { setRawError(errorText(failure)); }
@@ -189,10 +197,10 @@ function AttemptView({ id }: { id: string }) {
   }
   return <div className={expanded ? "inspection inspector-expanded" : "inspection"}>
     <section className="overview">
-      <h2>{row.document}</h2><p className="muted">Page {row.page} · Attempt {row.attempt_number} · Attribute extraction</p>
+      <h2>{row.document}</h2><p className="muted">Page {row.page} · Attempt {row.attempt_number} · {stageName(row)}</p>
       <div className="badges"><span className="badge">{validationName(row)}</span><span className="badge">{row.status}</span>
         <span className="badge">{retained}</span></div>
-      <dl className="metrics">{Object.entries({ Received: row.received, Accepted: row.accepted,
+      <dl className="metrics">{Object.entries(recognition ? { "Published equipment": row.published } : { Received: row.received, Accepted: row.accepted,
         Quarantined: row.quarantined, ...(row.output_version && { Overflowed: row.overflowed }), Published: row.published }).map(([label, value]) =>
         <div key={label}><dt>{label}</dt><dd>{value ?? "—"}</dd></div>)}</dl>
       <details><summary>Execution and response metadata</summary>
@@ -204,7 +212,7 @@ function AttemptView({ id }: { id: string }) {
           "Response SHA-256": row.output_sha256, "Expiry": date(row.expires_at), "Stage error": row.error_code,
           "Request SHA-256": detail.request_sha256, "Accepted SHA-256": detail.result_sha256,
           "Recognition SHA-256": detail.upstream_sha256, Schema: detail.schema_version, Prompt: detail.prompt_version,
-          "Output contract": row.output_version ?? "legacy-v7",
+          ...(!recognition && { "Output contract": row.output_version ?? "legacy-v7" }),
         }).map(([label, value]) => <div key={label}><dt>{label}</dt><dd><code>{value ?? "Unavailable"}</code>
           {label.endsWith("UUID") && typeof value === "string" && <Copy value={value} label={`Copy ${label}`} />}</dd></div>)}</dl>
       </details>
@@ -217,6 +225,11 @@ function AttemptView({ id }: { id: string }) {
         {raw !== undefined && <button onClick={() => { setRaw(undefined); setMode("assertions"); }}>Hide original</button>}</div>
       {rawError && <p role="alert">{rawError}</p>}
     </section>
+    {recognition ? <section className="details">
+      <h2>Equipment observations</h2>
+      {detail.validated && <JsonTree value={detail.validated.equipment} name="Validated equipment" />}
+      {raw !== undefined && (parsed === undefined ? <pre>{raw}</pre> : <JsonTree value={parsed} name="Original response" />)}
+    </section> : <>
     <section className="assertion-list">
       <h2>Assertions</h2>
       <label>Search assertions<input value={search} onChange={event => { setSearch(event.target.value); setLimit(60); }} /></label>
@@ -269,6 +282,7 @@ function AttemptView({ id }: { id: string }) {
           <p className="muted">Original assertion content is unavailable.</p>}
         {chosen.publishedPosition && <JsonTree key={ids(chosen)} value={chosen.validated} name="Validated assertion" />}</> : <p className="muted">Select an assertion to inspect its fields and diagnostics.</p>)}
     </section>
+    </>}
   </div>;
 }
 
@@ -307,7 +321,7 @@ function PerformanceSection({ detail }: { detail: Detail }) {
     {metadata({
       "Model": attempt.model, "Outcome": attempt.status,
       "Provider response": performance?.response_status, "Failure stage": performance?.failure_stage,
-      "Pinned reasoning effort": detail.requested_reasoning_effort,
+      ...(attempt.stage !== "EQUIPMENT_RECOGNITION" && { "Pinned reasoning effort": detail.requested_reasoning_effort }),
       "Provider-reported reasoning effort": performance?.reasoning_effort, "Service tier": performance?.service_tier,
       "Queue wait": duration(performance?.queue_wait_ms), "Provider call": duration(performance?.provider_call_ms),
       "Source loading": duration(performance?.source_load_ms), "Request build": duration(performance?.request_build_ms),
@@ -317,7 +331,8 @@ function PerformanceSection({ detail }: { detail: Detail }) {
       "Input tokens": attempt.input_tokens, "Cached input tokens": attempt.cached_input_tokens,
       "Output tokens": attempt.output_tokens, "Reasoning tokens": performance?.reasoning_tokens,
       "Visible output tokens": performance?.visible_output_tokens,
-      "Stage 2 input": performance?.input_configuration, "Source projection": performance?.source_projection,
+      ...(attempt.stage !== "EQUIPMENT_RECOGNITION" && { "Stage 2 input": performance?.input_configuration }),
+      "Source projection": performance?.source_projection,
       "Available readings": performance?.available_readings,
       "Exposed readings": typeof request?.native_readings === "number" && typeof request.ocr_readings === "number" ? request.native_readings + request.ocr_readings : null,
       "Image sent": flag(request?.image_sent), "Page OCR sent": flag(request?.ocr_sent),
@@ -328,13 +343,14 @@ function PerformanceSection({ detail }: { detail: Detail }) {
       "Uncertain readings": request?.uncertain_readings, "Conflicting or ambiguous overlaps": request?.conflicting_overlap_count,
       "Reading order links": request?.order_count, "Overlap links": request?.overlap_count,
       "Line groups": request?.line_count, "Tables": request?.table_count, "Cells": request?.cell_count,
-      "Equipment occurrences": request?.equipment_count, "Eligible equipment types": request?.eligible_type_count,
+      ...(attempt.stage !== "EQUIPMENT_RECOGNITION" && { "Equipment occurrences": request?.equipment_count, "Eligible equipment types": request?.eligible_type_count }),
       "Registry definitions": request?.registry_definition_count,
       "Image dimensions": request?.image_width != null ? `${request.image_width} × ${request.image_height} px` : null,
       "Image detail": request?.image_detail, "Encoded image bytes": request?.encoded_image_bytes,
-      "Request body bytes": request?.body_bytes, "Page context bytes": request?.page_bytes,
+      "Request body bytes": request?.body_bytes, "Page context bytes": request?.page_bytes, "Layout bytes": request?.layout_bytes,
       "Instructions bytes": request?.instructions_bytes, "Output schema bytes": request?.schema_bytes,
-      "Registry catalog bytes": request?.catalog_bytes, "Recognized equipment bytes": request?.recognition_bytes,
+      "Registry catalog bytes": request?.catalog_bytes,
+      ...(attempt.stage !== "EQUIPMENT_RECOGNITION" && { "Recognized equipment bytes": request?.recognition_bytes }),
       "Input text SHA-256": request?.input_sha256, "Profile SHA-256": performance?.profile_sha256,
       "Prompt SHA-256": performance?.prompt_sha256, "Transport schema SHA-256": performance?.schema_sha256,
     })}

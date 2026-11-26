@@ -43,6 +43,7 @@ def live_worker(
     pool="solo",
     slots=1,
     broker_prefix=None,
+    loglevel="WARNING",
 ):
     directory.mkdir(exist_ok=True)
     name = f"extraction-{uuid4().hex[:8]}@localhost"
@@ -83,27 +84,51 @@ def live_worker(
             name,
             "--without-gossip",
             "--without-mingle",
-            "--loglevel=WARNING",
+            f"--loglevel={loglevel}",
         ],
         cwd=ROOT,
         env=env,
         stdout=worker_log,
         stderr=subprocess.STDOUT,
     )
-    scheduler = None
+    scheduler = control = None
     try:
         broker = Celery("extraction-integration-control", broker=ctx["settings"].redis_url)
         if broker_prefix:
             broker.conf.broker_transport_options = {"global_keyprefix": broker_prefix}
         wait_for(lambda: broker.control.ping(destination=[name], timeout=0.5))
         if beat:
+            scheduler_app = app_module
+            if app_module != "extraction_parallel_worker":
+                scheduler_app = "extraction_worker.control"
+                control = subprocess.Popen(
+                    [
+                        sys.executable,
+                        "-m",
+                        "celery",
+                        "-A",
+                        scheduler_app,
+                        "worker",
+                        "--pool=prefork",
+                        "--concurrency=1",
+                        "-Q",
+                        "extraction_control",
+                        "--without-gossip",
+                        "--without-mingle",
+                        "--loglevel=WARNING",
+                    ],
+                    cwd=ROOT,
+                    env=env,
+                    stdout=scheduler_log,
+                    stderr=subprocess.STDOUT,
+                )
             scheduler = subprocess.Popen(
                 [
                     sys.executable,
                     "-m",
                     "celery",
                     "-A",
-                    app_module,
+                    scheduler_app,
                     "beat",
                     "--loglevel=WARNING",
                     f"--schedule={directory / 'schedule'}",
@@ -115,7 +140,7 @@ def live_worker(
             )
         yield worker
     finally:
-        for process in [scheduler, worker]:
+        for process in [scheduler, control, worker]:
             if process and process.poll() is None:
                 process.terminate()
                 try:

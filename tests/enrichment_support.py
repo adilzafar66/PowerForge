@@ -37,7 +37,10 @@ class Delivery:
 
 @pytest.fixture
 def enrichment_ctx(ctx):
-    provider = TesseractProvider()
+    runtime = get_settings()
+    provider = TesseractProvider(
+        runtime.enrichment_tesseract_binary, runtime.enrichment_tessdata_directory
+    )
     settings = Settings(
         _env_file=None,
         enrichment_enabled=True,

@@ -100,6 +100,7 @@ def test_historical_attempt_without_model_lists_and_opens():
         attempt_number=1,
         status="COMPLETED",
         provider="openai",
+        stage="EQUIPMENT_RECOGNITION",
         request_sha256=None,
         result_sha256=None,
         upstream_sha256=None,
@@ -123,9 +124,10 @@ def test_historical_attempt_without_model_lists_and_opens():
         app.create_app(SECRET, engine, None), base_url=app.ORIGIN, client=("127.0.0.1", 48000)
     ) as client:
         assert login(client).status_code == 204
-        reply = client.get("/api/attempts")
+        reply = client.get("/api/attempts?stage=EQUIPMENT_RECOGNITION")
         assert reply.status_code == 200
         assert reply.json()["items"][0]["model"] is None
+        assert reply.json()["items"][0]["stage"] == "EQUIPMENT_RECOGNITION"
         reply = client.get(f"/api/attempts/{attempt_id}")
         assert reply.status_code == 200
         assert reply.json()["attempt"]["model"] is None

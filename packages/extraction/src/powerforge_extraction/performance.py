@@ -72,11 +72,12 @@ class RequestMetrics(Metrics):
     order_count: Count
     overlap_count: Count
     conflicting_overlap_count: Count
-    equipment_count: Count
-    eligible_type_count: Count
+    equipment_count: Count | None = None
+    eligible_type_count: Count | None = None
     registry_definition_count: Count
     catalog_bytes: Count
-    recognition_bytes: Count
+    recognition_bytes: Count | None = None
+    layout_bytes: Count | None = None
     page_bytes: Count
     instructions_bytes: Count
     schema_bytes: Count
@@ -91,7 +92,10 @@ class AttemptPerformance(Metrics):
     assertions_overflowed: Count | None = None
     input_configuration: AttributeInputVersion | None = None
     source_projection: (
-        Literal["compact-page-v1", "compact-page-v2", "readable-page-v1", "none"] | None
+        Literal[
+            "compact-page-v1", "compact-page-v2", "readable-page-v1", "recognition-page-v1", "none"
+        ]
+        | None
     ) = None
     available_readings: Count | None = None
     queue_wait_ms: Count | None = None
@@ -151,6 +155,48 @@ def request_metrics(
         )
     page = payload["page"]
     layout = page["layout"]
+    if "equipment_catalog" in payload:
+        readings = page["readings"]
+        native = sum(item["modality"] == "NATIVE_PDF" for item in readings)
+        ocr = sum(item["modality"] == "OCR" for item in readings)
+        representations = {
+            member["representation_ref"]
+            for item in layout["readings"]
+            for member in item["members"]
+        }
+        overlaps = layout["overlaps"]
+        catalog = payload["equipment_catalog"]
+        return RequestMetrics(
+            input_sha256=sha256(canonical_json(payload).encode()).hexdigest(),
+            body_bytes=body_bytes,
+            encoded_image_bytes=encoded_image_bytes,
+            image_detail=image_detail,
+            image_sent=True,
+            native_sent=bool(native or "native" in representations),
+            ocr_sent=bool(ocr or "ocr" in representations),
+            image_width=page["image_width"],
+            image_height=page["image_height"],
+            native_readings=native,
+            ocr_readings=ocr,
+            alternate_readings=sum(len(item["alternate_texts"]) for item in readings),
+            uncertain_readings=sum(bool(item.get("issues")) for item in layout["readings"]),
+            reading_text_chars=sum(
+                len(item["text"]) + sum(map(len, item["alternate_texts"])) for item in readings
+            ),
+            table_count=len(layout["tables"]),
+            cell_count=sum(len(table["cells"]) for table in layout["tables"]),
+            order_count=len(layout["order"]),
+            overlap_count=len(overlaps),
+            conflicting_overlap_count=sum(
+                item["kind"] in {"CONFLICT", "AMBIGUOUS"} for item in overlaps
+            ),
+            registry_definition_count=len(catalog),
+            catalog_bytes=len(canonical_json(catalog).encode()),
+            layout_bytes=len(canonical_json(layout).encode()),
+            page_bytes=len(canonical_json(page).encode()),
+            instructions_bytes=len(instructions.encode()),
+            schema_bytes=schema_bytes,
+        )
     projected_rows = page["readings"]["rows"]
     rows = list(reading_rows(page["readings"]))
     grouped = "member_columns" in page["readings"]
@@ -200,6 +246,7 @@ def request_metrics(
         registry_definition_count=len(catalog),
         catalog_bytes=size(catalog),
         recognition_bytes=size(upstream),
+        layout_bytes=size(layout),
         page_bytes=size(page),
         instructions_bytes=len(instructions.encode()),
         schema_bytes=schema_bytes,

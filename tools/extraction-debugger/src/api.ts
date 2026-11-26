@@ -1,6 +1,7 @@
 export type Issue = { category: string; error_type: string; path: (string | number)[] };
 export type Collection = "attributes" | "raw_unmapped";
 export type Attempt = {
+  stage?: "EQUIPMENT_RECOGNITION" | "ATTRIBUTE_EXTRACTION";
   attempt_id: string; run_id: string; document: string; page: number; attempt_number: number;
   finished_at: string | null; status: string; provider: string; model: string | null;
   validation: string | null; received: number | null; accepted: number | null;
@@ -57,7 +58,7 @@ export const messages: Record<string, string> = {
   authentication_failed: "The operator secret was not accepted.",
   authentication_required: "Your session ended. Sign in again.",
   invalid_request: "Check the UUID or filters.",
-  attempt_not_found: "No Stage 2 attempt found for that UUID.",
+  attempt_not_found: "No extraction attempt found for that UUID.",
   not_captured: "This attempt has no retained original response.",
   expired: "The original response has expired. Audit metadata remains available.",
   object_missing: "The original audit object is unexpectedly missing.",

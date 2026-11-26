@@ -86,9 +86,9 @@ overflow positions after expiry. See the
 [Milestone D evaluation](../evals/phase6r/ATTRIBUTE_OUTPUT_OPTIMIZATION_EVALUATION.md)
 for the replay command and comparison procedure.
 
-## Stage 2 response audit
+## Extraction response audit
 
-Before enabling live Stage 2, provision a **private, unversioned** audit bucket
+Before enabling live extraction, provision a **private, unversioned** audit bucket
 with encryption at rest where supported. Use separate worker and operator
 credentials. Keep the regular API and document-storage identities scoped away
 from the audit bucket. The local Compose stack gives several services MinIO
@@ -104,9 +104,9 @@ credentials with scoped principals first.
   object creation to the worker and operator reads to a separate principal.
 - Set `EXTRACTION_RESPONSE_AUDIT_RETENTION_DAYS` consistently on the API and
   workers. It defaults to 30 and is pinned per run. Configure an enabled
-  `Expiration.Days` lifecycle rule for the matching `stage2/<days>d/` prefix.
+  `Expiration.Days` lifecycle rule for each matching `stage1/<days>d/` and `stage2/<days>d/` prefix.
   Keep rules for older prefixes until their objects have expired. The worker
-  checks the rule before admitting Stage 2. An unavailable audit store fails
+  checks the applicable rule before dispatching either AI stage. An unavailable audit store fails
   the attempt without publishing a result. The same lifecycle expires objects
   left behind by rolled-back or cancelled attempts.
 - Grant the operator database role `SELECT` on `extraction_response_audits`
@@ -119,7 +119,7 @@ credentials with scoped principals first.
 From an operator environment with the extraction worker package installed, set
 `EXTRACTION_RESPONSE_AUDIT_DATABASE_URL`, `EXTRACTION_RESPONSE_AUDIT_READ_ACCESS_KEY`
 and `EXTRACTION_RESPONSE_AUDIT_READ_SECRET_KEY`, together with the audit bucket
-and endpoint. Export an unexpired artifact using the Stage 2 attempt ID:
+and endpoint. Export an unexpired artifact using the extraction attempt ID:
 
 ```bash
 python -m extraction_worker.read_response_audit <work-unit-id> <new-private-file>
@@ -134,8 +134,8 @@ confidentiality and retention rules.
 Documents shows received, schema-valid and quarantined counts. Quarantined
 assertions fail local schema validation and produce no candidates. Valid
 assertions can still appear as Unmapped after engineering validation. The API
-exposes sanitized details, while the exact Stage 2 output text stays in the
+exposes sanitized details, while the exact provider output text stays in the
 audit bucket. Counts and digests remain in immutable history after expiry.
 
-For local operator inspection of retained Stage 2 responses, see the
+For local operator inspection of retained recognition and attribute responses, see the
 [Extraction Debugger](../tools/extraction-debugger/README.md).

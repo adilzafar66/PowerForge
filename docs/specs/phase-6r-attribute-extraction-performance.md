@@ -434,6 +434,45 @@ Never expose raw responses, page text, PII, or hidden model reasoning through th
 
 **Gate F:** Timeout/slow-call diagnoses are grounded in measured phases; retry policies remain bounded and auditable; debugger reports missing telemetry honestly.
 
+### Milestone F implementation
+
+One Beat schedule sends reconciliation to `extraction_control`, consumed by one dedicated prefork slot. The control app registers only the reconciliation task. It uses the shared profile settings and source storage to advance both extraction and source enrichment. It receives neither the OpenAI key nor the response-audit writer credentials. The existing execution workers retain their queues, concurrency and completion-triggered dispatch. Start the control worker before starting the updated scheduler. For standalone source-enrichment deployments, set `ENRICHMENT_WORKER_ONLY=true` on the control worker to skip document operation admission.
+
+The task logs queue wait and time spent sweeping leases, advancing operations and redispatching deliveries. Periodic notifications expire after one cadence. Redis can hold expired messages during a prolonged control outage, and Celery discards them on delivery. Due operations and work remain in PostgreSQL and are picked up by the next fresh notification. Slow source verification can still delay a control pass, and this release keeps one bounded control worker rather than parallelizing reconciliation itself.
+
+The timing budget starts the coordinator deadline at claim. Default extraction uses a 100-second SDK transport timeout, a 30-second renewable lease, a 10-second heartbeat and a 115-second coordinator deadline. SDK I/O timeouts do not guarantee a wall-clock response by the deadline. Source preparation uses a 135-second coordinator deadline and a 60-second OCR subprocess timeout. Spatial layout has a 45-second coordinator deadline. Celery soft/hard limits remain 330/345 seconds for extraction, 135/150 seconds for source tasks, and 60/90 seconds for reconciliation. Redispatch eligibility remains 30 seconds by default. The 15-second cadence schedules due operation checks, and preview expiry remains separate from execution. Operations have no separate end-to-end timeout.
+
+The coordinator still classifies post-dispatch interruptions, timeouts and unavailable outcomes as unknown when applicable. Manual retry requires acknowledgement and the pinned budgets still apply. Stage telemetry distinguishes connection failure from upstream HTTP failure alongside existing rate-limit, timeout, refusal, incomplete, schema and local-input classifications.
+
+Migration `6r_0014m_recognition_audit` extends the existing stage-aware audit and terminal performance fields to equipment recognition. New live recognition retains exact bounded provider `output_text` bytes before local admission and publishes only with a matching audit. Malformed JSON and incomplete single-text responses are available under the same operator-only retention policy. Timeouts, refusals, oversized output and responses without one identifiable text part have diagnostics without raw bytes. Recognition admission remains all-or-nothing. Stage 2 assertion accounting stays specific to attribute extraction. Apply the migration, add matching `stage1/<days>d/` lifecycle and IAM rules, and reapply the debugger operator grants before enabling the updated live workers. Run history remains immutable. Superseded execution profiles require fresh admission.
+
+The debugger lists both stages and displays stage-appropriate metrics, using the dispatch digest for failures that have no retained audit or published result. Missing telemetry remains unavailable. Original retrieval and export continue through the private digest-verifying, journaled reader.
+
+### Offline saturation and restart results
+
+The matched two-page load used the same prepared source and extraction profile in both arms, two prefork execution slots, and 35-second loopback HTTP responses for both stages. Each arm made four calls, reached two overlapping calls and published both pages. During the provider work window, the shared queue completed two reconciliation passes with a maximum gap of **35.16 seconds**. The dedicated queue completed four passes with a maximum gap of **15.07 seconds**, within the 20-second test gate at the 15-second cadence. Its highest measured control queue delay was 17 ms. Both arms renewed 12 heartbeats with zero lease denials. Peak heartbeat scheduling delay and renewal transaction time were 11/64 ms on the shared arm and 5/41 ms with dedicated control.
+
+A separate restart probe used one-second control ticks and eight-second loopback calls. The control worker stopped while both extraction slots and a simulated source task were occupied. The replacement discarded five expired notifications, advanced the operation admitted during the outage, and both operations completed with six unique provider calls. These results measure a small local workload. They do not establish a recovery SLA under prolonged database or object-storage disruption or predict live provider throughput.
+
+```sh
+RUN_INTEGRATION=1 RUN_CONTROL_BENCHMARK=1 pytest -q -s \
+  tests/test_extraction_parallel.py -k 'control_passes or control_restart'
+```
+
+Both sustained-load cases passed. The broader disposable PostgreSQL, Redis and MinIO suite passed 85 tests, including the real source OCR and layout recovery cases. It skipped the opt-in Milestone E throughput matrix and the separately executed control benchmark. The focused recognition failure audit matrix passed seven tests. Restricted MinIO retrieval passed on a retained synthetic malformed recognition response with its own operator database role and S3 reader principal, and produced one read-journal entry. The offline contracts, provider, profile, performance and debugger API suite passed 216 tests. All 20 debugger frontend tests, TypeScript, the Vite build, Ruff, and Compose validation passed.
+
+```sh
+alembic -c database/alembic.ini upgrade head
+RUN_INTEGRATION=1 pytest -q -rs tests/test_extraction_operations.py \
+  tests/test_extraction_schema.py tests/test_extraction_debugger_integration.py \
+  tests/test_extraction_parallel.py tests/test_spatial_celery.py tests/test_enrichment_celery.py
+PYTHONPATH=tools/extraction-debugger pytest -q -rs tests/test_openai_extraction.py \
+  tests/test_extraction_profile.py tests/test_extraction_stage_contracts.py \
+  tests/test_extraction_performance.py tools/extraction-debugger/tests/test_api.py
+npm --prefix tools/extraction-debugger test
+npm --prefix tools/extraction-debugger run build
+```
+
 ## 12. Milestone G — Benchmark corpus, regression gate, and release
 
 **Priority:** Mandatory final release gate.

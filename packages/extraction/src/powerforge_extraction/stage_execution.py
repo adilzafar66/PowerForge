@@ -12,8 +12,8 @@ from powerforge_ai.extraction import (
     ErrorCode,
     ExecutionUsage,
     ExtractionRequest,
-    ExtractionResponse,
     ProviderFailure,
+    RecognitionOutput,
 )
 from powerforge_extraction.compact_context import compact_page
 from powerforge_extraction.controls import UnitExecution
@@ -241,11 +241,14 @@ def request_for(factory, storage, claim):
     if performance is not None:
         performance.version = 2
         performance.profile_sha256 = profile.identity_hash
-        performance.output_version = profile.attribute_output_version
-        performance.input_configuration = profile.manifest["attribute_input_version"]
-        performance.source_projection = profile.manifest.get(
-            "page_projection", performance.input_configuration
-        )
+        if claim.unit_key.startswith("ATTRIBUTE_EXTRACTION:"):
+            performance.output_version = profile.attribute_output_version
+            performance.input_configuration = profile.manifest["attribute_input_version"]
+            performance.source_projection = profile.manifest.get(
+                "page_projection", performance.input_configuration
+            )
+        else:
+            performance.source_projection = "recognition-page-v1"
     with measure("source_load"):
         with factory() as session:
             unit = session.get(ExtractionWorkUnit, claim.unit_id)
@@ -469,10 +472,6 @@ class FakeExtractionProvider:
             if self.scenario != "empty"
             else []
         )
-        return ExtractionResponse[request.response_model](
-            result=request.response_model.model_validate_json(
-                canonical_json({"equipment": equipment})
-            ),
-            usage=ExecutionUsage(),
-            request=request,
+        return RecognitionOutput(
+            canonical_json({"equipment": equipment}).encode(), ExecutionUsage(), request
         )

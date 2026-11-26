@@ -1,6 +1,6 @@
 # Extraction Debugger
 
-A standalone operator tool for Phase 6R Stage 2 responses. FastAPI serves a
+A standalone operator tool for both Phase 6R extraction stages. FastAPI serves a
 React and TypeScript build at `http://127.0.0.1:3100`. It uses the existing
 audit metadata, validated results, candidates, evidence and retrieval journal.
 
@@ -9,7 +9,7 @@ audit metadata, validated results, candidates, evidence and retrieval journal.
 Use the PowerForge Python 3.12 virtual environment with the repository packages
 installed, Node.js, and a running PowerForge database with the response-audit
 migration applied. Set up the private audit bucket and lifecycle as described in
-[Extraction operations](../../docs/EXTRACTION.md#stage-2-response-audit).
+[Extraction operations](../../docs/EXTRACTION.md#extraction-response-audit).
 
 Create an individual PostgreSQL login as the schema administrator. Inside
 `psql`, run `CREATE ROLE audit_alex LOGIN;` and `\password audit_alex`.
@@ -29,7 +29,7 @@ For an existing operator, reapply this script after migration
 proposal columns.
 
 Use a dedicated MinIO/S3 operator identity with only `s3:GetObject` on
-`arn:aws:s3:::powerforge-response-audit/stage2/*`. Enable storage-side access
+`arn:aws:s3:::powerforge-response-audit/stage2/*` and `arn:aws:s3:::powerforge-response-audit/stage1/*`. Enable storage-side access
 auditing to cover reads outside the debugger. Keep database and storage reader
 credentials in an operator shell or secret manager.
 
@@ -60,9 +60,7 @@ need to be rebuilt.
 
 ## Inspect and compare
 
-Search using the full run or attempt UUID. A run UUID lists its audited Stage 2
-attempts. **Open attempt** also looks up a historical Stage 2 attempt with no
-audit record. The history identifies the attribute-extraction attempt UUID
+Search using the full run or attempt UUID. A run UUID lists its extraction attempts. **Open attempt** can also look up an attempt without an audit record. The history identifies the attribute-extraction attempt UUID
 separately from the run UUID.
 
 Choose **Reveal original response** to perform a verified and journaled read.
@@ -134,9 +132,9 @@ installation and a running debugger. Set `DEBUGGER_BROWSER_PATH` to a local
 Chrome executable when Playwright's bundled Chromium is unavailable, then run
 `node tools/extraction-debugger/tests/layout.mjs`.
 
-### Stage 2 performance
+### Attempt performance
 
-Apply migrations through `6r_0014l_server_owned_output` and rerun the operator grant script on the target database before running this debugger version. The attempt details include a **Performance** section. Attempts that reach the provider can appear even when an audit object was never created. Audit retrieval and exports still use the audited access path.
+Apply migrations through `6r_0014m_recognition_audit` and rerun the operator grant script on the target database before running this debugger version. The attempt details include a **Performance** section. Attempts that reach the provider can appear even when an audit object was never created. Audit retrieval and exports still use the audited access path.
 
 Server-owned Stage 2 attempts show the output contract and overflow separately from
 quarantine. The comparison uses each assertion's original collection and index

@@ -347,7 +347,7 @@ def manifest(
     return {
         "version": SCHEMA_VERSION,
         "registry_version": REGISTRY.registry_version,
-        "recognition_provider_version": "server-owned-recognition-v1",
+        "recognition_provider_version": "server-owned-recognition-audit-v1",
         "publication_version": PUBLICATION_VERSION,
         "unit_interpretation_version": UNIT_INTERPRETATION_VERSION,
         "consistency_version": CONSISTENCY_VERSION,

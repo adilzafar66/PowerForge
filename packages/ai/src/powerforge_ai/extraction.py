@@ -46,6 +46,7 @@ class ExecutionUsage(BaseModel):
 ValidationCategory = Literal[
     "INCOMPLETE",
     "REFUSAL",
+    "TRANSPORT",
     "ENVELOPE",
     "JSON",
     "SCHEMA",
@@ -61,6 +62,8 @@ ValidationType = Literal[
     "invalid_envelope",
     "invalid_usage",
     "http_rejection",
+    "connection_error",
+    "upstream_http_error",
     "invalid_json_schema",
     "json_invalid",
     "schema_invalid",
@@ -234,6 +237,11 @@ class AttributeOutput:
     usage: ExecutionUsage
     # The transport returns the immutable request that produced these bytes.
     request: ExtractionRequest = field(repr=False)
+
+
+@dataclass(frozen=True)
+class RecognitionOutput(AttributeOutput):
+    failure: ProviderFailure | None = None
 
 
 class ExtractionProvider(Protocol):

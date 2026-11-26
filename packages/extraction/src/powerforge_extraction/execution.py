@@ -18,6 +18,7 @@ from powerforge_ai.extraction import (
     ExecutionUsage,
     ExtractionProvider,
     ProviderFailure,
+    RecognitionOutput,
     ResponseValidationFailure,
     ValidationIssue,
 )
@@ -114,11 +115,7 @@ def execute_unit(
         claim = ExtractionCoordinator(session, settings).claim(unit_id)
     if claim is None:
         return False
-    performance = (
-        AttemptPerformance(queue_wait_ms=claim.queue_wait_ms)
-        if claim.unit_key.startswith("ATTRIBUTE_EXTRACTION:")
-        else None
-    )
+    performance = AttemptPerformance(queue_wait_ms=claim.queue_wait_ms)
     token = active_performance.set(performance)
     try:
         return _execute_claim(claim, factory, storage, settings, provider_factory, audit_storage)
@@ -147,9 +144,7 @@ def _execute_claim(claim, factory, storage, settings, provider_factory, audit_st
             result = wire
             if request is not None:
                 provider = provider_factory(claim)
-                live_attributes = (
-                    isinstance(wire, AttributeRequest) and claim.profile.provider == "openai"
-                )
+                live = claim.profile.provider == "openai"
                 with measure("request_build"):
                     if not isinstance(wire, AttributeRequest) and (
                         request.image is None
@@ -170,14 +165,10 @@ def _execute_claim(claim, factory, storage, settings, provider_factory, audit_st
                         or request.text != canonical_json(provider_input(wire))
                     ):
                         raise ProviderFailure(ErrorCode.INPUT)
-                with (
-                    measure("audit_store")
-                    if live_attributes and audit_storage is None
-                    else nullcontext()
-                ):
-                    if live_attributes and audit_storage is None:
+                with measure("audit_store") if live and audit_storage is None else nullcontext():
+                    if live and audit_storage is None:
                         audit_storage = response_audit_writer(
-                            settings, claim.profile.response_audit_retention_days
+                            settings, claim.profile.response_audit_retention_days, request.stage
                         )
                 with factory.begin() as session:
                     ExtractionCoordinator(session, settings).mark_provider_started(
@@ -235,7 +226,10 @@ def _execute_claim(claim, factory, storage, settings, provider_factory, audit_st
                             )
                         result = admission.result
                 else:
-                    if getattr(response, "request", None) is not request:
+                    if (
+                        not isinstance(response, RecognitionOutput)
+                        or response.request is not request
+                    ):
                         raise ProviderFailure(
                             ErrorCode.INVALID,
                             usage,
@@ -245,17 +239,38 @@ def _execute_claim(claim, factory, storage, settings, provider_factory, audit_st
                                 ),
                             ),
                         )
-                    if over_budget:
-                        raise ProviderFailure(ErrorCode.INVALID, usage, diagnostics=(budget_issue,))
+                    raw = response.output_text
+                    if live and audit_storage is not None:
+                        with measure("audit_store"):
+                            retained = retain_output(
+                                audit_storage,
+                                claim.unit_id,
+                                claim.profile.response_audit_retention_days,
+                                raw,
+                                datetime.now(UTC),
+                                request.stage,
+                            )
+                        audit = (wire, retained, None, request)
                     try:
-                        result = parse_response(wire, response.result.model_dump_json().encode())
-                    except ResponseValidationFailure as exc:
+                        with measure("admission"):
+                            if response.failure:
+                                raise response.failure
+                            if over_budget:
+                                raise ProviderFailure(
+                                    ErrorCode.INVALID, usage, diagnostics=(budget_issue,)
+                                )
+                            result = parse_response(wire, raw)
+                    except (ResponseValidationFailure, ValidationError, ProviderFailure) as exc:
+                        if isinstance(exc, ProviderFailure):
+                            details = exc.diagnostics
+                        elif isinstance(exc, ResponseValidationFailure):
+                            details = (exc.issue,)
+                        else:
+                            details = validation_issues(exc)
+                        if audit is not None:
+                            audit = (*audit, details)
                         raise ProviderFailure(
-                            ErrorCode.INVALID, usage, diagnostics=(exc.issue,)
-                        ) from None
-                    except ValidationError as exc:
-                        raise ProviderFailure(
-                            ErrorCode.INVALID, usage, diagnostics=validation_issues(exc)
+                            ErrorCode.INVALID, usage, diagnostics=details
                         ) from None
             with measure("localization_normalization"):
                 publication = build_publication(wire, result, source)

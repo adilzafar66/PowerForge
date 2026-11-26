@@ -19,3 +19,4 @@ GRANT SELECT (id, ordinal, local_ref, mapping_status, reason_code, normalized_ty
     ON public.extraction_candidates TO :"debugger_operator";
 GRANT SELECT (candidate_id, role, localization, reason_code, ordinal) ON public.extraction_evidence
     TO :"debugger_operator";
+GRANT SELECT (work_unit_id, provider_request_hash) ON public.extraction_unit_execution TO :"debugger_operator";

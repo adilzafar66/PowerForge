@@ -14,6 +14,7 @@ from powerforge_ai.extraction import (
     ExtractionRequest,
     ExtractionResponse,
     ProviderFailure,
+    RecognitionOutput,
     ValidationIssue,
 )
 from powerforge_extraction.extraction_profile import (
@@ -29,7 +30,6 @@ from powerforge_extraction.performance import (
     request_metrics,
 )
 from powerforge_extraction.provider_body import encoded_body, responses_body
-from powerforge_extraction.response_diagnostics import validation_issues
 from powerforge_extraction.stage_contracts import MAX_RESPONSE_BYTES, stage_schema_version
 from powerforge_shared.config import Settings
 
@@ -105,7 +105,37 @@ class OpenAIExtractionProvider:
                 )
             raise
         with measure("admission"):
-            return self._admit_response(response, request, model)
+            try:
+                return self._admit_response(response, request, model)
+            except ProviderFailure as exc:
+                if request.stage == "EQUIPMENT_RECOGNITION" and exc.code == ErrorCode.INVALID:
+                    raw = self._recover_recognition_text(response)
+                    if raw is not None:
+                        return RecognitionOutput(raw, exc.usage or ExecutionUsage(), request, exc)
+                raise
+
+    @staticmethod
+    def _recover_recognition_text(response):
+        output = getattr(response, "output", None)
+        if not isinstance(output, list):
+            return None
+        parts = []
+        for item in output:
+            if getattr(item, "type", None) == "message":
+                content = getattr(item, "content", None)
+                if not isinstance(content, list):
+                    return None
+                parts.extend(content)
+        if len(parts) != 1 or getattr(parts[0], "type", None) != "output_text":
+            return None
+        text = getattr(parts[0], "text", None)
+        if not isinstance(text, str) or len(text) > MAX_RESPONSE_BYTES:
+            return None
+        try:
+            raw = text.encode()
+        except UnicodeError:
+            return None
+        return raw if len(raw) <= MAX_RESPONSE_BYTES else None
 
     def _send(self, body, request):
         try:
@@ -122,14 +152,23 @@ class OpenAIExtractionProvider:
         except (openai.AuthenticationError, openai.PermissionDeniedError):
             raise ProviderFailure(ErrorCode.AUTH) from None
         except openai.APIConnectionError:
-            raise ProviderFailure(ErrorCode.UNAVAILABLE) from None
+            raise ProviderFailure(
+                ErrorCode.UNAVAILABLE,
+                diagnostics=(ValidationIssue(category="TRANSPORT", error_type="connection_error"),),
+            ) from None
         except (openai.APIResponseValidationError, ValueError, TypeError):
             raise ProviderFailure(
                 ErrorCode.INVALID,
                 diagnostics=(ValidationIssue(category="ENVELOPE", error_type="invalid_envelope"),),
             ) from None
         except openai.APIStatusError as exc:
-            code = ErrorCode.UNAVAILABLE if exc.status_code >= 500 else ErrorCode.INVALID
+            if exc.status_code >= 500:
+                raise ProviderFailure(
+                    ErrorCode.UNAVAILABLE,
+                    diagnostics=(
+                        ValidationIssue(category="TRANSPORT", error_type="upstream_http_error"),
+                    ),
+                ) from None
             diagnostics = (
                 ValidationIssue(
                     category="ENVELOPE",
@@ -139,8 +178,8 @@ class OpenAIExtractionProvider:
                 ),
             )
             raise ProviderFailure(
-                code,
-                diagnostics=diagnostics if code == ErrorCode.INVALID else (),
+                ErrorCode.INVALID,
+                diagnostics=diagnostics,
             ) from None
 
     @staticmethod
@@ -242,12 +281,4 @@ class OpenAIExtractionProvider:
             )
         if request.stage == "ATTRIBUTE_EXTRACTION":
             return AttributeOutput(raw, usage, request)
-        try:
-            result = model.model_validate_json(raw)
-        except ValidationError as exc:
-            raise ProviderFailure(
-                ErrorCode.INVALID,
-                usage,
-                diagnostics=validation_issues(exc),
-            ) from None
-        return ExtractionResponse[model](result=result, usage=usage, request=request)
+        return RecognitionOutput(raw, usage, request)

@@ -490,9 +490,11 @@ def test_unified_operation_finishes_with_immutable_page_results(operation_contex
         def execute(self, request):
             result = FakeExtractionProvider("success").execute(request)
             if scenario == "empty" and request.stage == "EQUIPMENT_RECOGNITION":
-                (equipment,) = result.result.equipment
-                unknown = equipment.model_copy(update={"registry_type": None})
-                result.result = result.result.model_copy(update={"equipment": (unknown,)})
+                from dataclasses import replace
+
+                payload = json.loads(result.output_text)
+                payload["equipment"][0]["registry_type"] = None
+                result = replace(result, output_text=json.dumps(payload).encode())
             elif scenario == "empty":
                 pytest.fail("An unknown equipment observation must not start Call 2")
             return result
@@ -735,10 +737,16 @@ def test_expired_recognition_lease_is_fenced_and_reconciled(operation_context):
         assert retry.stage == "EQUIPMENT_RECOGNITION"
         retry_id = retry.id
 
+    from powerforge_extraction.stage_contracts import parse_response
+
     response = FakeExtractionProvider("success").execute(request)
     with pytest.raises(LeaseLost), ctx["factory"].begin() as session:
         ExtractionCoordinator(session, ctx["settings"]).complete_stage(
-            recognition, claim.token, wire, response.result, response.usage
+            recognition,
+            claim.token,
+            wire,
+            parse_response(wire, response.output_text),
+            response.usage,
         )
     for unit_id in (retry_id, attributes):
         assert execute_unit(
@@ -1317,6 +1325,12 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
             calls[0]["page"]
         )
         assert recognition.request_hash == identity_hash(bodies[0])
+        assert (
+            session.get(ExtractionWorkUnit, recognition.work_unit_id).performance["request"][
+                "body_bytes"
+            ]
+            > 0
+        )
         expected_digest = (
             stage_request_hash(canonical_json(calls[1]), "medium")
             if input_version.startswith("compact-")
@@ -1438,12 +1452,14 @@ def test_mocked_live_operation_persists_both_stages_and_recoverable_diagnostics(
     assert all(attempt["estimated_cost"] is None for attempt in attempts)
 
 
-@pytest.mark.parametrize("malformed", ["schema", "tag"])
+@pytest.mark.parametrize("malformed", ["schema", "tag", "json", "incomplete"])
 def test_invalid_response_audit_is_fenced_and_redacted(operation_context, caplog, malformed):
     from types import SimpleNamespace
 
     from extraction_worker.openai_extraction import OpenAIExtractionProvider
+    from powerforge_document_processing.storage import InMemoryObjectStorage
     from powerforge_extraction.models import ExtractionAICall
+    from powerforge_extraction.response_audit import ResponseAudit
     from powerforge_extraction.stage_execution import StageResult
 
     ctx = operation_context
@@ -1452,6 +1468,9 @@ def test_invalid_response_audit_is_fenced_and_redacted(operation_context, caplog
     source = new_source(ctx, "redaction.pdf")
     _, run_id, units = admitted_page(ctx, source)
     recognition = units["EQUIPMENT_RECOGNITION"]
+
+    audit_storage = InMemoryObjectStorage()
+    sent = []
 
     def create(**kwargs):
         payload = {}
@@ -1468,13 +1487,15 @@ def test_invalid_response_audit_is_fenced_and_redacted(operation_context, caplog
         if malformed == "schema":
             item[private] = private
         payload["equipment"] = [item]
+        sent.append(b"{" if malformed == "json" else json.dumps(payload).encode())
         return SimpleNamespace(
-            status="completed",
+            status="incomplete" if malformed == "incomplete" else "completed",
+            incomplete_details=SimpleNamespace(reason="max_output_tokens"),
             usage=SimpleNamespace(input_tokens=85, output_tokens=30),
             output=[
                 SimpleNamespace(
                     type="message",
-                    content=[SimpleNamespace(type="output_text", text=json.dumps(payload))],
+                    content=[SimpleNamespace(type="output_text", text=sent[0].decode())],
                 )
             ],
         )
@@ -1489,17 +1510,28 @@ def test_invalid_response_audit_is_fenced_and_redacted(operation_context, caplog
             claim.profile,
             SimpleNamespace(responses=SimpleNamespace(create=create)),
         ),
+        audit_storage=audit_storage,
     )
     diagnostic = {
         "category": "SCHEMA" if malformed == "schema" else "CROSS_FIELD",
         "error_type": "extra_forbidden" if malformed == "schema" else "invalid_tag_state",
         "path": ["equipment", 0, "*" if malformed == "schema" else "tag"],
     }
+    if malformed == "json":
+        diagnostic = dict(category="JSON", error_type="json_invalid", path=[])
+    if malformed == "incomplete":
+        diagnostic = dict(category="INCOMPLETE", error_type="max_output_tokens", path=["status"])
     with ctx["factory"]() as session:
         call = session.scalar(select(ExtractionAICall).where(ExtractionAICall.run_id == run_id))
         assert call.error_code == "INVALID_PROVIDER_RESPONSE"
         assert call.output_tokens == 30
         assert call.validation_diagnostics == [diagnostic]
+        audit = session.get(ResponseAudit, recognition)
+        assert audit.stage == "EQUIPMENT_RECOGNITION"
+        assert audit.fatal_diagnostics == [diagnostic]
+        assert audit.object_key.startswith("stage1/")
+        assert audit_storage.get(audit.object_key).read() == sent[0]
+        assert audit.received is None and audit.accepted is None
         assert session.get(StageResult, recognition) is None
         assert session.get(ExtractionWorkUnit, units["ATTRIBUTE_EXTRACTION"]).error_code == (
             "PREREQUISITE_FAILED"
@@ -1546,7 +1578,7 @@ def test_recognition_rejects_response_bound_to_a_different_work_unit(operation_c
 
 
 def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
-    from powerforge_ai.extraction import AttributeOutput, ExecutionUsage, ExtractionResponse
+    from powerforge_ai.extraction import AttributeOutput, ExecutionUsage, RecognitionOutput
     from powerforge_extraction.publication_records import Candidate, Fragment
     from spatial_layout_support import drawn_table
 
@@ -1683,11 +1715,7 @@ def test_publication_browser_scoped_evidence_and_raw_values(operation_context):
                 )
             if request.stage == "ATTRIBUTE_EXTRACTION":
                 return AttributeOutput(json.dumps(response).encode(), ExecutionUsage(), request)
-            return ExtractionResponse[request.response_model](
-                result=request.response_model.model_validate_json(json.dumps(response)),
-                usage=ExecutionUsage(),
-                request=request,
-            )
+            return RecognitionOutput(json.dumps(response).encode(), ExecutionUsage(), request)
 
     def browse(**params):
         response = client.get(candidate_url, params=params)
@@ -2353,7 +2381,7 @@ def test_attribute_audit_failure_boundaries(operation_context, case):
 
 
 def test_typed_proposals_survive_publication_read_and_search(operation_context):
-    from powerforge_ai.extraction import AttributeOutput, ExecutionUsage, ExtractionResponse
+    from powerforge_ai.extraction import AttributeOutput, ExecutionUsage, RecognitionOutput
     from powerforge_extraction.publication_records import Candidate
     from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
     from spatial_layout_support import drawn_table
@@ -2376,7 +2404,7 @@ def test_typed_proposals_survive_publication_read_and_search(operation_context):
         def execute(self, request):
             if request.stage == "EQUIPMENT_RECOGNITION":
                 response = FakeExtractionProvider("success").execute(request)
-                payload = response.result.model_dump(mode="json")
+                payload = json.loads(response.output_text)
                 prototype = payload["equipment"][0]
                 payload["equipment"] = [
                     {**prototype, "local_ref": ref, "registry_type": kind}
@@ -2411,11 +2439,7 @@ def test_typed_proposals_survive_publication_read_and_search(operation_context):
                 ]
                 payload["raw_unmapped"] = []
                 return AttributeOutput(json.dumps(payload).encode(), ExecutionUsage(), request)
-            return ExtractionResponse[request.response_model](
-                result=request.response_model.model_validate_json(json.dumps(payload)),
-                usage=ExecutionUsage(),
-                request=request,
-            )
+            return RecognitionOutput(json.dumps(payload).encode(), ExecutionUsage(), request)
 
     for unit_id in (units["EQUIPMENT_RECOGNITION"], units["ATTRIBUTE_EXTRACTION"]):
         assert execute_unit(
@@ -2624,3 +2648,42 @@ def test_stage_two_heartbeat_during_provider_io(operation_context, monkeypatch, 
                 )
                 == 1
             )
+
+
+@pytest.mark.parametrize("fault", ["missing-audit", "store-failure", "stale-lease"])
+def test_recognition_audit_is_atomic(operation_context, monkeypatch, fault):
+    from powerforge_document_processing.storage import InMemoryObjectStorage
+    from powerforge_document_processing.storage.base import StorageError
+    from powerforge_extraction import response_audit
+    from powerforge_extraction.stage_execution import FakeExtractionProvider, StageResult
+
+    ctx = operation_context
+    ctx["settings"].extraction_use_fake_provider = False
+    _, run_id, units = admitted_page(ctx, new_source(ctx, "recognition-audit.pdf"))
+
+    class AuditStorage(InMemoryObjectStorage):
+        def put(self, key, fileobj, size, content_type):
+            if fault == "store-failure":
+                raise StorageError("Audit unavailable")
+            super().put(key, fileobj, size, content_type)
+            if fault == "stale-lease":
+                with ctx["factory"].begin() as session:
+                    ExtractionCoordinator(session, ctx["settings"]).cancel(run_id)
+
+    if fault == "missing-audit":
+        monkeypatch.setattr(response_audit, "record_audit", lambda *_: None)
+    recognition = units["EQUIPMENT_RECOGNITION"]
+    assert execute_unit(
+        recognition,
+        ctx["factory"],
+        ctx["storage"],
+        ctx["settings"],
+        lambda _: FakeExtractionProvider("success"),
+        audit_storage=AuditStorage(),
+    ) is (fault != "stale-lease")
+    with ctx["factory"]() as session:
+        assert session.get(response_audit.ResponseAudit, recognition) is None
+        assert session.get(StageResult, recognition) is None
+        assert session.get(ExtractionWorkUnit, recognition).status == (
+            "CANCELLED" if fault == "stale-lease" else "FAILED"
+        )

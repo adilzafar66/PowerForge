@@ -14,22 +14,30 @@ from powerforge_shared.logging import configure_logging
 settings = get_settings()
 configure_logging(settings.log_level)
 
-celery_app = Celery(
-    "extraction_worker",
-    broker=settings.redis_url,
-    backend=settings.redis_url,
-)
-celery_app.conf.update(
-    task_serializer="json",
-    accept_content=["json"],
-    result_serializer="json",
-    timezone="UTC",
-    enable_utc=True,
-    task_track_started=True,
-    imports=("extraction_worker.extraction_tasks",),
-    worker_prefetch_multiplier=1,
-    broker_connection_timeout=2,
-    broker_transport_options={"socket_connect_timeout": 2, "socket_timeout": 2},
+
+def create_app(name, settings, *, imports=()):
+    celery_app = Celery(
+        name,
+        broker=settings.redis_url,
+        backend=settings.redis_url,
+    )
+    celery_app.conf.update(
+        task_serializer="json",
+        accept_content=["json"],
+        result_serializer="json",
+        timezone="UTC",
+        enable_utc=True,
+        task_track_started=True,
+        imports=imports,
+        worker_prefetch_multiplier=1,
+        broker_connection_timeout=2,
+        broker_transport_options={"socket_connect_timeout": 2, "socket_timeout": 2},
+    )
+    return celery_app
+
+
+celery_app = create_app(
+    "extraction_worker", settings, imports=("extraction_worker.extraction_tasks",)
 )
 
 
@@ -104,12 +112,13 @@ if not settings.enrichment_worker_only:
     require_openai_credentials(settings)
 
 
-@celery_app.task(name="extraction_worker.heartbeat")
+@celery_app.task(shared=False, name="extraction_worker.heartbeat")
 def heartbeat() -> dict[str, str]:
     return {"status": "ok", "worker": "extraction-worker"}
 
 
 @celery_app.task(
+    shared=False,
     name=CLASSIFY_RUN_TASK,
     soft_time_limit=settings.ai_classification_task_soft_time_limit_seconds,
     time_limit=settings.ai_classification_task_hard_time_limit_seconds,

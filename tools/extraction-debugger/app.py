@@ -14,7 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from queries import AttemptDetail, AttemptPage, Validation, attempt_detail, list_attempts
+from queries import AttemptDetail, AttemptPage, Stage, Validation, attempt_detail, list_attempts
 from sqlalchemy import create_engine
 from sqlalchemy.engine import make_url
 from sqlalchemy.exc import SQLAlchemyError
@@ -106,6 +106,7 @@ def create_app(secret, engine, storage, *, dist=DIST):
     @app.get("/api/attempts", response_model=AttemptPage)
     def attempts(
         identity: UUID | None = None,
+        stage: Stage | None = None,
         validation: Validation | None = None,
         status: Literal["COMPLETED", "FAILED", "CANCELLED"] | None = None,
         retention: bool | None = None,
@@ -115,6 +116,7 @@ def create_app(secret, engine, storage, *, dist=DIST):
         return list_attempts(
             engine,
             identity=identity,
+            stage=stage,
             validation=validation,
             status=status,
             retention=retention,
@@ -138,7 +140,7 @@ def create_app(secret, engine, storage, *, dist=DIST):
         return Response(
             verified(attempt_id),
             media_type="application/octet-stream",
-            headers={"Content-Disposition": f'attachment; filename="stage2-{attempt_id}.json"'},
+            headers={"Content-Disposition": f'attachment; filename="extraction-{attempt_id}.json"'},
         )
 
     def verified(attempt_id):

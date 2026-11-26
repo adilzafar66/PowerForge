@@ -36,13 +36,15 @@ def test_debugger_partial_attempt_comparison_and_exact_export(
     source = new_source(ctx, "siemens-pattern-fixture.pdf")
     _, run_id, units = admitted_page(ctx, source)
     store = InMemoryObjectStorage()
-    original = None
+    original = recognition_original = None
 
     class Provider:
         def execute(self, request):
-            nonlocal original
+            nonlocal original, recognition_original
             if request.stage == "EQUIPMENT_RECOGNITION":
-                return FakeExtractionProvider("success").execute(request)
+                response = FakeExtractionProvider("success").execute(request)
+                recognition_original = response.output_text
+                return response
             payload = {}
             payload["attributes"] = [
                 dict(
@@ -139,6 +141,16 @@ def test_debugger_partial_attempt_comparison_and_exact_export(
         )
         attempt = units["ATTRIBUTE_EXTRACTION"]
         if timeout:
+            recognition = units["EQUIPMENT_RECOGNITION"]
+            recognition_detail = client.get(f"/api/attempts/{recognition}").json()
+            assert recognition_detail["attempt"]["stage"] == "EQUIPMENT_RECOGNITION"
+            assert recognition_detail["attempt"]["received"] is None
+            assert recognition_detail["validated"]["equipment"]
+            assert recognition_detail["request_sha256"]
+            assert (
+                client.post(f"/api/attempts/{recognition}/original", headers=headers).content
+                == recognition_original
+            )
             reply = client.get(
                 "/api/attempts", params={"identity": str(run_id), "status": "FAILED"}
             )
@@ -173,7 +185,12 @@ def test_debugger_partial_attempt_comparison_and_exact_export(
         assert reply.json()["next_cursor"] is None
         assert (
             client.get(
-                "/api/attempts", params={"identity": str(run_id), "cursor": str(attempt)}
+                "/api/attempts",
+                params={
+                    "identity": str(run_id),
+                    "cursor": str(attempt),
+                    "stage": "ATTRIBUTE_EXTRACTION",
+                },
             ).json()["items"]
             == []
         )
@@ -206,7 +223,8 @@ def test_debugger_partial_attempt_comparison_and_exact_export(
             reply = client.post(f"/api/attempts/{attempt}/{action}", headers=headers)
             assert reply.content == original
         assert (
-            reply.headers["Content-Disposition"] == f'attachment; filename="stage2-{attempt}.json"'
+            reply.headers["Content-Disposition"]
+            == f'attachment; filename="extraction-{attempt}.json"'
         )
         with engine.connect() as db:
             reads = (

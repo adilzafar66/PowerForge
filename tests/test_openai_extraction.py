@@ -8,7 +8,13 @@ import openai
 import pytest
 
 from extraction_worker.openai_extraction import OpenAIExtractionProvider
-from powerforge_ai.extraction import AttributeOutput, ErrorCode, ExtractionRequest, ProviderFailure
+from powerforge_ai.extraction import (
+    AttributeOutput,
+    ErrorCode,
+    ExtractionRequest,
+    ProviderFailure,
+    RecognitionOutput,
+)
 from powerforge_extraction.extraction_profile import PROMPTS, RESPONSES, STAGES, extraction_profile
 from powerforge_extraction.performance import AttemptPerformance, active_performance
 from powerforge_extraction.stage_contracts import stage_schema_version
@@ -21,6 +27,8 @@ from powerforge_shared.config import Settings
     [
         ("success", None, None),
         ("timeout", None, None),
+        ("connection", "TRANSPORT", "connection_error"),
+        ("upstream", "TRANSPORT", "upstream_http_error"),
         ("incomplete", "INCOMPLETE", "max_output_tokens"),
         ("refusal", "REFUSAL", "refusal"),
         ("invalid", "JSON", "json_invalid"),
@@ -121,6 +129,10 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
             assert set(schema_fields) == {"equipment"}
         if outcome == "timeout":
             raise httpx.ReadTimeout(secret, request=http_request)
+        if outcome == "connection":
+            raise httpx.ConnectError(secret, request=http_request)
+        if outcome == "upstream":
+            return httpx.Response(503, json={"error": {"message": secret}})
         if outcome == "provider_schema":
             return httpx.Response(
                 400,
@@ -210,18 +222,38 @@ def test_responses_transport_is_bounded_and_retains_measured_usage(
             assert response.output_text == original
             assert response.request is request
             assert response.usage.output_tokens == 45
-        elif outcome == "success":
+        elif stage == STAGES[0] and outcome in {
+            "success",
+            "invalid",
+            "schema",
+            "pattern",
+            "cardinality",
+            "incomplete",
+        }:
             response = provider.execute(request)
-            assert response.result.model_dump(mode="json") == payload
+            assert isinstance(response, RecognitionOutput)
+            assert (
+                response.output_text
+                == ("{" if outcome == "invalid" else json.dumps(payload)).encode()
+            )
             assert response.request is request
             assert response.usage.output_tokens == 45
+            if outcome == "incomplete":
+                issue = response.failure.diagnostics[0]
+                assert (issue.category, issue.error_type) == (category, error_type)
+            else:
+                assert response.failure is None
         else:
             with pytest.raises(ProviderFailure) as error:
                 provider.execute(request)
             assert error.value.code == (
-                ErrorCode.REFUSAL if outcome == "refusal" else ErrorCode.INVALID
+                {
+                    "refusal": ErrorCode.REFUSAL,
+                    "connection": ErrorCode.UNAVAILABLE,
+                    "upstream": ErrorCode.UNAVAILABLE,
+                }.get(outcome, ErrorCode.INVALID)
             )
-            if outcome == "provider_schema":
+            if outcome in {"provider_schema", "connection", "upstream"}:
                 assert error.value.usage is None
             else:
                 assert error.value.usage.output_tokens == 45

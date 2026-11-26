@@ -267,6 +267,12 @@ def verify_publication(ctx, storage, run_id, pages, calls):
         attr_ids = set()
         for row in published:
             if row.stage != ATTRIBUTES:
+                audit = session.get(ResponseAudit, row.work_unit_id)
+                assert audit.stage == RECOGNITION and audit.accepted is None
+                assert audit.request_hash == row.request_hash
+                assert audit.output_sha256 == original_digests[str(row.work_unit_id)]
+                with closing(storage.get(audit.object_key)) as stream:
+                    assert sha256(stream.read()).hexdigest() == audit.output_sha256
                 continue
             attr_ids.add(row.work_unit_id)
             parent = stage_by_id[row.upstream_work_unit_id]
@@ -864,3 +870,145 @@ loopback_request(httpx.Request("POST", "http://127.0.0.1:7010/v1/responses"), 70
         check=True,
         timeout=10,
     )
+
+
+def control_worker(ctx, storage, directory, env, prefix, *, beat):
+    from powerforge_extraction.enqueue import CONTROL_QUEUE
+
+    return live_worker(
+        ctx,
+        storage,
+        directory,
+        beat=beat,
+        app_module="extraction_parallel_worker",
+        pool="prefork",
+        queue=CONTROL_QUEUE,
+        slots=1,
+        broker_prefix=prefix,
+        loglevel="INFO",
+        extra_env={
+            **env,
+            "EXTRACTION_TEST_CONTROL_ONLY": "1",
+            "OPENAI_API_KEY": "",
+            "EXTRACTION_RESPONSE_AUDIT_WRITE_ACCESS_KEY": "",
+            "EXTRACTION_RESPONSE_AUDIT_WRITE_SECRET_KEY": "",
+        },
+    )
+
+
+@pytest.mark.skipif(os.getenv("RUN_CONTROL_BENCHMARK") != "1", reason="Sustained-load benchmark")
+def test_control_passes_run_under_sustained_provider_saturation(
+    operation_context, s3_scratch_storage, tmp_path
+):
+    from contextlib import nullcontext
+
+    ctx, storage = operation_context, s3_scratch_storage
+    env = {
+        **configure(ctx, lease=30),
+        "EXTRACTION_RECOVERY_INTERVAL_SECONDS": "15",
+        "EXTRACTION_REDISPATCH_SECONDS": "30",
+    }
+    ctx["settings"].extraction_recovery_interval_seconds = 15
+    ctx["settings"].extraction_redispatch_seconds = 30
+    source = prepare_document(ctx, storage, 2)
+    for isolated in (False, True):
+        prefix = f"control-load-{uuid4().hex}:"
+        path = tmp_path / f"data-{isolated}"
+        control = tmp_path / "control"
+        fixture = ProviderFixture(lambda _: (sleep(35), 200)[1])
+        with (
+            fixture.serve() as origin,
+            workers(ctx, storage, path, origin, env, 2, beat=not isolated, broker_prefix=prefix),
+            control_worker(ctx, storage, control, env, prefix, beat=True)
+            if isolated
+            else nullcontext(),
+        ):
+            operation = admit(ctx, source)
+            run_id = wait_for(lambda operation=operation: completed(ctx, operation), 125)
+        verify_publication(ctx, storage, run_id, 2, fixture.calls)
+        logs = log_records(control if isolated else path)
+        starts = sorted(call["start"] for call in fixture.calls)
+        ends = sorted(call["end"] for call in fixture.calls)
+        assert overlap(fixture.calls) == 2
+        recovery = sorted(
+            m["monotonic_at"]
+            for m in logs
+            if m.get("task_name") == "document_extraction.reconcile"
+            and m["message"] == "benchmark task end"
+        )
+        recovery = [t for t in recovery if starts[0] <= t <= ends[-1]]
+        checkpoints = [starts[0], *recovery, ends[-1]]
+        max_gap = max(b - a for a, b in zip(checkpoints[:-1], checkpoints[1:], strict=True))
+        print(
+            json.dumps(
+                {
+                    "dedicated": isolated,
+                    "calls": len(fixture.calls),
+                    "recovery_passes": len(recovery),
+                    "max_gap_s": max_gap,
+                }
+            )
+        )
+        if isolated:
+            assert len(recovery) >= 3
+            assert max_gap <= 20
+        else:
+            assert max_gap >= 30
+
+
+def test_control_restart_expires_notifications_and_advances_due_operation(
+    operation_context, s3_scratch_storage, tmp_path
+):
+    from powerforge_extraction.enqueue import SOURCE_QUEUE, SOURCE_TASK
+
+    ctx, storage = operation_context, s3_scratch_storage
+    env = configure(ctx, lease=30)
+    source = prepare_document(ctx, storage, 2)
+    other = prepare_document(ctx, storage, 1, "other.pdf")
+    prefix = f"control-restart-{uuid4().hex}:"
+    fixture = ProviderFixture(lambda _: (sleep(8), 200)[1])
+    occupied = tmp_path / "source-occupied"
+    with (
+        fixture.serve() as origin,
+        workers(ctx, storage, tmp_path / "data", origin, env, 2, beat=False, broker_prefix=prefix),
+        control_worker(ctx, storage, tmp_path / "before", env, prefix, beat=True) as worker,
+        live_worker(
+            ctx,
+            storage,
+            tmp_path / "source",
+            beat=False,
+            queue=SOURCE_QUEUE,
+            app_module="extraction_parallel_worker",
+            pool="prefork",
+            broker_prefix=prefix,
+            extra_env={**env, "EXTRACTION_TEST_SOURCE_OCCUPIED": str(occupied)},
+        ),
+    ):
+        first = admit(ctx, source)
+        wait_for(lambda: len(fixture.calls) == 2)
+        broker = Celery("control-restart-fixture", broker=ctx["settings"].redis_url)
+        broker.conf.broker_transport_options = {"global_keyprefix": prefix}
+        broker.send_task(SOURCE_TASK, args=[str(uuid4())], queue=SOURCE_QUEUE, retry=False)
+        wait_for(occupied.exists)
+        worker.terminate()
+        worker.wait(timeout=5)
+        second = admit(ctx, other)
+        sleep(3.5)
+        assert run_for(ctx, second) is None
+        with control_worker(ctx, storage, tmp_path / "after", env, prefix, beat=False):
+            wait_for(lambda: run_for(ctx, second), 8)
+            wait_for(lambda: completed(ctx, first), 35)
+            wait_for(lambda: completed(ctx, second), 35)
+    calls = Counter(call["id"] for call in fixture.calls)
+    assert len(calls) == 6 and set(calls.values()) == {1}
+    assert "Discarding revoked task" in (tmp_path / "after" / "worker.log").read_text()
+
+
+def test_control_app_registers_only_reconciliation():
+    from extraction_worker.control import celery_app
+    from powerforge_extraction.enqueue import CONTROL_QUEUE, RECOVER_TASK, SOURCE_TASK, UNIT_TASK
+
+    assert RECOVER_TASK in celery_app.tasks
+    assert not {UNIT_TASK, SOURCE_TASK, CLASSIFY_RUN_TASK} & celery_app.tasks.keys()
+    (schedule,) = celery_app.conf.beat_schedule.values()
+    assert schedule["options"] == {"queue": CONTROL_QUEUE, "expires": schedule["schedule"]}
