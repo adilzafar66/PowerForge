@@ -208,7 +208,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("audit_directory", type=Path)
     parser.add_argument("output", type=Path)
-    parser.add_argument("--campaign", choices=["a", "b"], default="a")
+    parser.add_argument("--campaign", choices=["a", "b", "b-transformers"], default="a")
     args = parser.parse_args()
     result = summarize(args.audit_directory.resolve(), args.campaign)
     args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")

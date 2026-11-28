@@ -1,0 +1,956 @@
+{
+  "version": "f1b3-investigation-b-transformers-results-v2",
+  "gold_sha256": "b3a0e4cdf21f2aa65c94a9f260394ee37944e6c551b56e89cfae0eda75517be5",
+  "adjudication_sha256": "7d4bfa6766107132e0fe562a9adec4d67eca0e4eebceeadf1affee66cb5ace70",
+  "pricing": "openai-gpt-6-luna-standard-2026-11-28",
+  "attempts": [
+    {
+      "slot": "delta-transformer-drawing/1/B1",
+      "work_unit": "3e92f2f2-4117-432e-b46f-5e4b57295c00",
+      "request_sha256": "5c977a56fa14204773ecefaf082b72885590f5f42fd27dd9965d805d57a2c025",
+      "http_status": 200,
+      "provider_request_id": "req_972e4db6f628495cb5f3fccd899830cc",
+      "provider_seconds": 2.316,
+      "provider_response_id": "resp_00852c5f2e26b802016b0b3744aa8c87d0a5bd0517d8302c51",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3502,
+        "input_tokens_details": {
+          "cache_write_tokens": 3499,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 3499
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 132,
+        "output_tokens_details": {
+          "reasoning_tokens": 74
+        },
+        "total_tokens": 3634
+      },
+      "usage_based_usd": "0.000503675",
+      "audit": {
+        "sha256": "a760cfe78a7163560eb3a5ee6dc7ad94400dcf16eaa75a0a019fc6b8147ea25b",
+        "size": 145,
+        "expires_at": "2026-12-28T20:19:18.462079+00:00"
+      },
+      "structured_rows": 1,
+      "state": "ADMITTED",
+      "elapsed_seconds": 2.317,
+      "body_bytes": 425391,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 1,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 1,
+        "tag_correct": 1,
+        "claimed_rows": 1,
+        "classification_evaluated": 1,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 0
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 1,
+      "registry_type_correct_supplied": 1,
+      "notes": [],
+      "expected_supplied": 1
+    },
+    {
+      "slot": "delta-transformer-drawing/1/B2",
+      "work_unit": "af1ec06d-0c7e-4b1a-9878-9dbb20fef248",
+      "request_sha256": "066082d32f298a5850646df3affb944cced3ddae1d249ea5a5646084753530b9",
+      "http_status": 200,
+      "provider_request_id": "req_b1760c4bf4f343d886b5ddfbe43fdf22",
+      "provider_seconds": 1.969,
+      "provider_response_id": "resp_02e6976c15a4a8f0016b0b3746b96c87d0bd469a02f5b358cd",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 15564,
+        "input_tokens_details": {
+          "cache_write_tokens": 15561,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 15561
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 108,
+        "output_tokens_details": {
+          "reasoning_tokens": 45
+        },
+        "total_tokens": 15672
+      },
+      "usage_based_usd": "0.001999425",
+      "audit": {
+        "sha256": "549c33d0736be8d5fc764affbfd22dff8ce240d5e5e4d9aa2598a2501548a563",
+        "size": 169,
+        "expires_at": "2026-12-28T20:19:20.436181+00:00"
+      },
+      "structured_rows": 1,
+      "state": "ADMITTED",
+      "elapsed_seconds": 1.97,
+      "body_bytes": 452237,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 1,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 1,
+        "tag_correct": 1,
+        "claimed_rows": 1,
+        "classification_evaluated": 1,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 0
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 1,
+      "registry_type_correct_supplied": 1,
+      "notes": [],
+      "expected_supplied": 1
+    },
+    {
+      "slot": "delta-transformer-drawing/1/B3",
+      "work_unit": "044698c9-f07f-4e1a-941f-a1338c99257a",
+      "request_sha256": "88c1547e4cf1bfe84e45b1bb4b64595ad0f2e5baa440af050abcc20b1a2d28ad",
+      "http_status": 200,
+      "provider_request_id": "req_acf2b8102f644c67a01d7e489de42564",
+      "provider_seconds": 2.298,
+      "provider_response_id": "resp_0aa296ad6fa7eb96016b0b3748aa9087d0bea34531528b286b",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 43716,
+        "input_tokens_details": {
+          "cache_write_tokens": 43713,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 43713
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 146,
+        "output_tokens_details": {
+          "reasoning_tokens": 84
+        },
+        "total_tokens": 43862
+      },
+      "usage_based_usd": "0.005537425",
+      "audit": {
+        "sha256": "fa6a3fccdd12554aa5e26388206e62fc697993829287b4c5c068de9a41855ff9",
+        "size": 180,
+        "expires_at": "2026-12-28T20:19:22.739653+00:00"
+      },
+      "structured_rows": 1,
+      "state": "ADMITTED",
+      "elapsed_seconds": 2.299,
+      "body_bytes": 584532,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 1,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 1,
+        "tag_correct": 1,
+        "claimed_rows": 1,
+        "classification_evaluated": 1,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 0
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 1,
+      "registry_type_correct_supplied": 1,
+      "notes": [],
+      "expected_supplied": 1
+    },
+    {
+      "slot": "rex-transformer-drawing/1/B2",
+      "work_unit": "11def40c-4d7e-4310-8b41-edb7b0bbcfab",
+      "request_sha256": "191212e47feb2dd68888495071ff4f8ce1de9ae7d535c9d8e2717787f9863a4a",
+      "http_status": 200,
+      "provider_request_id": "req_e2ca938c9ae147f89177377038a413bf",
+      "provider_seconds": 2.448,
+      "provider_response_id": "resp_0991a7364f2b24fe016b0b374affac87d0bddeabde31e5a333",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 14043,
+        "input_tokens_details": {
+          "cache_write_tokens": 14040,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 14040
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 152,
+        "output_tokens_details": {
+          "reasoning_tokens": 92
+        },
+        "total_tokens": 14195
+      },
+      "usage_based_usd": "0.0018313",
+      "audit": {
+        "sha256": "f176b32d4bda94f7b61635b17393ab8368120c7b00f4fc8671901339e870b3af",
+        "size": 181,
+        "expires_at": "2026-12-28T20:19:25.192914+00:00"
+      },
+      "structured_rows": 1,
+      "state": "ADMITTED",
+      "elapsed_seconds": 2.449,
+      "body_bytes": 952244,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 1,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 1,
+        "tag_correct": 1,
+        "claimed_rows": 1,
+        "classification_evaluated": 1,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 1
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 0,
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 1,
+      "registry_type_correct_supplied": 1,
+      "notes": [],
+      "expected_supplied": 1
+    },
+    {
+      "slot": "rex-transformer-drawing/1/B3",
+      "work_unit": "3967e1b5-591f-48d8-98b3-970ebfe04a95",
+      "request_sha256": "62a8d01d5a3a19aefae1a98051b13f3129f163e59eb406d97be508e71665e459",
+      "http_status": 200,
+      "provider_request_id": "req_15727fd162c14a25a0c0f115da433836",
+      "provider_seconds": 2.505,
+      "provider_response_id": "resp_07be966e3824c90b016b0b374d757087d08f19272e59627c01",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 39342,
+        "input_tokens_details": {
+          "cache_write_tokens": 39339,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 39339
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 147,
+        "output_tokens_details": {
+          "reasoning_tokens": 85
+        },
+        "total_tokens": 39489
+      },
+      "usage_based_usd": "0.004991175",
+      "audit": {
+        "sha256": "4813c1c03667dd48ef1ff2a46125c9f8c6021c5b4064855b38eed92becb7be2a",
+        "size": 207,
+        "expires_at": "2026-12-28T20:19:27.702152+00:00"
+      },
+      "structured_rows": 1,
+      "state": "ADMITTED",
+      "elapsed_seconds": 2.505,
+      "body_bytes": 1070231,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 1,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 1,
+        "tag_correct": 1,
+        "claimed_rows": 1,
+        "classification_evaluated": 1,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 1
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 0,
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 1,
+      "registry_type_correct_supplied": 1,
+      "notes": [],
+      "expected_supplied": 1
+    },
+    {
+      "slot": "rex-transformer-drawing/1/B1",
+      "work_unit": "bea8c971-15b7-4880-b39b-2d84bc60eacf",
+      "request_sha256": "aa2b19f1b76f1c9ef750a5373d5b31b9710fccc9305ff546a4899cbdb23d67ef",
+      "http_status": 200,
+      "provider_request_id": "req_544021ea1ab24f00bd6149381859d3ca",
+      "provider_seconds": 2.204,
+      "provider_response_id": "resp_0ec4327fd85d5b57016b0b374ff3b087d0a6c86009757ce6a6",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3502,
+        "input_tokens_details": {
+          "cache_write_tokens": 3499,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 3499
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 146,
+        "output_tokens_details": {
+          "reasoning_tokens": 91
+        },
+        "total_tokens": 3648
+      },
+      "usage_based_usd": "0.000510675",
+      "audit": {
+        "sha256": "b5277d94554675f61f6dac27524b33886218a2ba518696ed58137eec4e36e944",
+        "size": 172,
+        "expires_at": "2026-12-28T20:19:29.913388+00:00"
+      },
+      "structured_rows": 1,
+      "state": "ADMITTED",
+      "elapsed_seconds": 2.205,
+      "body_bytes": 928603,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 1,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 1,
+        "tag_correct": 1,
+        "claimed_rows": 1,
+        "classification_evaluated": 1,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 1
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 0,
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 1,
+      "registry_type_correct_supplied": 1,
+      "notes": [],
+      "expected_supplied": 1
+    },
+    {
+      "slot": "delta-transformer-drawing/2/B3",
+      "work_unit": "f7cc1046-48cb-4b15-8d7f-06b7304e5dca",
+      "request_sha256": "88c1547e4cf1bfe84e45b1bb4b64595ad0f2e5baa440af050abcc20b1a2d28ad",
+      "http_status": 200,
+      "provider_request_id": "req_5dc99524bb2a42da8ac0d767614bf7c4",
+      "provider_seconds": 2.263,
+      "provider_response_id": "resp_0a7d50bff4a006b3016b0b3752341087d0a09c933ac89c18f4",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 43716,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 43713
+        },
+        "output_tokens": 124,
+        "output_tokens_details": {
+          "reasoning_tokens": 64
+        },
+        "total_tokens": 43840
+      },
+      "usage_based_usd": "0.00049943",
+      "audit": {
+        "sha256": "94c605ad057f653b9a9760099cfaca5af2d6707ab3e4c199184d530cd88f2153",
+        "size": 167,
+        "expires_at": "2026-12-28T20:19:32.181068+00:00"
+      },
+      "structured_rows": 1,
+      "state": "ADMITTED",
+      "elapsed_seconds": 2.265,
+      "body_bytes": 584532,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 1,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 1,
+        "tag_correct": 1,
+        "claimed_rows": 1,
+        "classification_evaluated": 1,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 0
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 1,
+      "registry_type_correct_supplied": 1,
+      "notes": [],
+      "expected_supplied": 1
+    },
+    {
+      "slot": "delta-transformer-drawing/2/B2",
+      "work_unit": "e1c69145-1316-4c9a-80a1-02d59b3fd1b6",
+      "request_sha256": "066082d32f298a5850646df3affb944cced3ddae1d249ea5a5646084753530b9",
+      "http_status": 200,
+      "provider_request_id": "req_e03aa381ac564e9d96007feb60ea1eba",
+      "provider_seconds": 2.078,
+      "provider_response_id": "resp_036b6da32fb219a5016b0b375469d487d09b230c74fe9f1657",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 15564,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 15561
+        },
+        "output_tokens": 167,
+        "output_tokens_details": {
+          "reasoning_tokens": 108
+        },
+        "total_tokens": 15731
+      },
+      "usage_based_usd": "0.00023941",
+      "audit": {
+        "sha256": "9f18b4b1de7a43bd173954912d8605a6f89e800db64dcea62dc6ca033dc262c7",
+        "size": 149,
+        "expires_at": "2026-12-28T20:19:34.264126+00:00"
+      },
+      "structured_rows": 1,
+      "state": "ADMITTED",
+      "elapsed_seconds": 2.079,
+      "body_bytes": 452237,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 1,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 1,
+        "tag_correct": 1,
+        "claimed_rows": 1,
+        "classification_evaluated": 1,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 0
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 1,
+      "registry_type_correct_supplied": 1,
+      "notes": [],
+      "expected_supplied": 1
+    },
+    {
+      "slot": "delta-transformer-drawing/2/B1",
+      "work_unit": "e5963eef-dbea-459c-a94a-7515881198f4",
+      "request_sha256": "5c977a56fa14204773ecefaf082b72885590f5f42fd27dd9965d805d57a2c025",
+      "http_status": 200,
+      "provider_request_id": "req_3d34418a360242949941b479966802a4",
+      "provider_seconds": 3.132,
+      "provider_response_id": "resp_06055f8452f7bfb7016b0b3756ecb487d085734c39199c5715",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3502,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 3499
+        },
+        "output_tokens": 177,
+        "output_tokens_details": {
+          "reasoning_tokens": 116
+        },
+        "total_tokens": 3679
+      },
+      "usage_based_usd": "0.00012379",
+      "audit": {
+        "sha256": "f8beba674b6440c3c087f931c296682b0edf5caf01f586d23564de924a7a1e4b",
+        "size": 178,
+        "expires_at": "2026-12-28T20:19:37.401816+00:00"
+      },
+      "structured_rows": 1,
+      "state": "ADMITTED",
+      "elapsed_seconds": 3.134,
+      "body_bytes": 425391,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 1,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 1,
+        "tag_correct": 1,
+        "claimed_rows": 1,
+        "classification_evaluated": 1,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 0
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 1,
+      "registry_type_correct_supplied": 1,
+      "notes": [],
+      "expected_supplied": 1
+    },
+    {
+      "slot": "rex-transformer-drawing/2/B1",
+      "work_unit": "62319c43-04a2-400f-9481-e2e0d4fde147",
+      "request_sha256": "aa2b19f1b76f1c9ef750a5373d5b31b9710fccc9305ff546a4899cbdb23d67ef",
+      "http_status": 200,
+      "provider_request_id": "req_7655269c00524948a6f4b60cd37efc10",
+      "provider_seconds": 2.058,
+      "provider_response_id": "resp_074039aa6fb9704d016b0b3759ac8087d08d2b3d4567a59faa",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3502,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 3499
+        },
+        "output_tokens": 146,
+        "output_tokens_details": {
+          "reasoning_tokens": 87
+        },
+        "total_tokens": 3648
+      },
+      "usage_based_usd": "0.00010829",
+      "audit": {
+        "sha256": "3e56a5be0ab9c94386edaac74c3639c1f01a12757eb63f7aa4761781e0100dfe",
+        "size": 180,
+        "expires_at": "2026-12-28T20:19:39.465295+00:00"
+      },
+      "structured_rows": 1,
+      "state": "ADMITTED",
+      "elapsed_seconds": 2.059,
+      "body_bytes": 928603,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 1,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 1,
+        "tag_correct": 1,
+        "claimed_rows": 1,
+        "classification_evaluated": 1,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 1
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 0,
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 1,
+      "registry_type_correct_supplied": 1,
+      "notes": [],
+      "expected_supplied": 1
+    },
+    {
+      "slot": "rex-transformer-drawing/2/B3",
+      "work_unit": "a5472aac-1dc4-429d-a98b-f7f88b49094e",
+      "request_sha256": "62a8d01d5a3a19aefae1a98051b13f3129f163e59eb406d97be508e71665e459",
+      "http_status": 200,
+      "provider_request_id": "req_e8085cc61f0b4535a7aa43686876e443",
+      "provider_seconds": 2.642,
+      "provider_response_id": "resp_0508f5d7eca40149016b0b375be45887d0995ab22d020d6064",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 39342,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 39339
+        },
+        "output_tokens": 174,
+        "output_tokens_details": {
+          "reasoning_tokens": 108
+        },
+        "total_tokens": 39516
+      },
+      "usage_based_usd": "0.00048069",
+      "audit": {
+        "sha256": "69487946624b639e3c3b5921b3c6c89b167a297a2a0eaf3afa1a5fff8a65dca1",
+        "size": 199,
+        "expires_at": "2026-12-28T20:19:42.112343+00:00"
+      },
+      "structured_rows": 1,
+      "state": "ADMITTED",
+      "elapsed_seconds": 2.643,
+      "body_bytes": 1070231,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 1,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 1,
+        "tag_correct": 1,
+        "claimed_rows": 1,
+        "classification_evaluated": 1,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 1
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 0,
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 1,
+      "registry_type_correct_supplied": 1,
+      "notes": [],
+      "expected_supplied": 1
+    },
+    {
+      "slot": "rex-transformer-drawing/2/B2",
+      "work_unit": "cb6da7a6-d505-44dc-897a-7931f2773609",
+      "request_sha256": "191212e47feb2dd68888495071ff4f8ce1de9ae7d535c9d8e2717787f9863a4a",
+      "http_status": 200,
+      "provider_request_id": "req_98c376119a8049efbadbbc337e9cbf0f",
+      "provider_seconds": 2.353,
+      "provider_response_id": "resp_0ee7d312eb3dffb4016b0b375e60f087d0a26c199815f194d0",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 14043,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 14040
+        },
+        "output_tokens": 139,
+        "output_tokens_details": {
+          "reasoning_tokens": 72
+        },
+        "total_tokens": 14182
+      },
+      "usage_based_usd": "0.0002102",
+      "audit": {
+        "sha256": "193c1d316d7483b999f004eeb44beb1f218394cff70848d3f233181801048a5f",
+        "size": 220,
+        "expires_at": "2026-12-28T20:19:44.470791+00:00"
+      },
+      "structured_rows": 1,
+      "state": "ADMITTED",
+      "elapsed_seconds": 2.354,
+      "body_bytes": 952244,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 1,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 1,
+        "tag_correct": 1,
+        "claimed_rows": 1,
+        "classification_evaluated": 1,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 1
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 0,
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 1,
+      "registry_type_correct_supplied": 1,
+      "notes": [],
+      "expected_supplied": 1
+    }
+  ]
+}

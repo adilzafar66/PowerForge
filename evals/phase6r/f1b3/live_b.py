@@ -20,8 +20,8 @@ def trial_slots(manifest):
                 yield f"{name}/{repeat}/{arm}", page["requests"][arm]["body_sha256"]
 
 
-def run(bundle, work):
-    manifest_path = HERE / "b-preflight.json"
+def run(bundle, work, campaign="b"):
+    manifest_path = HERE / f"{campaign}-preflight.json"
     if (bundle / "manifest.json").read_bytes() != manifest_path.read_bytes():
         raise ValueError("Frozen manifest differs from approved manifest")
     manifest = json.loads(manifest_path.read_bytes())
@@ -59,6 +59,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bundle", type=Path)
     parser.add_argument("work", type=Path)
-    parser.add_argument("--approval", required=True, choices=["F1B3-B-12-USD6.60"])
+    parser.add_argument(
+        "--approval", required=True, choices=["F1B3-B-12-USD6.60", "F1B3-B-TRANSFORMERS-12-USD6.60"]
+    )
     args = parser.parse_args()
-    run(args.bundle, args.work)
+    campaign = "b-transformers" if args.approval.startswith("F1B3-B-TRANSFORMERS") else "b"
+    run(args.bundle, args.work, campaign)

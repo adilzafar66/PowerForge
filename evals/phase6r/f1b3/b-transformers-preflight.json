@@ -1,0 +1,99 @@
+{
+  "version": "f1b3-investigation-b-transformers-v1",
+  "gold_sha256": "b3a0e4cdf21f2aa65c94a9f260394ee37944e6c551b56e89cfae0eda75517be5",
+  "a_manifest_sha256": "3f85e08e9753cb8755d3b9d28b4aacb75cd691105c5ab67eb74b719feba10197",
+  "provider_calls": 0,
+  "max_calls": 12,
+  "hard_cap_usd": "6.60",
+  "retries": 0,
+  "orders": {
+    "Delta": [
+      [
+        "B1",
+        "B2",
+        "B3"
+      ],
+      [
+        "B3",
+        "B2",
+        "B1"
+      ]
+    ],
+    "Rex": [
+      [
+        "B2",
+        "B3",
+        "B1"
+      ],
+      [
+        "B1",
+        "B3",
+        "B2"
+      ]
+    ]
+  },
+  "pages": [
+    {
+      "pdf": "delta-transformer-drawing.pdf",
+      "pdf_page": 1,
+      "pdf_sha256": "4cad19142b1ef1042b7d3d2bf89e4b4ea25b66989643dfd7c9df600aaa941267",
+      "image_sha256": "8bb1f73c77cefdbf17edf15aa5572a73a53f344ac2a853443c29ac857023e4c0",
+      "preparation": "native",
+      "ocr_producer_sha256": null,
+      "layout_rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+      "reading_count": 348,
+      "readings_with_alternatives": 0,
+      "requests": {
+        "B1": {
+          "body_sha256": "5c977a56fa14204773ecefaf082b72885590f5f42fd27dd9965d805d57a2c025",
+          "body_bytes": 425391,
+          "source_projection_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_projection_bytes": 0
+        },
+        "B2": {
+          "body_sha256": "066082d32f298a5850646df3affb944cced3ddae1d249ea5a5646084753530b9",
+          "body_bytes": 452237,
+          "source_projection_sha256": "962978c7d2c37b262fa058d033ff81788745bc2288e67c5ed97ba5d687200c32",
+          "source_projection_bytes": 25770
+        },
+        "B3": {
+          "body_sha256": "88c1547e4cf1bfe84e45b1bb4b64595ad0f2e5baa440af050abcc20b1a2d28ad",
+          "body_bytes": 584532,
+          "source_projection_sha256": "9aacd1ec88c2f39b4508dcbe53a5d952b3d971ce545db411efaee4c3ffd559e1",
+          "source_projection_bytes": 134199
+        }
+      }
+    },
+    {
+      "pdf": "rex-transformer-drawing.pdf",
+      "pdf_page": 1,
+      "pdf_sha256": "90485de2ae1a19245d198e3e060bd96feef9b2ae7e46866253b398dc5b0f2af5",
+      "image_sha256": "6011e08dc32866c19aeb129e019193056f3b7144e323fd7c86b4d7cbe8fe4843",
+      "preparation": "native",
+      "ocr_producer_sha256": null,
+      "layout_rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+      "reading_count": 304,
+      "readings_with_alternatives": 0,
+      "requests": {
+        "B1": {
+          "body_sha256": "aa2b19f1b76f1c9ef750a5373d5b31b9710fccc9305ff546a4899cbdb23d67ef",
+          "body_bytes": 928603,
+          "source_projection_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_projection_bytes": 0
+        },
+        "B2": {
+          "body_sha256": "191212e47feb2dd68888495071ff4f8ce1de9ae7d535c9d8e2717787f9863a4a",
+          "body_bytes": 952244,
+          "source_projection_sha256": "aef0513aba4253f7946e59a748799d360f729936f11accf88b3dd1142fbbd997",
+          "source_projection_bytes": 22687
+        },
+        "B3": {
+          "body_sha256": "62a8d01d5a3a19aefae1a98051b13f3129f163e59eb406d97be508e71665e459",
+          "body_bytes": 1070231,
+          "source_projection_sha256": "c761b076bf30f58cef4d8222361b3d0aafc3e224efdc7c06632e2185001a3f61",
+          "source_projection_bytes": 119412
+        }
+      }
+    }
+  ]
+}

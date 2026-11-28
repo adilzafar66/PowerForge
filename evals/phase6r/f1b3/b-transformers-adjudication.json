@@ -1,0 +1,114 @@
+{
+  "version": "f1b3-b-transformers-adjudication-v1",
+  "basis": "Reviewed the digest-bound observation in each response against the pinned source expectations. Both pages describe a single supplied transformer. The REX catalog number does not identify an equipment tag.",
+  "slots": {
+    "delta-transformer-drawing/1/B1": {
+      "output_sha256": "a760cfe78a7163560eb3a5ee6dc7ad94400dcf16eaa75a0a019fc6b8147ea25b",
+      "observations": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "delta-transformer-drawing/1/B2": {
+      "output_sha256": "549c33d0736be8d5fc764affbfd22dff8ce240d5e5e4d9aa2598a2501548a563",
+      "observations": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "delta-transformer-drawing/1/B3": {
+      "output_sha256": "fa6a3fccdd12554aa5e26388206e62fc697993829287b4c5c068de9a41855ff9",
+      "observations": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "rex-transformer-drawing/1/B2": {
+      "output_sha256": "f176b32d4bda94f7b61635b17393ab8368120c7b00f4fc8671901339e870b3af",
+      "observations": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "rex-transformer-drawing/1/B3": {
+      "output_sha256": "4813c1c03667dd48ef1ff2a46125c9f8c6021c5b4064855b38eed92becb7be2a",
+      "observations": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "rex-transformer-drawing/1/B1": {
+      "output_sha256": "b5277d94554675f61f6dac27524b33886218a2ba518696ed58137eec4e36e944",
+      "observations": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "delta-transformer-drawing/2/B3": {
+      "output_sha256": "94c605ad057f653b9a9760099cfaca5af2d6707ab3e4c199184d530cd88f2153",
+      "observations": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "delta-transformer-drawing/2/B2": {
+      "output_sha256": "9f18b4b1de7a43bd173954912d8605a6f89e800db64dcea62dc6ca033dc262c7",
+      "observations": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "delta-transformer-drawing/2/B1": {
+      "output_sha256": "f8beba674b6440c3c087f931c296682b0edf5caf01f586d23564de924a7a1e4b",
+      "observations": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "rex-transformer-drawing/2/B1": {
+      "output_sha256": "3e56a5be0ab9c94386edaac74c3639c1f01a12757eb63f7aa4761781e0100dfe",
+      "observations": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "rex-transformer-drawing/2/B3": {
+      "output_sha256": "69487946624b639e3c3b5921b3c6c89b167a297a2a0eaf3afa1a5fff8a65dca1",
+      "observations": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "rex-transformer-drawing/2/B2": {
+      "output_sha256": "193c1d316d7483b999f004eeb44beb1f218394cff70848d3f233181801048a5f",
+      "observations": [
+        {
+          "anchor": "transformer",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    }
+  }
+}

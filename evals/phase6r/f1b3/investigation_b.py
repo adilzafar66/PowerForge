@@ -51,19 +51,34 @@ def build_requests(png, page):
     return requests
 
 
-def prepare(source_dir, rasters, private, engine):
+def prepare(source_dir, rasters, private, engine, *, transformers=False):
     original, _, gold_sha = checked_gold(source_dir)
     manifest_a = json.loads((HERE / "a-preflight.json").read_bytes())
     rows = []
     line_engine = ExperimentOCR(engine, Recipe(preprocess="remove_lines"))
-    for source in manifest_a["pages"]:
+    sources = manifest_a["pages"]
+    if transformers:
+        previous = json.loads((HERE.parent / "f1b" / "preflight.json").read_bytes())
+        sources = [
+            {
+                "pdf": row["pdf"],
+                "pdf_page": row["page"],
+                "pdf_sha256": row["source_sha256"],
+                "analysis_png_sha256": row["arms"]["positioned_only"]["image_sha256"],
+            }
+            for row in previous
+            if row["pdf"] in {"delta-transformer-drawing.pdf", "rex-transformer-drawing.pdf"}
+        ]
+        if len(sources) != 2:
+            raise ValueError("Expected the two pinned transformer pages")
+    for source in sources:
         path = source_dir / source["pdf"]
         doc = next(item for item in original.development if item.pdf == path.name)
         number = source["pdf_page"]
         data = path.read_bytes()
         png = (rasters / f"{doc.sha256}-{number}.png").read_bytes()
         if (digest(data), digest(png)) != (source["pdf_sha256"], source["analysis_png_sha256"]):
-            raise ValueError("PDF or image differs from A3")
+            raise ValueError("PDF or image differs from the pinned source")
         rendered = replace(render(path, data, number), analysis_png=png)
         selection = next(item.preparation for item in doc.pages if item.pdf_page == number)
         provider = line_engine if selection == "hybrid_300_line_removal" else engine
@@ -74,7 +89,7 @@ def prepare(source_dir, rasters, private, engine):
         if pinned.layout.tables:
             raise ValueError("Expected positioned-only preparation")
         bodies = build_requests(png, page)
-        if digest(bodies["B1"]) != source["requests"]["A3"]["body_sha256"]:
+        if not transformers and digest(bodies["B1"]) != source["requests"]["A3"]["body_sha256"]:
             raise ValueError("B1 must exactly match A3")
         row = {
             "pdf": path.name,
@@ -101,8 +116,11 @@ def prepare(source_dir, rasters, private, engine):
                 "source_projection_bytes": len(text),
             }
         rows.append(row)
+    first, second = ("Delta", "Rex") if transformers else ("Schneider", "Siemens")
     return {
-        "version": "f1b3-investigation-b-v1",
+        "version": "f1b3-investigation-b-transformers-v1"
+        if transformers
+        else "f1b3-investigation-b-v1",
         "gold_sha256": gold_sha,
         "a_manifest_sha256": digest((HERE / "a-preflight.json").read_bytes()),
         "provider_calls": 0,
@@ -110,8 +128,8 @@ def prepare(source_dir, rasters, private, engine):
         "hard_cap_usd": "6.60",
         "retries": 0,
         "orders": {
-            "Schneider": [ARMS, ("B3", "B2", "B1")],
-            "Siemens": [("B2", "B3", "B1"), ("B1", "B3", "B2")],
+            first: [ARMS, ("B3", "B2", "B1")],
+            second: [("B2", "B3", "B1"), ("B1", "B3", "B2")],
         },
         "pages": rows,
     }
@@ -122,10 +140,13 @@ if __name__ == "__main__":
     parser.add_argument("source_dir", type=Path)
     parser.add_argument("rasters", type=Path)
     parser.add_argument("private", type=Path)
+    parser.add_argument("--transformers", action="store_true")
     args = parser.parse_args()
     args.private.mkdir(mode=0o700, exist_ok=True)
     if args.private.is_symlink() or args.private.stat().st_mode & 0o077:
         raise ValueError("Exact request bodies require a private directory")
     provider = TesseractProvider("/usr/bin/tesseract", "/usr/share/tesseract-ocr/5/tessdata")
-    result = prepare(args.source_dir, args.rasters, args.private, provider)
+    result = prepare(
+        args.source_dir, args.rasters, args.private, provider, transformers=args.transformers
+    )
     (args.private / "manifest.json").write_text(json.dumps(result, indent=2) + "\n")

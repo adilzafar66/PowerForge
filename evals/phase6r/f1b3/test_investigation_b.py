@@ -57,3 +57,23 @@ def test_frozen_manifest_covers_twelve_matched_slots():
         for arm, request in page["requests"].items():
             name = page["pdf"].removesuffix(".pdf")
             assert trials[f"{name}/1/{arm}"] == trials[f"{name}/2/{arm}"] == request["body_sha256"]
+
+
+def test_transformer_manifest_pins_two_native_pages_and_twelve_slots():
+    from investigation_a import HERE
+    from live_b import trial_slots
+
+    manifest = json.loads((HERE / "b-transformers-preflight.json").read_bytes())
+    assert {page["pdf"] for page in manifest["pages"]} == {
+        "delta-transformer-drawing.pdf",
+        "rex-transformer-drawing.pdf",
+    }
+    assert all(
+        page["pdf_page"] == 1 and page["preparation"] == "native" for page in manifest["pages"]
+    )
+    trials = dict(trial_slots(manifest))
+    assert len(trials) == manifest["max_calls"] == 12
+    for page in manifest["pages"]:
+        for arm, request in page["requests"].items():
+            name = page["pdf"].removesuffix(".pdf")
+            assert trials[f"{name}/1/{arm}"] == trials[f"{name}/2/{arm}"] == request["body_sha256"]
