@@ -1,0 +1,240 @@
+{
+  "version": "f1b3-investigation-a-v1",
+  "mode": "offline_preflight",
+  "gold_sha256": "b3a0e4cdf21f2aa65c94a9f260394ee37944e6c551b56e89cfae0eda75517be5",
+  "provider_calls": 0,
+  "model": "gpt-6-luna",
+  "service_tier": "default",
+  "reasoning_effort_requested": null,
+  "detail": "high",
+  "timeout_seconds": 100,
+  "max_output_tokens": 16384,
+  "automatic_retries": 0,
+  "arm_orders": [
+    [
+      "A1",
+      "A2",
+      "A3"
+    ],
+    [
+      "A3",
+      "A2",
+      "A1"
+    ]
+  ],
+  "initial_calls": 6,
+  "maximum_calls": 12,
+  "hard_cap_usd": "6.60",
+  "pages": [
+    {
+      "pdf": "schneider-panel-drawing.pdf",
+      "pdf_page": 1,
+      "pdf_sha256": "513a14ed1df6ca88b1ba03808021527e3bf1cd2fed2657f00ddefef15f6299d9",
+      "analysis_png_sha256": "143e4f6d36473578726297f2b2f1e35e81bd6421c3c5543214546c427ce8cd30",
+      "raster_px": [
+        1700,
+        2200
+      ],
+      "effective_dpi": 200.0,
+      "native_characters_on_page": 791,
+      "source_projection": "canonical-analysis-png-only",
+      "source_projection_sha256": "143e4f6d36473578726297f2b2f1e35e81bd6421c3c5543214546c427ce8cd30",
+      "supplied_occurrences": 9,
+      "requests": {
+        "A1": {
+          "body_sha256": "9164fd04994167459ba60b9771795ca43aadddf6c6439250929829dbe61cea53",
+          "body_bytes": 477921,
+          "prompt_sha256": "f156fa69188319277dd9e44a449c65d63f0ca43228ead39abe5b0738574ff758",
+          "schema_sha256": null
+        },
+        "A2": {
+          "body_sha256": "78753d468162be751ef0811525095d6d5cd9bbb1759873a6c2f726b799f49b6a",
+          "body_bytes": 478584,
+          "prompt_sha256": "13156ff55ecc1551367f1a2d4ec7bc72760962e5c1ad5cf90b3ff250605895f1",
+          "schema_sha256": "d6833e118d2897cb43071390170faa231e20febb759c320dd84df69471086969"
+        },
+        "A3": {
+          "body_sha256": "f609d6cbaf914a74a156ffdc114a7a8f75c1fc40ff68ff9105727b1752bb5b12",
+          "body_bytes": 480495,
+          "prompt_sha256": "16b0ae02c5246315c61ea0261eabadf52d9dc69480de398812068c0acb58e778",
+          "schema_sha256": "d6833e118d2897cb43071390170faa231e20febb759c320dd84df69471086969"
+        }
+      }
+    },
+    {
+      "pdf": "siemens-panel-drawing.pdf",
+      "pdf_page": 1,
+      "pdf_sha256": "ef70737c70a64667e65214888c39f4981c09e6b99c160021b9004e17f6cc8499",
+      "analysis_png_sha256": "f9cddd041da232cb4d5c807d5b893430978f47f95e27a18fd1300b3622d85b9d",
+      "raster_px": [
+        1700,
+        2200
+      ],
+      "effective_dpi": 200.0,
+      "native_characters_on_page": 2245,
+      "source_projection": "canonical-analysis-png-only",
+      "source_projection_sha256": "f9cddd041da232cb4d5c807d5b893430978f47f95e27a18fd1300b3622d85b9d",
+      "supplied_occurrences": 5,
+      "requests": {
+        "A1": {
+          "body_sha256": "d4b4a25dc26e76b820797c4464dfba48332b45fb9192584ef0087dfa09171619",
+          "body_bytes": 383405,
+          "prompt_sha256": "f156fa69188319277dd9e44a449c65d63f0ca43228ead39abe5b0738574ff758",
+          "schema_sha256": null
+        },
+        "A2": {
+          "body_sha256": "187106770a4005c5209a69629ea80c718514a477c4be3bc3330fe5670f30d2e4",
+          "body_bytes": 384068,
+          "prompt_sha256": "13156ff55ecc1551367f1a2d4ec7bc72760962e5c1ad5cf90b3ff250605895f1",
+          "schema_sha256": "d6833e118d2897cb43071390170faa231e20febb759c320dd84df69471086969"
+        },
+        "A3": {
+          "body_sha256": "04ccecc636aefcdcbe7021e659126cb98e51e1f508c2198d766c26c0349da4ee",
+          "body_bytes": 385979,
+          "prompt_sha256": "16b0ae02c5246315c61ea0261eabadf52d9dc69480de398812068c0acb58e778",
+          "schema_sha256": "d6833e118d2897cb43071390170faa231e20febb759c320dd84df69471086969"
+        }
+      }
+    }
+  ],
+  "arm_specs": {
+    "A1": {
+      "instructions": "Identify the supplied equipment shown on this page. List each distinct source occurrence and state its equipment type and its equipment tag if shown. Describe its position or source identifier briefly so another reader can tell which occurrence you mean. Exclude empty prepared spaces, unselected alternatives, generic legends, and equipment mentioned only for reference. Use engineering context when the type is not stated. Do not treat schedule positions or model numbers as equipment tags.\nReply in plain language, using a short list.",
+      "text": null
+    },
+    "A2": {
+      "instructions": "Identify the supplied equipment shown on this page. List each distinct source occurrence and state its equipment type and its equipment tag if shown. Describe its position or source identifier briefly so another reader can tell which occurrence you mean. Exclude empty prepared spaces, unselected alternatives, generic legends, and equipment mentioned only for reference. Use engineering context when the type is not stated. Do not treat schedule positions or model numbers as equipment tags.\nReturn one equipment item per occurrence. Use null for an unavailable type or tag.",
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "f1b3_recognition_a_v1",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Equipment": {
+                "properties": {
+                  "identification": {
+                    "title": "Identification",
+                    "type": "string"
+                  },
+                  "type": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Type"
+                  },
+                  "tag": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Tag"
+                  }
+                },
+                "title": "Equipment",
+                "type": "object",
+                "required": [
+                  "identification",
+                  "type",
+                  "tag"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "properties": {
+              "equipment": {
+                "items": {
+                  "$ref": "#/$defs/Equipment"
+                },
+                "title": "Equipment",
+                "type": "array"
+              }
+            },
+            "title": "Reply",
+            "type": "object",
+            "required": [
+              "equipment"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    "A3": {
+      "instructions": "Identify the supplied equipment shown on this page. List each distinct source occurrence and state its equipment type and its equipment tag if shown. Describe its position or source identifier briefly so another reader can tell which occurrence you mean. Exclude empty prepared spaces, unselected alternatives, generic legends, and equipment mentioned only for reference. Use engineering context when the type is not stated. Do not treat schedule positions or model numbers as equipment tags.\nReturn one equipment item per occurrence. Use null for an unavailable type or tag.\nFor type, use the exact key from the supported equipment catalog below. If none applies, use null.\nBUS | Bus | Bus or bus assembly representing a switchboard, panel, or switchgear section. Assembly tags and assembly ratings belong here, separately from branch devices.\nCABLE | Cable | Electrical cable or cable run described by its construction.\nCAPACITOR | Capacitor | Capacitor or capacitor bank used as power-system equipment.\nCT | CT | Current transformer for measurement or protection.\nDOUBLE_THROW_SWITCH | Double-Throw Switch | Switch selecting between two connected positions.\nFUSE | Fuse | Overcurrent protective device with a fusible element.\nHV_BREAKER | HV Breaker | Circuit breaker identified for medium- or high-voltage service.\nINDUCTION_MOTOR | Induction Motor | AC induction motor delivering mechanical shaft power.\nLUMPED_LOAD | Lumped Load | Aggregate representation of multiple loads at a common point.\nLV_BREAKER | LV Breaker | Circuit breaker explicitly identified for low-voltage service.\nOVERCURRENT_RELAY | Overcurrent Relay | Relay sensing overcurrent and issuing a protective trip.\nREACTOR | Reactor | Inductive reactor identified as power-system equipment.\nRECLOSER | Recloser | Protective interrupter that opens and automatically recloses.\nSINGLE_THROW_SWITCH | Single-Throw Switch | Switch with one available connected position per pole.\nSTATIC_LOAD | Static Load | Individual non-rotating electrical load or equivalent.\nSYNCHRONOUS_GENERATOR | Synchronous Generator | Synchronous rotating machine supplying power.\nTWO_WINDING_TRANSFORMER | 2-Winding Transformer | Transformer with primary and secondary windings.\nUPS | UPS | Uninterruptible power supply that maintains power during input loss.\nUTILITY_SOURCE | Utility Source | Utility supply or grid equivalent at the service point.\nVFD | VFD | Drive that varies electrical frequency to control an AC motor.",
+      "text": {
+        "format": {
+          "type": "json_schema",
+          "name": "f1b3_recognition_a_v1",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Equipment": {
+                "properties": {
+                  "identification": {
+                    "title": "Identification",
+                    "type": "string"
+                  },
+                  "type": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Type"
+                  },
+                  "tag": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "title": "Tag"
+                  }
+                },
+                "title": "Equipment",
+                "type": "object",
+                "required": [
+                  "identification",
+                  "type",
+                  "tag"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "properties": {
+              "equipment": {
+                "items": {
+                  "$ref": "#/$defs/Equipment"
+                },
+                "title": "Equipment",
+                "type": "array"
+              }
+            },
+            "title": "Reply",
+            "type": "object",
+            "required": [
+              "equipment"
+            ],
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  }
+}

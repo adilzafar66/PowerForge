@@ -1,0 +1,49 @@
+{
+  "version": "f1b3-recognition-gold-v1",
+  "anchor_fixture_sha256": "c8f026020e5711ba24b70a0f2659f08c912e4e24d309adbb57c72748fe3f092b",
+  "documents": {
+    "delta-transformer-drawing.pdf": {
+      "configurations": [
+        {"members": ["1/transformer"], "equivalence": "single", "basis": "One nameplate for 80T1. The 2000 kVA and provisional cooling ratings and the winding taps describe the same equipment."}
+      ]
+    },
+    "eaton-panel-drawing.pdf": {
+      "additional_exclusions": {"1/upstream-reference": "REFERENCE_ONLY"},
+      "tag_overrides": {"1/panel": null},
+      "notes": "CDP-6C is the assembly designation. The explicit Panel ID Nameplate field is blank. Record CDP-6C as a source identifier for occurrence matching and report it separately as an alternate tag interpretation pending review.",
+      "configurations": [
+        {"members": ["1/panel"], "equivalence": "single", "basis": "PRL2X main-lugs assembly with 225 A aluminum bus."},
+        {"members": ["1/branch-1-3-5", "1/branch-2-4-6"], "equivalence": "established", "basis": "Both positions show the full GBH3020 designation. One shared two-device row specifies 3 poles, 20 A trip and 100 A frame with no position-specific modification shown."}
+      ]
+    },
+    "rex-transformer-drawing.pdf": {
+      "configurations": [
+        {"members": ["1/transformer"], "equivalence": "single", "basis": "One BA350J-M/Y1/Z3 transformer. Its winding options, terminations and taps describe the same subject. The catalog number is not an equipment tag."}
+      ]
+    },
+    "schneider-panel-drawing.pdf": {
+      "configurations": [
+        {"members": ["1/panel"], "equivalence": "single", "basis": "800a MDB designates the I-Line main-lugs assembly."},
+        {"members": ["1/breaker-1", "1/breaker-2"], "equivalence": "unresolved", "basis": "Same BD 100 A / 3-pole schedule entries and shared quantity line. Full catalog designation, interrupting rating and trip characteristics are not established for each position."},
+        {"members": ["1/breaker-3", "1/breaker-5", "1/breaker-6"], "equivalence": "unresolved", "basis": "Same QD 150 A / 3-pole schedule entries and shared quantity line. Full catalog designation, interrupting rating and trip characteristics are not established for each position."},
+        {"members": ["1/breaker-4"], "equivalence": "single", "basis": "BD at 125 A / 3 poles differs from the other BD positions by printed rating."},
+        {"members": ["1/breaker-8"], "equivalence": "single", "basis": "QD at 175 A / 3 poles differs from the other supplied QD positions by printed rating."},
+        {"members": ["1/breaker-9"], "equivalence": "single", "basis": "JD, 250AS / 200AT / 3 and an ammeter/LSI entry with a directed electronic-trip markup distinguish position 9. The markup describes a requirement, not confirmation of delivered hardware."}
+      ]
+    },
+    "siemens-panel-drawing.pdf": {
+      "configurations": [
+        {"members": ["1/lineup"], "equivalence": "single", "basis": "One FCII two-section lineup. DMR-MAIN tags the lineup."},
+        {"members": ["1/main-wl"], "equivalence": "single", "basis": "Section 1 WL main, 3-pole 4000 A with ETU745 trip unit."},
+        {"members": ["1/branch-cmd6"], "equivalence": "single", "basis": "CMD6 model, 3 poles, 600 A."},
+        {"members": ["1/branch-cjd6"], "equivalence": "single", "basis": "CJD6 model, 3 poles, 400 A."},
+        {"members": ["1/branch-cnd6"], "equivalence": "single", "basis": "CND6 model, 3 poles, 1000 A."}
+      ]
+    },
+    "simson-generator-drawing.pdf": {
+      "configurations": [
+        {"members": ["1/generator", "2/generator"], "equivalence": "established", "basis": "Consecutive pages of the same STAMFORD S7L1D-G4 Wdg.07 data sheet carry the same model and document identifier. Electrical and mechanical tables are complementary parts of one product configuration, with bearing alternatives left unselected."}
+      ]
+    }
+  }
+}

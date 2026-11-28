@@ -1,0 +1,689 @@
+{
+  "version": "f1b3-investigation-a-results-v1",
+  "adjudication_sha256": "ccba4673c0545134ba9fce86a2963b3af4b2987a27484c63c810a45b8fd69e67",
+  "pricing": "openai-gpt-6-luna-standard-2026-11-28",
+  "attempts": [
+    {
+      "slot": "schneider-panel-drawing/1/A1",
+      "work_unit": "ce27b5b4-358b-4537-a29c-81bf98f8bba5",
+      "request_sha256": "9164fd04994167459ba60b9771795ca43aadddf6c6439250929829dbe61cea53",
+      "http_status": 200,
+      "provider_request_id": "req_408621128b5c4dc895680cd89dae9264",
+      "provider_seconds": 9.433,
+      "provider_response_id": "resp_0a80ceeb50b5e8fa016b0a81a25b8887d0ad52e12ea785716a",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 2996,
+        "input_tokens_details": {
+          "cache_write_tokens": 2993,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 2993
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 1115,
+        "output_tokens_details": {
+          "reasoning_tokens": 751
+        },
+        "total_tokens": 4111
+      },
+      "usage_based_usd": "0.000931925",
+      "audit": {
+        "sha256": "0b0c285b71fd0b56a2604c36eccf30faa86ace14f687401a2a458a2f877d6eac",
+        "size": 1224,
+        "expires_at": "2026-12-28T07:24:26.784345+00:00"
+      },
+      "state": "ADMITTED",
+      "elapsed_seconds": 9.434,
+      "body_bytes": 477921,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 9,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 2,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 9,
+        "tag_correct": 8,
+        "claimed_rows": 11,
+        "tag_case_only": 1,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 0
+      },
+      "notes": [
+        "The model described 4.50-inch frames at both provision positions."
+      ],
+      "expected_supplied": 9
+    },
+    {
+      "slot": "schneider-panel-drawing/1/A2",
+      "work_unit": "c645a8cb-41ff-4b7b-831f-f31c1241942a",
+      "request_sha256": "78753d468162be751ef0811525095d6d5cd9bbb1759873a6c2f726b799f49b6a",
+      "http_status": 200,
+      "provider_request_id": "req_e2cb7c6313934a6999b182860ac08c48",
+      "provider_seconds": 9.304,
+      "provider_response_id": "resp_08f6285cfd03f3b5016b0a81aaf88087d0aff43a4acc70835c",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3119,
+        "input_tokens_details": {
+          "cache_write_tokens": 3116,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 3116
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 931,
+        "output_tokens_details": {
+          "reasoning_tokens": 601
+        },
+        "total_tokens": 4050
+      },
+      "usage_based_usd": "0.0008553",
+      "audit": {
+        "sha256": "0d0a9c1bbb104161c7b791b4510ec3accba379fc65ecf3d0f953ecc72a14b0df",
+        "size": 1283,
+        "expires_at": "2026-12-28T07:24:36.096933+00:00"
+      },
+      "structured_rows": 12,
+      "state": "ADMITTED",
+      "elapsed_seconds": 9.306,
+      "body_bytes": 478584,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 9,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 2,
+        "reference_only": 0,
+        "other_excluded": 1,
+        "unresolved": 0,
+        "classification_correct": 9,
+        "tag_correct": 8,
+        "claimed_rows": 12,
+        "tag_case_only": 1,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 0
+      },
+      "notes": [
+        "Ammeter in the circuit 9 accessories column became an additional standalone observation."
+      ],
+      "expected_supplied": 9
+    },
+    {
+      "slot": "schneider-panel-drawing/1/A3",
+      "work_unit": "7e15dac6-6a30-4213-b836-59237987c115",
+      "request_sha256": "f609d6cbaf914a74a156ffdc114a7a8f75c1fc40ff68ff9105727b1752bb5b12",
+      "http_status": 200,
+      "provider_request_id": "req_495a85759a844ab4a0f21c5d4a2e3df8",
+      "provider_seconds": 7.46,
+      "provider_response_id": "resp_007ebe7eb49ca053016b0a81b4445087d0bb8a4b048d554ecb",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3502,
+        "input_tokens_details": {
+          "cache_write_tokens": 3499,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 3499
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 853,
+        "output_tokens_details": {
+          "reasoning_tokens": 484
+        },
+        "total_tokens": 4355
+      },
+      "usage_based_usd": "0.000864175",
+      "audit": {
+        "sha256": "0315f20a662eaa5d655852320443da9800d185b5efead075b860c69b28bb65f9",
+        "size": 1156,
+        "expires_at": "2026-12-28T07:24:43.567446+00:00"
+      },
+      "structured_rows": 11,
+      "state": "ADMITTED",
+      "elapsed_seconds": 7.462,
+      "body_bytes": 480495,
+      "reserved_usd": "0.53326680",
+      "registry_key_member_rows": 11,
+      "registry_type_correct_supplied": 9,
+      "quality": {
+        "supplied_detected": 9,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 2,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 9,
+        "tag_correct": 8,
+        "claimed_rows": 11,
+        "tag_case_only": 1,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 0
+      },
+      "notes": [],
+      "expected_supplied": 9
+    },
+    {
+      "slot": "siemens-panel-drawing/1/A1",
+      "work_unit": "1d3b4341-820c-4d78-a141-e71087b69269",
+      "request_sha256": "d4b4a25dc26e76b820797c4464dfba48332b45fb9192584ef0087dfa09171619",
+      "http_status": 200,
+      "provider_request_id": "req_2556b080ccbe4373b3d0c5ca2539e104",
+      "provider_seconds": 5.347,
+      "provider_response_id": "resp_0da5ecaa7b7ce724016b0a81bbad9c87d08257121c3b05dfd7",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 2996,
+        "input_tokens_details": {
+          "cache_write_tokens": 2993,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 2993
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 667,
+        "output_tokens_details": {
+          "reasoning_tokens": 516
+        },
+        "total_tokens": 3663
+      },
+      "usage_based_usd": "0.000707925",
+      "audit": {
+        "sha256": "606978fe9e4930474b6277159cb5b6e9f1bb3adb2ec8a248cf8ba49843ddcb3f",
+        "size": 457,
+        "expires_at": "2026-12-28T07:24:48.922921+00:00"
+      },
+      "state": "ADMITTED",
+      "elapsed_seconds": 5.349,
+      "body_bytes": 383405,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 5,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 5,
+        "tag_correct": 5,
+        "claimed_rows": 5,
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1
+      },
+      "notes": [],
+      "expected_supplied": 5
+    },
+    {
+      "slot": "siemens-panel-drawing/1/A2",
+      "work_unit": "3d7dea36-8375-4103-b67c-07edc8e2d8ac",
+      "request_sha256": "187106770a4005c5209a69629ea80c718514a477c4be3bc3330fe5670f30d2e4",
+      "http_status": 200,
+      "provider_request_id": "req_d9e86c4b17c0480fa4caa40139e1427e",
+      "provider_seconds": 15.993,
+      "provider_response_id": "resp_09735656dc08021d016b0a81c1734887d084d5ef12887138fe",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3119,
+        "input_tokens_details": {
+          "cache_write_tokens": 3116,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 3116
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 608,
+        "output_tokens_details": {
+          "reasoning_tokens": 416
+        },
+        "total_tokens": 3727
+      },
+      "usage_based_usd": "0.0006938",
+      "audit": {
+        "sha256": "60dbddb5bb7db1b19038ee0ba092d4c7885b873d17f60f828a771a6e72706600",
+        "size": 630,
+        "expires_at": "2026-12-28T07:25:04.924931+00:00"
+      },
+      "structured_rows": 5,
+      "state": "ADMITTED",
+      "elapsed_seconds": 15.994,
+      "body_bytes": 384068,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 5,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 5,
+        "tag_correct": 5,
+        "claimed_rows": 5,
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1
+      },
+      "notes": [],
+      "expected_supplied": 5
+    },
+    {
+      "slot": "siemens-panel-drawing/1/A3",
+      "work_unit": "8b5dad5f-79fc-4801-9cbd-a6e795156506",
+      "request_sha256": "04ccecc636aefcdcbe7021e659126cb98e51e1f508c2198d766c26c0349da4ee",
+      "http_status": 200,
+      "provider_request_id": "req_05471ac3d1e849cc9b64de6d697e1db8",
+      "provider_seconds": 6.596,
+      "provider_response_id": "resp_0de700552c64c665016b0a81d10ec887d0aa0477c018721a6b",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3502,
+        "input_tokens_details": {
+          "cache_write_tokens": 3499,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 3499
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 650,
+        "output_tokens_details": {
+          "reasoning_tokens": 470
+        },
+        "total_tokens": 4152
+      },
+      "usage_based_usd": "0.000762675",
+      "audit": {
+        "sha256": "32ddebfefbc9cbe056c41e9a40a61771c501951e9c3bafef32439a2d21bbc8a6",
+        "size": 518,
+        "expires_at": "2026-12-28T07:25:11.529675+00:00"
+      },
+      "structured_rows": 5,
+      "state": "ADMITTED",
+      "elapsed_seconds": 6.597,
+      "body_bytes": 385979,
+      "reserved_usd": "0.53326680",
+      "registry_key_member_rows": 5,
+      "registry_type_correct_supplied": 5,
+      "quality": {
+        "supplied_detected": 5,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 5,
+        "tag_correct": 5,
+        "claimed_rows": 5,
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1
+      },
+      "notes": [],
+      "expected_supplied": 5
+    },
+    {
+      "slot": "schneider-panel-drawing/2/A3",
+      "work_unit": "e09c4e7f-2055-43fe-9e98-653eb9fe77c6",
+      "request_sha256": "f609d6cbaf914a74a156ffdc114a7a8f75c1fc40ff68ff9105727b1752bb5b12",
+      "http_status": 200,
+      "provider_request_id": "req_af205174fd69491c91c795eafb59261b",
+      "provider_seconds": 7.506,
+      "provider_response_id": "resp_017d918976f4edd9016b0a81e3c57c87d0ac8533da131abe68",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3502,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 3499
+        },
+        "output_tokens": 859,
+        "output_tokens_details": {
+          "reasoning_tokens": 508
+        },
+        "total_tokens": 4361
+      },
+      "usage_based_usd": "0.00046479",
+      "audit": {
+        "sha256": "9d6d1925fe228596681d7c8eb73c3ab197dbe1b9a704d52c319c27ea2637eafc",
+        "size": 1060,
+        "expires_at": "2026-12-28T07:25:30.894295+00:00"
+      },
+      "structured_rows": 11,
+      "state": "ADMITTED",
+      "elapsed_seconds": 7.507,
+      "body_bytes": 480495,
+      "reserved_usd": "0.53326680",
+      "registry_key_member_rows": 11,
+      "registry_type_correct_supplied": 9,
+      "quality": {
+        "supplied_detected": 9,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 2,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 9,
+        "tag_correct": 9,
+        "claimed_rows": 11,
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1
+      },
+      "notes": [],
+      "expected_supplied": 9
+    },
+    {
+      "slot": "schneider-panel-drawing/2/A2",
+      "work_unit": "3e88c170-8fc5-41e9-9107-296fe009098a",
+      "request_sha256": "78753d468162be751ef0811525095d6d5cd9bbb1759873a6c2f726b799f49b6a",
+      "http_status": 200,
+      "provider_request_id": "req_7e82dbc7cef044fa98aa5e9ef892bcd0",
+      "provider_seconds": 13.583,
+      "provider_response_id": "resp_0021cb134792ad02016b0a81eb05b087d08e613dc091041bfc",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3119,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 3116
+        },
+        "output_tokens": 1128,
+        "output_tokens_details": {
+          "reasoning_tokens": 647
+        },
+        "total_tokens": 4247
+      },
+      "usage_based_usd": "0.00059546",
+      "audit": {
+        "sha256": "9c67289ea83f0257ac5511afe2d3ad549807cb82a804ae4b694b53bbb319b49f",
+        "size": 1711,
+        "expires_at": "2026-12-28T07:25:44.486078+00:00"
+      },
+      "structured_rows": 11,
+      "state": "ADMITTED",
+      "elapsed_seconds": 13.585,
+      "body_bytes": 478584,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 9,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 2,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 9,
+        "tag_correct": 8,
+        "claimed_rows": 11,
+        "tag_case_only": 1,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 0
+      },
+      "notes": [],
+      "expected_supplied": 9
+    },
+    {
+      "slot": "schneider-panel-drawing/2/A1",
+      "work_unit": "60602746-1996-4423-af23-02e17f2a0346",
+      "request_sha256": "9164fd04994167459ba60b9771795ca43aadddf6c6439250929829dbe61cea53",
+      "http_status": 200,
+      "provider_request_id": "req_e200687149ec45e894e1cd7b0438fa14",
+      "provider_seconds": 9.399,
+      "provider_response_id": "resp_01fa184360bc8cc6016b0a81f8a16087d08250b42723f3cf55",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 2996,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 2993
+        },
+        "output_tokens": 1190,
+        "output_tokens_details": {
+          "reasoning_tokens": 856
+        },
+        "total_tokens": 4186
+      },
+      "usage_based_usd": "0.00062523",
+      "audit": {
+        "sha256": "9c6c4464d8ecee7b15b8f5d59a70de2e26f4e45865b1ff14774303a7aa8fb972",
+        "size": 1093,
+        "expires_at": "2026-12-28T07:25:53.891108+00:00"
+      },
+      "state": "ADMITTED",
+      "elapsed_seconds": 9.4,
+      "body_bytes": 477921,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 9,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 2,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 9,
+        "tag_correct": 9,
+        "claimed_rows": 11,
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1
+      },
+      "notes": [
+        "The model transcribed the PS accessory at both positions and still recorded them as supplied breakers."
+      ],
+      "expected_supplied": 9
+    },
+    {
+      "slot": "siemens-panel-drawing/2/A3",
+      "work_unit": "74a6500a-9b43-40b8-af82-7b513227fceb",
+      "request_sha256": "04ccecc636aefcdcbe7021e659126cb98e51e1f508c2198d766c26c0349da4ee",
+      "http_status": 200,
+      "provider_request_id": "req_9dd843c9694242dc9cf2400d4eb8ad78",
+      "provider_seconds": 4.612,
+      "provider_response_id": "resp_02a9aab3c4371276016b0a82020b6087d0b5b10c60de384e3c",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3502,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 3499
+        },
+        "output_tokens": 484,
+        "output_tokens_details": {
+          "reasoning_tokens": 298
+        },
+        "total_tokens": 3986
+      },
+      "usage_based_usd": "0.00027729",
+      "audit": {
+        "sha256": "104a6b4e794e4e85ef91ce36d42cf0f28193802072e051fdc88da2bd51432f27",
+        "size": 531,
+        "expires_at": "2026-12-28T07:25:58.514474+00:00"
+      },
+      "structured_rows": 5,
+      "state": "ADMITTED",
+      "elapsed_seconds": 4.614,
+      "body_bytes": 385979,
+      "reserved_usd": "0.53326680",
+      "registry_key_member_rows": 5,
+      "registry_type_correct_supplied": 5,
+      "quality": {
+        "supplied_detected": 5,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 5,
+        "tag_correct": 5,
+        "claimed_rows": 5,
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1
+      },
+      "notes": [],
+      "expected_supplied": 5
+    },
+    {
+      "slot": "siemens-panel-drawing/2/A2",
+      "work_unit": "356409da-1a86-4a3d-8bde-16e67cbe5bcd",
+      "request_sha256": "187106770a4005c5209a69629ea80c718514a477c4be3bc3330fe5670f30d2e4",
+      "http_status": 200,
+      "provider_request_id": "req_694dea9486254351a6069d96a0c9a4f0",
+      "provider_seconds": 7.839,
+      "provider_response_id": "resp_0746f33e0d4fa9a2016b0a8206a40c87d0bcafd56aedef2de7",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3119,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 3116
+        },
+        "output_tokens": 614,
+        "output_tokens_details": {
+          "reasoning_tokens": 428
+        },
+        "total_tokens": 3733
+      },
+      "usage_based_usd": "0.00033846",
+      "audit": {
+        "sha256": "2544b5fd84fa03b014896c0fda58eaaa36e5606ad51737ffee53e49700c215dd",
+        "size": 563,
+        "expires_at": "2026-12-28T07:26:06.363550+00:00"
+      },
+      "structured_rows": 5,
+      "state": "ADMITTED",
+      "elapsed_seconds": 7.841,
+      "body_bytes": 384068,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 5,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 5,
+        "tag_correct": 5,
+        "claimed_rows": 5,
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1
+      },
+      "notes": [],
+      "expected_supplied": 5
+    },
+    {
+      "slot": "siemens-panel-drawing/2/A1",
+      "work_unit": "b709546e-24f2-4ca2-b281-7e72ba790d25",
+      "request_sha256": "d4b4a25dc26e76b820797c4464dfba48332b45fb9192584ef0087dfa09171619",
+      "http_status": 200,
+      "provider_request_id": "req_b2c91b8c7028456d891d28ed984089ed",
+      "provider_seconds": 5.897,
+      "provider_response_id": "resp_0a6e3f2e3b5c01b0016b0a820e7d5887d098f01bdb900815fd",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 2996,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 2993
+        },
+        "output_tokens": 742,
+        "output_tokens_details": {
+          "reasoning_tokens": 591
+        },
+        "total_tokens": 3738
+      },
+      "usage_based_usd": "0.00040123",
+      "audit": {
+        "sha256": "8f599e1dc2ba9a8559d7271d499bdbbf876501286f28856fe24e108b5fabcb50",
+        "size": 458,
+        "expires_at": "2026-12-28T07:26:12.273634+00:00"
+      },
+      "state": "ADMITTED",
+      "elapsed_seconds": 5.898,
+      "body_bytes": 383405,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 5,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 5,
+        "tag_correct": 5,
+        "claimed_rows": 5,
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1
+      },
+      "notes": [],
+      "expected_supplied": 5
+    }
+  ]
+}
