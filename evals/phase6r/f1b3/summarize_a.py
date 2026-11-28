@@ -9,6 +9,7 @@ from pathlib import Path
 
 from investigation_a import HERE, Reply, digest, revised_gold, score_review
 from live_a import estimate, slots
+from live_b import trial_slots
 
 from powerforge_extraction.stage_contracts import equipment_catalog
 
@@ -69,7 +70,7 @@ def evaluate(raw, arm, review, supplied, exclusions, registry):
         tag = row["reported_tag"] if item is None else item.tag
         verdict = tag_verdict(anchor, tag, supplied)
         registry_verdict = None
-        if arm == "A3":
+        if arm in {"A3", "B1", "B2", "B3"}:
             registry_verdict = (
                 "MISSING"
                 if item.type is None
@@ -127,7 +128,7 @@ def evaluate(raw, arm, review, supplied, exclusions, registry):
         tag is not None and key not in matched for key, (_, tag) in supplied.items()
     )
     result = {"quality": quality, "observation_verdicts": rows}
-    if arm == "A3":
+    if arm in {"A3", "B1", "B2", "B3"}:
         result["registry_key_member_rows"] = sum(item.type in registry for item in structured)
         result["registry_type_correct_supplied"] = sum(
             row["primary_supplied_match"] and row["registry_classification"] == "CORRECT"
@@ -136,11 +137,18 @@ def evaluate(raw, arm, review, supplied, exclusions, registry):
     return result
 
 
-def summarize(work):
-    manifest = json.loads((HERE / "a-preflight.json").read_bytes())
-    approved_slots = {slot: (page, arm) for slot, page, arm in slots(manifest)}
+def summarize(work, campaign="a"):
+    manifest = json.loads((HERE / f"{campaign}-preflight.json").read_bytes())
+    if campaign == "a":
+        approved_slots = {slot: (page, arm) for slot, page, arm in slots(manifest)}
+    else:
+        pages = {Path(page["pdf"]).stem: page for page in manifest["pages"]}
+        approved_slots = {
+            slot: (pages[slot.split("/")[0]], slot.split("/")[-1])
+            for slot, _ in trial_slots(manifest)
+        }
     gold, revised, gold_sha = revised_gold()
-    adjudication = json.loads((HERE / "a-adjudication.json").read_bytes())["slots"]
+    adjudication = json.loads((HERE / f"{campaign}-adjudication.json").read_bytes())["slots"]
     registry = {item.key for item in equipment_catalog()}
     attempts = []
     with closing(
@@ -188,9 +196,9 @@ def summarize(work):
         summary["expected_supplied"] = len(observations)
         attempts.append(summary)
     return {
-        "version": "f1b3-investigation-a-results-v2",
+        "version": f"f1b3-investigation-{campaign}-results-v2",
         "gold_sha256": gold_sha,
-        "adjudication_sha256": digest((HERE / "a-adjudication.json").read_bytes()),
+        "adjudication_sha256": digest((HERE / f"{campaign}-adjudication.json").read_bytes()),
         "pricing": "openai-gpt-6-luna-standard-2026-11-28",
         "attempts": attempts,
     }
@@ -200,6 +208,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("audit_directory", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--campaign", choices=["a", "b"], default="a")
     args = parser.parse_args()
-    result = summarize(args.audit_directory.resolve())
+    result = summarize(args.audit_directory.resolve(), args.campaign)
     args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")

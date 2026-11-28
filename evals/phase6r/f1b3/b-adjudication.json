@@ -1,0 +1,450 @@
+{
+  "version": "f1b3-b-adjudication-v1",
+  "basis": "Reviewed each digest-bound structured observation against the pinned original page and revised gold. Circuit positions and Siemens BOM descriptions identify occurrences. Scope exclusions are classified separately.",
+  "slots": {
+    "schneider-panel-drawing/1/B1": {
+      "output_sha256": "0cd71d7683b9fc5bdc9cac730b8d5e202c693fd7dd3060f8b5d330d106b14f10",
+      "observations": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE"
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE"
+        }
+      ]
+    },
+    "schneider-panel-drawing/1/B2": {
+      "output_sha256": "7f77a3976716a47ac48ab8524ebe8506c13db505f00c36b5b2c4546a9fd008cc",
+      "observations": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE"
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE"
+        }
+      ]
+    },
+    "schneider-panel-drawing/1/B3": {
+      "output_sha256": "c5957c3fea6af11bcec9c5814d93e657e9ea0ed7d0b0f5159eb0d606e6d3c069",
+      "observations": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE"
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE"
+        }
+      ]
+    },
+    "siemens-panel-drawing/1/B2": {
+      "output_sha256": "fb4a30d6f6308079a17d94f5d00f1b8ce23d33d988bd1135bb657d48e94a0fdf",
+      "observations": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "siemens-panel-drawing/1/B3": {
+      "output_sha256": "438f7c715f7d05a8bf96b211f85045509bba7aeca58e053c2b144f01b8eed70f",
+      "observations": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "siemens-panel-drawing/1/B1": {
+      "output_sha256": "775bd880bb626d6f9539eb8b8a7590813f9b9b767f08fc720a7588a47af16fcc",
+      "observations": [
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "schneider-panel-drawing/2/B3": {
+      "output_sha256": "4cc824ec7a17cf751087fcbc4056f1ed12ffb348fdf9859a4c1525187a55636e",
+      "observations": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE"
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE"
+        }
+      ]
+    },
+    "schneider-panel-drawing/2/B2": {
+      "output_sha256": "561f3f0b862640381427a8bbe6efd4c615fb2723971ea67d34591676c678c931",
+      "observations": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE"
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE"
+        }
+      ]
+    },
+    "schneider-panel-drawing/2/B1": {
+      "output_sha256": "9b681326e2581ef1ee06c5425c44f49101781d3e35a37b0c96d3fdba204fbf99",
+      "observations": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE"
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE"
+        }
+      ]
+    },
+    "siemens-panel-drawing/2/B1": {
+      "output_sha256": "464d37103670c398f8c766eab54e84575ff26405746a6b312954c97e0e4e1736",
+      "observations": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "siemens-panel-drawing/2/B3": {
+      "output_sha256": "5ae37952e71480cf2a68f266ccbeca55f990ef827b73d9cd28a62001bb8e504d",
+      "observations": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    },
+    "siemens-panel-drawing/2/B2": {
+      "output_sha256": "6acffaecc08b50bd43085e82d29a0f0a14b09dca8dd9b70ad76bcd22de9cc8ba",
+      "observations": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT"
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT"
+        }
+      ]
+    }
+  }
+}

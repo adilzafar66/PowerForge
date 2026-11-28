@@ -1,0 +1,1544 @@
+{
+  "version": "f1b3-investigation-b-results-v2",
+  "gold_sha256": "b3a0e4cdf21f2aa65c94a9f260394ee37944e6c551b56e89cfae0eda75517be5",
+  "adjudication_sha256": "fd8c8029cb25c6584557816d379d96d8762f22ac5a985f3ca448c81de62672e2",
+  "pricing": "openai-gpt-6-luna-standard-2026-11-28",
+  "attempts": [
+    {
+      "slot": "schneider-panel-drawing/1/B1",
+      "work_unit": "ed82a0e7-75aa-47f9-8147-acd890ad0dba",
+      "request_sha256": "f609d6cbaf914a74a156ffdc114a7a8f75c1fc40ff68ff9105727b1752bb5b12",
+      "http_status": 200,
+      "provider_request_id": "req_f845b6963c0e4a7f867a8c2d6ece692b",
+      "provider_seconds": 6.476,
+      "provider_response_id": "resp_0d8797c0941c2a29016b0b355da6cc87d0949f51a1160c927e",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3502,
+        "input_tokens_details": {
+          "cache_write_tokens": 3499,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 3499
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 709,
+        "output_tokens_details": {
+          "reasoning_tokens": 350
+        },
+        "total_tokens": 4211
+      },
+      "usage_based_usd": "0.000792175",
+      "audit": {
+        "sha256": "0cd71d7683b9fc5bdc9cac730b8d5e202c693fd7dd3060f8b5d330d106b14f10",
+        "size": 1095,
+        "expires_at": "2026-12-28T20:11:15.137465+00:00"
+      },
+      "structured_rows": 11,
+      "state": "ADMITTED",
+      "elapsed_seconds": 6.477,
+      "body_bytes": 480495,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 9,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 2,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 9,
+        "tag_correct": 8,
+        "claimed_rows": 11,
+        "classification_evaluated": 9,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 1,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 10
+        },
+        "tag_case_only": 1,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "CASE_ONLY",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        }
+      ],
+      "registry_key_member_rows": 11,
+      "registry_type_correct_supplied": 9,
+      "notes": [],
+      "expected_supplied": 9
+    },
+    {
+      "slot": "schneider-panel-drawing/1/B2",
+      "work_unit": "2150a89b-7c21-4164-8e30-634943eb697a",
+      "request_sha256": "37d09c967afe3bc76e5cc0074f5b90ecd1db12ef34f364ca40945bd3e2c7c04b",
+      "http_status": 200,
+      "provider_request_id": "req_d12bcf98d88f46be9a67cf4964285da8",
+      "provider_seconds": 7.182,
+      "provider_response_id": "resp_0af989c13fec39da016b0b3563e47887d0877cef5401edc8ee",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 21783,
+        "input_tokens_details": {
+          "cache_write_tokens": 21780,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 21780
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 868,
+        "output_tokens_details": {
+          "reasoning_tokens": 516
+        },
+        "total_tokens": 22651
+      },
+      "usage_based_usd": "0.0031568",
+      "audit": {
+        "sha256": "7f77a3976716a47ac48ab8524ebe8506c13db505f00c36b5b2c4546a9fd008cc",
+        "size": 1073,
+        "expires_at": "2026-12-28T20:11:22.323731+00:00"
+      },
+      "structured_rows": 11,
+      "state": "ADMITTED",
+      "elapsed_seconds": 7.183,
+      "body_bytes": 522937,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 9,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 2,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 9,
+        "tag_correct": 8,
+        "claimed_rows": 11,
+        "classification_evaluated": 9,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 1,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 10
+        },
+        "tag_case_only": 1,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "CASE_ONLY",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        }
+      ],
+      "registry_key_member_rows": 11,
+      "registry_type_correct_supplied": 9,
+      "notes": [],
+      "expected_supplied": 9
+    },
+    {
+      "slot": "schneider-panel-drawing/1/B3",
+      "work_unit": "208eb259-e377-4bbe-ac93-21d469a1e4d5",
+      "request_sha256": "471df4ba1942442fb82c8f9e190cea2fbf583f58dfdbdb3a912aa77068180c96",
+      "http_status": 200,
+      "provider_request_id": "req_14d06fc855f5417abc0cf1df68cef886",
+      "provider_seconds": 8.635,
+      "provider_response_id": "resp_06e54fda5adf5fbd016b0b356aa08c87d0a8bcc9c7cc049b30",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 66329,
+        "input_tokens_details": {
+          "cache_write_tokens": 66326,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 66326
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 1121,
+        "output_tokens_details": {
+          "reasoning_tokens": 730
+        },
+        "total_tokens": 67450
+      },
+      "usage_based_usd": "0.00885155",
+      "audit": {
+        "sha256": "c5957c3fea6af11bcec9c5814d93e657e9ea0ed7d0b0f5159eb0d606e6d3c069",
+        "size": 1398,
+        "expires_at": "2026-12-28T20:11:30.962307+00:00"
+      },
+      "structured_rows": 11,
+      "state": "ADMITTED",
+      "elapsed_seconds": 8.636,
+      "body_bytes": 733252,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 9,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 2,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 9,
+        "tag_correct": 8,
+        "claimed_rows": 11,
+        "classification_evaluated": 9,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 1,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 10
+        },
+        "tag_case_only": 1,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "CASE_ONLY",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        }
+      ],
+      "registry_key_member_rows": 11,
+      "registry_type_correct_supplied": 9,
+      "notes": [],
+      "expected_supplied": 9
+    },
+    {
+      "slot": "siemens-panel-drawing/1/B2",
+      "work_unit": "3dffde85-4038-4687-a465-455a708b4651",
+      "request_sha256": "84d6faf3fe0c3dce748126b84a0f8da4ef33a922a36ecc8e00d17941dca1cc7f",
+      "http_status": 200,
+      "provider_request_id": "req_a35b522e3e17459d82a8044cb85bd06d",
+      "provider_seconds": 6.651,
+      "provider_response_id": "resp_0daedaa7b0442fef016b0b357340b887d0b56e0f8cb1833553",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 12248,
+        "input_tokens_details": {
+          "cache_write_tokens": 12245,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 12245
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 742,
+        "output_tokens_details": {
+          "reasoning_tokens": 563
+        },
+        "total_tokens": 12990
+      },
+      "usage_based_usd": "0.001901925",
+      "audit": {
+        "sha256": "fb4a30d6f6308079a17d94f5d00f1b8ce23d33d988bd1135bb657d48e94a0fdf",
+        "size": 520,
+        "expires_at": "2026-12-28T20:11:37.618389+00:00"
+      },
+      "structured_rows": 5,
+      "state": "ADMITTED",
+      "elapsed_seconds": 6.653,
+      "body_bytes": 405897,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 5,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 5,
+        "tag_correct": 5,
+        "claimed_rows": 5,
+        "classification_evaluated": 5,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 4
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 5,
+      "registry_type_correct_supplied": 5,
+      "notes": [],
+      "expected_supplied": 5
+    },
+    {
+      "slot": "siemens-panel-drawing/1/B3",
+      "work_unit": "99b30c95-427c-4f76-93c5-08b56f34738b",
+      "request_sha256": "7d9b032b61f6ae9e56b0d1e2c8a6f2329574fcde1b7421cb9f329e372b5c09ab",
+      "http_status": 200,
+      "provider_request_id": "req_7498543d0f00484c83a182917db6b356",
+      "provider_seconds": 5.075,
+      "provider_response_id": "resp_087dfd9c566ab26c016b0b3579d38487d0814e53c4b7c6e31b",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 34123,
+        "input_tokens_details": {
+          "cache_write_tokens": 34120,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 34120
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 591,
+        "output_tokens_details": {
+          "reasoning_tokens": 407
+        },
+        "total_tokens": 34714
+      },
+      "usage_based_usd": "0.0045608",
+      "audit": {
+        "sha256": "438f7c715f7d05a8bf96b211f85045509bba7aeca58e053c2b144f01b8eed70f",
+        "size": 551,
+        "expires_at": "2026-12-28T20:11:42.697970+00:00"
+      },
+      "structured_rows": 5,
+      "state": "ADMITTED",
+      "elapsed_seconds": 5.076,
+      "body_bytes": 507099,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 5,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 5,
+        "tag_correct": 5,
+        "claimed_rows": 5,
+        "classification_evaluated": 5,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 4
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 5,
+      "registry_type_correct_supplied": 5,
+      "notes": [],
+      "expected_supplied": 5
+    },
+    {
+      "slot": "siemens-panel-drawing/1/B1",
+      "work_unit": "2d85eca1-2bef-41d4-aa8d-007f59b10314",
+      "request_sha256": "04ccecc636aefcdcbe7021e659126cb98e51e1f508c2198d766c26c0349da4ee",
+      "http_status": 200,
+      "provider_request_id": "req_f68d495137a94fbe98bee9409e337c9a",
+      "provider_seconds": 4.982,
+      "provider_response_id": "resp_086ed6b81c565a1c016b0b357ee4e887d099cb833e3c571995",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3502,
+        "input_tokens_details": {
+          "cache_write_tokens": 3499,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 3499
+          },
+          "cached_tokens": 0
+        },
+        "output_tokens": 503,
+        "output_tokens_details": {
+          "reasoning_tokens": 329
+        },
+        "total_tokens": 4005
+      },
+      "usage_based_usd": "0.000689175",
+      "audit": {
+        "sha256": "775bd880bb626d6f9539eb8b8a7590813f9b9b767f08fc720a7588a47af16fcc",
+        "size": 507,
+        "expires_at": "2026-12-28T20:11:47.683476+00:00"
+      },
+      "structured_rows": 5,
+      "state": "ADMITTED",
+      "elapsed_seconds": 4.984,
+      "body_bytes": 385979,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 5,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 5,
+        "tag_correct": 5,
+        "claimed_rows": 5,
+        "classification_evaluated": 5,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 4
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 5,
+      "registry_type_correct_supplied": 5,
+      "notes": [],
+      "expected_supplied": 5
+    },
+    {
+      "slot": "schneider-panel-drawing/2/B3",
+      "work_unit": "e49f13d1-1a94-496c-bab4-064ee3772119",
+      "request_sha256": "471df4ba1942442fb82c8f9e190cea2fbf583f58dfdbdb3a912aa77068180c96",
+      "http_status": 200,
+      "provider_request_id": "req_0f7c99097d2e4e74b0f8be3fb87e1665",
+      "provider_seconds": 8.912,
+      "provider_response_id": "resp_0774e2db9a5076ea016b0b3583e6ec87d09e55379d16d8c5f2",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 66329,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 66326
+        },
+        "output_tokens": 1103,
+        "output_tokens_details": {
+          "reasoning_tokens": 719
+        },
+        "total_tokens": 67432
+      },
+      "usage_based_usd": "0.00121506",
+      "audit": {
+        "sha256": "4cc824ec7a17cf751087fcbc4056f1ed12ffb348fdf9859a4c1525187a55636e",
+        "size": 1209,
+        "expires_at": "2026-12-28T20:11:56.600157+00:00"
+      },
+      "structured_rows": 11,
+      "state": "ADMITTED",
+      "elapsed_seconds": 8.913,
+      "body_bytes": 733252,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 9,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 2,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 9,
+        "tag_correct": 8,
+        "claimed_rows": 11,
+        "classification_evaluated": 9,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 1,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 10
+        },
+        "tag_case_only": 1,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "CASE_ONLY",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        }
+      ],
+      "registry_key_member_rows": 11,
+      "registry_type_correct_supplied": 9,
+      "notes": [],
+      "expected_supplied": 9
+    },
+    {
+      "slot": "schneider-panel-drawing/2/B2",
+      "work_unit": "58972546-ff69-41a7-8576-cf0216550c58",
+      "request_sha256": "37d09c967afe3bc76e5cc0074f5b90ecd1db12ef34f364ca40945bd3e2c7c04b",
+      "http_status": 200,
+      "provider_request_id": "req_b185f968e9d640c0aecb010205b2eba9",
+      "provider_seconds": 5.934,
+      "provider_response_id": "resp_0c87a04f71b4d94b016b0b358cd4a887d097e357b355596bb6",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 21783,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 21780
+        },
+        "output_tokens": 778,
+        "output_tokens_details": {
+          "reasoning_tokens": 516
+        },
+        "total_tokens": 22561
+      },
+      "usage_based_usd": "0.0006071",
+      "audit": {
+        "sha256": "561f3f0b862640381427a8bbe6efd4c615fb2723971ea67d34591676c678c931",
+        "size": 1031,
+        "expires_at": "2026-12-28T20:12:02.540234+00:00"
+      },
+      "structured_rows": 11,
+      "state": "ADMITTED",
+      "elapsed_seconds": 5.936,
+      "body_bytes": 522937,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 9,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 2,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 9,
+        "tag_correct": 8,
+        "claimed_rows": 11,
+        "classification_evaluated": 9,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 1,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 10
+        },
+        "tag_case_only": 1,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "CASE_ONLY",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        }
+      ],
+      "registry_key_member_rows": 11,
+      "registry_type_correct_supplied": 9,
+      "notes": [],
+      "expected_supplied": 9
+    },
+    {
+      "slot": "schneider-panel-drawing/2/B1",
+      "work_unit": "db0604b8-d8bd-43bd-907e-77876bfebafa",
+      "request_sha256": "f609d6cbaf914a74a156ffdc114a7a8f75c1fc40ff68ff9105727b1752bb5b12",
+      "http_status": 200,
+      "provider_request_id": "req_0ee10baae8784244ac6357d3f013228d",
+      "provider_seconds": 6.196,
+      "provider_response_id": "resp_068b39fe72c300b7016b0b3592bfa087d0bdde86fa0c648320",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3502,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 3499
+        },
+        "output_tokens": 867,
+        "output_tokens_details": {
+          "reasoning_tokens": 509
+        },
+        "total_tokens": 4369
+      },
+      "usage_based_usd": "0.00046879",
+      "audit": {
+        "sha256": "9b681326e2581ef1ee06c5425c44f49101781d3e35a37b0c96d3fdba204fbf99",
+        "size": 1089,
+        "expires_at": "2026-12-28T20:12:08.740998+00:00"
+      },
+      "structured_rows": 11,
+      "state": "ADMITTED",
+      "elapsed_seconds": 6.197,
+      "body_bytes": 480495,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 9,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 2,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 9,
+        "tag_correct": 9,
+        "claimed_rows": 11,
+        "classification_evaluated": 9,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 10
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        }
+      ],
+      "registry_key_member_rows": 11,
+      "registry_type_correct_supplied": 9,
+      "notes": [],
+      "expected_supplied": 9
+    },
+    {
+      "slot": "siemens-panel-drawing/2/B1",
+      "work_unit": "a6dbdc95-882d-49e6-8adf-40ece4b4f6f1",
+      "request_sha256": "04ccecc636aefcdcbe7021e659126cb98e51e1f508c2198d766c26c0349da4ee",
+      "http_status": 200,
+      "provider_request_id": "req_7fd0f29fa4b3441e8da7fce9977762d9",
+      "provider_seconds": 3.642,
+      "provider_response_id": "resp_05c25769584d0c4c016b0b3598f10887d08849c65e916c54ac",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 3502,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 3499
+        },
+        "output_tokens": 446,
+        "output_tokens_details": {
+          "reasoning_tokens": 271
+        },
+        "total_tokens": 3948
+      },
+      "usage_based_usd": "0.00025829",
+      "audit": {
+        "sha256": "464d37103670c398f8c766eab54e84575ff26405746a6b312954c97e0e4e1736",
+        "size": 506,
+        "expires_at": "2026-12-28T20:12:12.387775+00:00"
+      },
+      "structured_rows": 5,
+      "state": "ADMITTED",
+      "elapsed_seconds": 3.644,
+      "body_bytes": 385979,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 5,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 5,
+        "tag_correct": 5,
+        "claimed_rows": 5,
+        "classification_evaluated": 5,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 4
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 5,
+      "registry_type_correct_supplied": 5,
+      "notes": [],
+      "expected_supplied": 5
+    },
+    {
+      "slot": "siemens-panel-drawing/2/B3",
+      "work_unit": "3edc5593-a0a3-4ad1-91ad-0ee41edfec0f",
+      "request_sha256": "7d9b032b61f6ae9e56b0d1e2c8a6f2329574fcde1b7421cb9f329e372b5c09ab",
+      "http_status": 200,
+      "provider_request_id": "req_95a7f9bcfd6743249bec25937b5d9f46",
+      "provider_seconds": 4.939,
+      "provider_response_id": "resp_0503d4aebff784c0016b0b359ca18c87d0aa11ad11cb41b349",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 34123,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 34120
+        },
+        "output_tokens": 474,
+        "output_tokens_details": {
+          "reasoning_tokens": 283
+        },
+        "total_tokens": 34597
+      },
+      "usage_based_usd": "0.0005785",
+      "audit": {
+        "sha256": "5ae37952e71480cf2a68f266ccbeca55f990ef827b73d9cd28a62001bb8e504d",
+        "size": 545,
+        "expires_at": "2026-12-28T20:12:17.333592+00:00"
+      },
+      "structured_rows": 5,
+      "state": "ADMITTED",
+      "elapsed_seconds": 4.941,
+      "body_bytes": 507099,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 5,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 5,
+        "tag_correct": 5,
+        "claimed_rows": 5,
+        "classification_evaluated": 5,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 4
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 5,
+      "registry_type_correct_supplied": 5,
+      "notes": [],
+      "expected_supplied": 5
+    },
+    {
+      "slot": "siemens-panel-drawing/2/B2",
+      "work_unit": "f5566b56-273d-4442-a8ce-5a5a39b77d8a",
+      "request_sha256": "84d6faf3fe0c3dce748126b84a0f8da4ef33a922a36ecc8e00d17941dca1cc7f",
+      "http_status": 200,
+      "provider_request_id": "req_2c44c5a8ce0f433184026d046bca47f4",
+      "provider_seconds": 5.76,
+      "provider_response_id": "resp_082bdd99f5060132016b0b35a18de487d09c9dcaea63c9a75c",
+      "model": "gpt-6-luna",
+      "service_tier": "default",
+      "provider_status": "completed",
+      "usage": {
+        "input_tokens": 12248,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cache_write_tokens_details": {
+            "ttl_12h_tokens": 0,
+            "ttl_30m_tokens": 0
+          },
+          "cached_tokens": 12245
+        },
+        "output_tokens": 682,
+        "output_tokens_details": {
+          "reasoning_tokens": 505
+        },
+        "total_tokens": 12930
+      },
+      "usage_based_usd": "0.00046375",
+      "audit": {
+        "sha256": "6acffaecc08b50bd43085e82d29a0f0a14b09dca8dd9b70ad76bcd22de9cc8ba",
+        "size": 512,
+        "expires_at": "2026-12-28T20:12:23.098711+00:00"
+      },
+      "structured_rows": 5,
+      "state": "ADMITTED",
+      "elapsed_seconds": 5.761,
+      "body_bytes": 405897,
+      "reserved_usd": "0.53326680",
+      "quality": {
+        "supplied_detected": 5,
+        "missing_supplied": 0,
+        "duplicate_claims": 0,
+        "prepared_space": 0,
+        "reference_only": 0,
+        "other_excluded": 0,
+        "unresolved": 0,
+        "classification_correct": 5,
+        "tag_correct": 5,
+        "claimed_rows": 5,
+        "classification_evaluated": 5,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 4
+        },
+        "tag_case_only": 0,
+        "expected_tagged": 1,
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
+      },
+      "observation_verdicts": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 5,
+      "registry_type_correct_supplied": 5,
+      "notes": [],
+      "expected_supplied": 5
+    }
+  ]
+}

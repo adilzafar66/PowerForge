@@ -1,0 +1,99 @@
+{
+  "version": "f1b3-investigation-b-v1",
+  "gold_sha256": "b3a0e4cdf21f2aa65c94a9f260394ee37944e6c551b56e89cfae0eda75517be5",
+  "a_manifest_sha256": "3f85e08e9753cb8755d3b9d28b4aacb75cd691105c5ab67eb74b719feba10197",
+  "provider_calls": 0,
+  "max_calls": 12,
+  "hard_cap_usd": "6.60",
+  "retries": 0,
+  "orders": {
+    "Schneider": [
+      [
+        "B1",
+        "B2",
+        "B3"
+      ],
+      [
+        "B3",
+        "B2",
+        "B1"
+      ]
+    ],
+    "Siemens": [
+      [
+        "B2",
+        "B3",
+        "B1"
+      ],
+      [
+        "B1",
+        "B3",
+        "B2"
+      ]
+    ]
+  },
+  "pages": [
+    {
+      "pdf": "schneider-panel-drawing.pdf",
+      "pdf_page": 1,
+      "pdf_sha256": "513a14ed1df6ca88b1ba03808021527e3bf1cd2fed2657f00ddefef15f6299d9",
+      "image_sha256": "143e4f6d36473578726297f2b2f1e35e81bd6421c3c5543214546c427ce8cd30",
+      "preparation": "hybrid_300_line_removal",
+      "ocr_producer_sha256": "4a8a8a4e62cdcc8b31e3e2ecacc0798cc33aacc7593d8ce6dc9384130f30a44b",
+      "layout_rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+      "reading_count": 500,
+      "readings_with_alternatives": 97,
+      "requests": {
+        "B1": {
+          "body_sha256": "f609d6cbaf914a74a156ffdc114a7a8f75c1fc40ff68ff9105727b1752bb5b12",
+          "body_bytes": 480495,
+          "source_projection_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_projection_bytes": 0
+        },
+        "B2": {
+          "body_sha256": "37d09c967afe3bc76e5cc0074f5b90ecd1db12ef34f364ca40945bd3e2c7c04b",
+          "body_bytes": 522937,
+          "source_projection_sha256": "534523e8b1afc75e9a7b0b6198770aeaddd313f4aff56bd579dcdcd6099412b8",
+          "source_projection_bytes": 40710
+        },
+        "B3": {
+          "body_sha256": "471df4ba1942442fb82c8f9e190cea2fbf583f58dfdbdb3a912aa77068180c96",
+          "body_bytes": 733252,
+          "source_projection_sha256": "4af6ac6d809ce6f8bfca2788405bcdfa909f467cbe487568ded56576c4e2c283",
+          "source_projection_bytes": 211857
+        }
+      }
+    },
+    {
+      "pdf": "siemens-panel-drawing.pdf",
+      "pdf_page": 1,
+      "pdf_sha256": "ef70737c70a64667e65214888c39f4981c09e6b99c160021b9004e17f6cc8499",
+      "image_sha256": "f9cddd041da232cb4d5c807d5b893430978f47f95e27a18fd1300b3622d85b9d",
+      "preparation": "native",
+      "ocr_producer_sha256": null,
+      "layout_rules_sha256": "00ea014d8f303247e42977e0f73c2bfa033832c67e34c21e619da453a1d2bc62",
+      "reading_count": 252,
+      "readings_with_alternatives": 0,
+      "requests": {
+        "B1": {
+          "body_sha256": "04ccecc636aefcdcbe7021e659126cb98e51e1f508c2198d766c26c0349da4ee",
+          "body_bytes": 385979,
+          "source_projection_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source_projection_bytes": 0
+        },
+        "B2": {
+          "body_sha256": "84d6faf3fe0c3dce748126b84a0f8da4ef33a922a36ecc8e00d17941dca1cc7f",
+          "body_bytes": 405897,
+          "source_projection_sha256": "f31cc233cb81e398480d0d356370dc1828d177b88c03d72c239246a2a32cc570",
+          "source_projection_bytes": 19100
+        },
+        "B3": {
+          "body_sha256": "7d9b032b61f6ae9e56b0d1e2c8a6f2329574fcde1b7421cb9f329e372b5c09ab",
+          "body_bytes": 507099,
+          "source_projection_sha256": "24e9ce19b801ebceb624c0c42ce94b15246e0eed0a5584faf269aa322acb6c02",
+          "source_projection_bytes": 102100
+        }
+      }
+    }
+  ]
+}

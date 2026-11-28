@@ -33,7 +33,8 @@ def test_tag_verdict(anchor, tag, verdict):
     )
 
 
-def test_wrong_recognition_is_scored_and_not_rejected():
+@pytest.mark.parametrize("arm", ["A3", "B1", "B2", "B3"])
+def test_wrong_recognition_is_scored_and_not_rejected(arm):
     raw = json.dumps(
         {
             "equipment": [
@@ -52,7 +53,7 @@ def test_wrong_recognition_is_scored_and_not_rejected():
     }
     result = evaluate(
         raw,
-        "A3",
+        arm,
         review,
         {"panel": ("BUS", "P1"), "breaker": ("LV_BREAKER", None), "other": ("BUS", "P2")},
         {"upstream": "REFERENCE_ONLY"},
