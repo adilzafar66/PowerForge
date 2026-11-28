@@ -60,6 +60,11 @@ def checked_gold(source_dir):
     """Reuse verified source anchors, applying a separate, pinned supplied-scope fixture."""
     previous = read_gold()
     check_corpus(previous, source_dir)
+    return revised_gold(previous)
+
+
+def revised_gold(previous=None):
+    previous = previous if previous is not None else read_gold()
     raw = (HERE / "recognition-gold-v1.json").read_bytes()
     fixture = json.loads(raw)
     if fixture["anchor_fixture_sha256"] != digest(
@@ -94,8 +99,14 @@ def checked_gold(source_dir):
                 not in ({"single"} if len(members) == 1 else {"established", "unresolved"})
             ):
                 raise ValueError("Invalid configuration membership or equivalence")
-            members = [anchors[member] for member in members]
-            if len({(item.registry_type, item.tag) for item in members}) != 1:
+            identities = {
+                (
+                    anchors[key].registry_type,
+                    rule.get("tag_overrides", {}).get(key, anchors[key].tag),
+                )
+                for key in members
+            }
+            if len(identities) != 1:
                 raise ValueError("Configuration contains different types or tags")
             memberships.update(config["members"])
         if memberships != supplied:

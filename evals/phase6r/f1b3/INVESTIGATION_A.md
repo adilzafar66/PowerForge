@@ -81,3 +81,9 @@ The focused F1-B1 and Investigation A suites passed **22 tests**, including exac
     PYTHONPATH=evals/phase6r/f1a:evals/phase6r/f1b .venv/bin/python \
       evals/phase6r/f1b3/summarize_a.py "$F1B3_A_AUDIT_DIRECTORY" /tmp/f1b3-a-results.json
     cmp evals/phase6r/f1b3/a-results.json /tmp/f1b3-a-results.json
+
+### Scoring correction replay
+
+Replayed all twelve exact retained outputs with the corrected scorer. The revised F1-B3 fixture now controls supplied scope and tag expectations. Semantic classification comes from explicit, digest-bound observation verdicts. A3 registry membership and expected-key correctness are scored independently. The tag review distinguishes exact, case-only, missing, incorrect, invented and wrong-owner claims, and counts expected tags on missed occurrences separately. Primary occurrence accuracy gives each supplied occurrence at most one vote. Extras and duplicates remain visible in observation-level diagnostics.
+
+Every previously reported per-attempt field reproduced unchanged. All 84 matched observations were explicitly rated semantically correct, and A3 matched all 28 expected supplied registry types. Eight of twelve expected tags matched exactly and four differed only by capitalization. The scope and tag overrides affect Eaton, which was outside the approved live Investigation A sample. All twelve Schneider prepared-space errors remain in the baseline. The corrected export adds diagnostic detail without changing any experiment inputs or sending provider requests. The focused suites passed 31 tests.

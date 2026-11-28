@@ -1,6 +1,7 @@
 {
-  "version": "f1b3-investigation-a-results-v1",
-  "adjudication_sha256": "ccba4673c0545134ba9fce86a2963b3af4b2987a27484c63c810a45b8fd69e67",
+  "version": "f1b3-investigation-a-results-v2",
+  "gold_sha256": "b3a0e4cdf21f2aa65c94a9f260394ee37944e6c551b56e89cfae0eda75517be5",
+  "adjudication_sha256": "42534d085985756a57e3f1630ae9988426ad8fadef94dfcbb960d637b7cfa708",
   "pricing": "openai-gpt-6-luna-standard-2026-11-28",
   "attempts": [
     {
@@ -51,10 +52,101 @@
         "classification_correct": 9,
         "tag_correct": 8,
         "claimed_rows": 11,
+        "classification_evaluated": 9,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 1,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 10
+        },
         "tag_case_only": 1,
         "expected_tagged": 1,
-        "exact_tagged_matches": 0
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
       },
+      "observation_verdicts": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "CASE_ONLY",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": false
+        }
+      ],
       "notes": [
         "The model described 4.50-inch frames at both provision positions."
       ],
@@ -109,10 +201,108 @@
         "classification_correct": 9,
         "tag_correct": 8,
         "claimed_rows": 12,
+        "classification_evaluated": 9,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 1,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 11
+        },
         "tag_case_only": 1,
         "expected_tagged": 1,
-        "exact_tagged_matches": 0
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
       },
+      "observation_verdicts": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "CASE_ONLY",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-9/accessory",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": false
+        }
+      ],
       "notes": [
         "Ammeter in the circuit 9 accessories column became an additional standalone observation."
       ],
@@ -156,8 +346,6 @@
       "elapsed_seconds": 7.462,
       "body_bytes": 480495,
       "reserved_usd": "0.53326680",
-      "registry_key_member_rows": 11,
-      "registry_type_correct_supplied": 9,
       "quality": {
         "supplied_detected": 9,
         "missing_supplied": 0,
@@ -169,10 +357,103 @@
         "classification_correct": 9,
         "tag_correct": 8,
         "claimed_rows": 11,
+        "classification_evaluated": 9,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 1,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 10
+        },
         "tag_case_only": 1,
         "expected_tagged": 1,
-        "exact_tagged_matches": 0
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
       },
+      "observation_verdicts": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "CASE_ONLY",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        }
+      ],
+      "registry_key_member_rows": 11,
+      "registry_type_correct_supplied": 9,
       "notes": [],
       "expected_supplied": 9
     },
@@ -224,10 +505,59 @@
         "classification_correct": 5,
         "tag_correct": 5,
         "claimed_rows": 5,
+        "classification_evaluated": 5,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 4
+        },
         "tag_case_only": 0,
         "expected_tagged": 1,
-        "exact_tagged_matches": 1
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
       },
+      "observation_verdicts": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        }
+      ],
       "notes": [],
       "expected_supplied": 5
     },
@@ -280,10 +610,59 @@
         "classification_correct": 5,
         "tag_correct": 5,
         "claimed_rows": 5,
+        "classification_evaluated": 5,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 4
+        },
         "tag_case_only": 0,
         "expected_tagged": 1,
-        "exact_tagged_matches": 1
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
       },
+      "observation_verdicts": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        }
+      ],
       "notes": [],
       "expected_supplied": 5
     },
@@ -325,8 +704,6 @@
       "elapsed_seconds": 6.597,
       "body_bytes": 385979,
       "reserved_usd": "0.53326680",
-      "registry_key_member_rows": 5,
-      "registry_type_correct_supplied": 5,
       "quality": {
         "supplied_detected": 5,
         "missing_supplied": 0,
@@ -338,10 +715,61 @@
         "classification_correct": 5,
         "tag_correct": 5,
         "claimed_rows": 5,
+        "classification_evaluated": 5,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 4
+        },
         "tag_case_only": 0,
         "expected_tagged": 1,
-        "exact_tagged_matches": 1
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
       },
+      "observation_verdicts": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 5,
+      "registry_type_correct_supplied": 5,
       "notes": [],
       "expected_supplied": 5
     },
@@ -383,8 +811,6 @@
       "elapsed_seconds": 7.507,
       "body_bytes": 480495,
       "reserved_usd": "0.53326680",
-      "registry_key_member_rows": 11,
-      "registry_type_correct_supplied": 9,
       "quality": {
         "supplied_detected": 9,
         "missing_supplied": 0,
@@ -396,10 +822,103 @@
         "classification_correct": 9,
         "tag_correct": 9,
         "claimed_rows": 11,
+        "classification_evaluated": 9,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 10
+        },
         "tag_case_only": 0,
         "expected_tagged": 1,
-        "exact_tagged_matches": 1
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
       },
+      "observation_verdicts": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "NOT_APPLICABLE",
+          "primary_supplied_match": false
+        }
+      ],
+      "registry_key_member_rows": 11,
+      "registry_type_correct_supplied": 9,
       "notes": [],
       "expected_supplied": 9
     },
@@ -452,10 +971,101 @@
         "classification_correct": 9,
         "tag_correct": 8,
         "claimed_rows": 11,
+        "classification_evaluated": 9,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 0,
+          "CASE_ONLY": 1,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 10
+        },
         "tag_case_only": 1,
         "expected_tagged": 1,
-        "exact_tagged_matches": 0
+        "exact_tagged_matches": 0,
+        "undetected_tagged_occurrences": 0
       },
+      "observation_verdicts": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "CASE_ONLY",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": false
+        }
+      ],
       "notes": [],
       "expected_supplied": 9
     },
@@ -507,10 +1117,101 @@
         "classification_correct": 9,
         "tag_correct": 9,
         "claimed_rows": 11,
+        "classification_evaluated": 9,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 10
+        },
         "tag_case_only": 0,
         "expected_tagged": 1,
-        "exact_tagged_matches": 1
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
       },
+      "observation_verdicts": [
+        {
+          "anchor": "panel",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-1",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-2",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-3",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-4",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-5",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-7",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": false
+        },
+        {
+          "anchor": "breaker-8",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "breaker-9",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "ps-10",
+          "semantic_classification": "NOT_APPLICABLE",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": false
+        }
+      ],
       "notes": [
         "The model transcribed the PS accessory at both positions and still recorded them as supplied breakers."
       ],
@@ -554,8 +1255,6 @@
       "elapsed_seconds": 4.614,
       "body_bytes": 385979,
       "reserved_usd": "0.53326680",
-      "registry_key_member_rows": 5,
-      "registry_type_correct_supplied": 5,
       "quality": {
         "supplied_detected": 5,
         "missing_supplied": 0,
@@ -567,10 +1266,61 @@
         "classification_correct": 5,
         "tag_correct": 5,
         "claimed_rows": 5,
+        "classification_evaluated": 5,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 4
+        },
         "tag_case_only": 0,
         "expected_tagged": 1,
-        "exact_tagged_matches": 1
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
       },
+      "observation_verdicts": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": "CORRECT",
+          "primary_supplied_match": true
+        }
+      ],
+      "registry_key_member_rows": 5,
+      "registry_type_correct_supplied": 5,
       "notes": [],
       "expected_supplied": 5
     },
@@ -623,10 +1373,59 @@
         "classification_correct": 5,
         "tag_correct": 5,
         "claimed_rows": 5,
+        "classification_evaluated": 5,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 4
+        },
         "tag_case_only": 0,
         "expected_tagged": 1,
-        "exact_tagged_matches": 1
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
       },
+      "observation_verdicts": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        }
+      ],
       "notes": [],
       "expected_supplied": 5
     },
@@ -678,10 +1477,59 @@
         "classification_correct": 5,
         "tag_correct": 5,
         "claimed_rows": 5,
+        "classification_evaluated": 5,
+        "classification_accuracy": 1.0,
+        "tag_verdict_counts": {
+          "EXACT": 1,
+          "CASE_ONLY": 0,
+          "MISSING": 0,
+          "INCORRECT": 0,
+          "INVENTED": 0,
+          "WRONG_OWNER": 0,
+          "ABSENT_AS_EXPECTED": 4
+        },
         "tag_case_only": 0,
         "expected_tagged": 1,
-        "exact_tagged_matches": 1
+        "exact_tagged_matches": 1,
+        "undetected_tagged_occurrences": 0
       },
+      "observation_verdicts": [
+        {
+          "anchor": "lineup",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "EXACT",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "main-wl",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cmd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cjd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        },
+        {
+          "anchor": "branch-cnd6",
+          "semantic_classification": "CORRECT",
+          "tag_verdict": "ABSENT_AS_EXPECTED",
+          "registry_classification": null,
+          "primary_supplied_match": true
+        }
+      ],
       "notes": [],
       "expected_supplied": 5
     }
